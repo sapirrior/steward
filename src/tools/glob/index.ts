@@ -99,9 +99,18 @@ export const globTool: ToolDefinition<typeof globInputSchema, GlobOutput> = {
     const startTime = Date.now();
     const searchRoot = args.path
       ? isAbsolute(args.path)
-        ? args.path
+        ? resolve(args.path)
         : resolve(context.cwd, args.path)
       : context.cwd;
+
+    const normCwd = resolve(context.cwd);
+    const normTarget = resolve(searchRoot);
+    const prefix = normCwd.endsWith('/') ? normCwd : `${normCwd}/`;
+    if (normTarget !== normCwd && !normTarget.startsWith(prefix)) {
+      throw new Error(
+        `Access denied: path "${args.path}" resolves outside the trusted workspace root ("${context.cwd}").`,
+      );
+    }
 
     const limit = args.limit ?? 100;
     const pattern = args.pattern.trim();

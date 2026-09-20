@@ -50,9 +50,18 @@ export const listDirTool: ToolDefinition<typeof listDirInputSchema, ListDirOutpu
   execute: async (args, context) => {
     const targetPath = args.path
       ? isAbsolute(args.path)
-        ? args.path
+        ? resolve(args.path)
         : resolve(context.cwd, args.path)
       : context.cwd;
+
+    const normCwd = resolve(context.cwd);
+    const normTarget = resolve(targetPath);
+    const prefix = normCwd.endsWith('/') ? normCwd : `${normCwd}/`;
+    if (normTarget !== normCwd && !normTarget.startsWith(prefix)) {
+      throw new Error(
+        `Access denied: path "${args.path}" resolves outside the trusted workspace root ("${context.cwd}").`,
+      );
+    }
 
     const rawEntries = readdirSync(targetPath, { withFileTypes: true });
     const entries: DirEntryInfo[] = [];

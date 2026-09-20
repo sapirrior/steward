@@ -143,6 +143,10 @@ export function buildRewindItems(session: SessionData, cwd: string): RewindItem[
 }
 
 export default class RewindMenu extends SelectList<RewindItem> {
+  override wrap = false;
+  override clip = true;
+  override ellipsis = false;
+
   constructor(props: RewindMenuProps) {
     const items = buildRewindItems(props.session, props.cwd);
 

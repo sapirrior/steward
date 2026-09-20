@@ -28,6 +28,15 @@ export interface PermissionQueueOptions {
   onHide: () => void;
 }
 
+function settleItem(item: QueuedPermissionItem, allowed: boolean): void {
+  item.settled = true;
+  if (item.kind === 'bash') {
+    item.resolve({ allowed });
+  } else {
+    item.resolve({ allowed });
+  }
+}
+
 export class PermissionQueue {
   private queue: QueuedPermissionItem[] = [];
   private activeItem: QueuedPermissionItem | null = null;
@@ -118,11 +127,10 @@ export class PermissionQueue {
       return;
     }
 
-    current.settled = true;
     this.activeItem = null;
     this.onHide();
 
-    current.resolve({ allowed } as any);
+    settleItem(current, allowed);
     this.processNext();
   }
 
@@ -130,18 +138,16 @@ export class PermissionQueue {
     if (item.settled) return;
 
     if (this.activeItem === item) {
-      item.settled = true;
       this.activeItem = null;
       this.onHide();
-      item.resolve({ allowed: false } as any);
+      settleItem(item, false);
       this.processNext();
     } else {
       const idx = this.queue.indexOf(item);
       if (idx !== -1) {
         this.queue.splice(idx, 1);
       }
-      item.settled = true;
-      item.resolve({ allowed: false } as any);
+      settleItem(item, false);
     }
   }
 
@@ -150,8 +156,7 @@ export class PermissionQueue {
       const next = this.queue.shift()!;
       if (next.settled || next.abortSignal?.aborted) {
         if (!next.settled) {
-          next.settled = true;
-          next.resolve({ allowed: false } as any);
+          settleItem(next, false);
         }
         continue;
       }
@@ -166,17 +171,16 @@ export class PermissionQueue {
 
   public clear(): void {
     if (this.activeItem && !this.activeItem.settled) {
-      this.activeItem.settled = true;
-      this.activeItem.resolve({ allowed: false } as any);
+      const active = this.activeItem;
       this.activeItem = null;
       this.onHide();
+      settleItem(active, false);
     }
 
     while (this.queue.length > 0) {
       const item = this.queue.shift()!;
       if (!item.settled) {
-        item.settled = true;
-        item.resolve({ allowed: false } as any);
+        settleItem(item, false);
       }
     }
   }

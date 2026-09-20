@@ -1,23 +1,11 @@
-import { randomUUID } from 'node:crypto';
-import {
-  chmodSync,
-  closeSync,
-  existsSync,
-  fsyncSync,
-  openSync,
-  readFileSync,
-  renameSync,
-  statSync,
-  unlinkSync,
-  writeSync,
-} from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { z } from 'zod';
 import chalk from 'chalk';
 import { getTheme } from '../../theme/index.js';
 import { themeColor, themeBgColor } from '../../tui/utils/format.js';
 import { resolveDirectMutationPath } from '../../services/checkpoint/path.js';
 import { buildUnifiedDiff } from '../../utils/diff.js';
+import { atomicWriteFileSync } from '../../utils/atomic-write.js';
 import type { ToolDefinition } from '../types.js';
 
 export const editFileInputSchema = z.object({
@@ -228,74 +216,25 @@ export const editFileTool: ToolDefinition<typeof editFileInputSchema, EditFileOu
         );
       }
 
-      // 5. Compute actual line deltas
-      const beforeLines = currentContent.split(/\r?\n/);
-      const afterLines = updatedContent.split(/\r?\n/);
-      const lineDelta = afterLines.length - beforeLines.length;
-
+      // 5. Compute actual line deltas directly from unified diff
+      const diff = buildUnifiedDiff(currentContent, updatedContent, 0);
       let addedLines = 0;
       let removedLines = 0;
-
-      const oldLinesInMatch = args.old_string.split(/\r?\n/).length;
-      const newLinesInMatch = args.new_string.split(/\r?\n/).length;
-      const totalReplacedOccurrences = args.replace_all ? matchCount : 1;
-
-      if (
-        oldLinesInMatch === newLinesInMatch &&
-        !args.old_string.includes('\n') &&
-        !args.new_string.includes('\n')
-      ) {
-        // Single-line modified in place
-        addedLines = totalReplacedOccurrences;
-        removedLines = totalReplacedOccurrences;
-      } else {
-        removedLines =
-          (oldLinesInMatch - 1) * totalReplacedOccurrences +
-          (lineDelta < 0 ? Math.abs(lineDelta) : 0);
-        addedLines =
-          (newLinesInMatch - 1) * totalReplacedOccurrences + (lineDelta > 0 ? lineDelta : 0);
-        if (addedLines === 0 && removedLines === 0 && args.old_string !== args.new_string) {
-          addedLines = totalReplacedOccurrences;
-          removedLines = totalReplacedOccurrences;
+      for (const hunk of diff.hunks) {
+        for (const line of hunk.lines) {
+          if (line.kind === 'addition') addedLines++;
+          if (line.kind === 'deletion') removedLines++;
         }
       }
 
       // 6. Atomic file write
-      const newBuffer = Buffer.from(updatedContent, 'utf-8');
-      const dir = dirname(targetPath);
       let existingMode = 0o644;
       try {
         existingMode = statSync(targetPath).mode;
       } catch {}
 
-      const tmpPath = join(dir, `.tmp-edit-${randomUUID().slice(0, 8)}`);
-
-      let fd: number | null = null;
-      try {
-        fd = openSync(tmpPath, 'w', existingMode);
-        writeSync(fd, newBuffer, 0, newBuffer.length);
-        fsyncSync(fd);
-        closeSync(fd);
-        fd = null;
-
-        try {
-          chmodSync(tmpPath, existingMode);
-        } catch {}
-
-        renameSync(tmpPath, targetPath);
-      } catch (err) {
-        if (fd !== null) {
-          try {
-            closeSync(fd);
-          } catch {}
-        }
-        if (existsSync(tmpPath)) {
-          try {
-            unlinkSync(tmpPath);
-          } catch {}
-        }
-        throw err;
-      }
+      const newBuffer = Buffer.from(updatedContent, 'utf-8');
+      atomicWriteFileSync(targetPath, newBuffer, { mode: existingMode });
 
       // 7. Complete checkpoint mutation
       if (context.checkpointTracker) {

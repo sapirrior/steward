@@ -56,7 +56,7 @@ function formatTodoListSummary(todos: TodoItem[], maxItems = 10): string {
 }
 
 export const todoWriteTool: ToolDefinition<typeof todoWriteParamsSchema, PersistedTodoList> = {
-  name: 'TodoWrite',
+  name: 'todo_write',
   displayName: 'TodoWrite',
   icon: '📝',
   description:

@@ -46,7 +46,7 @@ function formatTodoListSummary(todos: TodoItem[], maxItems = 10): string {
 }
 
 export const todoReadTool: ToolDefinition<typeof todoReadParamsSchema, TodoReadResult> = {
-  name: 'TodoRead',
+  name: 'todo_read',
   displayName: 'TodoRead',
   icon: '📋',
   description:

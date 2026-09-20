@@ -17,6 +17,7 @@ export const MAX_RETAINED_TERMINAL_TASKS = 50;
 export class ShellTaskManager {
   private tasks = new Map<string, ShellExecution>();
   private terminalTimestamps = new Map<string, number>();
+  private evictedTaskReasons = new Map<string, string>();
   private isShuttingDown = false;
 
   /**
@@ -75,7 +76,7 @@ export class ShellTaskManager {
     this.evictExpiredTasks();
     const exec = this.tasks.get(taskId);
     if (!exec) {
-      throw new Error(`Task "${taskId}" not found or expired.`);
+      throw this.getTaskNotFoundError(taskId);
     }
 
     const rawOutput = exec.getRecentOutput();
@@ -102,7 +103,7 @@ export class ShellTaskManager {
     this.evictExpiredTasks();
     const exec = this.tasks.get(taskId);
     if (!exec) {
-      throw new Error(`Task "${taskId}" not found or expired.`);
+      throw this.getTaskNotFoundError(taskId);
     }
 
     if (!exec.isRunning) {
@@ -130,7 +131,7 @@ export class ShellTaskManager {
     this.evictExpiredTasks();
     const exec = this.tasks.get(taskId);
     if (!exec) {
-      throw new Error(`Task "${taskId}" not found or expired.`);
+      throw this.getTaskNotFoundError(taskId);
     }
 
     if (exec.isRunning) {
@@ -218,6 +219,7 @@ export class ShellTaskManager {
         }
         this.tasks.delete(id);
         this.terminalTimestamps.delete(id);
+        this.recordEviction(id, 'expired due to 10-minute retention TTL');
       }
     }
 
@@ -236,6 +238,25 @@ export class ShellTaskManager {
       }
       this.tasks.delete(oldestId);
       this.terminalTimestamps.delete(oldestId);
+      this.recordEviction(oldestId, 'evicted due to task capacity limit (50 tasks max)');
     }
+  }
+
+  private recordEviction(taskId: string, reason: string): void {
+    if (this.evictedTaskReasons.size >= 100) {
+      const oldest = this.evictedTaskReasons.keys().next().value;
+      if (oldest) {
+        this.evictedTaskReasons.delete(oldest);
+      }
+    }
+    this.evictedTaskReasons.set(taskId, reason);
+  }
+
+  private getTaskNotFoundError(taskId: string): Error {
+    const reason = this.evictedTaskReasons.get(taskId);
+    if (reason) {
+      return new Error(`Task "${taskId}" was ${reason}.`);
+    }
+    return new Error(`Task "${taskId}" not found (task ID does not exist).`);
   }
 }

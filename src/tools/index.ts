@@ -10,6 +10,7 @@ import { bashTool } from './bash/index.js';
 import { taskReadTool } from './task-read/index.js';
 import { taskSendInputTool } from './task-send-input/index.js';
 import { taskKillTool } from './task-kill/index.js';
+import { taskListTool } from './task-list/index.js';
 import { webFetchTool } from './web-fetch/index.js';
 import { webSearchTool } from './web-search/index.js';
 import { todoWriteTool } from './todo-write/index.js';
@@ -28,6 +29,7 @@ export const builtInTools: ToolDefinition<any, any>[] = [
   listDirTool,
   sleepTool,
   bashTool,
+  taskListTool,
   taskReadTool,
   taskSendInputTool,
   taskKillTool,
@@ -64,6 +66,7 @@ export * from './grep/index.js';
 export * from './list-dir/index.js';
 export * from './sleep/index.js';
 export * from './bash/index.js';
+export * from './task-list/index.js';
 export * from './task-read/index.js';
 export * from './task-send-input/index.js';
 export * from './task-kill/index.js';

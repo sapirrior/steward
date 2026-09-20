@@ -48,7 +48,7 @@ export class ToolCatalog {
     for (const [name, def] of this.tools.entries()) {
       aiTools[name] = createAISDKTool({
         description: def.description,
-        parameters: def.parameters,
+        inputSchema: def.parameters,
         execute: async (args: any) => {
           return def.execute(args, context);
         },

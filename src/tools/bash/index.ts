@@ -64,7 +64,7 @@ export const bashTool: ToolDefinition<typeof bashInputSchema, BashOutput> = {
     if (result && 'status' in result && result.status === 'backgrounded') {
       return `Moved to background · task id: ${result.taskId}`;
     }
-    const code = (result as any)?.exitCode ?? 0;
+    const code = result && 'exitCode' in result ? (result.exitCode as number) : 0;
     return `Ran successfully · exit code: ${code}`;
   },
 

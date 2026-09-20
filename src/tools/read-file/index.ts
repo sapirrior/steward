@@ -1,5 +1,5 @@
-import { existsSync, lstatSync, readFileSync } from 'node:fs';
-import { isAbsolute, resolve } from 'node:path';
+import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { isAbsolute, resolve, sep } from 'node:path';
 import { z } from 'zod';
 import type { ToolDefinition } from '../types.js';
 
@@ -35,6 +35,67 @@ export interface ReadFileOutput {
 }
 
 /**
+ * Checks if a given path is inside (or equal to) the base directory.
+ */
+function isPathInside(targetPath: string, basePath: string): boolean {
+  const normTarget = resolve(targetPath);
+  const normBase = resolve(basePath);
+
+  if (normTarget === normBase) {
+    return true;
+  }
+
+  const prefix = normBase.endsWith(sep) ? normBase : `${normBase}${sep}`;
+  return normTarget.startsWith(prefix);
+}
+
+/**
+ * Validates and confines read paths within the workspace root.
+ */
+function resolveSafeReadPath(cwd: string, filePath: string): string {
+  if (!filePath || !filePath.trim()) {
+    throw new Error('File path cannot be empty.');
+  }
+
+  const trimmed = filePath.trim();
+  const resolved = isAbsolute(trimmed) ? resolve(trimmed) : resolve(cwd, trimmed);
+
+  if (!isPathInside(resolved, cwd)) {
+    throw new Error(
+      `Access denied: path "${filePath}" resolves outside the trusted workspace root ("${cwd}").`,
+    );
+  }
+
+  if (!existsSync(resolved)) {
+    throw new Error(`File not found: ${filePath}`);
+  }
+
+  let realTarget: string;
+  try {
+    realTarget = realpathSync(resolved);
+  } catch {
+    realTarget = resolved;
+  }
+
+  if (!isPathInside(realTarget, cwd)) {
+    throw new Error(
+      `Access denied: symlink "${filePath}" points outside the trusted workspace root.`,
+    );
+  }
+
+  const stat = lstatSync(resolved);
+  if (stat.isDirectory()) {
+    throw new Error(`Cannot read path because it is a directory: ${filePath}`);
+  }
+
+  if (!stat.isFile() && !stat.isSymbolicLink()) {
+    throw new Error(`Cannot read special or non-regular file: ${filePath}`);
+  }
+
+  return realTarget;
+}
+
+/**
  * Checks if a buffer appears to be binary by checking for null bytes.
  */
 function isBinaryBuffer(buffer: Buffer): boolean {
@@ -51,7 +112,7 @@ export const readFileTool: ToolDefinition<typeof readFileInputSchema, ReadFileOu
   name: 'read_file',
   displayName: 'Read',
   description:
-    'Reads the contents of a file with 1-indexed line numbers. Supports reading specific line ranges via offset and limit. Read is read-only and does not mutate or checkpoint.',
+    'Reads the contents of a file. Supports reading specific line ranges via offset and limit. Read is read-only and does not mutate or checkpoint.',
   parameters: readFileInputSchema,
   confirmationPolicy: 'never',
 
@@ -61,11 +122,7 @@ export const readFileTool: ToolDefinition<typeof readFileInputSchema, ReadFileOu
   },
 
   execute: async (args, context) => {
-    const targetPath = isAbsolute(args.path) ? args.path : resolve(context.cwd, args.path);
-
-    if (!existsSync(targetPath)) {
-      throw new Error(`File not found: ${args.path}`);
-    }
+    const targetPath = resolveSafeReadPath(context.cwd, args.path);
 
     const stat = lstatSync(targetPath);
     if (stat.isDirectory()) {
@@ -107,21 +164,13 @@ export const readFileTool: ToolDefinition<typeof readFileInputSchema, ReadFileOu
     const endIndex = Math.min(totalLines, startIndex + limit);
 
     const slice = allLines.slice(startIndex, endIndex);
-    const padWidth = String(endIndex).length;
-
-    const formattedContent = slice
-      .map((line, idx) => {
-        const lineNum = String(startIndex + idx + 1).padStart(padWidth, ' ');
-        return `${lineNum} | ${line}`;
-      })
-      .join('\n');
 
     return {
       path: args.path,
       totalLines,
       startLine,
       endLine: endIndex,
-      content: formattedContent,
+      content: slice.join('\n'),
       isTruncated: endIndex < totalLines,
       linesRead: slice.length,
     };

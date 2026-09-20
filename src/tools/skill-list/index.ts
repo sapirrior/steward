@@ -13,7 +13,7 @@ export interface SkillSummaryItem {
 }
 
 export const skillListTool: ToolDefinition<typeof skillListParamsSchema, SkillSummaryItem[]> = {
-  name: 'SkillList',
+  name: 'skill_list',
   displayName: 'SkillList',
   icon: '💡',
   description:

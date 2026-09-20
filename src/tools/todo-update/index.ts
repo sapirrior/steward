@@ -46,7 +46,7 @@ function formatTodoListSummary(todos: TodoItem[], maxItems = 10): string {
 }
 
 export const todoUpdateTool: ToolDefinition<typeof todoUpdateParamsSchema, PersistedTodoList> = {
-  name: 'TodoUpdate',
+  name: 'todo_update',
   displayName: 'TodoUpdate',
   icon: '✓',
   description:

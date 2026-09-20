@@ -11,6 +11,10 @@ export interface SessionMenuProps {
 }
 
 export default class SessionMenu extends SelectList<SessionData> {
+  override wrap = false;
+  override clip = true;
+  override ellipsis = false;
+
   constructor(props: SessionMenuProps) {
     super({
       items: props.sessions,

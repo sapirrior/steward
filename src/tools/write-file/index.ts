@@ -1,21 +1,8 @@
-import { randomUUID } from 'node:crypto';
-import {
-  chmodSync,
-  closeSync,
-  existsSync,
-  fsyncSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  renameSync,
-  statSync,
-  unlinkSync,
-  writeSync,
-} from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { z } from 'zod';
 import chalk from 'chalk';
 import { resolveDirectMutationPath } from '../../services/checkpoint/path.js';
+import { atomicWriteFileSync } from '../../utils/atomic-write.js';
 import type { ToolDefinition } from '../types.js';
 
 export const writeFileInputSchema = z.object({
@@ -143,12 +130,6 @@ export const writeFileTool: ToolDefinition<typeof writeFileInputSchema, WriteFil
       }
 
       // 5. Atomic file write
-      const newBuffer = Buffer.from(afterContent, 'utf-8');
-      const dir = dirname(targetPath);
-      if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
-      }
-
       let existingMode = 0o644;
       if (!isNew) {
         try {
@@ -156,34 +137,8 @@ export const writeFileTool: ToolDefinition<typeof writeFileInputSchema, WriteFil
         } catch {}
       }
 
-      const tmpPath = join(dir, `.tmp-write-${randomUUID().slice(0, 8)}`);
-
-      let fd: number | null = null;
-      try {
-        fd = openSync(tmpPath, 'w', existingMode);
-        writeSync(fd, newBuffer, 0, newBuffer.length);
-        fsyncSync(fd);
-        closeSync(fd);
-        fd = null;
-
-        try {
-          chmodSync(tmpPath, existingMode);
-        } catch {}
-
-        renameSync(tmpPath, targetPath);
-      } catch (err) {
-        if (fd !== null) {
-          try {
-            closeSync(fd);
-          } catch {}
-        }
-        if (existsSync(tmpPath)) {
-          try {
-            unlinkSync(tmpPath);
-          } catch {}
-        }
-        throw err;
-      }
+      const newBuffer = Buffer.from(afterContent, 'utf-8');
+      atomicWriteFileSync(targetPath, newBuffer, { mode: existingMode });
 
       // 6. Complete checkpoint mutation
       if (context.checkpointTracker) {

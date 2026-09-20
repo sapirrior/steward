@@ -12,6 +12,10 @@ export interface ModelPickerProps {
 }
 
 export default class ModelPicker extends SelectList<ModelDescriptor> {
+  override wrap = false;
+  override clip = true;
+  override ellipsis = false;
+
   constructor(props: ModelPickerProps) {
     super({
       items: props.models,

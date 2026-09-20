@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { getEnvConfig, hasProviderConfig, type EnvConfig } from '../config/index.js';
 import type { VoiceErrorCategory } from './types.js';
 
@@ -19,16 +20,17 @@ export interface PrerequisiteOptions {
  * Checks if parec (PulseAudio) is installed and runnable on the host machine.
  */
 export async function defaultCheckParec(): Promise<boolean> {
-  try {
-    const proc = Bun.spawn(['which', 'parec'], {
-      stdout: 'ignore',
-      stderr: 'ignore',
-    });
-    const exitCode = await proc.exited;
-    return exitCode === 0;
-  } catch {
-    return false;
-  }
+  return new Promise<boolean>((resolve) => {
+    try {
+      const proc = spawn('which', ['parec'], {
+        stdio: 'ignore',
+      });
+      proc.on('error', () => resolve(false));
+      proc.on('close', (code) => resolve(code === 0));
+    } catch {
+      resolve(false);
+    }
+  });
 }
 
 /**

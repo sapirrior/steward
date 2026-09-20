@@ -1,3 +1,5 @@
+import { spawn } from 'node:child_process';
+import { Readable } from 'node:stream';
 import type { AudioRecorder, AudioRecorderEvents } from './types.js';
 import { defaultCheckParec } from './prerequisites.js';
 
@@ -27,12 +29,49 @@ export class ParecAudioRecorder implements AudioRecorder {
     this.spawnFn =
       options?.spawnFn ??
       ((cmd, opts) => {
-        const p = Bun.spawn(cmd, opts);
+        const [executable, ...args] = cmd;
+        const child = spawn(executable, args, {
+          stdio: [
+            'ignore',
+            opts.stdout === 'pipe' ? 'pipe' : 'ignore',
+            opts.stderr === 'pipe' ? 'pipe' : 'ignore',
+          ],
+        });
+
+        const exited = new Promise<number>((resolve) => {
+          child.on('close', (code) => resolve(code ?? 0));
+          child.on('error', () => resolve(1));
+        });
+
+        const stdout = child.stdout
+          ? (Readable.toWeb(child.stdout) as ReadableStream<Uint8Array>)
+          : null;
+        const stderr = child.stderr
+          ? (Readable.toWeb(child.stderr) as ReadableStream<Uint8Array>)
+          : null;
+
         return {
-          stdout: p.stdout,
-          stderr: p.stderr,
-          exited: p.exited,
-          kill: (sig) => p.kill(sig as any),
+          stdout,
+          stderr,
+          exited,
+          kill: (sig) => {
+            try {
+              if (typeof sig === 'number') {
+                const signalMap: Record<number, NodeJS.Signals> = {
+                  2: 'SIGINT',
+                  9: 'SIGKILL',
+                  15: 'SIGTERM',
+                };
+                child.kill(signalMap[sig] || (sig as any));
+              } else if (sig) {
+                child.kill(sig as NodeJS.Signals);
+              } else {
+                child.kill();
+              }
+            } catch {
+              // Ignore kill error
+            }
+          },
         };
       });
     this.checkAvailableFn = options?.checkAvailableFn ?? defaultCheckParec;

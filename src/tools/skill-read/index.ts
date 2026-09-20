@@ -10,7 +10,7 @@ const skillReadParamsSchema = z.object({
 export type SkillReadParams = z.infer<typeof skillReadParamsSchema>;
 
 export const skillReadTool: ToolDefinition<typeof skillReadParamsSchema, SkillReadOutput> = {
-  name: 'SkillRead',
+  name: 'skill_read',
   displayName: 'SkillRead',
   icon: '📖',
   description:
