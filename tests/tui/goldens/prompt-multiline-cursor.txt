@@ -7,7 +7,7 @@
   Second line with cursor
   Third line
 ────────────────────────────────────────────────────────────────────────────────
-? for shortcuts                                             165 tokens · default
+? for shortcuts                                                 Normal · default
 
 
 

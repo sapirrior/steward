@@ -1,3 +1,4 @@
+import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { rmSync } from 'node:fs';
 import { z } from 'zod';
 import type { ToolDefinition } from '../types.js';
@@ -69,6 +70,7 @@ export const bashTool: ToolDefinition<typeof bashInputSchema, BashOutput> = {
   },
 
   execute: async (args, context) => {
+    assertToolAllowed('bash');
     const command = typeof args?.command === 'string' ? args.command.trim() : '';
     if (!command) {
       throw new Error('Command is required and cannot be empty.');

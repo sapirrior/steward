@@ -7,6 +7,7 @@ import { resumeCommand } from './resume/index.js';
 import { rewindCommand } from './rewind/index.js';
 import { skillsCommand } from './skills/index.js';
 import { themeCommand } from './theme/index.js';
+import { modeCommand } from './mode/index.js';
 import type { CommandContext, CommandResult, SlashCommand } from './types.js';
 
 export class CommandRegistry {
@@ -69,6 +70,7 @@ export const builtInCommands: SlashCommand[] = [
   modelCommand,
   effortCommand,
   themeCommand,
+  modeCommand,
   clearCommand,
   exitCommand,
   quitCommand,

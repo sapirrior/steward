@@ -21,6 +21,8 @@ import PromptInput from './components/PromptInput.js';
 import TrustGate from './components/TrustGate.js';
 import ModelPicker from './components/docks/ModelPicker.js';
 import ThemePicker from './components/docks/ThemePicker.js';
+import { setActiveMode, listModes, cycleMode } from '../engine/chat-mode.js';
+import { saveModeSelection } from '../config/settings.js';
 import SessionMenu from './components/docks/SessionMenu.js';
 import ShortcutsMenu from './components/docks/ShortcutsMenu.js';
 
@@ -344,6 +346,19 @@ export class TUIApp {
           this.ctrlCPending = false;
           this.statusBar.update({ exitPending: false });
         }, 1500);
+        return true;
+      }
+
+      // Ctrl+B: cycle through modes when idle
+      if (action.type === 'ctrl-b') {
+        if (this.activeModal) return true;
+        if (this.session.isBusy || this.isBusy) {
+          this.statusBar.showWarning('Cannot change mode while Steward is generating');
+          return true;
+        }
+        const newMode = cycleMode();
+        saveModeSelection(newMode);
+        this.statusBar.setMode(newMode);
         return true;
       }
 
@@ -707,6 +722,10 @@ export class TUIApp {
       if (cmdResult.data?.themeSwitched) {
         for (const comp of this.engine.components) comp.markDirty();
         this.engine.requestFrame(true);
+      }
+
+      if (cmdResult.data?.modeSwitched && cmdResult.data?.selectedMode) {
+        this.statusBar.setMode(cmdResult.data.selectedMode.name);
       }
 
       if (cmdResult.data?.showEffortPicker) {

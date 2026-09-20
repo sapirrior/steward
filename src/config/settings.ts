@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import type { ProviderName } from './env.js';
 import type { ThemeName } from '../theme/colors.js';
+import type { ChatMode } from '../engine/chat-mode.js';
 
 export type ReasoningEffort =
   'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
@@ -25,6 +26,7 @@ export interface UserSettings {
   trustedFolders?: Record<string, TrustedFolderRecord>;
   voiceLanguage?: string;
   theme?: ThemeName;
+  mode?: ChatMode;
 }
 
 /**
@@ -229,5 +231,29 @@ export function trustFolder(absolutePath: string): void {
         trustedAt: new Date().toISOString(),
       },
     },
+  });
+}
+
+/**
+ * Returns the persisted mode selection from ~/.steward/settings.json if present and valid.
+ */
+export function getSavedMode(): ChatMode | undefined {
+  const settings = loadSettings();
+  if (
+    settings.mode &&
+    typeof settings.mode === 'string' &&
+    ['normal', 'chat', 'review', 'build'].includes(settings.mode)
+  ) {
+    return settings.mode as ChatMode;
+  }
+  return undefined;
+}
+
+/**
+ * Persists the user's selected mode to ~/.steward/settings.json.
+ */
+export function saveModeSelection(name: ChatMode): void {
+  saveSettings({
+    mode: name,
   });
 }

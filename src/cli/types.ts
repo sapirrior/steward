@@ -1,7 +1,7 @@
 export type CliCommandKind = 'start' | 'version' | 'help' | 'repo' | 'config';
 
 export interface CliConfigArgs {
-  target: 'all' | 'voice' | 'theme' | 'model';
+  target: 'all' | 'voice' | 'theme' | 'model' | 'mode';
   value?: string;
 }
 

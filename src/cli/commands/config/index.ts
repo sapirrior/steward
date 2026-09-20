@@ -6,8 +6,11 @@ import {
   getSavedModel,
   getSavedTheme,
   saveThemeSelection,
+  getSavedMode,
+  saveModeSelection,
 } from '../../../config/settings.js';
 import { listThemes, type ThemeMeta } from '../../../theme/index.js';
+import { findMode, listModes } from '../../../engine/chat-mode.js';
 import type { CliConfigArgs } from '../../types.js';
 import { resolveVoiceLanguage, getLanguageDisplayName } from './utils/lang.js';
 
@@ -25,11 +28,13 @@ export function handleConfigCommand(configArgs: CliConfigArgs): void {
       : 'not configured (using environment priority)';
 
     const savedTheme = getSavedTheme() ?? 'dark (default)';
+    const savedMode = getSavedMode() ?? 'normal (default)';
 
     console.log(`Steward Configuration (${settingsPath}):`);
     console.log(`  UI Theme:       ${savedTheme}`);
     console.log(`  Voice Language: ${voiceDisplay}`);
     console.log(`  Saved Model:    ${modelDisplay}`);
+    console.log(`  Chat Mode:      ${savedMode}`);
     process.exit(0);
   }
 
@@ -65,6 +70,35 @@ export function handleConfigCommand(configArgs: CliConfigArgs): void {
 
     saveVoiceLanguage(resolved.tag);
     console.log(`✓ Voice language configured: ${resolved.name} (${resolved.tag})`);
+    process.exit(0);
+  }
+
+  if (configArgs.target === 'mode') {
+    const rawMode = configArgs.value?.trim();
+    const allModes = listModes();
+
+    if (!rawMode) {
+      const current = getSavedMode() ?? 'normal';
+      const currentMeta = findMode(current);
+      console.log(`Current chat mode: ${currentMeta?.label ?? current} (${current})`);
+      process.exit(0);
+    }
+
+    const matched = findMode(rawMode);
+
+    if (!matched) {
+      console.error(
+        `Error: Unknown mode "${rawMode}".\n` +
+          `Available modes:\n` +
+          allModes
+            .map((m) => `  steward --config mode ${m.name.padEnd(10)} (${m.label})`)
+            .join('\n'),
+      );
+      process.exit(1);
+    }
+
+    saveModeSelection(matched.name);
+    console.log(`✓ Chat mode configured: ${matched.label} (${matched.name})`);
     process.exit(0);
   }
 

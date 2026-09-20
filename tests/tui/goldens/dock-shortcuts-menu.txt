@@ -3,9 +3,9 @@
   /           Commands          Shift+Enter   Newline
   @           Mention files     Ctrl+C        Abort / exit
   ?           Shortcuts menu    PgUp/PgDn     Scroll history
-  Esc Esc     Clear input       ↑ / ↓         History navigation
+  Ctrl+B      Switch mode       ↑ / ↓         History navigation
+  Esc Esc     Clear input       Ctrl+T        Voice dictation
 Esc or Enter to dismiss
-
 
 
 

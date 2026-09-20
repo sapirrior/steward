@@ -40,6 +40,7 @@ export default class ShortcutsMenu extends Component<ShortcutsMenuProps> {
       { key: '/', desc: 'Commands' },
       { key: '@', desc: 'Mention files' },
       { key: '?', desc: 'Shortcuts menu' },
+      { key: 'Ctrl+B', desc: 'Switch mode' },
       { key: 'Esc Esc', desc: 'Clear input' },
     ];
 
@@ -48,6 +49,7 @@ export default class ShortcutsMenu extends Component<ShortcutsMenuProps> {
       { key: 'Ctrl+C', desc: 'Abort / exit' },
       { key: 'PgUp/PgDn', desc: 'Scroll history' },
       { key: '↑ / ↓', desc: 'History navigation' },
+      { key: 'Ctrl+T', desc: 'Voice dictation' },
     ];
 
     const rows = leftCol.map((left, i) => {

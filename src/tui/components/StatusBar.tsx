@@ -1,5 +1,7 @@
 import Component from '../engine/Component.js';
 import type { TokenUsage } from '../../engine/types.js';
+import { type ChatMode, CHAT_MODES } from '../../engine/chat-mode.js';
+import type { UITheme } from '../../theme/colors.js';
 import { getTheme, figures } from '../../theme/index.js';
 import { themeColor, chalk } from '../utils/format.js';
 import { Box, Text } from '../primitives/index.js';
@@ -13,6 +15,7 @@ export interface StatusBarUpdateStatus {
 }
 
 export interface StatusBarProps {
+  chatMode?: ChatMode;
   model: {
     provider: string;
     modelId: string;
@@ -28,6 +31,7 @@ export interface StatusBarProps {
 }
 
 export interface StatusBarState {
+  chatMode?: ChatMode;
   model: {
     provider: string;
     modelId: string;
@@ -69,6 +73,7 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
   constructor(props: StatusBarProps) {
     super(props);
     this.state = {
+      chatMode: props.chatMode,
       model: props.model,
       usage: props.usage,
       isBusy: props.isBusy,
@@ -78,6 +83,10 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
       voiceDurationSec: props.voiceDurationSec ?? 0,
       updateStatus: props.updateStatus,
     };
+  }
+
+  setMode(mode: ChatMode): void {
+    this.setState({ chatMode: mode });
   }
 
   update(partial: Partial<StatusBarState>): void {
@@ -174,6 +183,7 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
       voiceState,
       voiceDurationSec,
       updateStatus,
+      chatMode,
     } = this.state;
 
     let left = '';
@@ -213,17 +223,19 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
       left = chalk.dim('? for shortcuts');
     }
 
+    const mode = chatMode ?? 'normal';
+    const modeMeta = CHAT_MODES[mode];
+    const modeColorKey = modeMeta?.themeColorKey ?? 'text';
+    const modeLabel = modeMeta?.label ?? mode;
+
     const parts: string[] = [];
-    if (usage && usage.totalTokens > 0) {
-      parts.push(`${formatTokens(usage.totalTokens)} tokens`);
-    }
+    parts.push(themeColor(theme[modeColorKey as keyof UITheme])(modeLabel));
 
     const effort = model?.effort ?? 'provider-default';
     const effortDisplay = effort === 'provider-default' ? 'default' : effort;
-    parts.push(effortDisplay);
+    parts.push(chalk.dim(effortDisplay));
 
-    const right =
-      parts.length > 0 ? themeColor(theme.textMuted)(parts.join(` ${figures.bullet} `)) : '';
+    const right = parts.length > 0 ? parts.join(` ${figures.bullet} `) : '';
 
     const element = (
       <Box direction="row" justify="space-between" width={maxCols} clip={true}>

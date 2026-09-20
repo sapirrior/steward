@@ -59,6 +59,24 @@ export function parseCliArgs(args: string[]): ParsedCliArgs {
       };
     }
 
+    if (target === 'model' || target === 'ai.model' || target === 'ai-model') {
+      const value = subArgs.slice(1).join(' ').trim() || undefined;
+      return {
+        command: 'config',
+        configArgs: { target: 'model', value },
+        rawArgs: args,
+      };
+    }
+
+    if (target === 'mode' || target === 'ui.mode' || target === 'ui-mode') {
+      const value = subArgs.slice(1).join(' ').trim() || undefined;
+      return {
+        command: 'config',
+        configArgs: { target: 'mode', value },
+        rawArgs: args,
+      };
+    }
+
     // Invalid config sub-target (e.g. steward --config foo)
     console.error(
       `Error: Unknown configuration target "${target}".\n` +

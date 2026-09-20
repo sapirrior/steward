@@ -1,3 +1,4 @@
+import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { z } from 'zod';
 import type { ToolDefinition } from '../types.js';
 import type { ShellTaskSendInputResult } from '../../services/tasks/types.js';
@@ -48,6 +49,7 @@ export const taskSendInputTool: ToolDefinition<
   },
 
   execute: async (args, context) => {
+    assertToolAllowed('task_send_input');
     if (!context.shellTasks) {
       throw new Error('No shell tasks manager available in execution context.');
     }

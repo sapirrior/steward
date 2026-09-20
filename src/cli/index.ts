@@ -7,7 +7,8 @@ import { handleVersionCommand, VERSION } from './commands/version/index.js';
 import { handleHelpCommand } from './commands/help/index.js';
 import { handleRepoCommand, REPO_URL } from './commands/repo/index.js';
 import { setActiveTheme } from '../theme/index.js';
-import { getSavedTheme } from '../config/index.js';
+import { getSavedTheme, getSavedMode } from '../config/index.js';
+import { setActiveMode } from '../engine/chat-mode.js';
 
 export * from './types.js';
 export * from './parser.js';
@@ -38,6 +39,7 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
 
   try {
     setActiveTheme(getSavedTheme() ?? 'dark');
+    setActiveMode(getSavedMode() ?? 'normal');
     const session = new AgentSession();
     const app = new TUIApp({
       version: VERSION,

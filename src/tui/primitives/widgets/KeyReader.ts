@@ -18,6 +18,7 @@ export interface KeyAction {
     | 'escape'
     | 'tab'
     | 'ctrl-c'
+    | 'ctrl-b'
     | 'ctrl-t'
     | 'page-up'
     | 'page-down'
@@ -31,6 +32,7 @@ export function parseKeyInput(chunk: Buffer | string): KeyAction {
 
   // Control Keys
   if (str === '\x03') return { type: 'ctrl-c', raw: str };
+  if (str === '\x02') return { type: 'ctrl-b', raw: str }; // Ctrl+B — cycle mode
   if (str === '\x14') return { type: 'ctrl-t', raw: str };
 
   // Page Navigation

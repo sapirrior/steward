@@ -1,3 +1,4 @@
+import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { z } from 'zod';
 import { figures } from '../../theme/index.js';
 import {

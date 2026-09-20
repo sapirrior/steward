@@ -23,6 +23,7 @@ import { logError } from '../errors/index.js';
 import { runAgentTurn } from './agent-runner.js';
 import { SAFETY_STEP_CEILING } from './constants.js';
 import type { AgentEventListener } from './events.js';
+import { getActiveMode } from './chat-mode.js';
 import { createModelInstance, resolveActiveModelSelection } from './model-provider.js';
 import { buildSystemPrompt } from './system-prompt.js';
 import type {
@@ -254,6 +255,12 @@ export class AgentSession {
     });
     await tracker.beginTurn(turnId, this.sessionData.turns.length + 1);
 
+    const mode = getActiveMode();
+    const effectiveFilePermission =
+      mode === 'build'
+        ? async (_req: import('../tools/types.js').FilePermissionRequest) => ({ allowed: true })
+        : options.requestFilePermission;
+
     const toolContext: ToolContext = {
       cwd,
       sessionId: this.sessionData.id,
@@ -261,7 +268,7 @@ export class AgentSession {
       checkpointTracker: tracker,
       mutationLocks: globalMutationLockManager,
       requestBashPermission: options.requestBashPermission,
-      requestFilePermission: options.requestFilePermission,
+      requestFilePermission: effectiveFilePermission,
       shellTasks: this.shellTasks,
     };
 
@@ -277,6 +284,7 @@ export class AgentSession {
     const instructions = buildSystemPrompt({
       cwd,
       extraInstructions: options.extraInstructions,
+      chatMode: mode,
     });
 
     const wrappedOnEvent: AgentEventListener = (event) => {

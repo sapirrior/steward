@@ -1,7 +1,10 @@
+import type { ChatMode } from './chat-mode.js';
+
 export interface SystemPromptOptions {
   cwd?: string;
   userRules?: string[];
   extraInstructions?: string;
+  chatMode?: ChatMode;
 }
 
 /**
@@ -68,6 +71,24 @@ ${options.userRules.map((rule) => `- ${rule}`).join('\n')}
     prompt += `\n\n<additional_instructions>
 ${options.extraInstructions}
 </additional_instructions>`;
+  }
+
+  const modeBlocks: Partial<Record<ChatMode, string>> = {
+    chat: `
+<operating_mode>
+Mode: CHAT — You have no tool access. Respond conversationally only. Do not attempt to call any tools.
+</operating_mode>`,
+    review: `
+<operating_mode>
+Mode: REVIEW — You may only use read-only tools: read_file, glob, grep, list_dir, web_fetch, web_search, todo_read, skill_list, skill_read, task_list, task_read. Any attempt to write files, run commands, or mutate state will be blocked by the tool itself.
+</operating_mode>`,
+    build: `
+<operating_mode>
+Mode: BUILD — You have full tool access. File writes and edits are automatically approved without user confirmation — act decisively and make changes directly. Bash commands still require user approval.
+</operating_mode>`,
+  };
+  if (options.chatMode && modeBlocks[options.chatMode]) {
+    prompt += modeBlocks[options.chatMode];
   }
 
   return prompt;

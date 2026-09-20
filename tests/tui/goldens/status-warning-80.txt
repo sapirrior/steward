@@ -5,7 +5,7 @@
 ────────────────────────────────────────────────────────────────────────────────
 ❯ Type your message...
 ────────────────────────────────────────────────────────────────────────────────
-⚠ Voice stopped: network connection lost                    150 tokens · default
+⚠ Voice stopped: network connection lost                        Normal · default
 
 
 

@@ -7,7 +7,7 @@
 eighty columns width and should soft-wrap cleanly across multiple visual rows
 with correct cursor mapping.
 ────────────────────────────────────────────────────────────────────────────────
-? for shortcuts                                                          default
+? for shortcuts                                                 Normal · default
 
 
 

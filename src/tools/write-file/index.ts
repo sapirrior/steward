@@ -1,3 +1,4 @@
+import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { z } from 'zod';
 import chalk from 'chalk';
@@ -60,6 +61,7 @@ export const writeFileTool: ToolDefinition<typeof writeFileInputSchema, WriteFil
   },
 
   execute: async (args, context) => {
+    assertToolAllowed('write_file');
     const { absolutePath: targetPath, relativePath } = resolveDirectMutationPath(
       context.cwd,
       args.file_path,
