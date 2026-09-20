@@ -1,6 +1,6 @@
 import Component from '../engine/Component.js';
 import type { TokenUsage } from '../../engine/types.js';
-import { type ChatMode, CHAT_MODES } from '../../engine/chat-mode.js';
+import { type ChatMode, CHAT_MODES, getActiveMode } from '../../engine/chat-mode.js';
 import type { UITheme } from '../../theme/colors.js';
 import { getTheme, figures } from '../../theme/index.js';
 import { themeColor, chalk } from '../utils/format.js';
@@ -73,7 +73,7 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
   constructor(props: StatusBarProps) {
     super(props);
     this.state = {
-      chatMode: props.chatMode,
+      chatMode: props.chatMode ?? getActiveMode(),
       model: props.model,
       usage: props.usage,
       isBusy: props.isBusy,
