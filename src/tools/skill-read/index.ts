@@ -13,6 +13,7 @@ export const skillReadTool: ToolDefinition<typeof skillReadParamsSchema, SkillRe
   name: 'skill_read',
   displayName: 'SkillRead',
   icon: '📖',
+  access: 'read',
   description:
     'Loads and reads the instructions (SKILL.md) or a relative resource file of a specialized skill by name. Use this when a task requires specialized guidelines.',
   parameters: skillReadParamsSchema,

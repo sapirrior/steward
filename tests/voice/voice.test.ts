@@ -6,7 +6,6 @@ import {
   checkVoicePrerequisites,
   TranscriptAccumulator,
   ParecAudioRecorder,
-  ArecordAudioRecorder,
   GeminiLiveTranscriptionSession,
   VoiceController,
   type RecorderProcess,

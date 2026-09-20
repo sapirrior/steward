@@ -1,7 +1,7 @@
 import Component from '../../engine/Component.js';
 import type { ReasoningEffort } from '../../../engine/types.js';
-import { getTheme, figures } from '../../../theme/index.js';
-import { themeColor, chalk } from '../../utils/format.js';
+import { figures } from '../../../theme/index.js';
+import { c, bold } from '../../../theme/style.js';
 import { Box, Text, renderModalBox, parseKeyInput } from '../../primitives/index.js';
 
 export interface EffortOption {
@@ -101,12 +101,8 @@ export default class EffortPicker extends Component<EffortPickerProps, EffortPic
   }
 
   override render(width?: number): string[] {
-    const theme = getTheme();
     const termWidth = width ?? process.stdout.columns ?? 80;
     const maxCols = Math.max(1, termWidth);
-    const permColor = themeColor(theme.permission);
-    const infoColor = themeColor(theme.info);
-    const trackColor = themeColor(theme.promptBorder);
     const { selectedIndex } = this.state;
     const activeOption = EFFORT_OPTIONS[selectedIndex] ?? EFFORT_OPTIONS[0]!;
 
@@ -120,9 +116,7 @@ export default class EffortPicker extends Component<EffortPickerProps, EffortPic
     const fasterText = 'Faster';
     const smarterText = 'Smarter';
     const spectrumGap = Math.max(1, totalSliderCols - (fasterText.length + smarterText.length));
-    const spectrumRow = `${' '.repeat(leftPad)}${infoColor.bold(fasterText)}${' '.repeat(spectrumGap)}${permColor.bold(smarterText)}`;
-
-    const yellowColor = themeColor(theme.warning);
+    const spectrumRow = `${' '.repeat(leftPad)}${bold(c.info(fasterText))}${' '.repeat(spectrumGap)}${bold(c.permission(smarterText))}`;
 
     // 2. Slider Track with Pointer
     let trackChars = '';
@@ -130,18 +124,18 @@ export default class EffortPicker extends Component<EffortPickerProps, EffortPic
       const isSelected = i === selectedIndex;
       const opt = EFFORT_OPTIONS[i]!;
       const isCurrent = opt.id === this.props.currentEffort;
-      const pointerColor = isCurrent ? yellowColor : permColor;
+      const pointerColor = isCurrent ? c.current : c.permission;
 
       const slotCenter = Math.floor(colWidth / 2);
-      for (let c = 0; c < colWidth; c++) {
-        if (c === slotCenter) {
+      for (let ch = 0; ch < colWidth; ch++) {
+        if (ch === slotCenter) {
           if (isSelected) {
             trackChars += pointerColor(figures.sliderPointer ?? '▲');
           } else {
-            trackChars += trackColor(figures.horizontalLine);
+            trackChars += c.promptBorder(figures.horizontalLine);
           }
         } else {
-          trackChars += trackColor(figures.horizontalLine);
+          trackChars += c.promptBorder(figures.horizontalLine);
         }
       }
     }
@@ -156,13 +150,13 @@ export default class EffortPicker extends Component<EffortPickerProps, EffortPic
 
       let labelText = opt.label;
       if (isSelected && isCurrent) {
-        labelText = yellowColor.bold(labelText);
+        labelText = bold(c.current(labelText));
       } else if (isSelected) {
-        labelText = permColor.bold(labelText);
+        labelText = bold(c.permission(labelText));
       } else if (isCurrent) {
-        labelText = yellowColor.bold(labelText);
+        labelText = bold(c.current(labelText));
       } else {
-        labelText = chalk.white(labelText);
+        labelText = c.text(labelText);
       }
 
       const textLen = opt.label.length;
@@ -173,7 +167,7 @@ export default class EffortPicker extends Component<EffortPickerProps, EffortPic
     const labelsRow = `${' '.repeat(leftPad)}${labelCols}`;
 
     // 4. Clean vibrant subtitle
-    const descText = `    ${chalk.white.bold(activeOption.description)}`;
+    const descText = `    ${bold(c.text(activeOption.description))}`;
 
     const contentElements = [
       <Box direction="column" width={maxCols} clip={true}>

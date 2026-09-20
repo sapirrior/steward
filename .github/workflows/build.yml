@@ -52,12 +52,13 @@ jobs:
           bun-version: latest
 
       - name: Install Dependencies
-        run: bun install --frozen-lockfile || bun install
+        run: bun install --frozen-lockfile
 
-      - name: Run Build & Formatting Check
+      - name: Run Checks & Build
         run: |
-          bun run build
+          bun run lint:boundaries
           bun run format
+          bun run build
 
       - name: Compile Standalone Binaries
         run: |

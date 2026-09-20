@@ -1,6 +1,6 @@
 import Component from '../../engine/Component.js';
-import { getTheme, figures } from '../../../theme/index.js';
-import { themeColor, chalk } from '../../utils/format.js';
+import { figures } from '../../../theme/index.js';
+import { c, bold, italic } from '../../../theme/style.js';
 import { Box, Text, parseKeyInput } from '../../primitives/index.js';
 
 export interface BashPermissionDockProps {
@@ -121,13 +121,9 @@ export default class BashPermissionDock extends Component<
   }
 
   override render(width?: number): string[] {
-    const theme = getTheme();
     const termWidth = width ?? process.stdout.columns ?? 80;
     const maxCols = Math.max(1, termWidth);
 
-    const dividerColor = themeColor(theme.dividerRule);
-    const permColor = themeColor(theme.permission);
-    const mutedColor = themeColor(theme.textMuted);
     const { mode, selectedIndex, scrollOffset } = this.state;
     const { command, explanation } = this.props;
 
@@ -136,7 +132,7 @@ export default class BashPermissionDock extends Component<
     const isNoSelected = selectedIndex === 1;
 
     // Divider line
-    const divider = dividerColor(figures.horizontalLine.repeat(maxCols));
+    const divider = c.rule(figures.horizontalLine.repeat(maxCols));
 
     if (mode === 'REVIEW') {
       // Review mode: displays up to 15 visible scrollable lines of the full command
@@ -162,21 +158,21 @@ export default class BashPermissionDock extends Component<
             {''}
           </Text>
           <Text wrap={false} clip={false}>
-            {chalk.white.bold('Bash command (review)')}
+            {bold(c.text('Bash command (review)'))}
           </Text>
           <Text wrap={false} clip={false}>
             {''}
           </Text>
           {visibleCmdLines.map((line) => (
             <Text wrap={false} clip={false}>
-              {`    ${chalk.white(line)}`}
+              {`    ${c.text(line)}`}
             </Text>
           ))}
           <Text wrap={false} clip={false}>
             {''}
           </Text>
           <Text wrap={false} clip={false}>
-            {mutedColor(chalk.italic('↑/↓ scroll · Esc / f to return'))}
+            {italic(c.muted('↑/↓ scroll · Esc / f to return'))}
           </Text>
         </Box>
       );
@@ -191,12 +187,12 @@ export default class BashPermissionDock extends Component<
     const hiddenCount = Math.max(0, renderedCmdLines.length - 3);
 
     const yesOptionText = isYesSelected
-      ? `${permColor(pointer)} ${permColor.bold('1. Yes')}`
-      : `  ${chalk.white('1. Yes')}`;
+      ? `${c.permission(pointer)} ${bold(c.permission('1. Yes'))}`
+      : `  ${c.text('1. Yes')}`;
 
     const noOptionText = isNoSelected
-      ? `${permColor(pointer)} ${permColor.bold('2. No')}`
-      : `  ${chalk.white('2. No')}`;
+      ? `${c.permission(pointer)} ${bold(c.permission('2. No'))}`
+      : `  ${c.text('2. No')}`;
 
     const element = (
       <Box direction="column" width={maxCols} wrap={true} clip={false}>
@@ -207,30 +203,30 @@ export default class BashPermissionDock extends Component<
           {''}
         </Text>
         <Text wrap={false} clip={false}>
-          {chalk.white.bold('Bash command')}
+          {bold(c.text('Bash command'))}
         </Text>
         <Text wrap={false} clip={false}>
           {''}
         </Text>
         {previewLines.map((line) => (
           <Text wrap={false} clip={false}>
-            {`    ${chalk.white(line)}`}
+            {`    ${c.text(line)}`}
           </Text>
         ))}
         {hiddenCount > 0 && (
           <Text wrap={false} clip={false}>
-            {`    ${chalk.dim(`(+${hiddenCount} hidden)`)}`}
+            {`    ${c.muted(`(+${hiddenCount} hidden)`)}`}
           </Text>
         )}
         <Text wrap={false} clip={false}>
           {''}
         </Text>
-        <Text wrap={true}>{`    ${chalk.dim(explanation)}`}</Text>
+        <Text wrap={true}>{`    ${c.muted(explanation)}`}</Text>
         <Text wrap={false} clip={false}>
           {''}
         </Text>
         <Text wrap={false} clip={false}>
-          {chalk.white('Do you want to proceed?')}
+          {c.text('Do you want to proceed?')}
         </Text>
         <Text wrap={false} clip={false}>
           {''}
@@ -245,7 +241,7 @@ export default class BashPermissionDock extends Component<
           {''}
         </Text>
         <Text wrap={false} clip={false}>
-          {mutedColor(chalk.italic('Esc to cancel · f to review'))}
+          {italic(c.muted('Esc to cancel · f to review'))}
         </Text>
       </Box>
     );

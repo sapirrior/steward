@@ -158,7 +158,7 @@ export class ShellExecution {
     child.stdout?.on('data', (chunk: Buffer) => handleChunk(chunk, false));
     child.stderr?.on('data', (chunk: Buffer) => handleChunk(chunk, true));
 
-    const onExit = (code: number | null, signal: string | null) => {
+    const onExit = (code: number | null, _signal: string | null) => {
       if (!this.isRunning) return;
 
       this.endedAt = new Date().toISOString();

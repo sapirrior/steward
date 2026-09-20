@@ -1,15 +1,10 @@
-import chalk from 'chalk';
 import { marked, type Token, type Tokens } from 'marked';
 import stripAnsi from 'strip-ansi';
 import stringWidth from 'string-width';
-import { getTheme, resolveThemeColor } from '../theme/index.js';
+import { c, bold, italic, underline } from '../theme/style.js';
 import { highlightCode } from './highlight.js';
 
 const EOL = '\n';
-
-function themeColor(color: string) {
-  return resolveThemeColor(color, false);
-}
 
 let markedConfigured = false;
 
@@ -53,61 +48,57 @@ export function formatToken(
   orderedListNumber: number | null = null,
   parent: Token | null = null,
 ): string {
-  const theme = getTheme();
-
   switch (token.type) {
     case 'blockquote': {
       const inner = (token.tokens ?? []).map((t) => formatToken(t, 0, null, null)).join('');
-      const bar = themeColor(theme.subtle)('│');
+      const bar = c.subtle('│');
       return inner
         .split(EOL)
-        .map((line) => (stripAnsi(line).trim() ? `${bar} ${chalk.italic(line)}` : line))
+        .map((line) => (stripAnsi(line).trim() ? `${bar} ${italic(line)}` : line))
         .join(EOL);
     }
 
     case 'code': {
       const code = token as Tokens.Code;
       const highlighted = highlightCode(code.text, { language: code.lang });
-      const gutter = themeColor(theme.subtle)('│');
+      const gutter = c.subtle('│');
       const lines = highlighted.split(EOL);
       const formatted = lines.map((line) => `  ${gutter} ${line}`).join(EOL);
       return formatted + EOL + EOL;
     }
 
     case 'codespan': {
-      return themeColor(theme.permission)(token.text);
+      return c.permission(token.text);
     }
 
     case 'em': {
-      return chalk.italic(
-        (token.tokens ?? []).map((t) => formatToken(t, 0, null, parent)).join(''),
-      );
+      return italic((token.tokens ?? []).map((t) => formatToken(t, 0, null, parent)).join(''));
     }
 
     case 'strong': {
-      return chalk.bold((token.tokens ?? []).map((t) => formatToken(t, 0, null, parent)).join(''));
+      return bold((token.tokens ?? []).map((t) => formatToken(t, 0, null, parent)).join(''));
     }
 
     case 'heading': {
       const heading = token as Tokens.Heading;
       const text = (heading.tokens ?? []).map((t) => formatToken(t, 0, null, null)).join('');
       if (heading.depth === 1) {
-        return themeColor(theme.brand).bold.underline(text) + EOL + EOL;
+        return underline(bold(c.brand(text))) + EOL + EOL;
       }
       if (heading.depth === 2) {
-        return themeColor(theme.brand).bold(text) + EOL + EOL;
+        return bold(c.brand(text)) + EOL + EOL;
       }
-      return chalk.bold(text) + EOL + EOL;
+      return bold(text) + EOL + EOL;
     }
 
     case 'hr': {
-      return themeColor(theme.dashedRule)('─'.repeat(40)) + EOL + EOL;
+      return c.rule('─'.repeat(40)) + EOL + EOL;
     }
 
     case 'link': {
       const link = token as Tokens.Link;
       const linkText = (link.tokens ?? []).map((t) => formatToken(t, 0, null, link)).join('');
-      return linkText ? `${themeColor(theme.info)(linkText)} (${chalk.dim(link.href)})` : link.href;
+      return linkText ? `${c.info(linkText)} (${c.muted(link.href)})` : link.href;
     }
 
     case 'list': {
@@ -134,7 +125,7 @@ export function formatToken(
       const nestedLists = listTokens
         .map((t) => formatToken(t, listDepth + 1, null, token))
         .join('');
-      return `${indent}${themeColor(theme.brand)(prefix)} ${mainContent}${EOL}${nestedLists}`;
+      return `${indent}${c.brand(prefix)} ${mainContent}${EOL}${nestedLists}`;
     }
 
     case 'paragraph': {
@@ -171,7 +162,7 @@ export function formatToken(
         return Math.max(maxWidth, 3);
       });
 
-      const D = themeColor(theme.subtle);
+      const D = (s: string) => c.subtle(s);
       const hbar = (w: number) => '─'.repeat(w + 2);
 
       const topBorder = D('┌') + columnWidths.map((w) => D(hbar(w))).join(D('┬')) + D('┐');
@@ -187,7 +178,7 @@ export function formatToken(
           const plain = stripAnsi(raw);
           const align = isHeader ? 'center' : (tableToken.align?.[i] ?? 'left');
           const padded = padAligned(raw, stringWidth(plain), w, align);
-          return isHeader ? ` ${chalk.bold(padded)} ` : ` ${padded} `;
+          return isHeader ? ` ${bold(padded)} ` : ` ${padded} `;
         });
         return D('│') + parts.join(D('│')) + D('│');
       }

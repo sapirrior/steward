@@ -1,4 +1,4 @@
-import type { ChatMode } from './chat-mode.js';
+import { MODES, type ChatMode } from './mode.js';
 
 export interface SystemPromptOptions {
   cwd?: string;
@@ -73,22 +73,17 @@ ${options.extraInstructions}
 </additional_instructions>`;
   }
 
-  const modeBlocks: Partial<Record<ChatMode, string>> = {
-    chat: `
-<operating_mode>
-Mode: CHAT — You have no tool access. Respond conversationally only. Do not attempt to call any tools.
-</operating_mode>`,
-    review: `
-<operating_mode>
-Mode: REVIEW — You may only use read-only tools: read_file, glob, grep, list_dir, web_fetch, web_search, todo_read, skill_list, skill_read, task_list, task_read. Any attempt to write files, run commands, or mutate state will be blocked by the tool itself.
-</operating_mode>`,
-    build: `
-<operating_mode>
-Mode: BUILD — You have full tool access. File writes and edits are automatically approved without user confirmation — act decisively and make changes directly. Bash commands still require user approval.
-</operating_mode>`,
-  };
-  if (options.chatMode && modeBlocks[options.chatMode]) {
-    prompt += modeBlocks[options.chatMode];
+  if (options.chatMode && options.chatMode !== 'normal') {
+    const meta = MODES[options.chatMode];
+    if (meta) {
+      if (options.chatMode === 'chat') {
+        prompt += `\n\n<operating_mode>\nMode: CHAT — You have no tool access. Respond conversationally only. Do not attempt to call any tools.\n</operating_mode>`;
+      } else if (options.chatMode === 'review') {
+        prompt += `\n\n<operating_mode>\nMode: REVIEW — You may only use read-only tools. Any attempt to write files, run commands, or mutate state will be blocked.\n</operating_mode>`;
+      } else if (options.chatMode === 'build') {
+        prompt += `\n\n<operating_mode>\nMode: BUILD — You have full tool access. File writes and edits are automatically approved without user confirmation — act decisively and make changes directly. Bash commands still require user approval.\n</operating_mode>`;
+      }
+    }
   }
 
   return prompt;

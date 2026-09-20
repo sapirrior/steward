@@ -1,4 +1,3 @@
-import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { z } from 'zod';
 import { figures } from '../../theme/index.js';
 import {
@@ -60,6 +59,7 @@ export const todoWriteTool: ToolDefinition<typeof todoWriteParamsSchema, Persist
   name: 'todo_write',
   displayName: 'TodoWrite',
   icon: '📝',
+  access: 'write',
   description:
     'Initializes or replaces the current session todo list with 2 to 10 items. Use this to establish or replace the multi-step execution plan for the session.',
   parameters: todoWriteParamsSchema,

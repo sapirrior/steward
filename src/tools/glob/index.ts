@@ -85,6 +85,7 @@ function walkDir(
 export const globTool: ToolDefinition<typeof globInputSchema, GlobOutput> = {
   name: 'glob',
   displayName: 'Glob',
+  access: 'read',
   description:
     'Finds files matching a glob pattern or file name in the workspace. Read-only search capability with bounded results.',
   parameters: globInputSchema,

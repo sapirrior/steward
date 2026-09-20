@@ -14,6 +14,7 @@ export interface TaskListOutput {
 export const taskListTool: ToolDefinition<typeof taskListInputSchema, TaskListOutput> = {
   name: 'task_list',
   displayName: 'Task List',
+  access: 'read',
   description:
     'Lists all currently tracked background shell tasks along with their IDs, statuses, commands, and exit codes.',
   parameters: taskListInputSchema,

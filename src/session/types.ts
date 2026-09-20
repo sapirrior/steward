@@ -1,10 +1,29 @@
 import type { ModelSelection } from '../engine/types.js';
-import type { SessionDocument, SessionTurn } from './schema.js';
+import type { SessionDocument } from './schema.js';
 
 export { SESSION_SCHEMA_VERSION, type SessionDocument, type SessionTurn } from './schema.js';
 
 /** Canonical session document type */
 export type SessionData = SessionDocument;
+
+export type ToolExecutionStatus = 'running' | 'completed' | 'failed';
+
+export interface UIHistoryItem {
+  id: string;
+  turnId?: string;
+  type: 'user' | 'assistant' | 'reasoning' | 'tool' | 'system';
+  content: string;
+  toolData?: {
+    toolName: string;
+    displayName?: string;
+    icon?: string;
+    argsSummary?: string;
+    status: ToolExecutionStatus;
+    durationMs?: number;
+    error?: string;
+    toolOutput?: string;
+  };
+}
 
 /**
  * Lightweight metadata used when listing sessions for /resume.

@@ -8,7 +8,7 @@ import { handleHelpCommand } from './commands/help/index.js';
 import { handleRepoCommand, REPO_URL } from './commands/repo/index.js';
 import { setActiveTheme } from '../theme/index.js';
 import { getSavedTheme, getSavedMode } from '../config/index.js';
-import { setActiveMode } from '../engine/chat-mode.js';
+import { setActiveMode } from '../engine/mode.js';
 
 export * from './types.js';
 export * from './parser.js';

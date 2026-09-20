@@ -1,6 +1,6 @@
 import Component from '../../engine/Component.js';
-import { getTheme, figures } from '../../../theme/index.js';
-import { themeColor, themeBgColor, chalk } from '../../utils/format.js';
+import { figures } from '../../../theme/index.js';
+import { c, bg, bold, italic } from '../../../theme/style.js';
 import { Box, Text, parseKeyInput, prefixedBlock } from '../../primitives/index.js';
 import type { FilePermissionRequest } from '../../../tools/types.js';
 import { buildUnifiedDiff, type UnifiedDiff } from '../../../utils/diff.js';
@@ -122,14 +122,8 @@ export default class FilePermissionDock extends Component<
   }
 
   private renderContentRows(maxCols: number): string[] {
-    const theme = getTheme();
     const { request } = this.props;
     const { kind, before, after } = request;
-
-    const diffAdd = themeColor(theme.diffAddFG);
-    const diffAddBg = themeBgColor(theme.diffAddBG);
-    const diffDelete = themeColor(theme.diffDeleteFG);
-    const diffDeleteBg = themeBgColor(theme.diffDeleteBG);
 
     if (kind === 'create' || kind === 'overwrite') {
       const highlighted = highlightCode(after, { filePath: request.filePath });
@@ -143,7 +137,7 @@ export default class FilePermissionDock extends Component<
       for (let i = 0; i < lines.length; i++) {
         const lineNum = i + 1;
         const lineNumStr = String(lineNum).padStart(gutterWidth, ' ');
-        const firstPrefix = ` ${chalk.dim(lineNumStr)}  `;
+        const firstPrefix = ` ${c.muted(lineNumStr)}  `;
         const contPrefix = ` ${' '.repeat(gutterWidth)}  `;
         const wrapped = prefixedBlock(firstPrefix, lines[i] ?? '', {
           continuationPrefix: contPrefix,
@@ -172,42 +166,44 @@ export default class FilePermissionDock extends Component<
       for (const line of hunk.lines) {
         if (line.kind === 'deletion') {
           const numStr = String(line.oldLineNumber ?? '').padStart(gutterWidth, ' ');
-          const firstPrefix = ` ${chalk.dim(numStr)} `;
+          const firstPrefix = ` ${c.muted(numStr)} `;
           const contPrefix = ` ${' '.repeat(gutterWidth)} `;
           const bodyText = line.spans
-            ? diffDelete('-') +
+            ? c.diffDelFg('-') +
               line.spans
                 .map((s) =>
-                  s.kind === 'deletion' ? chalk.bold(diffDelete(s.text)) : diffDelete(s.text),
+                  s.kind === 'deletion' ? bold(c.diffDelFg(s.text)) : c.diffDelFg(s.text),
                 )
                 .join('')
-            : diffDelete(`-${line.text}`);
+            : c.diffDelFg(`-${line.text}`);
           const wrapped = prefixedBlock(firstPrefix, bodyText, {
             continuationPrefix: contPrefix,
             width: maxCols,
-            bg: diffDeleteBg,
+            bg: bg.diffDelBg,
           });
           renderedRows.push(...wrapped);
         } else if (line.kind === 'addition') {
           const numStr = String(line.newLineNumber ?? '').padStart(gutterWidth, ' ');
-          const firstPrefix = ` ${chalk.dim(numStr)} `;
+          const firstPrefix = ` ${c.muted(numStr)} `;
           const contPrefix = ` ${' '.repeat(gutterWidth)} `;
           const bodyText = line.spans
-            ? diffAdd('+') +
+            ? c.diffAddFg('+') +
               line.spans
-                .map((s) => (s.kind === 'addition' ? chalk.bold(diffAdd(s.text)) : diffAdd(s.text)))
+                .map((s) =>
+                  s.kind === 'addition' ? bold(c.diffAddFg(s.text)) : c.diffAddFg(s.text),
+                )
                 .join('')
-            : diffAdd(`+${line.text}`);
+            : c.diffAddFg(`+${line.text}`);
           const wrapped = prefixedBlock(firstPrefix, bodyText, {
             continuationPrefix: contPrefix,
             width: maxCols,
-            bg: diffAddBg,
+            bg: bg.diffAddBg,
           });
           renderedRows.push(...wrapped);
         } else {
           const lineNum = line.newLineNumber ?? line.oldLineNumber ?? '';
           const numStr = String(lineNum).padStart(gutterWidth, ' ');
-          const firstPrefix = ` ${chalk.dim(numStr)}  `;
+          const firstPrefix = ` ${c.muted(numStr)}  `;
           const contPrefix = ` ${' '.repeat(gutterWidth)}  `;
           const highlightedLine = highlightCode(line.text, { filePath: request.filePath });
           const wrapped = prefixedBlock(firstPrefix, highlightedLine, {
@@ -223,13 +219,9 @@ export default class FilePermissionDock extends Component<
   }
 
   override render(width?: number): string[] {
-    const theme = getTheme();
     const termWidth = width ?? process.stdout.columns ?? 80;
     const maxCols = Math.max(1, termWidth);
 
-    const dividerColor = themeColor(theme.dividerRule);
-    const permColor = themeColor(theme.permission);
-    const mutedColor = themeColor(theme.textMuted);
     const { mode, selectedIndex, scrollOffset } = this.state;
     const { request } = this.props;
     const { kind, filePath } = request;
@@ -239,7 +231,7 @@ export default class FilePermissionDock extends Component<
     const isNoSelected = selectedIndex === 1;
 
     // Divider line
-    const divider = dividerColor(figures.horizontalLine.repeat(maxCols));
+    const divider = c.rule(figures.horizontalLine.repeat(maxCols));
 
     let title = 'Edit file';
     let question = `Do you want to make this edit to ${filePath}?`;
@@ -274,10 +266,10 @@ export default class FilePermissionDock extends Component<
             {''}
           </Text>
           <Text wrap={false} clip={false}>
-            {chalk.white.bold(`${title} (review)`)}
+            {bold(c.text(`${title} (review)`))}
           </Text>
           <Text wrap={false} clip={false}>
-            {`    ${chalk.dim(filePath)}`}
+            {`    ${c.muted(filePath)}`}
           </Text>
           <Text wrap={false} clip={false}>
             {''}
@@ -291,7 +283,7 @@ export default class FilePermissionDock extends Component<
             {''}
           </Text>
           <Text wrap={false} clip={false}>
-            {mutedColor(chalk.italic('↑/↓ scroll · Esc / f to return'))}
+            {italic(c.muted('↑/↓ scroll · Esc / f to return'))}
           </Text>
         </Box>
       );
@@ -304,12 +296,12 @@ export default class FilePermissionDock extends Component<
     const hiddenCount = Math.max(0, allContentRows.length - 10);
 
     const yesOptionText = isYesSelected
-      ? `${permColor(pointer)} ${permColor.bold('1. Yes')}`
-      : `  ${chalk.white('1. Yes')}`;
+      ? `${c.permission(pointer)} ${bold(c.permission('1. Yes'))}`
+      : `  ${c.text('1. Yes')}`;
 
     const noOptionText = isNoSelected
-      ? `${permColor(pointer)} ${permColor.bold('2. No')}`
-      : `  ${chalk.white('2. No')}`;
+      ? `${c.permission(pointer)} ${bold(c.permission('2. No'))}`
+      : `  ${c.text('2. No')}`;
 
     const element = (
       <Box direction="column" width={maxCols} wrap={true} clip={false}>
@@ -320,10 +312,10 @@ export default class FilePermissionDock extends Component<
           {''}
         </Text>
         <Text wrap={false} clip={false}>
-          {chalk.white.bold(title)}
+          {bold(c.text(title))}
         </Text>
         <Text wrap={false} clip={false}>
-          {`    ${chalk.dim(filePath)}`}
+          {`    ${c.muted(filePath)}`}
         </Text>
         <Text wrap={false} clip={false}>
           {''}
@@ -335,14 +327,14 @@ export default class FilePermissionDock extends Component<
         ))}
         {hiddenCount > 0 && (
           <Text wrap={false} clip={false}>
-            {`    ${chalk.dim(`(+${hiddenCount} hidden)`)}`}
+            {`    ${c.muted(`(+${hiddenCount} hidden)`)}`}
           </Text>
         )}
         <Text wrap={false} clip={false}>
           {''}
         </Text>
         <Text wrap={false} clip={false}>
-          {chalk.white(question)}
+          {c.text(question)}
         </Text>
         <Text wrap={false} clip={false}>
           {''}
@@ -357,7 +349,7 @@ export default class FilePermissionDock extends Component<
           {''}
         </Text>
         <Text wrap={false} clip={false}>
-          {mutedColor(chalk.italic('Esc to cancel · f to review'))}
+          {italic(c.muted('Esc to cancel · f to review'))}
         </Text>
       </Box>
     );

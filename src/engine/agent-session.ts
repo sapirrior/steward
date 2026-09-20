@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import type { LanguageModel, ModelMessage } from 'ai';
 import {
   createSession,
-  formatToolOutputSummary,
   getCurrentDateString,
   recordSessionTurn,
   renameSession,
@@ -15,15 +14,14 @@ import {
   MutationCheckpointTracker,
   globalMutationLockManager,
 } from '../services/checkpoint/index.js';
-import { defaultToolCatalog } from '../tools/index.js';
+import { defaultToolCatalog, summarizeToolResult, formatPlainToolSummary } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import { ShellTaskManager } from '../services/tasks/manager.js';
 import { saveSettings } from '../config/index.js';
 import { logError } from '../errors/index.js';
 import { runAgentTurn } from './agent-runner.js';
 import { SAFETY_STEP_CEILING } from './constants.js';
-import type { AgentEventListener } from './events.js';
-import { getActiveMode } from './chat-mode.js';
+import { getActiveMode, MODES } from './mode.js';
 import { createModelInstance, resolveActiveModelSelection } from './model-provider.js';
 import { buildSystemPrompt } from './system-prompt.js';
 import type {
@@ -256,13 +254,13 @@ export class AgentSession {
     await tracker.beginTurn(turnId, this.sessionData.turns.length + 1);
 
     const mode = getActiveMode();
-    const effectiveFilePermission =
-      mode === 'build'
-        ? async (_req: import('../tools/types.js').FilePermissionRequest) => ({ allowed: true })
-        : options.requestFilePermission;
+    const effectiveFilePermission = MODES[mode]?.autoApproveFiles
+      ? async (_req: import('../tools/types.js').FilePermissionRequest) => ({ allowed: true })
+      : options.requestFilePermission;
 
     const toolContext: ToolContext = {
       cwd,
+      mode,
       sessionId: this.sessionData.id,
       abortSignal: this.activeAbortController.signal,
       checkpointTracker: tracker,
@@ -301,10 +299,13 @@ export class AgentSession {
         });
       } else if (event.type === 'tool-result') {
         const toolDef = defaultToolCatalog.get(event.toolResult.name);
-        const outputSummary =
-          !event.toolResult.isError && toolDef?.summarize
-            ? toolDef.summarize(event.toolResult.args, event.toolResult.result)
-            : formatToolOutputSummary(event.toolResult.result, event.toolResult.isError);
+        const summaryObj = summarizeToolResult(
+          toolDef,
+          event.toolResult.args,
+          event.toolResult.result,
+          event.toolResult.isError,
+        );
+        const outputSummary = formatPlainToolSummary(summaryObj);
         const errorMessage = event.toolResult.isError
           ? typeof event.toolResult.result === 'object' && event.toolResult.result !== null
             ? ((event.toolResult.result as any).message ?? JSON.stringify(event.toolResult.result))

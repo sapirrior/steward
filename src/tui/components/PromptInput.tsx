@@ -2,8 +2,9 @@ import Component from '../engine/Component.js';
 import { defaultCommandRegistry } from '../../commands/registry.js';
 import type { SlashCommand } from '../../commands/types.js';
 import { searchWorkspaceFiles } from '../../utils/file-search.js';
-import { getTheme, figures } from '../../theme/index.js';
-import { themeColor, chalk, truncateToWidth } from '../utils/format.js';
+import { figures } from '../../theme/index.js';
+import { c, bold } from '../../theme/style.js';
+import { truncateToWidth } from '../utils/format.js';
 import { parseKeyInput } from '../primitives/index.js';
 
 export type VoiceInputMode =
@@ -32,15 +33,6 @@ export interface PromptInputState {
   voiceTranscript: string;
   voiceAnchor: number;
 }
-
-const STATUS_WORDS = [
-  'thinking…',
-  'analyzing…',
-  'exploring…',
-  'computing…',
-  'crafting…',
-  'generating…',
-];
 
 export function insertTextAtAnchor(
   base: string,
@@ -539,7 +531,6 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     lines: string[];
     cursor: { logicalLineIndex: number; characterOffsetWithinLine: number } | null;
   } {
-    const theme = getTheme();
     const termWidth = width ?? process.stdout.columns ?? 80;
     const maxCols = Math.max(1, termWidth);
     const dividerWidth = maxCols;
@@ -562,15 +553,15 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     let cursor: { logicalLineIndex: number; characterOffsetWithinLine: number } | null = null;
 
     if (escPending) {
-      lines.push(themeColor(theme.permission)('Press Esc again to clear'));
+      lines.push(c.permission('Press Esc again to clear'));
     }
 
-    const borderColor = disabled ? themeColor(theme.subtle) : themeColor(theme.promptBorder);
+    const borderColor = disabled ? c.subtle : c.promptBorder;
 
     // 1. Disabled (generating) state — Clean minimal layout with Esc to stop
     if (disabled) {
       lines.push(borderColor(figures.horizontalLine.repeat(dividerWidth)));
-      lines.push(truncateToWidth(`  ${chalk.dim('Esc to stop')}`, maxCols));
+      lines.push(truncateToWidth(`  ${c.muted('Esc to stop')}`, maxCols));
       lines.push(borderColor(figures.horizontalLine.repeat(dividerWidth)));
       return { lines, cursor: null };
     }
@@ -581,7 +572,7 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
       const leftDashes = borderColor(figures.horizontalLine.repeat(4));
       const rightLen = Math.max(0, maxCols - (4 + histText.length));
       const rightDashes = borderColor(figures.horizontalLine.repeat(rightLen));
-      lines.push(`${leftDashes}${chalk.white(histText)}${rightDashes}`);
+      lines.push(`${leftDashes}${c.text(histText)}${rightDashes}`);
     } else {
       lines.push(borderColor(figures.horizontalLine.repeat(dividerWidth)));
     }
@@ -595,16 +586,12 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     const effectiveValue = displayData.value;
     const effectiveCursorPos = displayData.cursorPos;
 
-    const chevColor = themeColor(theme.userChevron);
-    const pointer = chevColor(`${figures.pointerBold} `);
-    const prefixLen = 2;
-
     if (effectiveValue.length === 0) {
       cursor = {
         logicalLineIndex: lines.length,
-        characterOffsetWithinLine: prefixLen,
+        characterOffsetWithinLine: 0,
       };
-      lines.push(truncateToWidth(`${pointer}${chalk.dim('Type your message...')}`, maxCols));
+      lines.push(truncateToWidth(c.muted('Type your message...'), maxCols));
     } else {
       const vLines = effectiveValue.split('\n');
       let currentOffset = 0;
@@ -622,12 +609,11 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
         ) {
           cursor = {
             logicalLineIndex: lines.length,
-            characterOffsetWithinLine: prefixLen + (effectiveCursorPos - currentOffset),
+            characterOffsetWithinLine: effectiveCursorPos - currentOffset,
           };
         }
 
-        const p = i === 0 ? pointer : '  ';
-        lines.push(`${p}${chalk.white(l)}`);
+        lines.push(c.text(l));
         currentOffset = lineEndOffset + 1;
       }
     }
@@ -641,7 +627,7 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     const matchingCommands: SlashCommand[] = isSlashMode
       ? defaultCommandRegistry
           .getAll()
-          .filter((c) => `/${c.name}`.toLowerCase().startsWith(effectiveValue.toLowerCase()))
+          .filter((cmd) => `/${cmd.name}`.toLowerCase().startsWith(effectiveValue.toLowerCase()))
       : [];
 
     if (
@@ -655,28 +641,22 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
         const namePadded = `/${cmd.name}`.padEnd(18);
         if (isSelected) {
           lines.push(
-            truncateToWidth(
-              `${chalk.white.bold(namePadded)}${chalk.white.bold(cmd.description)}`,
-              maxCols,
-            ),
+            truncateToWidth(`${bold(c.text(namePadded))}${bold(c.text(cmd.description))}`, maxCols),
           );
         } else {
-          lines.push(
-            truncateToWidth(`${chalk.dim(namePadded)}${chalk.dim(cmd.description)}`, maxCols),
-          );
+          lines.push(truncateToWidth(`${c.muted(namePadded)}${c.muted(cmd.description)}`, maxCols));
         }
       }
     }
 
     // Inline FileMatches
     if (voiceMode === 'idle' && fileMatches.length > 0) {
-      const infoColor = themeColor(theme.info);
-      lines.push(chalk.dim('Matching files (@):'));
+      lines.push(c.muted('Matching files (@):'));
       for (let i = 0; i < fileMatches.length; i++) {
         const f = fileMatches[i]!;
         const isSelected = i === fileSelectIdx;
-        const p = isSelected ? infoColor(`${figures.pointerBold} `) : '  ';
-        const fileText = isSelected ? infoColor(f) : chalk.dim(f);
+        const p = isSelected ? c.info(`${figures.pointerBold} `) : '  ';
+        const fileText = isSelected ? c.info(f) : c.muted(f);
         lines.push(truncateToWidth(`${p}${fileText}`, maxCols));
       }
     }

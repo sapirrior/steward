@@ -1,5 +1,5 @@
-import { getTheme, figures } from '../../../theme/index.js';
-import { themeColor, chalk } from '../../utils/format.js';
+import { figures } from '../../../theme/index.js';
+import { c, italic } from '../../../theme/style.js';
 import { Box, BoxElement } from '../Box.js';
 import { Text, TextElement } from '../Text.js';
 
@@ -13,40 +13,35 @@ export interface ModalBoxOptions {
 }
 
 export function renderModalBox(options: ModalBoxOptions): string[] {
-  const theme = getTheme();
   const termWidth = options.width ?? process.stdout.columns ?? 80;
   const maxCols = Math.max(1, termWidth);
   const dividerWidth = Math.max(1, termWidth);
 
-  const lavHeader = themeColor(theme.lavenderHeader);
-  const infoColor = themeColor(theme.info);
-  const dashRule = themeColor(theme.dashedRule);
-
   const elements: (BoxElement | TextElement | string)[] = [];
 
   // Top rule
-  elements.push(Text(lavHeader(figures.horizontalLine.repeat(dividerWidth)), { clip: true }));
+  elements.push(Text(c.rule(figures.horizontalLine.repeat(dividerWidth)), { clip: true }));
 
   // Header Title Row
   if (options.subtitle) {
     elements.push(
       Box({ direction: 'row', justify: 'space-between', width: maxCols }, [
-        Text(options.title, { color: theme.info }),
-        Text(options.subtitle, { dim: true }),
+        Text(options.title, { color: 'info' }),
+        Text(options.subtitle, { color: 'muted' }),
       ]),
     );
   } else {
-    elements.push(Text(options.title, { color: theme.lavenderLight }));
+    elements.push(Text(options.title, { color: 'permission' }));
   }
 
   // Search Query input
   if (options.queryInput) {
-    const pointer = infoColor(`${figures.pointer} `);
+    const pointer = c.info(`${figures.pointer} `);
     const queryDisplay = options.queryInput.query
-      ? chalk.white(options.queryInput.query)
-      : chalk.dim(options.queryInput.placeholder);
+      ? c.text(options.queryInput.query)
+      : c.muted(options.queryInput.placeholder);
     elements.push(Text(`${pointer}${queryDisplay}`));
-    elements.push(Text(dashRule(figures.horizontalLine.repeat(dividerWidth)), { clip: true }));
+    elements.push(Text(c.rule(figures.horizontalLine.repeat(dividerWidth)), { clip: true }));
   }
 
   // Content children
@@ -56,13 +51,9 @@ export function renderModalBox(options: ModalBoxOptions): string[] {
 
   // Footer
   if (options.footer) {
-    elements.push(Text(chalk.dim.italic(options.footer)));
+    elements.push(Text(italic(c.muted(options.footer))));
   }
 
   const modalBox = Box({ direction: 'column', width: maxCols, clip: true }, elements);
   return modalBox.render(maxCols);
-}
-
-export function renderKeyHints(hints: Array<{ key: string; label: string }>): string {
-  return chalk.dim.italic(hints.map((h) => `${h.key} ${h.label}`).join(' · '));
 }

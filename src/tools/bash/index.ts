@@ -1,4 +1,3 @@
-import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { rmSync } from 'node:fs';
 import { z } from 'zod';
 import type { ToolDefinition } from '../types.js';
@@ -52,6 +51,7 @@ export type BashOutput =
 export const bashTool: ToolDefinition<typeof bashInputSchema, BashOutput> = {
   name: 'bash',
   displayName: 'Bash',
+  access: 'exec',
   description:
     'Executes a command in the platform shell. An explanation of what the command does and why it is needed is MANDATORY. Commands that exceed the foreground limit (~12s) automatically continue as background shell tasks. Use task_read, task_send_input, and task_kill to manage background tasks. Note: Bash commands are NOT tracked by the file checkpoint system (/rewind).',
   parameters: bashInputSchema,
@@ -70,7 +70,6 @@ export const bashTool: ToolDefinition<typeof bashInputSchema, BashOutput> = {
   },
 
   execute: async (args, context) => {
-    assertToolAllowed('bash');
     const command = typeof args?.command === 'string' ? args.command.trim() : '';
     if (!command) {
       throw new Error('Command is required and cannot be empty.');

@@ -51,6 +51,7 @@ function cleanHtmlContent(html: string): string {
 export const webFetchTool: ToolDefinition<typeof webFetchInputSchema, WebFetchOutput> = {
   name: 'web_fetch',
   displayName: 'Web',
+  access: 'read',
   description:
     'Fetches text and documentation content from a public web URL. Automatically cleans HTML markup into readable text.',
   parameters: webFetchInputSchema,

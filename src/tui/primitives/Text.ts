@@ -1,15 +1,23 @@
 import stringWidth from 'string-width';
 import stripAnsi from 'strip-ansi';
-import chalk from 'chalk';
-import { themeColor, themeBgColor, truncateToWidth } from '../utils/format.js';
+import {
+  c,
+  bg,
+  bold,
+  italic,
+  underline,
+  strikethrough,
+  type ColorToken,
+  type BgToken,
+} from '../../theme/style.js';
+import { truncateToWidth } from '../utils/format.js';
 import { wrapVisualLine } from '../engine/cell-layout.js';
 
 export interface TextProps {
   // Styling
-  color?: string | ((str: string) => string);
-  bgColor?: string | ((str: string) => string);
+  color?: ColorToken | ((str: string) => string);
+  bgColor?: BgToken | ((str: string) => string);
   bold?: boolean;
-  dim?: boolean;
   italic?: boolean;
   underline?: boolean;
   strikethrough?: boolean;
@@ -38,25 +46,24 @@ export class TextElement {
 
     // Apply text styling
     let styled = rawContent;
-    if (this.props.bold) styled = chalk.bold(styled);
-    if (this.props.dim) styled = chalk.dim(styled);
-    if (this.props.italic) styled = chalk.italic(styled);
-    if (this.props.underline) styled = chalk.underline(styled);
-    if (this.props.strikethrough) styled = chalk.strikethrough(styled);
+    if (this.props.bold) styled = bold(styled);
+    if (this.props.italic) styled = italic(styled);
+    if (this.props.underline) styled = underline(styled);
+    if (this.props.strikethrough) styled = strikethrough(styled);
 
     if (this.props.color) {
       if (typeof this.props.color === 'function') {
         styled = this.props.color(styled);
-      } else {
-        styled = themeColor(this.props.color)(styled);
+      } else if (this.props.color in c) {
+        styled = c[this.props.color](styled);
       }
     }
 
     if (this.props.bgColor) {
       if (typeof this.props.bgColor === 'function') {
         styled = this.props.bgColor(styled);
-      } else {
-        styled = themeBgColor(this.props.bgColor)(styled);
+      } else if (this.props.bgColor in bg) {
+        styled = bg[this.props.bgColor](styled);
       }
     }
 

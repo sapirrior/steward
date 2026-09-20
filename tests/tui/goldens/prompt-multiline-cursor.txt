@@ -3,9 +3,9 @@
  ▝   ▘   /workspace/steward
 
 ────────────────────────────────────────────────────────────────────────────────
-❯ First line of prompt
-  Second line with cursor
-  Third line
+First line of prompt
+Second line with cursor
+Third line
 ────────────────────────────────────────────────────────────────────────────────
 ? for shortcuts                                                 Normal · default
 
@@ -21,4 +21,4 @@
 
 
 
-[?25h[7;14H[?2026l
+[?25h[7;12H[?2026l

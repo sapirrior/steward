@@ -1,4 +1,3 @@
-import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { z } from 'zod';
 import { figures } from '../../theme/index.js';
 import {
@@ -50,6 +49,7 @@ export const todoUpdateTool: ToolDefinition<typeof todoUpdateParamsSchema, Persi
   name: 'todo_update',
   displayName: 'TodoUpdate',
   icon: '✓',
+  access: 'write',
   description:
     'Updates a single todo item status or description in the current session. Cannot create new items or update multiple items at once.',
   parameters: todoUpdateParamsSchema,

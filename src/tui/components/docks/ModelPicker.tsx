@@ -1,7 +1,7 @@
 import { SelectList } from '../../primitives/index.js';
 import type { ModelDescriptor } from '../../../models/discovery.js';
-import { getTheme, figures } from '../../../theme/index.js';
-import { themeColor, chalk } from '../../utils/format.js';
+import { figures } from '../../../theme/index.js';
+import { c, bold } from '../../../theme/style.js';
 import { Box, Text } from '../../primitives/index.js';
 
 export interface ModelPickerProps {
@@ -29,14 +29,11 @@ export default class ModelPicker extends SelectList<ModelDescriptor> {
       onSelect: props.onSelect,
       onCancel: props.onCancel,
       renderItem: (m, isSelected, maxCols) => {
-        const theme = getTheme();
-        const selColor = themeColor(theme.permission);
-        const yellowColor = themeColor(theme.warning);
         const isCurrent =
           m.provider === props.currentModel.provider && m.model_id === props.currentModel.modelId;
 
-        const pointer = isSelected ? selColor(`${figures.pointer} `) : '  ';
-        const activeBadge = isCurrent ? yellowColor.bold(' (active)') : '';
+        const pointer = isSelected ? c.selected(`${figures.pointer} `) : '  ';
+        const activeBadge = isCurrent ? bold(c.current(' (active)')) : '';
         const providerName = m.provider.toUpperCase();
         const caps = m.capabilities?.reasoning ? 'reasoning' : 'chat';
         const meta = `${providerName} • ${caps}`;
@@ -44,14 +41,14 @@ export default class ModelPicker extends SelectList<ModelDescriptor> {
         return (
           <Box direction="column" width={maxCols}>
             <Text
-              color={isSelected ? selColor : isCurrent ? yellowColor : chalk.white}
+              color={isSelected ? 'selected' : isCurrent ? 'current' : 'text'}
               wrap={false}
               clip={true}
               ellipsis={true}
             >
               {`${pointer}${m.model_id}${activeBadge}`}
             </Text>
-            <Text dim={true} wrap={false} clip={true} ellipsis={true}>
+            <Text color="muted" wrap={false} clip={true} ellipsis={true}>
               {`  ${meta}`}
             </Text>
           </Box>

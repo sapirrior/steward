@@ -4,6 +4,20 @@ import type {
   MutationLockManager,
 } from '../services/checkpoint/index.js';
 import type { ShellTaskManager } from '../services/tasks/manager.js';
+import type { ChatMode } from '../engine/mode.js';
+import type { DiffHunk } from '../utils/diff.js';
+
+export type ToolAccess = 'read' | 'write' | 'exec';
+
+export type ToolDetail =
+  | { kind: 'text'; text: string }
+  | { kind: 'code'; filePath?: string; text: string; totalLines: number }
+  | { kind: 'diff'; filePath?: string; hunks: DiffHunk[] };
+
+export interface ToolSummary {
+  headline: string;
+  detail?: ToolDetail;
+}
 
 export interface BashPermissionRequest {
   command: string;
@@ -32,6 +46,7 @@ export interface FilePermissionResponse {
  */
 export interface ToolContext {
   cwd: string;
+  mode?: ChatMode;
   sessionId?: string;
   abortSignal?: AbortSignal;
   checkpointTracker?: MutationCheckpointTracker;
@@ -49,6 +64,7 @@ export interface ToolDefinition<TParams extends z.ZodTypeAny = z.ZodTypeAny, TRe
   displayName: string;
   icon?: string;
   description: string;
+  access: ToolAccess;
   parameters: TParams;
 
   /**
@@ -67,7 +83,7 @@ export interface ToolDefinition<TParams extends z.ZodTypeAny = z.ZodTypeAny, TRe
   execute: (args: z.infer<TParams>, context: ToolContext) => Promise<TResult>;
 
   /**
-   * Concise single-line summary of the tool invocation for terminal logs.
+   * Concise summary of the tool invocation for terminal logs and session history.
    */
-  summarize?: (args: z.infer<TParams>, result?: TResult) => string;
+  summarize?: (args: z.infer<TParams>, result?: TResult) => ToolSummary | string;
 }

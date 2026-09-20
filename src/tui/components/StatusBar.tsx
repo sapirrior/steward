@@ -1,9 +1,7 @@
 import Component from '../engine/Component.js';
-import type { TokenUsage } from '../../engine/types.js';
-import { type ChatMode, CHAT_MODES, getActiveMode } from '../../engine/chat-mode.js';
-import type { UITheme } from '../../theme/colors.js';
-import { getTheme, figures } from '../../theme/index.js';
-import { themeColor, chalk } from '../utils/format.js';
+import { type ChatMode, MODES, getActiveMode } from '../../engine/mode.js';
+import { figures } from '../../theme/index.js';
+import { c, bold } from '../../theme/style.js';
 import { Box, Text } from '../primitives/index.js';
 
 export type StatusBarVoiceState = 'idle' | 'connecting' | 'recording' | 'finishing';
@@ -21,7 +19,6 @@ export interface StatusBarProps {
     modelId: string;
     effort?: string;
   };
-  usage: TokenUsage;
   isBusy: boolean;
   exitPending?: boolean;
   warning?: string;
@@ -37,21 +34,12 @@ export interface StatusBarState {
     modelId: string;
     effort?: string;
   };
-  usage: TokenUsage;
   isBusy: boolean;
   exitPending?: boolean;
   warning?: string;
   voiceState?: StatusBarVoiceState;
   voiceDurationSec?: number;
   updateStatus?: StatusBarUpdateStatus;
-}
-
-function formatTokens(n: number): string {
-  if (n < 0) return '0';
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return `${n}`;
 }
 
 function formatVoiceDuration(sec: number): string {
@@ -75,7 +63,6 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
     this.state = {
       chatMode: props.chatMode ?? getActiveMode(),
       model: props.model,
-      usage: props.usage,
       isBusy: props.isBusy,
       exitPending: props.exitPending,
       warning: props.warning,
@@ -171,12 +158,10 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
   }
 
   override render(width?: number): string[] {
-    const theme = getTheme();
     const termWidth = width ?? process.stdout.columns ?? 80;
     const maxCols = Math.max(1, termWidth);
     const {
       model,
-      usage,
       isBusy,
       exitPending,
       warning,
@@ -188,54 +173,51 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
 
     let left = '';
     if (warning) {
-      left = themeColor(theme.warning)(warning);
+      left = c.warning(warning);
     } else if (voiceState && voiceState !== 'idle') {
       if (voiceState === 'connecting') {
-        left = `${chalk.white.bold('Connecting...')}   ${chalk.dim('Ctrl+T to stop')}`;
+        left = `${bold(c.text('Connecting...'))}   ${c.muted('Ctrl+T to stop')}`;
       } else if (voiceState === 'recording') {
         const timeStr = formatVoiceDuration(voiceDurationSec ?? 0);
-        left = `${chalk.white.bold(`Recording... ${timeStr}`)}   ${chalk.dim('Ctrl+T to stop')}`;
+        left = `${bold(c.text(`Recording... ${timeStr}`))}   ${c.muted('Ctrl+T to stop')}`;
       } else if (voiceState === 'finishing') {
-        left = chalk.white.bold('Finishing...');
+        left = bold(c.text('Finishing...'));
       }
     } else if (exitPending) {
-      const errColor = themeColor(theme.error);
-      left = `${errColor('▸ ')}${chalk.dim('Press ')}${errColor('Ctrl+C')}${chalk.dim(' again to exit')}`;
+      left = `${c.error('▸ ')}${c.muted('Press ')}${c.error('Ctrl+C')}${c.muted(' again to exit')}`;
     } else if (updateStatus && updateStatus.state !== 'idle') {
       if (updateStatus.state === 'checking') {
-        left = chalk.white(updateStatus.message ?? 'Checking for updates...');
+        left = c.text(updateStatus.message ?? 'Checking for updates...');
       } else if (updateStatus.state === 'available') {
-        left = chalk.white(
-          updateStatus.message ?? `Update v${updateStatus.version ?? ''} is available`,
-        );
+        left = c.text(updateStatus.message ?? `Update v${updateStatus.version ?? ''} is available`);
       } else if (updateStatus.state === 'no-updates') {
-        left = chalk.white(updateStatus.message ?? 'Steward is up to date');
+        left = c.text(updateStatus.message ?? 'Steward is up to date');
       } else if (updateStatus.state === 'error' && updateStatus.message) {
-        left = themeColor(theme.error)(updateStatus.message);
+        left = c.error(updateStatus.message);
       } else if (isBusy) {
-        left = chalk.dim('esc to interrupt');
+        left = c.muted('esc to interrupt');
       } else {
-        left = chalk.dim('? for shortcuts');
+        left = c.muted('? for shortcuts');
       }
     } else if (isBusy) {
-      left = chalk.dim('esc to interrupt');
+      left = c.muted('esc to interrupt');
     } else {
-      left = chalk.dim('? for shortcuts');
+      left = c.muted('? for shortcuts');
     }
 
     const mode = chatMode ?? 'normal';
-    const modeMeta = CHAT_MODES[mode];
-    const modeColorKey = modeMeta?.themeColorKey ?? 'text';
+    const modeMeta = MODES[mode];
+    const modeColorKey = modeMeta?.color ?? 'text';
     const modeLabel = modeMeta?.label ?? mode;
 
     const parts: string[] = [];
-    parts.push(themeColor(theme[modeColorKey as keyof UITheme])(modeLabel));
+    parts.push(c[modeColorKey](modeLabel));
 
     const effort = model?.effort ?? 'provider-default';
     const effortDisplay = effort === 'provider-default' ? 'default' : effort;
-    parts.push(chalk.dim(effortDisplay));
+    parts.push(c.muted(effortDisplay));
 
-    const right = parts.length > 0 ? parts.join(` ${figures.bullet} `) : '';
+    const right = parts.length > 0 ? parts.join(c.muted(` ${figures.bullet} `)) : '';
 
     const element = (
       <Box direction="row" justify="space-between" width={maxCols} clip={true}>

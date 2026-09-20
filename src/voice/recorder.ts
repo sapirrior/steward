@@ -240,8 +240,3 @@ export class ParecAudioRecorder implements AudioRecorder {
     }
   }
 }
-
-/**
- * @deprecated Use ParecAudioRecorder. Kept as alias for compatibility.
- */
-export const ArecordAudioRecorder = ParecAudioRecorder;

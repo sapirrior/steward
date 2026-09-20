@@ -334,32 +334,3 @@ export function listSessions(limit = 50): SessionSummary[] {
 
   return summaries.slice(0, limit);
 }
-
-/**
- * Deletes a session by searching date folders for the session ID.
- */
-export function deleteSession(sessionId: string): boolean {
-  const rootDir = getSessionsRootDir();
-  if (!existsSync(rootDir)) {
-    return false;
-  }
-
-  const dateDirs = readdirSync(rootDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && !d.name.startsWith('.'))
-    .map((d) => d.name);
-
-  for (const date of dateDirs) {
-    const filePath = getSessionFilePath(date, sessionId);
-    if (existsSync(filePath)) {
-      try {
-        rmSync(filePath);
-        removeSessionLog(date, sessionId);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-  }
-
-  return false;
-}

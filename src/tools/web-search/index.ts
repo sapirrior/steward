@@ -149,6 +149,7 @@ async function searchDuckDuckGoDirect(
 export const webSearchTool: ToolDefinition<typeof webSearchInputSchema, WebSearchOutput> = {
   name: 'web_search',
   displayName: 'Web Search',
+  access: 'read',
   description:
     'Searches the web directly for up-to-date information, documentation, package releases, and technical answers. Returns structured search results with titles, clean URLs, and snippets.',
   parameters: webSearchInputSchema,

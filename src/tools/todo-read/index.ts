@@ -49,6 +49,7 @@ export const todoReadTool: ToolDefinition<typeof todoReadParamsSchema, TodoReadR
   name: 'todo_read',
   displayName: 'TodoRead',
   icon: '📋',
+  access: 'read',
   description:
     'Reads the current session todo list without modifying it. Returns an empty result if no todos have been established yet.',
   parameters: todoReadParamsSchema,

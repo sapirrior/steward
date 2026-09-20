@@ -1,6 +1,6 @@
 import Component from '../engine/Component.js';
-import { getTheme, figures } from '../../theme/index.js';
-import { themeColor, chalk } from '../utils/format.js';
+import { figures } from '../../theme/index.js';
+import { c, bold, italic } from '../../theme/style.js';
 import { Box, Text, parseKeyInput } from '../primitives/index.js';
 
 export interface TrustGateProps {
@@ -71,14 +71,8 @@ export default class TrustGate extends Component<TrustGateProps, TrustGateState>
   }
 
   override render(width?: number): string[] {
-    const theme = getTheme();
     const termWidth = width ?? process.stdout.columns ?? 80;
     const maxCols = Math.max(1, termWidth);
-
-    const warnColor = themeColor(theme.warning);
-    const permColor = themeColor(theme.permission);
-    const mutedColor = themeColor(theme.textMuted);
-    const dimGuideColor = themeColor(theme.inactive);
 
     const { selectedIndex } = this.state;
     const isYesSelected = selectedIndex === 0;
@@ -87,12 +81,12 @@ export default class TrustGate extends Component<TrustGateProps, TrustGateState>
     const pointer = figures.pointerBold ?? '❯';
 
     const yesOptionText = isYesSelected
-      ? `${permColor(pointer)} ${permColor.bold('1. Yes, I trust this folder')}`
-      : `  ${chalk.white('1. Yes, I trust this folder')}`;
+      ? `${c.permission(pointer)} ${bold(c.permission('1. Yes, I trust this folder'))}`
+      : `  ${c.text('1. Yes, I trust this folder')}`;
 
     const noOptionText = isNoSelected
-      ? `${permColor(pointer)} ${permColor.bold('2. No, exit')}`
-      : `  ${chalk.white('2. No, exit')}`;
+      ? `${c.permission(pointer)} ${bold(c.permission('2. No, exit'))}`
+      : `  ${c.text('2. No, exit')}`;
 
     const safetyCheckText =
       'You should only proceed if you trust this workspace. Accessing untrusted workspaces may allow malicious code in the repository to compromise security or mislead the assistant.';
@@ -103,27 +97,27 @@ export default class TrustGate extends Component<TrustGateProps, TrustGateState>
     const element = (
       <Box direction="column" width={maxCols} wrap={true} clip={false}>
         <Text wrap={false} clip={false}>
-          {warnColor.bold('Accessing workspace:')}
+          {bold(c.warning('Accessing workspace:'))}
         </Text>
         <Text wrap={false} clip={false}>
           {''}
         </Text>
         <Text wrap={false} clip={false}>
-          {chalk.white.bold(this.props.cwd)}
+          {bold(c.text(this.props.cwd))}
         </Text>
         <Text wrap={false} clip={false}>
           {''}
         </Text>
-        <Text wrap={true}>{chalk.white(safetyCheckText)}</Text>
+        <Text wrap={true}>{c.text(safetyCheckText)}</Text>
         <Text wrap={false} clip={false}>
           {''}
         </Text>
-        <Text wrap={true}>{chalk.white(capabilityText)}</Text>
+        <Text wrap={true}>{c.text(capabilityText)}</Text>
         <Text wrap={false} clip={false}>
           {''}
         </Text>
         <Text wrap={false} clip={false}>
-          {dimGuideColor('Security guide')}
+          {c.muted('Security guide')}
         </Text>
         <Text wrap={false} clip={false}>
           {''}
@@ -138,7 +132,7 @@ export default class TrustGate extends Component<TrustGateProps, TrustGateState>
           {''}
         </Text>
         <Text wrap={false} clip={false}>
-          {mutedColor(chalk.italic('Enter to confirm · Esc to cancel'))}
+          {italic(c.muted('Enter to confirm · Esc to cancel'))}
         </Text>
       </Box>
     );

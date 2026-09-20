@@ -128,6 +128,7 @@ function searchInDir(
 export const grepTool: ToolDefinition<typeof grepInputSchema, GrepOutput> = {
   name: 'grep',
   displayName: 'Grep',
+  access: 'read',
   description:
     'Searches for text or regex patterns across files in the workspace. Read-only content search with structured match positions.',
   parameters: grepInputSchema,

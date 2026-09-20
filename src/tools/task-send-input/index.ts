@@ -1,4 +1,3 @@
-import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { z } from 'zod';
 import type { ToolDefinition } from '../types.js';
 import type { ShellTaskSendInputResult } from '../../services/tasks/types.js';
@@ -39,6 +38,7 @@ export const taskSendInputTool: ToolDefinition<
 > = {
   name: 'task_send_input',
   displayName: 'Task Send Input',
+  access: 'exec',
   description:
     'Writes input text to the standard input (stdin) of a running background shell task. Automatically appends a newline unless append_newline is set to false.',
   parameters: taskSendInputSchema,
@@ -49,7 +49,6 @@ export const taskSendInputTool: ToolDefinition<
   },
 
   execute: async (args, context) => {
-    assertToolAllowed('task_send_input');
     if (!context.shellTasks) {
       throw new Error('No shell tasks manager available in execution context.');
     }

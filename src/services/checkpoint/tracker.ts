@@ -1,5 +1,4 @@
 import { existsSync, lstatSync, readFileSync, statSync } from 'node:fs';
-import { relative } from 'node:path';
 import { writeCasBlob } from './cas.js';
 import { globalMutationLockManager, MutationLockManager } from './lock.js';
 import { computeWorkspaceHash, resolveDirectMutationPath } from './path.js';
@@ -205,7 +204,7 @@ export class MutationCheckpointTracker {
    */
   public async commitTurn(
     turnId: string,
-    turnStatus: 'complete' | 'interrupted' | 'errored' = 'complete',
+    _turnStatus: 'complete' | 'interrupted' | 'errored' = 'complete',
   ): Promise<void> {
     if (this.activeTurnId !== turnId) {
       return;

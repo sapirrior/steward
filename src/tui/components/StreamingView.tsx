@@ -1,7 +1,7 @@
 import Component from '../engine/Component.js';
 import { figures } from '../../theme/index.js';
+import { c, bold } from '../../theme/style.js';
 import {
-  chalk,
   formatMarkdown,
   getStatusBullet,
   truncateMiddle,
@@ -144,9 +144,9 @@ export default class StreamingView extends Component<{}, StreamingViewState> {
         const maxArgLen = Math.max(10, maxCols - toolName.length - 8);
         const truncatedArg =
           targetArg.length > maxArgLen ? truncateMiddle(targetArg, maxArgLen) : targetArg;
-        line += `${chalk.dim('(')}${chalk.dim(truncatedArg)}${chalk.dim(')')}`;
+        line += `${c.muted('(')}${c.muted(truncatedArg)}${c.muted(')')}`;
       } else {
-        line += `${chalk.dim('()')}`;
+        line += `${c.muted('()')}`;
       }
       lines.push(line);
 
@@ -155,17 +155,17 @@ export default class StreamingView extends Component<{}, StreamingViewState> {
         const maxLogLen = Math.max(10, maxCols - 6);
         for (let i = 0; i < toShow.length; i++) {
           const l = toShow[i] ?? '';
-          const p = i === 0 ? `  ${chalk.dim('└ ')}` : '    ';
+          const p = i === 0 ? `  ${c.muted('└ ')}` : '    ';
           const truncatedLog = l.length > maxLogLen ? `${l.slice(0, maxLogLen - 1)}…` : l;
-          lines.push(`${p}${chalk.dim(truncatedLog)}`);
+          lines.push(`${p}${c.muted(truncatedLog)}`);
         }
       } else {
-        lines.push(`  ${chalk.dim('└ Running...')}`);
+        lines.push(`  ${c.muted('└ Running...')}`);
       }
     } else if (isThinking && !text) {
       // 2. Animated Thinking indicator styled like a tool call
       const bullet = getStatusBullet('running', pulseFrame % 2 === 0);
-      lines.push(`${bullet} ${chalk.bold('Thinking..')}`);
+      lines.push(`${bullet} ${bold(c.text('Thinking..'))}`);
 
       const elapsedMs = thinkingStartTime
         ? performance.now() - thinkingStartTime
@@ -182,7 +182,7 @@ export default class StreamingView extends Component<{}, StreamingViewState> {
         subText = 'taking a bit time...';
       }
 
-      lines.push(`  ${chalk.dim('└ ')}${chalk.dim(subText)}`);
+      lines.push(`  ${c.muted('└ ')}${c.muted(subText)}`);
     }
 
     // 3. Streaming assistant text
@@ -210,7 +210,7 @@ export default class StreamingView extends Component<{}, StreamingViewState> {
             continue;
           }
           if (i === 0) {
-            const bullet = chalk.white(`${figures.blackCircle} `);
+            const bullet = c.text(`${figures.blackCircle} `);
             lines.push(`${bullet}${l}`);
           } else {
             lines.push(`  ${l}`);

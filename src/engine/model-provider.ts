@@ -22,7 +22,6 @@ export interface ProviderDescriptor {
   readonly apiKey: (cfg: EnvConfig) => string | undefined;
   readonly defaultModel: string;
   readonly create: (apiKey: string, cfg: EnvConfig) => (modelId: string) => LanguageModel;
-  readonly isTaggedReasoning?: (modelId: string) => boolean;
 }
 
 export const PROVIDER_REGISTRY: Record<ProviderName, ProviderDescriptor> = {
@@ -67,7 +66,6 @@ export const PROVIDER_REGISTRY: Record<ProviderName, ProviderDescriptor> = {
     apiKey: (c) => c.deepseekApiKey,
     defaultModel: 'deepseek-chat',
     create: (apiKey) => createDeepSeek({ apiKey }),
-    isTaggedReasoning: () => true,
   },
   openrouter: {
     name: 'openrouter',
@@ -84,7 +82,6 @@ export const PROVIDER_REGISTRY: Record<ProviderName, ProviderDescriptor> = {
           'X-Title': 'steward',
         },
       }),
-    isTaggedReasoning: (modelId) => isTaggedReasoningModel(modelId),
   },
   custom: {
     name: 'custom',
@@ -97,22 +94,7 @@ export const PROVIDER_REGISTRY: Record<ProviderName, ProviderDescriptor> = {
         baseURL: cfg.custom.baseURL!,
         apiKey: cfg.custom.apiKey,
       }),
-    isTaggedReasoning: (modelId) => isTaggedReasoningModel(modelId),
   },
-};
-
-/**
- * Hardcoded default models per provider.
- */
-export const DEFAULT_MODELS_BY_PROVIDER: Record<ProviderName, string> = {
-  gemini: PROVIDER_REGISTRY.gemini.defaultModel,
-  anthropic: PROVIDER_REGISTRY.anthropic.defaultModel,
-  openai: PROVIDER_REGISTRY.openai.defaultModel,
-  xai: PROVIDER_REGISTRY.xai.defaultModel,
-  mistral: PROVIDER_REGISTRY.mistral.defaultModel,
-  deepseek: PROVIDER_REGISTRY.deepseek.defaultModel,
-  openrouter: PROVIDER_REGISTRY.openrouter.defaultModel,
-  custom: PROVIDER_REGISTRY.custom.defaultModel,
 };
 
 export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'provider-default';
@@ -125,13 +107,6 @@ export const REASONING_EFFORT_MAP: Record<number | string, ReasoningEffort> = {
   4: 'medium',
   5: 'high',
   6: 'xhigh',
-  '0': 'provider-default',
-  '1': 'none',
-  '2': 'minimal',
-  '3': 'low',
-  '4': 'medium',
-  '5': 'high',
-  '6': 'xhigh',
   default: 'provider-default',
   'provider-default': 'provider-default',
   none: 'none',
@@ -204,8 +179,8 @@ export function resolveActiveModelSelection(
     }
     const modelId =
       requested.provider === 'custom'
-        ? config.custom.modelName || DEFAULT_MODELS_BY_PROVIDER.custom
-        : DEFAULT_MODELS_BY_PROVIDER[requested.provider];
+        ? config.custom.modelName || PROVIDER_REGISTRY.custom.defaultModel
+        : PROVIDER_REGISTRY[requested.provider].defaultModel;
 
     return {
       provider: requested.provider,
@@ -247,8 +222,8 @@ export function resolveActiveModelSelection(
     if (available.includes(provider)) {
       const modelId =
         provider === 'custom'
-          ? config.custom.modelName || DEFAULT_MODELS_BY_PROVIDER.custom
-          : DEFAULT_MODELS_BY_PROVIDER[provider];
+          ? config.custom.modelName || PROVIDER_REGISTRY.custom.defaultModel
+          : PROVIDER_REGISTRY[provider].defaultModel;
 
       return {
         provider,
@@ -262,14 +237,13 @@ export function resolveActiveModelSelection(
   const fallbackProvider = available[0]!;
   return {
     provider: fallbackProvider,
-    modelId: DEFAULT_MODELS_BY_PROVIDER[fallbackProvider],
+    modelId: PROVIDER_REGISTRY[fallbackProvider].defaultModel,
     effort,
   };
 }
 
 /**
- * Instantiates an AI SDK LanguageModel instance for the given selection using the declarative provider registry
- * and applies any active model-level wrappers.
+ * Instantiates an AI SDK LanguageModel instance for the given selection using the declarative provider registry.
  */
 export function createModelInstance(
   selection: ModelSelection,
@@ -290,36 +264,7 @@ export function createModelInstance(
       ? config.custom.modelName || selection.modelId
       : selection.modelId;
 
-  const baseModel = descriptor.create(apiKey, config)(modelId);
-  return applyModelMiddlewarePipeline(baseModel, selection, descriptor);
-}
-
-/**
- * Universal middleware pipeline: applies model-level interceptors or wraps.
- */
-export function applyModelMiddlewarePipeline(
-  model: LanguageModel,
-  _selection: ModelSelection,
-  _descriptor?: ProviderDescriptor,
-): LanguageModel {
-  // Return the model cleanly. AI SDK v7 handles reasoning natively inside ModelMessage[]
-  return model;
-}
-
-/**
- * Helper to check whether a model ID represents a model emitting inline <think> tags.
- */
-function isTaggedReasoningModel(modelId: string): boolean {
-  const lower = modelId.toLowerCase();
-  return (
-    lower.startsWith('deepseek-r1') ||
-    lower.includes('/deepseek-r1') ||
-    lower.includes('deepseek-reasoner') ||
-    lower === 'r1' ||
-    lower.endsWith('-r1') ||
-    lower.startsWith('qwq') ||
-    (lower.includes('qwen') && lower.includes('think'))
-  );
+  return descriptor.create(apiKey, config)(modelId);
 }
 
 /**

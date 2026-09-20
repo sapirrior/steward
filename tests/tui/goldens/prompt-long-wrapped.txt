@@ -3,7 +3,7 @@
  ▝   ▘   /workspace/steward
 
 ────────────────────────────────────────────────────────────────────────────────
-❯ This is a very long prompt sentence that definitely exceeds standard terminal
+This is a very long prompt sentence that definitely exceeds standard terminal
 eighty columns width and should soft-wrap cleanly across multiple visual rows
 with correct cursor mapping.
 ────────────────────────────────────────────────────────────────────────────────

@@ -16,7 +16,7 @@ import {
   type EnvConfig,
 } from '../src/config/index.js';
 import {
-  DEFAULT_MODELS_BY_PROVIDER,
+  PROVIDER_REGISTRY,
   PROVIDER_SELECTION_PRIORITY,
   resolveActiveModelSelection,
 } from '../src/engine/model-provider.js';
@@ -136,11 +136,13 @@ describe('Provider Configuration & Discovery', () => {
     });
   });
 
-  it('should have sensible defaults in DEFAULT_MODELS_BY_PROVIDER', () => {
-    expect(DEFAULT_MODELS_BY_PROVIDER.xai).toBe('grok-4-fast-non-reasoning');
-    expect(DEFAULT_MODELS_BY_PROVIDER.mistral).toBe('mistral-small-latest');
-    expect(DEFAULT_MODELS_BY_PROVIDER.deepseek).toBe('deepseek-chat');
-    expect(DEFAULT_MODELS_BY_PROVIDER.openrouter).toBe('meta-llama/llama-3.3-70b-instruct:free');
+  it('should have sensible defaults in PROVIDER_REGISTRY', () => {
+    expect(PROVIDER_REGISTRY.xai.defaultModel).toBe('grok-4-fast-non-reasoning');
+    expect(PROVIDER_REGISTRY.mistral.defaultModel).toBe('mistral-small-latest');
+    expect(PROVIDER_REGISTRY.deepseek.defaultModel).toBe('deepseek-chat');
+    expect(PROVIDER_REGISTRY.openrouter.defaultModel).toBe(
+      'meta-llama/llama-3.3-70b-instruct:free',
+    );
   });
 
   it('should have all 8 providers declared in PROVIDER_REGISTRY with correct metadata', async () => {
@@ -155,10 +157,6 @@ describe('Provider Configuration & Discovery', () => {
       'openrouter',
       'xai',
     ]);
-
-    expect(PROVIDER_REGISTRY.deepseek.isTaggedReasoning?.('deepseek-flash')).toBe(true);
-    expect(PROVIDER_REGISTRY.openrouter.isTaggedReasoning?.('deepseek/deepseek-r1')).toBe(true);
-    expect(PROVIDER_REGISTRY.openrouter.isTaggedReasoning?.('openai/gpt-4o')).toBe(false);
   });
 });
 

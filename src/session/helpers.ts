@@ -1,5 +1,4 @@
-import type { SessionData } from './types.js';
-import type { UIHistoryItem } from '../tui/types.js';
+import type { SessionData, UIHistoryItem } from './types.js';
 import type { SessionPresentationProjection } from './logs/types.js';
 
 /**

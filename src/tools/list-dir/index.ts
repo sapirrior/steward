@@ -37,6 +37,7 @@ export interface ListDirOutput {
 export const listDirTool: ToolDefinition<typeof listDirInputSchema, ListDirOutput> = {
   name: 'list_dir',
   displayName: 'List',
+  access: 'read',
   description: 'Lists files and folders in a specified directory. Read-only operation.',
   parameters: listDirInputSchema,
   confirmationPolicy: 'never',

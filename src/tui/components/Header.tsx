@@ -1,8 +1,8 @@
 import { homedir } from 'node:os';
 import pkg from '../../../package.json' with { type: 'json' };
 import Component from '../engine/Component.js';
-import { getTheme, LOGO_LINES } from '../../theme/index.js';
-import { themeColor, chalk } from '../utils/format.js';
+import { LOGO_LINES } from '../../theme/index.js';
+import { c, bold } from '../../theme/style.js';
 import { Box, Text } from '../primitives/index.js';
 
 const DEFAULT_VERSION = pkg.version || '0.0.0';
@@ -30,12 +30,10 @@ export default class Header extends Component<HeaderProps> {
   }
 
   override render(_width?: number): string[] {
-    const theme = getTheme();
     const version = this.props.version ?? DEFAULT_VERSION;
-    const brandColor = themeColor(theme.brand);
-    const logoL0 = brandColor(LOGO_LINES[0] ?? '');
-    const logoL1 = brandColor(LOGO_LINES[1] ?? '');
-    const logoL2 = brandColor(LOGO_LINES[2] ?? '');
+    const logoL0 = c.brand(LOGO_LINES[0] ?? '');
+    const logoL1 = c.brand(LOGO_LINES[1] ?? '');
+    const logoL2 = c.brand(LOGO_LINES[2] ?? '');
 
     const modelObj = this.props.model ?? { provider: 'anthropic', modelId: 'claude-3-7-sonnet' };
     const modelTag = `${modelObj.provider}/${modelObj.modelId}`;
@@ -44,13 +42,13 @@ export default class Header extends Component<HeaderProps> {
     const element = (
       <Box direction="column" wrap={false} clip={false}>
         <Text wrap={false} clip={false}>
-          {`${logoL0}  ${chalk.white.bold('Steward')} ${chalk.dim(`v${version}`)}`}
+          {`${logoL0}  ${bold(c.text('Steward'))} ${c.muted(`v${version}`)}`}
         </Text>
         <Text wrap={false} clip={false}>
-          {`${logoL1}  ${chalk.dim(modelTag)} ${chalk.dim('·')} ${chalk.dim('API Usage Billing')}`}
+          {`${logoL1}  ${c.muted(modelTag)} ${c.muted('·')} ${c.muted('API Usage Billing')}`}
         </Text>
         <Text wrap={false} clip={false}>
-          {`${logoL2}  ${chalk.dim(cwdFormatted)}`}
+          {`${logoL2}  ${c.muted(cwdFormatted)}`}
         </Text>
         <Text wrap={false} clip={false}>
           {''}

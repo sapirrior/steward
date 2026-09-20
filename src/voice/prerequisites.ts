@@ -12,8 +12,6 @@ export interface PrerequisiteCheckResult {
 export interface PrerequisiteOptions {
   config?: EnvConfig;
   checkParecFn?: () => Promise<boolean>;
-  /** @deprecated Kept for legacy test option compatibility */
-  checkArecordFn?: () => Promise<boolean>;
 }
 
 /**
@@ -42,7 +40,7 @@ export async function checkVoicePrerequisites(
   options: PrerequisiteOptions = {},
 ): Promise<PrerequisiteCheckResult> {
   const config = options.config ?? getEnvConfig();
-  const checkRecorder = options.checkParecFn ?? options.checkArecordFn ?? defaultCheckParec;
+  const checkRecorder = options.checkParecFn ?? defaultCheckParec;
 
   // 1. Check Gemini API key
   const hasGemini = hasProviderConfig('gemini', config);

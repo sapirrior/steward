@@ -9,7 +9,7 @@ import {
   fsyncSync,
   closeSync,
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { getSettingsDir } from '../../config/index.js';
 import type { PersistedTodoList, TodoItem, TodoItemStatus } from './types.js';

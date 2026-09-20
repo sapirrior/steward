@@ -1,19 +1,12 @@
 import TerminalEngine from './engine/TerminalEngine.js';
 import { AgentSession } from '../engine/agent-session.js';
 import { defaultCommandRegistry } from '../commands/registry.js';
-import { defaultToolCatalog } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
+import { defaultToolCatalog, summarizeToolResult } from '../tools/index.js';
 import type { ModelDescriptor } from '../models/index.js';
 import type { SessionData } from '../session/types.js';
-import {
-  listSessions,
-  loadSession,
-  rehydrateSessionHistory,
-  loadSessionLog,
-  buildSessionPresentationProjection,
-} from '../session/index.js';
+import { listSessions, loadSession } from '../session/index.js';
 import { saveSettings, saveThemeSelection, isFolderTrusted, trustFolder } from '../config/index.js';
-import { setActiveTheme, getActiveThemeName, listThemes, type ThemeMeta } from '../theme/index.js';
+import { setActiveTheme, getActiveThemeName, listThemes } from '../theme/index.js';
 import Header from './components/Header.js';
 import StatusBar from './components/StatusBar.js';
 import StreamingView from './components/StreamingView.js';
@@ -21,19 +14,19 @@ import PromptInput from './components/PromptInput.js';
 import TrustGate from './components/TrustGate.js';
 import ModelPicker from './components/docks/ModelPicker.js';
 import ThemePicker from './components/docks/ThemePicker.js';
-import { setActiveMode, listModes, cycleMode } from '../engine/chat-mode.js';
+import { cycleMode } from '../engine/mode.js';
 import { saveModeSelection } from '../config/settings.js';
 import SessionMenu from './components/docks/SessionMenu.js';
 import ShortcutsMenu from './components/docks/ShortcutsMenu.js';
 
 import EffortPicker from './components/docks/EffortPicker.js';
-import RewindMenu, { type RewindItem } from './components/docks/RewindMenu.js';
+import RewindMenu from './components/docks/RewindMenu.js';
 import BashPermissionDock from './components/docks/BashPermissionDock.js';
 import FilePermissionDock from './components/docks/FilePermissionDock.js';
 import { PermissionQueue } from './utils/permission-queue.js';
 import { parseKeyInput } from './primitives/index.js';
 
-import { executeRewind } from '../services/checkpoint/index.js';
+import { executeRewind, recoverPendingCheckpoint } from '../services/checkpoint/index.js';
 import {
   formatSystemMessage,
   formatAssistantMessage,
@@ -41,6 +34,7 @@ import {
   formatErrorBadge,
   formatTurnStatus,
 } from './utils/message-formatter.js';
+import { renderTranscript } from './utils/transcript.js';
 import { classifyError } from '../errors/index.js';
 import { VoiceController } from '../voice/index.js';
 import { UpdateCheckerService } from '../services/updater/index.js';
@@ -120,7 +114,6 @@ export class TUIApp {
 
     this.statusBar = new StatusBar({
       model,
-      usage: this.session.session.totalUsage,
       isBusy: false,
     });
 
@@ -460,7 +453,10 @@ export class TUIApp {
       onSelect: (selected) => {
         setActiveTheme(selected.name);
         saveThemeSelection(selected.name);
-        for (const comp of this.engine.components) comp.markDirty();
+        renderTranscript(this.engine, this.session.session, this.header);
+        this.engine.mount(this.streamingView);
+        this.engine.mount(this.promptInput, { keepCursorVisible: true, kind: 'input' });
+        this.engine.mount(this.statusBar);
         this.engine.requestFrame(true);
         this.engine.commit('system', formatSystemMessage(`Theme switched to ${selected.label}.`));
         this.closeModal();
@@ -475,110 +471,14 @@ export class TUIApp {
 
   private switchToSession(selected: SessionData): void {
     this.permissionQueue.clear();
+    recoverPendingCheckpoint(this.cwd, selected.id).catch(() => {});
     this.session.shutdown().catch(() => {});
     this.session = AgentSession.resume(selected);
     const model = this.session.getModel();
     this.header.props.model = model;
-    this.statusBar.update({ model, usage: this.session.session.totalUsage });
+    this.statusBar.update({ model });
 
-    // Clear engine and rehydrate
-    this.engine.clearAll();
-    this.engine.commit('header', this.header.render());
-
-    const log = loadSessionLog(selected.date, selected.id);
-    const projection = log ? buildSessionPresentationProjection(log.events) : null;
-    const items = rehydrateSessionHistory(selected, projection);
-
-    let currentTurnId: string | undefined = undefined;
-
-    for (const item of items) {
-      if (item.turnId && item.turnId !== currentTurnId) {
-        if (currentTurnId && projection) {
-          const prevTurnPresentation = projection.turns.get(currentTurnId)?.end;
-          if (prevTurnPresentation && prevTurnPresentation.status === 'complete') {
-            this.engine.commit('system', [
-              '',
-              formatTurnStatus(
-                prevTurnPresentation.durationMs,
-                new Date(prevTurnPresentation.finishedAt),
-                prevTurnPresentation.statusVerb,
-              ),
-            ]);
-            if (prevTurnPresentation.stopReason === 'step-limit') {
-              this.engine.commit(
-                'system',
-                formatSystemMessage('Step budget reached. Generation stopped early.'),
-              );
-            }
-          } else if (
-            prevTurnPresentation &&
-            (prevTurnPresentation.status === 'errored' ||
-              prevTurnPresentation.status === 'interrupted') &&
-            prevTurnPresentation.errorMessage
-          ) {
-            const structured = classifyError(new Error(prevTurnPresentation.errorMessage));
-            this.engine.commit('system', formatErrorBadge(structured));
-          }
-        }
-        currentTurnId = item.turnId;
-      }
-
-      if (item.type === 'user') {
-        this.engine.commitPrompt(item.content);
-      } else if (item.type === 'system') {
-        this.engine.commit('system', formatSystemMessage(item.content));
-      } else if (item.type === 'tool' && item.toolData) {
-        const toolData = item.toolData;
-        this.engine.commit(
-          'tool-result',
-          (w) =>
-            formatToolStatus({
-              toolName: toolData.toolName,
-              displayName: toolData.displayName,
-              icon: toolData.icon,
-              argsSummary: toolData.argsSummary,
-              status: toolData.status,
-              durationMs: toolData.durationMs,
-              error: toolData.error,
-              toolOutput: toolData.toolOutput,
-              targetWidth: w,
-            }),
-          { hangingIndent: 2 },
-        );
-      } else if (item.type === 'assistant') {
-        this.engine.commit('assistant-message', formatAssistantMessage(item.content), {
-          hangingIndent: 2,
-        });
-      }
-    }
-
-    if (currentTurnId && projection) {
-      const lastTurnPresentation = projection.turns.get(currentTurnId)?.end;
-      if (lastTurnPresentation && lastTurnPresentation.status === 'complete') {
-        this.engine.commit('system', [
-          '',
-          formatTurnStatus(
-            lastTurnPresentation.durationMs,
-            new Date(lastTurnPresentation.finishedAt),
-            lastTurnPresentation.statusVerb,
-          ),
-        ]);
-        if (lastTurnPresentation.stopReason === 'step-limit') {
-          this.engine.commit(
-            'system',
-            formatSystemMessage('Step budget reached. Generation stopped early.'),
-          );
-        }
-      } else if (
-        lastTurnPresentation &&
-        (lastTurnPresentation.status === 'errored' ||
-          lastTurnPresentation.status === 'interrupted') &&
-        lastTurnPresentation.errorMessage
-      ) {
-        const structured = classifyError(new Error(lastTurnPresentation.errorMessage));
-        this.engine.commit('system', formatErrorBadge(structured));
-      }
-    }
+    renderTranscript(this.engine, selected, this.header);
 
     this.engine.mount(this.streamingView);
     this.engine.mount(this.promptInput, { keepCursorVisible: true, kind: 'input' });
@@ -755,7 +655,6 @@ export class TUIApp {
       this.header.props.model = updatedModel;
       this.statusBar.update({
         model: updatedModel,
-        usage: this.session.session.totalUsage,
       });
       return;
     }
@@ -828,10 +727,12 @@ export class TUIApp {
                     JSON.stringify(event.toolResult.result))
                   : String(event.toolResult.result)
                 : undefined;
-              const toolOutput =
-                !event.toolResult.isError && toolDef?.summarize
-                  ? toolDef.summarize(event.toolResult.args, event.toolResult.result)
-                  : undefined;
+              const summary = summarizeToolResult(
+                toolDef,
+                event.toolResult.args,
+                event.toolResult.result,
+                event.toolResult.isError,
+              );
 
               this.engine.commit(
                 'tool-result',
@@ -844,7 +745,7 @@ export class TUIApp {
                     status,
                     durationMs,
                     error,
-                    toolOutput,
+                    summary,
                     targetWidth: w,
                   }),
                 { hangingIndent: 2 },
@@ -873,10 +774,6 @@ export class TUIApp {
                 '',
                 formatTurnStatus(totalDurationMs, finishedAt, event.summary.statusVerb),
               ]);
-
-              this.statusBar.update({
-                usage: this.session.session.totalUsage,
-              });
 
               if (event.summary.stopReason === 'step-limit') {
                 this.engine.commit(
@@ -910,9 +807,6 @@ export class TUIApp {
         this.closeModal();
       }
       this.setBusy(false);
-      this.statusBar.update({
-        usage: this.session.session.totalUsage,
-      });
     }
   }
 

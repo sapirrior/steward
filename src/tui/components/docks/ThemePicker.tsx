@@ -1,12 +1,12 @@
 import { SelectList } from '../../primitives/index.js';
-import type { ThemeMeta, ThemeName } from '../../../theme/colors.js';
-import { getTheme, figures, resolveThemeColor } from '../../../theme/index.js';
-import { themeColor, chalk } from '../../utils/format.js';
+import type { ThemeMeta } from '../../../theme/colors.js';
+import { figures, resolveThemeColor } from '../../../theme/index.js';
+import { c, bold } from '../../../theme/style.js';
 import { Box, Text } from '../../primitives/index.js';
 
 export interface ThemePickerProps {
   themes: ThemeMeta[];
-  currentTheme: ThemeName;
+  currentTheme: string;
   onSelect: (theme: ThemeMeta) => void;
   onCancel: () => void;
 }
@@ -36,13 +36,10 @@ export default class ThemePicker extends SelectList<ThemeMeta> {
       onSelect: props.onSelect,
       onCancel: props.onCancel,
       renderItem: (t, isSelected, maxCols) => {
-        const theme = getTheme();
-        const selColor = themeColor(theme.permission);
-        const yellowColor = themeColor(theme.warning);
         const isCurrent = t.name === props.currentTheme;
 
-        const pointer = isSelected ? selColor(`${figures.pointer} `) : '  ';
-        const activeBadge = isCurrent ? yellowColor.bold(' (active)') : '';
+        const pointer = isSelected ? c.selected(`${figures.pointer} `) : '  ';
+        const activeBadge = isCurrent ? bold(c.current(' (active)')) : '';
 
         // Swatch line using the candidate theme's own color palette
         const tBrand = resolveThemeColor(t.theme.brand, false)(figures.blackCircle);
@@ -56,14 +53,14 @@ export default class ThemePicker extends SelectList<ThemeMeta> {
         return (
           <Box direction="column" width={maxCols}>
             <Text
-              color={isSelected ? selColor : isCurrent ? yellowColor : chalk.white}
+              color={isSelected ? 'selected' : isCurrent ? 'current' : 'text'}
               wrap={false}
               clip={true}
               ellipsis={true}
             >
               {`${pointer}${t.label}${activeBadge}`}
             </Text>
-            <Text dim={true} wrap={false} clip={true} ellipsis={true}>
+            <Text color="muted" wrap={false} clip={true} ellipsis={true}>
               {swatches}
             </Text>
           </Box>

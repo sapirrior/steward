@@ -16,6 +16,7 @@ export const skillListTool: ToolDefinition<typeof skillListParamsSchema, SkillSu
   name: 'skill_list',
   displayName: 'SkillList',
   icon: '💡',
+  access: 'read',
   description:
     'Discovers and lists all available specialized skills and their descriptions. Use this when you need specialized domain knowledge or workflows.',
   parameters: skillListParamsSchema,

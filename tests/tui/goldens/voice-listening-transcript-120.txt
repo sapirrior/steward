@@ -3,7 +3,7 @@
  ▝   ▘   /workspace/steward
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-❯ Refactor auth service and add automated token rotation
+Refactor auth service and add automated token rotation
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ? for shortcuts                                                                                         Normal · default
 
@@ -21,4 +21,4 @@
 
 
 
-[?25h[6;57H[?2026l
+[?25h[6;55H[?2026l

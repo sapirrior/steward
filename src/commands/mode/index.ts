@@ -1,4 +1,4 @@
-import { getActiveMode, listModes, findMode, setActiveMode } from '../../engine/chat-mode.js';
+import { getActiveMode, listModes, findMode, setActiveMode } from '../../engine/mode.js';
 import { saveModeSelection } from '../../config/settings.js';
 import type { CommandDefinition } from '../types.js';
 

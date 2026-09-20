@@ -8,7 +8,6 @@ import type {
   ShellTaskKillResult,
   ShellTaskReadResult,
   ShellTaskSendInputResult,
-  ShellTaskStatus,
 } from './types.js';
 
 export const TASK_RETENTION_TTL_MS = 10 * 60 * 1000; // 10 minutes TTL for terminal tasks

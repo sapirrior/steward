@@ -1,3 +1,5 @@
+import type TerminalEngine from './TerminalEngine.js';
+
 /**
  * Base Component class.
  * All UI widgets (Prompt, Docks, StreamingView, Header, StatusBar) inherit from this.

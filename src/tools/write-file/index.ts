@@ -1,10 +1,7 @@
-import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { z } from 'zod';
-import chalk from 'chalk';
 import { resolveDirectMutationPath } from '../../services/checkpoint/path.js';
 import { atomicWriteFileSync } from '../../utils/atomic-write.js';
-import { highlightCode } from '../../utils/highlight.js';
 import type { ToolDefinition } from '../types.js';
 
 export const writeFileInputSchema = z.object({
@@ -29,6 +26,7 @@ export interface WriteFileOutput {
 export const writeFileTool: ToolDefinition<typeof writeFileInputSchema, WriteFileOutput> = {
   name: 'write_file',
   displayName: 'Write',
+  access: 'write',
   description:
     'Writes or creates a whole file in the workspace. Automatically creates parent directories if needed. Every write mutation participates in checkpointing for /rewind.',
   parameters: writeFileInputSchema,
@@ -38,30 +36,22 @@ export const writeFileTool: ToolDefinition<typeof writeFileInputSchema, WriteFil
     const lines = result?.linesWritten ?? 0;
     const filePath = args.file_path;
     const isNew = result?.isNew ?? true;
-    const summary = isNew
+    const headline = isNew
       ? `Created ${filePath} (${lines} line${lines === 1 ? '' : 's'})`
       : `Wrote ${lines} line${lines === 1 ? '' : 's'} to ${filePath}`;
 
-    const highlighted = highlightCode(args.content, { filePath: args.file_path });
-    const contentLines = highlighted.split(/\r?\n/);
-    if (contentLines.length === 0 || (contentLines.length === 1 && !contentLines[0])) {
-      return summary;
-    }
-
-    const cap = 50;
-    const shown = contentLines.slice(0, cap);
-    const padWidth = String(contentLines.length).length;
-    const detail = shown
-      .map((l, i) => `${chalk.dim(String(i + 1).padStart(padWidth))}  ${l}`)
-      .join('\n');
-    const overflow =
-      contentLines.length > cap ? `\n   … (${contentLines.length - cap} more lines)` : '';
-
-    return `${summary}\n${detail}${overflow}`;
+    return {
+      headline,
+      detail: {
+        kind: 'code',
+        filePath: args.file_path,
+        text: args.content,
+        totalLines: lines,
+      },
+    };
   },
 
   execute: async (args, context) => {
-    assertToolAllowed('write_file');
     const { absolutePath: targetPath, relativePath } = resolveDirectMutationPath(
       context.cwd,
       args.file_path,

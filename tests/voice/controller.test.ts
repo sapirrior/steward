@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import {
-  ArecordAudioRecorder,
+  ParecAudioRecorder,
   GeminiLiveTranscriptionSession,
   VoiceController,
   type RecorderProcess,
@@ -63,7 +63,7 @@ class FakeWebSocket {
 }
 
 describe('Voice Recorder & Controller Integration with Mocks', () => {
-  describe('ArecordAudioRecorder', () => {
+  describe('ParecAudioRecorder', () => {
     it('streams audio chunks and handles stop cleanly without leaking', async () => {
       let killedWithSignal: any = null;
       let exitResolve: (code: number) => void;
@@ -90,7 +90,7 @@ describe('Voice Recorder & Controller Integration with Mocks', () => {
       };
 
       const chunksReceived: Uint8Array[] = [];
-      const recorder = new ArecordAudioRecorder({
+      const recorder = new ParecAudioRecorder({
         spawnFn: () => fakeProcess,
         checkAvailableFn: async () => true,
       });
@@ -171,7 +171,7 @@ describe('Voice Recorder & Controller Integration with Mocks', () => {
       const controller = new VoiceController({
         prerequisites: {
           config: { geminiApiKey: 'mock-key', custom: {} },
-          checkArecordFn: async () => true,
+          checkParecFn: async () => true,
         },
         spawnFn: () => fakeProcess,
         wsFactory: (url) => {
@@ -216,7 +216,7 @@ describe('Voice Recorder & Controller Integration with Mocks', () => {
       const controller = new VoiceController({
         prerequisites: {
           config: { geminiApiKey: 'mock-key', custom: {} },
-          checkArecordFn: async () => true,
+          checkParecFn: async () => true,
         },
         spawnFn: () => fakeProcess,
         wsFactory: (url) => {
@@ -266,7 +266,7 @@ describe('Voice Recorder & Controller Integration with Mocks', () => {
       const controller = new VoiceController({
         prerequisites: {
           config: { geminiApiKey: 'mock-key', custom: {} },
-          checkArecordFn: async () => true,
+          checkParecFn: async () => true,
         },
         spawnFn: () => fakeProcess,
         wsFactory: (url) => {

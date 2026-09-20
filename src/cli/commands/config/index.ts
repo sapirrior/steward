@@ -1,6 +1,5 @@
 import {
   getSettingsPath,
-  loadSettings,
   getVoiceLanguage,
   saveVoiceLanguage,
   getSavedModel,
@@ -9,8 +8,8 @@ import {
   getSavedMode,
   saveModeSelection,
 } from '../../../config/settings.js';
-import { listThemes, type ThemeMeta } from '../../../theme/index.js';
-import { findMode, listModes } from '../../../engine/chat-mode.js';
+import { listThemes, findTheme } from '../../../theme/index.js';
+import { findMode, listModes } from '../../../engine/mode.js';
 import type { CliConfigArgs } from '../../types.js';
 import { resolveVoiceLanguage, getLanguageDisplayName } from './utils/lang.js';
 

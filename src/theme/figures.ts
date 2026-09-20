@@ -1,7 +1,3 @@
-import { platform } from 'node:os';
-
-const isDarwin = platform() === 'darwin';
-
 /**
  * Unicode symbols and indicators used throughout the TUI.
  */

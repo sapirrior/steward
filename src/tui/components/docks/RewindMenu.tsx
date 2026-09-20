@@ -3,8 +3,8 @@ import type { SessionData, SessionTurn } from '../../../session/types.js';
 import { loadCheckpointManifest } from '../../../services/checkpoint/store.js';
 import { readCasBlob } from '../../../services/checkpoint/cas.js';
 import { computeWorkspaceHash } from '../../../services/checkpoint/path.js';
-import { getTheme, figures } from '../../../theme/index.js';
-import { themeColor, chalk } from '../../utils/format.js';
+import { figures } from '../../../theme/index.js';
+import { c } from '../../../theme/style.js';
 import { Box, Text } from '../../primitives/index.js';
 
 export interface RewindItem {
@@ -163,36 +163,29 @@ export default class RewindMenu extends SelectList<RewindItem> {
       onSelect: props.onSelect,
       onCancel: props.onCancel,
       renderItem: (item, isSelected, maxCols) => {
-        const theme = getTheme();
-        const selColor = themeColor(theme.permission);
-        const pointer = isSelected ? selColor(`${figures.pointer} `) : '  ';
+        const pointer = isSelected ? c.selected(`${figures.pointer} `) : '  ';
 
         let summaryText: string;
         if (item.hasCodeChanges) {
-          const filePart = chalk.dim(
+          const filePart = c.muted(
             `${item.changedFileCount} file${item.changedFileCount !== 1 ? 's' : ''} changed`,
           );
           const diffBadges: string[] = [];
           if (item.addedLines > 0) {
-            diffBadges.push(themeColor(theme.diffAddFG)(`+${item.addedLines}`));
+            diffBadges.push(c.diffAddFg(`+${item.addedLines}`));
           }
           if (item.deletedLines > 0) {
-            diffBadges.push(themeColor(theme.diffDeleteFG)(`-${item.deletedLines}`));
+            diffBadges.push(c.diffDelFg(`-${item.deletedLines}`));
           }
           const diffStr = diffBadges.length > 0 ? `  ${diffBadges.join(' ')}` : '';
           summaryText = `  ${filePart}${diffStr}`;
         } else {
-          summaryText = `  ${chalk.dim('No code changes')}`;
+          summaryText = `  ${c.muted('No code changes')}`;
         }
 
         return (
           <Box direction="column" width={maxCols}>
-            <Text
-              color={isSelected ? selColor : chalk.white}
-              wrap={false}
-              clip={true}
-              ellipsis={true}
-            >
+            <Text color={isSelected ? 'selected' : 'text'} wrap={false} clip={true} ellipsis={true}>
               {`${pointer}${item.promptText}`}
             </Text>
             <Text wrap={false} clip={true} ellipsis={true}>

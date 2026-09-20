@@ -1,4 +1,3 @@
-import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { z } from 'zod';
 import type { ToolDefinition } from '../types.js';
 import type { ShellTaskKillResult } from '../../services/tasks/types.js';
@@ -12,6 +11,7 @@ export type TaskKillInput = z.infer<typeof taskKillInputSchema>;
 export const taskKillTool: ToolDefinition<typeof taskKillInputSchema, ShellTaskKillResult> = {
   name: 'task_kill',
   displayName: 'Task Kill',
+  access: 'exec',
   description: 'Terminates a running background shell task and its descendant process tree.',
   parameters: taskKillInputSchema,
   confirmationPolicy: 'never',
@@ -21,7 +21,6 @@ export const taskKillTool: ToolDefinition<typeof taskKillInputSchema, ShellTaskK
   },
 
   execute: async (args, context) => {
-    assertToolAllowed('task_kill');
     if (!context.shellTasks) {
       throw new Error('No shell tasks manager available in execution context.');
     }

@@ -11,6 +11,7 @@ export type TaskReadInput = z.infer<typeof taskReadInputSchema>;
 export const taskReadTool: ToolDefinition<typeof taskReadInputSchema, ShellTaskReadResult> = {
   name: 'task_read',
   displayName: 'Task Read',
+  access: 'read',
   description:
     'Reads current status, exit code, and recent bounded output snapshot of a background shell task. Non-blocking.',
   parameters: taskReadInputSchema,

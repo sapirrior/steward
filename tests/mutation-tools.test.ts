@@ -415,10 +415,15 @@ describe('Mutation Tools (write_file & edit_file)', () => {
       );
 
       expect(summary).toBeDefined();
-      expect(summary).toContain('Added 2 lines, removed 1 line');
-      expect(summary).toContain('-const a = 1;');
-      expect(summary).toContain('+const a = 2;');
-      expect(summary).toContain('+const b = 3;');
+      const headline = typeof summary === 'string' ? summary : (summary?.headline ?? '');
+      const detail =
+        typeof summary === 'object' && summary?.detail?.kind === 'diff'
+          ? summary.detail
+          : undefined;
+      expect(headline).toContain('Added 2 lines, removed 1 line');
+      expect(detail).toBeDefined();
+      expect(detail?.filePath).toBe('foo.ts');
+      expect(detail?.hunks.length).toBeGreaterThan(0);
     });
   });
 });

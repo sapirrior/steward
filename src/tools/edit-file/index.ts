@@ -1,13 +1,8 @@
-import { assertToolAllowed } from '../../engine/chat-mode.js';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { z } from 'zod';
-import chalk from 'chalk';
-import { getTheme } from '../../theme/index.js';
-import { themeColor, themeBgColor } from '../../tui/utils/format.js';
 import { resolveDirectMutationPath } from '../../services/checkpoint/path.js';
 import { buildUnifiedDiff } from '../../utils/diff.js';
 import { atomicWriteFileSync } from '../../utils/atomic-write.js';
-import { highlightCode } from '../../utils/highlight.js';
 import type { ToolDefinition } from '../types.js';
 
 export const editFileInputSchema = z.object({
@@ -50,6 +45,7 @@ function countOccurrences(content: string, substring: string): number {
 export const editFileTool: ToolDefinition<typeof editFileInputSchema, EditFileOutput> = {
   name: 'edit_file',
   displayName: 'Edit',
+  access: 'write',
   description:
     'Performs exact string replacements in an existing file. Every edit mutation participates in checkpointing for /rewind.',
   parameters: editFileInputSchema,
@@ -58,75 +54,23 @@ export const editFileTool: ToolDefinition<typeof editFileInputSchema, EditFileOu
   summarize: (args, result) => {
     const added = result?.addedLines ?? 0;
     const removed = result?.removedLines ?? 0;
-    const summary = `Added ${added} line${added === 1 ? '' : 's'}, removed ${removed} line${removed === 1 ? '' : 's'}`;
+    const headline = `Added ${added} line${added === 1 ? '' : 's'}, removed ${removed} line${removed === 1 ? '' : 's'}`;
 
     // No-op: nothing changed
-    if (added === 0 && removed === 0) return summary;
+    if (added === 0 && removed === 0) return { headline };
 
     const diff = buildUnifiedDiff(args.old_string, args.new_string, 2);
-    const theme = getTheme();
-    const deleteStyle = (str: string) =>
-      themeBgColor(theme.diffDeleteBG)(themeColor(theme.diffDeleteFG)(str));
-    const addStyle = (str: string) =>
-      themeBgColor(theme.diffAddBG)(themeColor(theme.diffAddFG)(str));
-    const contextStyle = (str: string) => chalk.dim(str);
-
-    let maxLineNum = 1;
-    for (const hunk of diff.hunks) {
-      for (const line of hunk.lines) {
-        if (line.oldLineNumber) maxLineNum = Math.max(maxLineNum, line.oldLineNumber);
-        if (line.newLineNumber) maxLineNum = Math.max(maxLineNum, line.newLineNumber);
-      }
-    }
-    const padWidth = Math.max(1, String(maxLineNum).length);
-
-    const diffLines: string[] = [];
-    const cap = 30;
-    let count = 0;
-    let overflow = 0;
-
-    for (const hunk of diff.hunks) {
-      for (const line of hunk.lines) {
-        if (count >= cap) {
-          overflow++;
-          continue;
-        }
-        count++;
-
-        if (line.kind === 'deletion') {
-          const numStr = String(line.oldLineNumber ?? '').padStart(padWidth, ' ');
-          const body = line.spans
-            ? '-' +
-              line.spans.map((s) => (s.kind === 'deletion' ? chalk.bold(s.text) : s.text)).join('')
-            : `-${line.text}`;
-          diffLines.push(deleteStyle(`${numStr} ${body}`));
-        } else if (line.kind === 'addition') {
-          const numStr = String(line.newLineNumber ?? '').padStart(padWidth, ' ');
-          const body = line.spans
-            ? '+' +
-              line.spans.map((s) => (s.kind === 'addition' ? chalk.bold(s.text) : s.text)).join('')
-            : `+${line.text}`;
-          diffLines.push(addStyle(`${numStr} ${body}`));
-        } else {
-          const numStr = String(line.newLineNumber ?? line.oldLineNumber ?? '').padStart(
-            padWidth,
-            ' ',
-          );
-          const highlightedContext = highlightCode(line.text, { filePath: args.file_path });
-          diffLines.push(`${contextStyle(`${numStr} `)} ${highlightedContext}`);
-        }
-      }
-    }
-
-    if (overflow > 0) {
-      diffLines.push(chalk.dim(`   … (${overflow} more lines)`));
-    }
-
-    return diffLines.length > 0 ? `${summary}\n${diffLines.join('\n')}` : summary;
+    return {
+      headline,
+      detail: {
+        kind: 'diff',
+        filePath: args.file_path,
+        hunks: diff.hunks,
+      },
+    };
   },
 
   execute: async (args, context) => {
-    assertToolAllowed('edit_file');
     const { absolutePath: targetPath, relativePath } = resolveDirectMutationPath(
       context.cwd,
       args.file_path,

@@ -111,6 +111,7 @@ function isBinaryBuffer(buffer: Buffer): boolean {
 export const readFileTool: ToolDefinition<typeof readFileInputSchema, ReadFileOutput> = {
   name: 'read_file',
   displayName: 'Read',
+  access: 'read',
   description:
     'Reads the contents of a file. Supports reading specific line ranges via offset and limit. Read is read-only and does not mutate or checkpoint.',
   parameters: readFileInputSchema,

@@ -1,10 +1,6 @@
 import { VOICE_MODEL_ID } from './model.js';
 import { getVoiceLanguage } from '../config/settings.js';
-import type {
-  LiveTranscriptionSession,
-  LiveTranscriptionSessionEvents,
-  TranscriptEvent,
-} from './types.js';
+import type { LiveTranscriptionSession, LiveTranscriptionSessionEvents } from './types.js';
 
 export type WebSocketFactory = (url: string) => WebSocket;
 

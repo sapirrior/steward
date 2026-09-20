@@ -1,6 +1,6 @@
 import Component from '../../engine/Component.js';
 import { Box, Text, renderModalBox } from '../../primitives/index.js';
-import { chalk } from '../../utils/format.js';
+import { c } from '../../../theme/style.js';
 
 export interface ShortcutsMenuProps {
   onClose: () => void;
@@ -54,8 +54,8 @@ export default class ShortcutsMenu extends Component<ShortcutsMenuProps> {
 
     const rows = leftCol.map((left, i) => {
       const right = rightCol[i]!;
-      const leftFormatted = `  ${chalk.white(left.key.padEnd(11))} ${chalk.dim(left.desc.padEnd(18))}`;
-      const rightFormatted = `${chalk.white(right.key.padEnd(13))} ${chalk.dim(right.desc)}`;
+      const leftFormatted = `  ${c.text(left.key.padEnd(11))} ${c.muted(left.desc.padEnd(18))}`;
+      const rightFormatted = `${c.text(right.key.padEnd(13))} ${c.muted(right.desc)}`;
 
       return (
         <Box direction="row" justify="start" width={maxCols}>

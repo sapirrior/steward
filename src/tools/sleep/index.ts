@@ -25,6 +25,7 @@ export interface SleepOutput {
 export const sleepTool: ToolDefinition<typeof sleepInputSchema, SleepOutput> = {
   name: 'sleep',
   displayName: 'Sleep',
+  access: 'read',
   description:
     'Pauses current agent execution temporarily (between 1 and 300 seconds). Read-only and cancellable.',
   parameters: sleepInputSchema,

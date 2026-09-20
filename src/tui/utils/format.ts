@@ -1,7 +1,7 @@
-import chalk from 'chalk';
 import stripAnsi from 'strip-ansi';
 import stringWidth from 'string-width';
-import { getTheme, figures, resolveThemeColor, type UITheme } from '../../theme/index.js';
+import { getTheme, figures, resolveThemeColor } from '../../theme/index.js';
+import { c, bold } from '../../theme/style.js';
 import { applyMarkdown } from '../../utils/markdown.js';
 
 export function themeColor(color: string) {
@@ -18,23 +18,6 @@ export function visibleWidth(text: string): number {
 
 export function formatMarkdown(md: string): string {
   return applyMarkdown(md);
-}
-
-export function extractThinking(text: string): { thinking?: string; response?: string } {
-  const match = text.match(/<thinking>([\s\S]*?)<\/thinking>/i);
-  if (match) {
-    const thinking = match[1]?.trim();
-    const response = text.replace(/<thinking>[\s\S]*?<\/thinking>/i, '').trim();
-    return { thinking, response };
-  }
-
-  // Check for open thinking tag in streaming state
-  const openMatch = text.match(/<thinking>([\s\S]*)$/i);
-  if (openMatch) {
-    return { thinking: openMatch[1]?.trim() };
-  }
-
-  return { response: text };
 }
 
 export function truncateMiddle(text: string, maxLength: number): string {
@@ -135,17 +118,16 @@ export function getStatusBullet(
   status: 'completed' | 'failed' | 'running' | 'streaming',
   pulse = false,
 ): string {
-  const theme = getTheme();
   if (status === 'completed') {
-    return themeColor(theme.success)(figures.blackCircle);
+    return c.success(figures.blackCircle);
   }
   if (status === 'failed') {
-    return themeColor(theme.error)(figures.blackCircle);
+    return c.error(figures.blackCircle);
   }
   if (pulse) {
-    return chalk.white.bold(figures.blackCircle);
+    return bold(c.text(figures.blackCircle));
   }
-  return chalk.dim(figures.blackCircle);
+  return c.muted(figures.blackCircle);
 }
 
-export { stripAnsi, getTheme, figures, chalk };
+export { stripAnsi, getTheme, figures };

@@ -2,8 +2,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
 import { homedir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import type { ProviderName } from './env.js';
-import type { ThemeName } from '../theme/colors.js';
-import type { ChatMode } from '../engine/chat-mode.js';
+import type { ChatMode } from '../engine/mode.js';
 
 export type ReasoningEffort =
   'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
@@ -25,7 +24,7 @@ export interface UserSettings {
   model?: SavedModelSettings;
   trustedFolders?: Record<string, TrustedFolderRecord>;
   voiceLanguage?: string;
-  theme?: ThemeName;
+  theme?: string;
   mode?: ChatMode;
 }
 
@@ -109,19 +108,6 @@ export function getSavedModel(): SavedModelSettings | undefined {
 }
 
 /**
- * Persists the user's selected model to ~/.steward/settings.json.
- */
-export function saveModelSelection(selection: SavedModelSettings): void {
-  saveSettings({
-    model: {
-      provider: selection.provider,
-      modelId: selection.modelId,
-      effort: selection.effort ?? 'provider-default',
-    },
-  });
-}
-
-/**
  * Returns the preferred voice transcription language tag from settings if configured.
  */
 export function getVoiceLanguage(): string | undefined {
@@ -139,24 +125,12 @@ export function saveVoiceLanguage(languageTag: string): void {
 }
 
 /**
- * Returns the persisted theme selection from ~/.steward/settings.json if present and valid.
+ * Returns the persisted theme selection from ~/.steward/settings.json if present.
  */
-export function getSavedTheme(): ThemeName | undefined {
+export function getSavedTheme(): string | undefined {
   const settings = loadSettings();
-  if (
-    settings.theme &&
-    typeof settings.theme === 'string' &&
-    [
-      'dark',
-      'light',
-      'dark-ansi',
-      'light-ansi',
-      'dark-colorblind',
-      'light-colorblind',
-      'dracula',
-    ].includes(settings.theme)
-  ) {
-    return settings.theme as ThemeName;
+  if (settings.theme && typeof settings.theme === 'string') {
+    return settings.theme;
   }
   return undefined;
 }
@@ -164,7 +138,7 @@ export function getSavedTheme(): ThemeName | undefined {
 /**
  * Persists the user's selected theme to ~/.steward/settings.json.
  */
-export function saveThemeSelection(name: ThemeName): void {
+export function saveThemeSelection(name: string): void {
   saveSettings({
     theme: name,
   });

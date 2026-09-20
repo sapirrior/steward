@@ -1,5 +1,6 @@
 import { tool as createAISDKTool } from 'ai';
 import type { z } from 'zod';
+import { isAllowed, MODES, type ChatMode } from '../engine/mode.js';
 import type { ToolContext, ToolDefinition } from './types.js';
 
 /**
@@ -40,16 +41,25 @@ export class ToolCatalog {
   }
 
   /**
-   * Converts all registered tools into AI SDK v7 `tool(...)` instances.
+   * Converts registered tools allowed by the active mode into AI SDK v7 `tool(...)` instances.
    */
   public toAISDKTools(context: ToolContext): Record<string, ReturnType<typeof createAISDKTool>> {
     const aiTools: Record<string, ReturnType<typeof createAISDKTool>> = {};
+    const mode: ChatMode = context.mode ?? 'normal';
 
     for (const [name, def] of this.tools.entries()) {
+      if (!isAllowed(mode, def.access)) {
+        continue;
+      }
+
       aiTools[name] = createAISDKTool({
         description: def.description,
         inputSchema: def.parameters,
         execute: async (args: any) => {
+          if (!isAllowed(mode, def.access)) {
+            const modeLabel = MODES[mode]?.label ?? mode;
+            throw new Error(`Tool "${name}" is not available in ${modeLabel} mode.`);
+          }
           return def.execute(args, context);
         },
       });

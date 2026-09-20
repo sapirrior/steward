@@ -444,25 +444,23 @@ Rules:
     Do not hand-parse escape sequences.
 
 ═══════════════════════════════════════════════════════════════════════════════
-RULE 13 — THEME, NOT RAW CHALK
+RULE 13 — THEME STYLE TOKENS, NOT RAW CHALK
 ═══════════════════════════════════════════════════════════════════════════════
-All colors used in rendering must reference the theme:
+All color comes from theme/style.ts (`c.*`, `bg.*`). `chalk` may be imported
+only under src/theme/. Modifiers (bold/italic/underline/strikethrough) from
+theme/style.ts are allowed; `dim` and raw palette colors are forbidden:
 
   ✗ WRONG: chalk.cyan('some text')          // hardcoded color
   ✗ WRONG: chalk.hex('#a78bfa')('text')     // hardcoded hex
+  ✗ WRONG: chalk.dim('some text')           // use c.muted(...)
 
-  ✓ CORRECT: themeColor(theme.brand)('text')
-  ✓ CORRECT: themeColor(theme.subtle)(line)
-  ✓ CORRECT: chalk.dim(str)                  // dim is structural, not a color
+  ✓ CORRECT: c.brand('text')
+  ✓ CORRECT: c.subtle(line)
+  ✓ CORRECT: c.muted(str)
+  ✓ CORRECT: bold(c.text('heading'))
 
-The theme is obtained from: import { getTheme } from '../../theme/index.js'
-Theme keys are defined in src/theme/colors.ts.
-
-chalk itself is re-exported through src/tui/utils/format.ts to maintain a
-single import point. Do not import chalk directly into components.
-
-If a new semantic color is needed, add it to src/theme/colors.ts with a
-descriptive key name. Do not use a one-off chalk color in a component.
+Theme tokens are defined in src/theme/colors.ts and accessed via src/theme/style.ts.
+Do not import chalk directly anywhere outside src/theme/.
 
 ═══════════════════════════════════════════════════════════════════════════════
 RULE 14 — PROPOSING A STRUCTURAL CHANGE

@@ -2,7 +2,7 @@ import stringWidth from 'string-width';
 import stripAnsi from 'strip-ansi';
 import { themeColor, truncateToWidth } from '../utils/format.js';
 import { figures } from '../../theme/index.js';
-import { TextElement, type TextProps } from './Text.js';
+import { TextElement } from './Text.js';
 
 export type BorderStyle = 'none' | 'single' | 'dashed' | 'double' | 'rounded' | 'top-bottom';
 

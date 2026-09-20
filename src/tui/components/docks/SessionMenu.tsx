@@ -1,7 +1,7 @@
 import { SelectList } from '../../primitives/index.js';
 import type { SessionData } from '../../../session/types.js';
-import { getTheme, figures } from '../../../theme/index.js';
-import { themeColor, chalk } from '../../utils/format.js';
+import { figures } from '../../../theme/index.js';
+import { c } from '../../../theme/style.js';
 import { Box, Text } from '../../primitives/index.js';
 
 export interface SessionMenuProps {
@@ -32,11 +32,9 @@ export default class SessionMenu extends SelectList<SessionData> {
       onSelect: props.onSelect,
       onCancel: props.onCancel,
       renderItem: (s, isSelected, maxCols) => {
-        const theme = getTheme();
-        const selColor = themeColor(theme.permission);
         const rawTitle = s.name || s.turns?.[0]?.userPrompt || 'Untitled Session';
         const cleanTitle = rawTitle.replace(/\s+/g, ' ').trim();
-        const pointer = isSelected ? selColor(`${figures.pointer} `) : '  ';
+        const pointer = isSelected ? c.selected(`${figures.pointer} `) : '  ';
         const shortId = s.id.slice(0, 8);
         const dateStr = s.date ? s.date.split('T')[0] : '';
         const turnsCount = s.turns?.length ?? 0;
@@ -49,15 +47,10 @@ export default class SessionMenu extends SelectList<SessionData> {
 
         return (
           <Box direction="column" width={maxCols}>
-            <Text
-              color={isSelected ? selColor : chalk.white}
-              wrap={false}
-              clip={true}
-              ellipsis={true}
-            >
+            <Text color={isSelected ? 'selected' : 'text'} wrap={false} clip={true} ellipsis={true}>
               {`${pointer}${cleanTitle}`}
             </Text>
-            <Text dim={true} wrap={false} clip={true} ellipsis={true}>
+            <Text color="muted" wrap={false} clip={true} ellipsis={true}>
               {`  ${meta}`}
             </Text>
           </Box>
