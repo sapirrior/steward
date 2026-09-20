@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
 import { homedir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import type { ProviderName } from './env.js';
+import type { ThemeName } from '../theme/colors.js';
 
 export type ReasoningEffort =
   'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
@@ -23,6 +24,7 @@ export interface UserSettings {
   model?: SavedModelSettings;
   trustedFolders?: Record<string, TrustedFolderRecord>;
   voiceLanguage?: string;
+  theme?: ThemeName;
 }
 
 /**
@@ -131,6 +133,38 @@ export function getVoiceLanguage(): string | undefined {
 export function saveVoiceLanguage(languageTag: string): void {
   saveSettings({
     voiceLanguage: languageTag.trim(),
+  });
+}
+
+/**
+ * Returns the persisted theme selection from ~/.steward/settings.json if present and valid.
+ */
+export function getSavedTheme(): ThemeName | undefined {
+  const settings = loadSettings();
+  if (
+    settings.theme &&
+    typeof settings.theme === 'string' &&
+    [
+      'dark',
+      'light',
+      'dark-ansi',
+      'light-ansi',
+      'dark-colorblind',
+      'light-colorblind',
+      'dracula',
+    ].includes(settings.theme)
+  ) {
+    return settings.theme as ThemeName;
+  }
+  return undefined;
+}
+
+/**
+ * Persists the user's selected theme to ~/.steward/settings.json.
+ */
+export function saveThemeSelection(name: ThemeName): void {
+  saveSettings({
+    theme: name,
   });
 }
 

@@ -45,12 +45,27 @@ export function parseCliArgs(args: string[]): ParsedCliArgs {
       };
     }
 
+    if (
+      target === 'theme' ||
+      target === 'ui.theme' ||
+      target === 'ui-theme' ||
+      target === 'color'
+    ) {
+      const value = subArgs.slice(1).join(' ').trim() || undefined;
+      return {
+        command: 'config',
+        configArgs: { target: 'theme', value },
+        rawArgs: args,
+      };
+    }
+
     // Invalid config sub-target (e.g. steward --config foo)
     console.error(
       `Error: Unknown configuration target "${target}".\n` +
         `Usage:\n` +
-        `  steward --config              View all current configurations\n` +
-        `  steward --config voice <lang> Configure preferred voice language`,
+        `  steward --config               View all current configurations\n` +
+        `  steward --config voice <lang>  Configure preferred voice language\n` +
+        `  steward --config theme <name>  Configure UI color theme`,
     );
     process.exit(1);
   }

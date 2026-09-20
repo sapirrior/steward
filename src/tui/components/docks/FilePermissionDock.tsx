@@ -4,6 +4,7 @@ import { themeColor, themeBgColor, chalk } from '../../utils/format.js';
 import { Box, Text, parseKeyInput, prefixedBlock } from '../../primitives/index.js';
 import type { FilePermissionRequest } from '../../../tools/types.js';
 import { buildUnifiedDiff, type UnifiedDiff } from '../../../utils/diff.js';
+import { highlightCode } from '../../../utils/highlight.js';
 
 export interface FilePermissionDockProps {
   request: FilePermissionRequest;
@@ -131,7 +132,8 @@ export default class FilePermissionDock extends Component<
     const diffDeleteBg = themeBgColor(theme.diffDeleteBG);
 
     if (kind === 'create' || kind === 'overwrite') {
-      const rawLines = after.split(/\r?\n/);
+      const highlighted = highlightCode(after, { filePath: request.filePath });
+      const rawLines = highlighted.split(/\r?\n/);
       // Handle trailing newline splitting edge case
       const lines = after === '' ? [] : rawLines;
       const maxLineNum = Math.max(1, lines.length);
@@ -143,7 +145,7 @@ export default class FilePermissionDock extends Component<
         const lineNumStr = String(lineNum).padStart(gutterWidth, ' ');
         const firstPrefix = ` ${chalk.dim(lineNumStr)}  `;
         const contPrefix = ` ${' '.repeat(gutterWidth)}  `;
-        const wrapped = prefixedBlock(firstPrefix, chalk.white(lines[i]), {
+        const wrapped = prefixedBlock(firstPrefix, lines[i] ?? '', {
           continuationPrefix: contPrefix,
           width: maxCols,
         });
@@ -207,7 +209,8 @@ export default class FilePermissionDock extends Component<
           const numStr = String(lineNum).padStart(gutterWidth, ' ');
           const firstPrefix = ` ${chalk.dim(numStr)}  `;
           const contPrefix = ` ${' '.repeat(gutterWidth)}  `;
-          const wrapped = prefixedBlock(firstPrefix, chalk.white(line.text), {
+          const highlightedLine = highlightCode(line.text, { filePath: request.filePath });
+          const wrapped = prefixedBlock(firstPrefix, highlightedLine, {
             continuationPrefix: contPrefix,
             width: maxCols,
           });

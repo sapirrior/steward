@@ -1,6 +1,6 @@
 [?2026h[H[J ▄▄▄▄▄   Steward v0.2.0
 ▀▙███▟▀  anthropic/claude-3-5-sonnet-20241022 · API Usage Billing
- ▘▘ ▝▝   /workspace/steward
+ ▝   ▘   /workspace/steward
 
 ● Edit(file_path: src/stream-processor.ts)
   └ Added 1 line, removed 1 line

@@ -12,13 +12,15 @@ import {
   loadSessionLog,
   buildSessionPresentationProjection,
 } from '../session/index.js';
-import { saveSettings, isFolderTrusted, trustFolder } from '../config/index.js';
+import { saveSettings, saveThemeSelection, isFolderTrusted, trustFolder } from '../config/index.js';
+import { setActiveTheme, getActiveThemeName, listThemes, type ThemeMeta } from '../theme/index.js';
 import Header from './components/Header.js';
 import StatusBar from './components/StatusBar.js';
 import StreamingView from './components/StreamingView.js';
 import PromptInput from './components/PromptInput.js';
 import TrustGate from './components/TrustGate.js';
 import ModelPicker from './components/docks/ModelPicker.js';
+import ThemePicker from './components/docks/ThemePicker.js';
 import SessionMenu from './components/docks/SessionMenu.js';
 import ShortcutsMenu from './components/docks/ShortcutsMenu.js';
 
@@ -61,6 +63,7 @@ export class TUIApp {
 
   private activeModal:
     | ModelPicker
+    | ThemePicker
     | SessionMenu
     | ShortcutsMenu
     | EffortPicker
@@ -430,6 +433,31 @@ export class TUIApp {
     this.engine.mount(this.statusBar);
   }
 
+  private openThemePicker(themes: ThemeMeta[]): void {
+    if (this.activeModal) this.closeModal();
+    this.engine.unmount(this.promptInput);
+    this.engine.unmount(this.statusBar);
+
+    const currentTheme = getActiveThemeName();
+    const picker = new ThemePicker({
+      themes,
+      currentTheme,
+      onSelect: (selected) => {
+        setActiveTheme(selected.name);
+        saveThemeSelection(selected.name);
+        for (const comp of this.engine.components) comp.markDirty();
+        this.engine.requestFrame(true);
+        this.engine.commit('system', formatSystemMessage(`Theme switched to ${selected.label}.`));
+        this.closeModal();
+      },
+      onCancel: () => this.closeModal(),
+    });
+
+    this.activeModal = picker;
+    this.engine.mount(picker, { kind: 'dock' });
+    this.engine.mount(this.statusBar);
+  }
+
   private switchToSession(selected: SessionData): void {
     this.permissionQueue.clear();
     this.session.shutdown().catch(() => {});
@@ -669,6 +697,16 @@ export class TUIApp {
       if (cmdResult.data?.showModelPicker) {
         this.openModelPicker(cmdResult.data.models ?? []);
         return;
+      }
+
+      if (cmdResult.data?.showThemePicker) {
+        this.openThemePicker(cmdResult.data.themes ?? listThemes());
+        return;
+      }
+
+      if (cmdResult.data?.themeSwitched) {
+        for (const comp of this.engine.components) comp.markDirty();
+        this.engine.requestFrame(true);
       }
 
       if (cmdResult.data?.showEffortPicker) {

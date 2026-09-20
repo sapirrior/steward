@@ -1,27 +1,19 @@
 import chalk from 'chalk';
 import stripAnsi from 'strip-ansi';
 import stringWidth from 'string-width';
-import { getTheme, figures, type UITheme } from '../../theme/index.js';
+import { getTheme, figures, resolveThemeColor, type UITheme } from '../../theme/index.js';
 import { applyMarkdown } from '../../utils/markdown.js';
 
 export function themeColor(color: string) {
-  if (color.startsWith('rgb(')) {
-    const match = color.match(/\d+/g);
-    if (match && match.length >= 3) {
-      return chalk.rgb(Number(match[0]), Number(match[1]), Number(match[2]));
-    }
-  }
-  return chalk.hex(color);
+  return resolveThemeColor(color, false);
 }
 
 export function themeBgColor(color: string) {
-  if (color.startsWith('rgb(')) {
-    const match = color.match(/\d+/g);
-    if (match && match.length >= 3) {
-      return chalk.bgRgb(Number(match[0]), Number(match[1]), Number(match[2]));
-    }
-  }
-  return chalk.bgHex(color);
+  return resolveThemeColor(color, true);
+}
+
+export function visibleWidth(text: string): number {
+  return stringWidth(stripAnsi(text));
 }
 
 export function formatMarkdown(md: string): string {

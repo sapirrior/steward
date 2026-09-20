@@ -2,22 +2,13 @@ import chalk from 'chalk';
 import { marked, type Token, type Tokens } from 'marked';
 import stripAnsi from 'strip-ansi';
 import stringWidth from 'string-width';
-import { highlight as cliHighlight, supportsLanguage } from 'cli-highlight';
-import { getTheme } from '../theme/index.js';
+import { getTheme, resolveThemeColor } from '../theme/index.js';
+import { highlightCode } from './highlight.js';
 
 const EOL = '\n';
 
-/**
- * Converts a theme color string (rgb(...) or #hex) into a chalk colorizer function.
- */
 function themeColor(color: string) {
-  if (color.startsWith('rgb(')) {
-    const match = color.match(/\d+/g);
-    if (match && match.length >= 3) {
-      return chalk.rgb(Number(match[0]), Number(match[1]), Number(match[2]));
-    }
-  }
-  return chalk.hex(color);
+  return resolveThemeColor(color, false);
 }
 
 let markedConfigured = false;
@@ -76,12 +67,7 @@ export function formatToken(
 
     case 'code': {
       const code = token as Tokens.Code;
-      let highlighted = code.text;
-      if (code.lang && supportsLanguage(code.lang)) {
-        try {
-          highlighted = cliHighlight(code.text, { language: code.lang, ignoreIllegals: true });
-        } catch {}
-      }
+      const highlighted = highlightCode(code.text, { language: code.lang });
       const gutter = themeColor(theme.subtle)('│');
       const lines = highlighted.split(EOL);
       const formatted = lines.map((line) => `  ${gutter} ${line}`).join(EOL);

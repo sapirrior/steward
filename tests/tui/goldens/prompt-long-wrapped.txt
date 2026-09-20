@@ -1,6 +1,6 @@
 [?2026h[H[J ▄▄▄▄▄   Steward v0.2.0
 ▀▙███▟▀  anthropic/claude-3-5-sonnet-20241022 · API Usage Billing
- ▘▘ ▝▝   /workspace/steward
+ ▝   ▘   /workspace/steward
 
 ────────────────────────────────────────────────────────────────────────────────
 ❯ This is a very long prompt sentence that definitely exceeds standard terminal

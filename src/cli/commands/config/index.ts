@@ -4,7 +4,10 @@ import {
   getVoiceLanguage,
   saveVoiceLanguage,
   getSavedModel,
+  getSavedTheme,
+  saveThemeSelection,
 } from '../../../config/settings.js';
+import { listThemes, type ThemeMeta } from '../../../theme/index.js';
 import type { CliConfigArgs } from '../../types.js';
 import { resolveVoiceLanguage, getLanguageDisplayName } from './utils/lang.js';
 
@@ -21,7 +24,10 @@ export function handleConfigCommand(configArgs: CliConfigArgs): void {
       ? `${savedModel.provider}:${savedModel.modelId} (effort: ${savedModel.effort ?? 'provider-default'})`
       : 'not configured (using environment priority)';
 
+    const savedTheme = getSavedTheme() ?? 'dark (default)';
+
     console.log(`Steward Configuration (${settingsPath}):`);
+    console.log(`  UI Theme:       ${savedTheme}`);
     console.log(`  Voice Language: ${voiceDisplay}`);
     console.log(`  Saved Model:    ${modelDisplay}`);
     process.exit(0);
@@ -59,6 +65,35 @@ export function handleConfigCommand(configArgs: CliConfigArgs): void {
 
     saveVoiceLanguage(resolved.tag);
     console.log(`✓ Voice language configured: ${resolved.name} (${resolved.tag})`);
+    process.exit(0);
+  }
+
+  if (configArgs.target === 'theme') {
+    const rawTheme = configArgs.value?.trim();
+    const allThemes = listThemes();
+
+    if (!rawTheme) {
+      const current = getSavedTheme() ?? 'dark';
+      const currentMeta = findTheme(current);
+      console.log(`Current UI theme: ${currentMeta?.label ?? current} (${current})`);
+      process.exit(0);
+    }
+
+    const matched = findTheme(rawTheme);
+
+    if (!matched) {
+      console.error(
+        `Error: Unknown theme "${rawTheme}".\n` +
+          `Available themes:\n` +
+          allThemes
+            .map((t) => `  steward --config theme ${t.name.padEnd(18)} (${t.label})`)
+            .join('\n'),
+      );
+      process.exit(1);
+    }
+
+    saveThemeSelection(matched.name);
+    console.log(`✓ UI theme configured: ${matched.label} (${matched.name})`);
     process.exit(0);
   }
 }

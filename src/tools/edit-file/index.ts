@@ -6,6 +6,7 @@ import { themeColor, themeBgColor } from '../../tui/utils/format.js';
 import { resolveDirectMutationPath } from '../../services/checkpoint/path.js';
 import { buildUnifiedDiff } from '../../utils/diff.js';
 import { atomicWriteFileSync } from '../../utils/atomic-write.js';
+import { highlightCode } from '../../utils/highlight.js';
 import type { ToolDefinition } from '../types.js';
 
 export const editFileInputSchema = z.object({
@@ -110,7 +111,8 @@ export const editFileTool: ToolDefinition<typeof editFileInputSchema, EditFileOu
             padWidth,
             ' ',
           );
-          diffLines.push(contextStyle(`${numStr}  ${line.text}`));
+          const highlightedContext = highlightCode(line.text, { filePath: args.file_path });
+          diffLines.push(`${contextStyle(`${numStr} `)} ${highlightedContext}`);
         }
       }
     }

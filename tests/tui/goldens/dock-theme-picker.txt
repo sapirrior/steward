@@ -1,0 +1,24 @@
+[?2026h[H[J────────────────────────────────────────────────────────────────────────────────
+Select Theme                                             Current: Dark (Default)
+> Type to filter themes…
+────────────────────────────────────────────────────────────────────────────────
+> Dark (Default) (active)
+  ● ● ● ● ● ●  Default dark theme with terracotta and purple accents
+  Light
+  ● ● ● ● ● ●  Clean light palette optimized for light backgrounds
+  Dark ANSI
+  ● ● ● ● ● ●  16-color ANSI palette respecting your terminal theme
+  Light ANSI
+  ● ● ● ● ● ●  16-color ANSI light palette respecting terminal colors
+↑/↓ navigate · Enter select · Esc cancel  (7 available)
+
+
+
+
+
+
+
+
+
+
+[?25l[?2026l

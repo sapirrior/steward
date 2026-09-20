@@ -1,4 +1,3 @@
-import stringWidth from 'string-width';
 import { getTheme, figures } from '../../theme/index.js';
 import {
   themeColor,
@@ -8,6 +7,7 @@ import {
   getStatusBullet,
   truncateMiddle,
   extractPrimaryToolParam,
+  visibleWidth,
 } from './format.js';
 import { wrapVisualLine } from '../engine/cell-layout.js';
 import type { ToolExecutionStatus } from '../types.js';
@@ -36,7 +36,7 @@ export function formatUserMessage(content: string, targetWidth?: number): string
     for (const segment of wrappedSegments) {
       const p = isFirstRow ? prefix : '  ';
       isFirstRow = false;
-      const visibleLen = stringWidth(p) + stringWidth(segment);
+      const visibleLen = visibleWidth(p) + visibleWidth(segment);
       const padLen = Math.max(0, termCols - visibleLen);
       const pStyled = themeColor(theme.userChevron)(p);
       const textStyled = chalk.white(segment);
