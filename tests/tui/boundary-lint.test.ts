@@ -44,8 +44,14 @@ function extractImports(filePath: string): ImportStatement[] {
 }
 
 describe('TUI Architecture Boundary Rules (Rules.txt)', () => {
-  const tuiRoot = join(import.meta.dir, '../../src/tui');
+  const tuiRoot = join(import.meta.dir, '../../src/packages/tui/src');
+  const tuiPackageRoot = join(import.meta.dir, '../../src/packages/tui');
+  const uiRoot = join(import.meta.dir, '../../src/app/ui');
+  const appRoot = join(import.meta.dir, '../../src/app');
+
   const allTuiFiles = getAllTsFiles(tuiRoot);
+  const allUiFiles = getAllTsFiles(uiRoot);
+  const allAppFiles = getAllTsFiles(appRoot);
 
   it('Rule 1: Layer 0 (engine, layout) and Layer 1 (primitives) must never import Layer 2 (components)', () => {
     const violations: string[] = [];
@@ -62,6 +68,7 @@ describe('TUI Architecture Boundary Rules (Rules.txt)', () => {
         if (
           imp.source.includes('/components/') ||
           imp.source.endsWith('/components') ||
+          imp.source.includes('/app/ui') ||
           imp.source.endsWith('app.js') ||
           imp.source.endsWith('app.ts')
         ) {
@@ -99,11 +106,10 @@ describe('TUI Architecture Boundary Rules (Rules.txt)', () => {
   it('Rule 3: Layer 2 components must never import string-width or strip-ansi for layout math directly', () => {
     const violations: string[] = [];
 
-    for (const file of allTuiFiles) {
-      const rel = relative(tuiRoot, file);
-      const isLayer2 = rel.startsWith('components/') || rel === 'app.ts';
+    for (const file of allUiFiles) {
+      const rel = relative(uiRoot, file);
+      const isLayer2 = rel.startsWith('components/');
       if (!isLayer2) continue;
-
       const imports = extractImports(file);
       for (const imp of imports) {
         if (imp.source === 'string-width' || imp.source === 'strip-ansi') {
@@ -115,8 +121,8 @@ describe('TUI Architecture Boundary Rules (Rules.txt)', () => {
     expect(violations).toEqual([]);
   });
 
-  it('Rule 4: Rules.txt must be present and non-empty in src/tui/', () => {
-    const rulesPath = join(tuiRoot, 'Rules.txt');
+  it('Rule 4: Rules.txt must be present and non-empty in src/packages/tui/', () => {
+    const rulesPath = join(tuiPackageRoot, 'Rules.txt');
     const content = readFileSync(rulesPath, 'utf-8');
     expect(content.length).toBeGreaterThan(100);
     expect(content).toContain('STEWARD TUI — MASTER RULES');

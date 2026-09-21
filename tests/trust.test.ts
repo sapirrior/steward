@@ -8,7 +8,7 @@ import {
   normalizeFolderPath,
   loadSettings,
   saveSettings,
-} from '../src/config/index.js';
+} from '../src/packages/services/src/config/index.js';
 
 describe('Workspace Trust & Path Normalization', () => {
   let tempSettingsDir: string;

@@ -8,20 +8,20 @@ import {
   hasCasBlob,
   verifyCasBlob,
   computeSha256,
-} from '../src/services/checkpoint/cas.js';
+} from '../src/packages/services/src/checkpoint/cas.js';
 import {
   computeWorkspaceHash,
   resolveDirectMutationPath,
-} from '../src/services/checkpoint/path.js';
-import { MutationLockManager } from '../src/services/checkpoint/lock.js';
-import { MutationCheckpointTracker } from '../src/services/checkpoint/tracker.js';
+} from '../src/packages/services/src/checkpoint/path.js';
+import { MutationLockManager } from '../src/packages/services/src/checkpoint/lock.js';
+import { MutationCheckpointTracker } from '../src/packages/services/src/checkpoint/tracker.js';
 import {
   loadCheckpointManifest,
   saveCheckpointManifest,
   loadPendingJournal,
-} from '../src/services/checkpoint/store.js';
-import { executeRewind } from '../src/services/checkpoint/rewind.js';
-import { createSession } from '../src/session/store.js';
+} from '../src/packages/services/src/checkpoint/store.js';
+import { executeRewind } from '../src/packages/services/src/checkpoint/rewind.js';
+import { createSession } from '../src/packages/services/src/session/store.js';
 
 describe('Checkpoint Core (CAS, Path, Lock, Tracker, Rewind)', () => {
   let testDir: string;
@@ -859,7 +859,8 @@ describe('Checkpoint Core (CAS, Path, Lock, Tracker, Rewind)', () => {
 
   describe('Rewind Line Diff Counts', () => {
     it('computes accurate additions and deletions for line diffs', async () => {
-      const { computeLineDiffCounts } = await import('../src/tui/components/docks/RewindMenu.js');
+      const { computeLineDiffCounts } =
+        await import('../src/app/ui/components/docks/RewindMenu.js');
 
       // 1. Identical content
       expect(computeLineDiffCounts('hello\nworld', 'hello\nworld')).toEqual({
@@ -897,7 +898,7 @@ describe('Checkpoint Core (CAS, Path, Lock, Tracker, Rewind)', () => {
     });
 
     it('buildRewindItems calculates added and deleted lines from CAS blobs', async () => {
-      const { buildRewindItems } = await import('../src/tui/components/docks/RewindMenu.js');
+      const { buildRewindItems } = await import('../src/app/ui/components/docks/RewindMenu.js');
 
       const tracker = new MutationCheckpointTracker({
         workspaceRoot: workspaceDir,

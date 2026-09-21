@@ -8,10 +8,10 @@ import {
   updateTodoItem,
   getSessionTodosFilePath,
   type TodoItem,
-} from '../src/services/todos/index.js';
-import { todoWriteTool } from '../src/tools/todo-write/index.js';
-import { todoUpdateTool } from '../src/tools/todo-update/index.js';
-import { todoReadTool } from '../src/tools/todo-read/index.js';
+} from '../src/packages/services/src/todos/index.js';
+import { todoWriteTool } from '../src/packages/agents/src/tools/todo-write/index.js';
+import { todoUpdateTool } from '../src/packages/agents/src/tools/todo-update/index.js';
+import { todoReadTool } from '../src/packages/agents/src/tools/todo-read/index.js';
 
 describe('Session-Scoped Todos System', () => {
   let testSettingsDir: string;

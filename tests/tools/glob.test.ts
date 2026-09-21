@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { globTool } from '../../src/tools/glob/index.js';
+import { globTool } from '../../src/packages/agents/src/tools/glob/index.js';
 import { join } from 'node:path';
 
 describe('glob tool', () => {

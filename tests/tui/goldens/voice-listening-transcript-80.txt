@@ -1,24 +1,0 @@
-[?2026h[H[J ▄▄▄▄▄   Steward v0.2.0
-▀▙███▟▀  anthropic/claude-3-5-sonnet-20241022 · API Usage Billing
- ▝   ▘   /workspace/steward
-
-────────────────────────────────────────────────────────────────────────────────
-Refactor auth service and add automated token rotation
-────────────────────────────────────────────────────────────────────────────────
-? for shortcuts                                                 Normal · default
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-[?25h[6;55H[?2026l

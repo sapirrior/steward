@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { sleepTool } from '../../src/tools/sleep/index.js';
+import { sleepTool } from '../../src/packages/agents/src/tools/sleep/index.js';
 
 describe('sleep tool', () => {
   const cwd = process.cwd();

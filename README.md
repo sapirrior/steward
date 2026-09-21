@@ -58,7 +58,7 @@ bun run start
 - **First-Class Local Model Support:** Optimized for local model execution (Ollama, LM Studio, vLLM, Qwen, DeepSeek) as well as cloud frontier APIs.
 - **Lightweight Native Architecture:** Handcrafted zero-overhead runtime with sub-millisecond startup and minimal system resource usage.
 - **Synchronized Terminal UI:** Built with Mode 2026 synchronized output, flicker-free differential rendering, and intra-line word diffs.
-- **Hands-Free Voice Dictation:** Toggle `Ctrl+T` to dictate complex instructions with real-time speech-to-text directly in the prompt editor.
+- **Lossless Rewind Checkpoints:** Every file mutation is automatically tracked with Content-Addressed Storage (CAS) hashes, allowing one-click turn rollbacks.
 
 ---
 
@@ -117,11 +117,12 @@ export OPENROUTER_API_KEY="sk-or-v1-..."
 | :--- | :--- |
 | `/rewind` | Revert workspace modifications and conversation state to any prior turn |
 | `/model` | Switch active model or provider endpoint |
-| `/effort` | Adjust model reasoning effort level |
+| `/mode` | Cycle through or set active chat mode (`normal`, `chat`, `review`, `build`) |
+| `/theme` | Change terminal color theme (`dark`, `light`, `dracula`, `dark-ansi`, `light-ansi`) |
+| `/effort` | Adjust model reasoning effort level (`none`, `low`, `medium`, `high`, `xhigh`) |
+| `/sessions` | Browse, resume, or delete saved session transcripts |
 | `/clear` | Clear the current conversation and start a new session |
-| `/resume` | Browse and resume a prior session |
-| `/rename` | Rename the active session |
-| `/skills` | List discovered workspace skills |
+| `/help` | View help manual and keyboard shortcuts |
 | `/exit` | Exit Steward (`Ctrl+C Ctrl+C`) |
 
 ---

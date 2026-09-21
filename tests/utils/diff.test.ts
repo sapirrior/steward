@@ -3,7 +3,11 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { applyUnifiedDiff, buildUnifiedDiff, type UnifiedDiff } from '../../src/utils/diff.js';
+import {
+  applyUnifiedDiff,
+  buildUnifiedDiff,
+  type UnifiedDiff,
+} from '../../src/packages/services/src/diff/diff.js';
 
 describe('Pure Unified Diff Engine (src/utils/diff.ts)', () => {
   const testMatrix: Array<{ name: string; before: string; after: string }> = [

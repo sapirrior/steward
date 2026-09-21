@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { classifyCommand } from '../../src/tools/bash/command-policy.js';
-import { bashTool } from '../../src/tools/bash/index.js';
+import { classifyCommand } from '../../src/packages/agents/src/tools/bash/command-policy.js';
+import { bashTool } from '../../src/packages/agents/src/tools/bash/index.js';
 
 describe('Bash Tool & Command Policy', () => {
   const cwd = process.cwd();

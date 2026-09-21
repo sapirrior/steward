@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import TerminalEngine from '../../src/tui/engine/TerminalEngine.js';
-import PromptInput from '../../src/tui/components/PromptInput.js';
+import TerminalEngine from '../../src/packages/tui/src/engine/TerminalEngine.js';
+import PromptInput from '../../src/app/ui/components/PromptInput.js';
 
 describe('PromptInput Spinner & Permission Dock Lifecycle (Section 17 & 18)', () => {
   it('resumes spinner frame animation after unmount and remount while disabled', async () => {

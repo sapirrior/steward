@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import FilePermissionDock from '../../src/tui/components/docks/FilePermissionDock.js';
-import TerminalEngine from '../../src/tui/engine/TerminalEngine.js';
-import type { FilePermissionRequest } from '../../src/tools/types.js';
+import FilePermissionDock from '../../src/app/ui/components/docks/FilePermissionDock.js';
+import TerminalEngine from '../../src/packages/tui/src/engine/TerminalEngine.js';
+import type { FilePermissionRequest } from '../../src/packages/agents/src/tools/types.js';
 
 describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
   it('defaults to Yes selection, toggles with Up/Down and numeric keys 1/2, submits on Enter', () => {

@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { writeFileTool } from '../src/tools/write-file/index.js';
-import { editFileTool } from '../src/tools/edit-file/index.js';
-import { MutationCheckpointTracker } from '../src/services/checkpoint/tracker.js';
-import { MutationLockManager } from '../src/services/checkpoint/lock.js';
-import { executeRewind } from '../src/services/checkpoint/rewind.js';
-import { createSession, saveSession } from '../src/session/store.js';
+import { writeFileTool } from '../src/packages/agents/src/tools/write-file/index.js';
+import { editFileTool } from '../src/packages/agents/src/tools/edit-file/index.js';
+import { MutationCheckpointTracker } from '../src/packages/services/src/checkpoint/tracker.js';
+import { MutationLockManager } from '../src/packages/services/src/checkpoint/lock.js';
+import { executeRewind } from '../src/packages/services/src/checkpoint/rewind.js';
+import { createSession, saveSession } from '../src/packages/services/src/session/store.js';
 
 describe('Definition of Done — Multi-Turn Parallel Mutation and Rewind Scenario (Section 33)', () => {
   let testDir: string;

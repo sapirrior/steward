@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "session1",
+  "name": "Test Session",
+  "date": "2026-09-21",
+  "createdAt": "2026-09-21T12:00:00.000Z",
+  "updatedAt": "2026-09-21T12:05:00.000Z",
+  "model": {
+    "provider": "anthropic",
+    "modelId": "claude-3-5-sonnet-latest",
+    "effort": "high"
+  },
+  "totalUsage": {
+    "inputTokens": 100,
+    "outputTokens": 50,
+    "totalTokens": 150
+  },
+  "turns": [
+    {
+      "id": "turn-1",
+      "timestamp": "2026-09-21T12:00:01.000Z",
+      "status": "complete",
+      "usage": {
+        "inputTokens": 100,
+        "outputTokens": 50,
+        "totalTokens": 150
+      },
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hello steward"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I help you today?"
+        }
+      ]
+    }
+  ]
+}

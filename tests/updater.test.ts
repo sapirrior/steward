@@ -3,7 +3,7 @@ import {
   isNewerVersion,
   parseSemver,
   UpdateCheckerService,
-} from '../src/services/updater/index.js';
+} from '../src/packages/services/src/updater/index.js';
 
 describe('UpdateCheckerService', () => {
   const originalFetch = globalThis.fetch;

@@ -14,18 +14,18 @@ import {
   getAvailableProviders,
   hasProviderConfig,
   type EnvConfig,
-} from '../src/config/index.js';
+} from '../src/packages/services/src/config/index.js';
 import {
   PROVIDER_REGISTRY,
   PROVIDER_SELECTION_PRIORITY,
   resolveActiveModelSelection,
-} from '../src/engine/model-provider.js';
+} from '../src/packages/agents/src/engine/model-provider.js';
 import {
   fetchDeepSeekModels,
   fetchMistralModels,
   fetchOpenRouterModels,
   fetchXaiModels,
-} from '../src/models/discovery.js';
+} from '../src/packages/agents/src/models/discovery.js';
 
 describe('Provider Configuration & Discovery', () => {
   it('should include all 8 providers in ALL_PROVIDER_NAMES and priority list', () => {
@@ -146,7 +146,8 @@ describe('Provider Configuration & Discovery', () => {
   });
 
   it('should have all 8 providers declared in PROVIDER_REGISTRY with correct metadata', async () => {
-    const { PROVIDER_REGISTRY } = await import('../src/engine/model-provider.js');
+    const { PROVIDER_REGISTRY } =
+      await import('../src/packages/agents/src/engine/model-provider.js');
     expect(Object.keys(PROVIDER_REGISTRY).sort()).toEqual([
       'anthropic',
       'custom',
@@ -284,7 +285,8 @@ describe('Provider Model Discovery Filtering', () => {
 
 describe('Reasoning Effort & Session Metadata', () => {
   it('should parse numeric 0-6 and string reasoning efforts', async () => {
-    const { parseReasoningEffort } = await import('../src/engine/model-provider.js');
+    const { parseReasoningEffort } =
+      await import('../src/packages/agents/src/engine/model-provider.js');
 
     expect(parseReasoningEffort(0)).toBe('provider-default');
     expect(parseReasoningEffort(1)).toBe('none');
@@ -312,7 +314,7 @@ describe('Reasoning Effort & Session Metadata', () => {
     process.env['OPENAI_API_KEY'] = 'sk-mock-key';
     process.env['GEMINI_API_KEY'] = 'mock-gemini-key';
 
-    const { AgentSession } = await import('../src/engine/agent-session.js');
+    const { AgentSession } = await import('../src/packages/agents/src/engine/agent-session.js');
     const session = new AgentSession({ provider: 'openai', modelId: 'gpt-4o-mini' });
 
     expect(session.getModel().provider).toBe('openai');
@@ -332,7 +334,7 @@ describe('Reasoning Effort & Session Metadata', () => {
   it('should update reasoning effort on AgentSession and sessionData.model', async () => {
     process.env['OPENAI_API_KEY'] = 'sk-mock-key';
 
-    const { AgentSession } = await import('../src/engine/agent-session.js');
+    const { AgentSession } = await import('../src/packages/agents/src/engine/agent-session.js');
     const session = new AgentSession({ provider: 'openai', modelId: 'gpt-4o-mini' });
 
     expect(session.getEffort()).toBe('provider-default');
@@ -349,8 +351,8 @@ describe('Reasoning Effort & Session Metadata', () => {
   });
 
   it('should trigger EffortPicker dock when /effort is called with no arguments', async () => {
-    const { effortCommand } = await import('../src/commands/effort/index.js');
-    const { AgentSession } = await import('../src/engine/agent-session.js');
+    const { effortCommand } = await import('../src/app/commands/effort/index.js');
+    const { AgentSession } = await import('../src/packages/agents/src/engine/agent-session.js');
     const session = new AgentSession({ provider: 'openai', modelId: 'gpt-4o-mini' });
 
     const result = await effortCommand.execute([], { session, cwd: process.cwd() });
@@ -364,7 +366,8 @@ describe('Reasoning Effort & Session Metadata', () => {
   });
 
   it('should parse legacy session schemas without effort gracefully', async () => {
-    const { parseSessionDocument } = await import('../src/session/validate.js');
+    const { parseSessionDocument } =
+      await import('../src/packages/services/src/session/validate.js');
 
     const legacyRaw = JSON.stringify({
       schemaVersion: 1,
@@ -395,7 +398,8 @@ describe('Reasoning Effort & Session Metadata', () => {
   });
 
   it('should log structured errors to logs directory with date and time', async () => {
-    const { logError, getLogsRootDir } = await import('../src/errors/logger.js');
+    const { logError, getLogsRootDir } =
+      await import('../src/packages/services/src/errors/logger.js');
     const { existsSync, readFileSync } = await import('node:fs');
 
     const fakeError = new Error('Test API connection failure');

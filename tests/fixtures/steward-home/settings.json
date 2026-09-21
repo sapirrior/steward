@@ -1,0 +1,16 @@
+{
+  "theme": "monokai",
+  "mode": "normal",
+  "voiceLanguage": "en-US",
+  "model": {
+    "provider": "anthropic",
+    "modelId": "claude-3-5-sonnet-latest",
+    "effort": "high"
+  },
+  "trustedFolders": {
+    "/data/data/com.termux/files/home/works/steward": {
+      "trustedAt": "2026-09-21T12:00:00.000Z"
+    }
+  },
+  "customFieldForCompatibility": "preserved-value"
+}

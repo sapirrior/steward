@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { expect } from 'bun:test';
-import StateRenderer from '../../src/tui/engine/StateRenderer.js';
-import type { DocumentTree } from '../../src/tui/engine/DocumentTree.js';
-import type { DocumentFrame } from '../../src/tui/engine/FrameBuffer.js';
+import StateRenderer from '../../src/packages/tui/src/engine/StateRenderer.js';
+import type { DocumentTree } from '../../src/packages/tui/src/engine/DocumentTree.js';
+import type { DocumentFrame } from '../../src/packages/tui/src/engine/FrameBuffer.js';
 
 export interface HeadlessRenderResult {
   rawAnsi: string;

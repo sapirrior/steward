@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { buildSystemPrompt } from '../src/engine/system-prompt.js';
+import { buildSystemPrompt } from '../src/packages/agents/src/engine/system-prompt.js';
 
 describe('System Prompt Structure & Invariants', () => {
   it('should contain concise agent identity and core operating principles', () => {

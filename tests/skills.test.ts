@@ -2,9 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { discoverSkills, getSkill, readSkillResource } from '../src/skills/index.js';
-import { skillListTool } from '../src/tools/skill-list/index.js';
-import { skillReadTool } from '../src/tools/skill-read/index.js';
+import {
+  discoverSkills,
+  getSkill,
+  readSkillResource,
+} from '../src/packages/agents/src/skills/index.js';
+import { skillListTool } from '../src/packages/agents/src/tools/skill-list/index.js';
+import { skillReadTool } from '../src/packages/agents/src/tools/skill-read/index.js';
 
 describe('Skill Discovery & On-Demand Reading', () => {
   let tempWorkspace: string;

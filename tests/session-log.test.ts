@@ -8,10 +8,13 @@ import {
   removeSessionLog,
   getSessionLogsRootDir,
   getSessionLogPath,
-} from '../src/session/logs/store.js';
-import type { SessionLogEvent } from '../src/session/logs/types.js';
-import { rehydrateSessionHistory, mergeSessionPresentation } from '../src/session/helpers.js';
-import type { SessionData } from '../src/session/types.js';
+} from '../src/packages/services/src/session/logs/store.js';
+import type { SessionLogEvent } from '../src/packages/services/src/session/logs/types.js';
+import {
+  rehydrateSessionHistory,
+  mergeSessionPresentation,
+} from '../src/packages/services/src/session/helpers.js';
+import type { SessionData } from '../src/packages/services/src/session/types.js';
 
 describe('Session Presentation Journal & Logging', () => {
   const testDate = '2026-09-19';

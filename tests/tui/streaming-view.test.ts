@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import StreamingView from '../../src/tui/components/StreamingView.js';
+import StreamingView from '../../src/app/ui/components/StreamingView.js';
 import stripAnsi from 'strip-ansi';
 
 describe('StreamingView Thinking Indicator & Transitions', () => {

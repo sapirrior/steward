@@ -1,0 +1,157 @@
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { z } from 'zod';
+import { resolveDirectMutationPath } from '../../../../services/src/checkpoint/path.js';
+import { atomicWriteFileSync } from '../../../../services/src/fs/atomic-write.js';
+import type { ToolDefinition } from '../types.js';
+
+export const writeFileInputSchema = z.object({
+  file_path: z
+    .string()
+    .describe(
+      'The path of the file to write (relative to current working directory or absolute inside trusted workspace).',
+    ),
+  content: z.string().describe('The full text content to write to the file.'),
+});
+
+export type WriteFileInput = z.infer<typeof writeFileInputSchema>;
+
+export interface WriteFileOutput {
+  file_path: string;
+  bytesWritten: number;
+  linesWritten: number;
+  isNew: boolean;
+  message: string;
+}
+
+export const writeFileTool: ToolDefinition<typeof writeFileInputSchema, WriteFileOutput> = {
+  name: 'write_file',
+  displayName: 'Write',
+  access: 'write',
+  description:
+    'Writes or creates a whole file in the workspace. Automatically creates parent directories if needed. Every write mutation participates in checkpointing for /rewind.',
+  parameters: writeFileInputSchema,
+  confirmationPolicy: 'never',
+
+  summarize: (args, result) => {
+    const lines = result?.linesWritten ?? (args.content ? args.content.split(/\r?\n/).length : 0);
+    const filePath = args.file_path;
+    const isNew = result?.isNew ?? true;
+    const headline = isNew
+      ? `Created ${filePath} (${lines} line${lines === 1 ? '' : 's'})`
+      : `Wrote ${lines} line${lines === 1 ? '' : 's'} to ${filePath}`;
+
+    return {
+      headline,
+      detail: {
+        kind: 'code',
+        filePath: args.file_path,
+        text: args.content,
+        totalLines: lines,
+      },
+    };
+  },
+
+  execute: async (args, context) => {
+    const { absolutePath: targetPath, relativePath } = resolveDirectMutationPath(
+      context.cwd,
+      args.file_path,
+    );
+
+    const isNew = !existsSync(targetPath);
+    const beforeContent = isNew ? null : readFileSync(targetPath, 'utf-8');
+    const afterContent = args.content;
+    const linesWritten = afterContent.length === 0 ? 0 : afterContent.split(/\r?\n/).length;
+
+    // 1. Check for no-op write (exact before == after)
+    if (!isNew && beforeContent === afterContent) {
+      const currentBuffer = Buffer.from(beforeContent, 'utf-8');
+      return {
+        file_path: args.file_path,
+        bytesWritten: currentBuffer.length,
+        linesWritten,
+        isNew: false,
+        message: `File already matches requested content: ${relativePath}`,
+      };
+    }
+
+    // 2. Prepare checkpoint and acquire mutation lock
+    let releaseLock: (() => void) | null = null;
+    let prepResult: { preState: any; releaseLock: () => void } | null = null;
+
+    if (context.checkpointTracker) {
+      prepResult = await context.checkpointTracker.prepareMutation(targetPath);
+      releaseLock = prepResult.releaseLock;
+    } else if (context.mutationLocks) {
+      releaseLock = await context.mutationLocks.acquire(targetPath);
+    }
+
+    try {
+      // 3. Request user permission
+      if (!context.requestFilePermission) {
+        throw new Error('File write permission denied (non-interactive).');
+      }
+
+      const perm = await context.requestFilePermission({
+        kind: isNew ? 'create' : 'overwrite',
+        filePath: relativePath,
+        before: beforeContent,
+        after: afterContent,
+      });
+
+      if (!perm.allowed) {
+        throw new Error('File write permission denied by user.');
+      }
+
+      // 4. Validate target state hasn't changed externally during review window
+      if (isNew) {
+        if (existsSync(targetPath)) {
+          throw new Error(
+            `File was created externally during approval review: "${relativePath}". Mutation aborted to prevent data loss.`,
+          );
+        }
+      } else {
+        if (!existsSync(targetPath)) {
+          throw new Error(
+            `File was deleted externally during approval review: "${relativePath}". Mutation aborted.`,
+          );
+        }
+        const freshContent = readFileSync(targetPath, 'utf-8');
+        if (freshContent !== beforeContent) {
+          throw new Error(
+            `File was modified externally during approval review: "${relativePath}". Mutation aborted to prevent data loss.`,
+          );
+        }
+      }
+
+      // 5. Atomic file write
+      let existingMode = 0o644;
+      if (!isNew) {
+        try {
+          existingMode = statSync(targetPath).mode;
+        } catch {}
+      }
+
+      const newBuffer = Buffer.from(afterContent, 'utf-8');
+      atomicWriteFileSync(targetPath, newBuffer, { mode: existingMode });
+
+      // 6. Complete checkpoint mutation
+      if (context.checkpointTracker) {
+        await context.checkpointTracker.completeMutation(targetPath);
+      }
+
+      return {
+        file_path: args.file_path,
+        bytesWritten: newBuffer.length,
+        linesWritten,
+        isNew,
+        message: isNew
+          ? `Created file: ${relativePath} (${newBuffer.length} bytes)`
+          : `Updated file: ${relativePath} (${newBuffer.length} bytes)`,
+      };
+    } finally {
+      if (releaseLock) {
+        releaseLock();
+      }
+    }
+  },
+};

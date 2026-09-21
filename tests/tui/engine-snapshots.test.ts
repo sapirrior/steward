@@ -1,23 +1,26 @@
 import { describe, it, expect } from 'bun:test';
-import TerminalEngine from '../../src/tui/engine/TerminalEngine.js';
-import Header from '../../src/tui/components/Header.js';
-import StatusBar from '../../src/tui/components/StatusBar.js';
-import PromptInput from '../../src/tui/components/PromptInput.js';
-import StreamingView from '../../src/tui/components/StreamingView.js';
-import ShortcutsMenu from '../../src/tui/components/docks/ShortcutsMenu.js';
-import ModelPicker from '../../src/tui/components/docks/ModelPicker.js';
-import ThemePicker from '../../src/tui/components/docks/ThemePicker.js';
-import SessionMenu from '../../src/tui/components/docks/SessionMenu.js';
-import EffortPicker from '../../src/tui/components/docks/EffortPicker.js';
-import RewindMenu from '../../src/tui/components/docks/RewindMenu.js';
-import BashPermissionDock from '../../src/tui/components/docks/BashPermissionDock.js';
-import FilePermissionDock from '../../src/tui/components/docks/FilePermissionDock.js';
-import TrustGate from '../../src/tui/components/TrustGate.js';
-import { listThemes } from '../../src/theme/index.js';
-import { formatAssistantMessage, formatToolStatus } from '../../src/tui/utils/message-formatter.js';
-import { editFileTool } from '../../src/tools/edit-file/index.js';
+import TerminalEngine from '../../src/packages/tui/src/engine/TerminalEngine.js';
+import Header from '../../src/app/ui/components/Header.js';
+import StatusBar from '../../src/app/ui/components/StatusBar.js';
+import PromptInput from '../../src/app/ui/components/PromptInput.js';
+import StreamingView from '../../src/app/ui/components/StreamingView.js';
+import ShortcutsMenu from '../../src/app/ui/components/docks/ShortcutsMenu.js';
+import ModelPicker from '../../src/app/ui/components/docks/ModelPicker.js';
+import ThemePicker from '../../src/app/ui/components/docks/ThemePicker.js';
+import SessionMenu from '../../src/app/ui/components/docks/SessionMenu.js';
+import EffortPicker from '../../src/app/ui/components/docks/EffortPicker.js';
+import RewindMenu from '../../src/app/ui/components/docks/RewindMenu.js';
+import BashPermissionDock from '../../src/app/ui/components/docks/BashPermissionDock.js';
+import FilePermissionDock from '../../src/app/ui/components/docks/FilePermissionDock.js';
+import TrustGate from '../../src/app/ui/components/TrustGate.js';
+import { listThemes } from '../../src/packages/tui/src/theme/index.js';
+import {
+  formatAssistantMessage,
+  formatToolStatus,
+} from '../../src/app/ui/utils/message-formatter.js';
+import { editFileTool } from '../../src/packages/agents/src/tools/edit-file/index.js';
 import { captureHeadlessRender, assertGoldenMatch } from './harness.js';
-import StateRenderer from '../../src/tui/engine/StateRenderer.js';
+import StateRenderer from '../../src/packages/tui/src/engine/StateRenderer.js';
 
 describe('TUI Engine Headless Golden Snapshots', () => {
   const dummyModel = {
@@ -704,110 +707,6 @@ describe('TUI Engine Headless Golden Snapshots', () => {
 
     engine120.cleanupSync();
     assertGoldenMatch('bash-permission-dock-120', result120.rawAnsi);
-  });
-
-  it('golden: voice-listening-empty (Voice listening active, waiting for speech)', () => {
-    const engine80 = new TerminalEngine();
-    const header = new Header({
-      version: '0.2.0',
-      cwd: '/workspace/steward',
-      model: dummyModel,
-    });
-    const prompt = new PromptInput({
-      onSubmit: () => {},
-    });
-    prompt.startVoice();
-    const statusBar = new StatusBar({
-      model: dummyModel,
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      isBusy: false,
-    });
-
-    engine80.mount(header, { kind: 'custom' });
-    engine80.mount(prompt, { kind: 'input', keepCursorVisible: true });
-    engine80.mount(statusBar, { kind: 'custom' });
-
-    const result80 = captureHeadlessRender(
-      (renderer) => {
-        return renderer.render(engine80.tree, 0, true);
-      },
-      { cols: 80, rows: 24 },
-    );
-
-    engine80.cleanupSync();
-    assertGoldenMatch('voice-listening-empty', result80.rawAnsi);
-  });
-
-  it('golden: voice-listening-transcript (Voice listening active with live interim transcript at 80 and 120 cols)', () => {
-    const engine80 = new TerminalEngine();
-    const header80 = new Header({
-      version: '0.2.0',
-      cwd: '/workspace/steward',
-      model: dummyModel,
-    });
-    const prompt80 = new PromptInput({
-      onSubmit: () => {},
-    });
-    prompt80.setState({
-      value: 'Refactor auth service and ',
-      cursorPos: 26,
-    });
-    prompt80.startVoice();
-    prompt80.setVoiceTranscript('add automated token rotation');
-    const statusBar80 = new StatusBar({
-      model: dummyModel,
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      isBusy: false,
-    });
-
-    engine80.mount(header80, { kind: 'custom' });
-    engine80.mount(prompt80, { kind: 'input', keepCursorVisible: true });
-    engine80.mount(statusBar80, { kind: 'custom' });
-
-    const result80 = captureHeadlessRender(
-      (renderer) => {
-        return renderer.render(engine80.tree, 0, true);
-      },
-      { cols: 80, rows: 24 },
-    );
-
-    engine80.cleanupSync();
-    assertGoldenMatch('voice-listening-transcript-80', result80.rawAnsi);
-
-    const engine120 = new TerminalEngine();
-    const header120 = new Header({
-      version: '0.2.0',
-      cwd: '/workspace/steward',
-      model: dummyModel,
-    });
-    const prompt120 = new PromptInput({
-      onSubmit: () => {},
-    });
-    prompt120.setState({
-      value: 'Refactor auth service and ',
-      cursorPos: 26,
-    });
-    prompt120.startVoice();
-    prompt120.setVoiceTranscript('add automated token rotation');
-    const statusBar120 = new StatusBar({
-      model: dummyModel,
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      isBusy: false,
-    });
-
-    engine120.mount(header120, { kind: 'custom' });
-    engine120.mount(prompt120, { kind: 'input', keepCursorVisible: true });
-    engine120.mount(statusBar120, { kind: 'custom' });
-
-    const result120 = captureHeadlessRender(
-      (renderer) => {
-        return renderer.render(engine120.tree, 0, true);
-      },
-      { cols: 120, rows: 24 },
-    );
-
-    engine120.cleanupSync();
-    assertGoldenMatch('voice-listening-transcript-120', result120.rawAnsi);
   });
 
   it('golden: status-warning (StatusBar displaying yellow transient warning)', () => {

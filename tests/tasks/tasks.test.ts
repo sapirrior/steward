@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'bun:test';
-import { ShellTaskManager } from '../../src/services/tasks/manager.js';
-import { ShellExecution } from '../../src/services/tasks/process.js';
-import { bashTool } from '../../src/tools/bash/index.js';
-import { taskReadTool } from '../../src/tools/task-read/index.js';
-import { taskSendInputTool } from '../../src/tools/task-send-input/index.js';
-import { taskKillTool } from '../../src/tools/task-kill/index.js';
-import { AgentSession } from '../../src/engine/agent-session.js';
+import { ShellTaskManager } from '../../src/packages/services/src/tasks/manager.js';
+import { ShellExecution } from '../../src/packages/services/src/tasks/process.js';
+import { bashTool } from '../../src/packages/agents/src/tools/bash/index.js';
+import { taskReadTool } from '../../src/packages/agents/src/tools/task-read/index.js';
+import { taskSendInputTool } from '../../src/packages/agents/src/tools/task-send-input/index.js';
+import { taskKillTool } from '../../src/packages/agents/src/tools/task-kill/index.js';
+import { AgentSession } from '../../src/packages/agents/src/engine/agent-session.js';
 
 describe('Shell Tasks Subsystem', () => {
   const cwd = process.cwd();

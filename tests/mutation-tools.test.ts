@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { writeFileTool } from '../src/tools/write-file/index.js';
-import { editFileTool } from '../src/tools/edit-file/index.js';
-import { MutationCheckpointTracker } from '../src/services/checkpoint/tracker.js';
-import { MutationLockManager } from '../src/services/checkpoint/lock.js';
-import type { FilePermissionRequest } from '../src/tools/types.js';
+import { writeFileTool } from '../src/packages/agents/src/tools/write-file/index.js';
+import { editFileTool } from '../src/packages/agents/src/tools/edit-file/index.js';
+import { MutationCheckpointTracker } from '../src/packages/services/src/checkpoint/tracker.js';
+import { MutationLockManager } from '../src/packages/services/src/checkpoint/lock.js';
+import type { FilePermissionRequest } from '../src/packages/agents/src/tools/types.js';
 
 describe('Mutation Tools (write_file & edit_file)', () => {
   let testDir: string;
@@ -369,9 +369,11 @@ describe('Mutation Tools (write_file & edit_file)', () => {
 
   describe('bash vs checkpoint boundary', () => {
     it('proves bash tool does not invoke checkpoint tracker', async () => {
-      const { bashTool } = await import('../src/tools/bash/index.js');
-      const { loadPendingJournal } = await import('../src/services/checkpoint/store.js');
-      const { computeWorkspaceHash } = await import('../src/services/checkpoint/path.js');
+      const { bashTool } = await import('../src/packages/agents/src/tools/bash/index.js');
+      const { loadPendingJournal } =
+        await import('../src/packages/services/src/checkpoint/store.js');
+      const { computeWorkspaceHash } =
+        await import('../src/packages/services/src/checkpoint/path.js');
       const testFile = join(workspaceDir, 'bash-mutated.txt');
 
       // Execute a bash mutation with approval

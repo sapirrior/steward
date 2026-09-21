@@ -7,7 +7,7 @@ import {
   emergencyRestoreTerminal,
   setupGlobalErrorHandlers,
   getLogsRootDir,
-} from '../src/errors/index.js';
+} from '../src/packages/services/src/errors/index.js';
 
 describe('Production Error Logger & Global Handlers', () => {
   it('logs structured errors to disk with runtime telemetry', () => {

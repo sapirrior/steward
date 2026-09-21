@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { defaultToolCatalog, getAISDKTools } from '../../src/tools/index.js';
-import type { ToolContext } from '../../src/tools/types.js';
+import { defaultToolCatalog, getAISDKTools } from '../../src/packages/agents/src/tools/index.js';
+import type { ToolContext } from '../../src/packages/agents/src/tools/types.js';
 
 describe('ToolCatalog & AI SDK v7 Integration', () => {
   const dummyContext: ToolContext = {
