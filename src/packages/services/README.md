@@ -44,7 +44,7 @@ This package encapsulates persistent infrastructure subsystems, file mutation sa
 
 ---
 
-### Configuration & Errors (`config/`, `errors/`, `paths.ts`)
+### Configuration, Errors & Updates (`config/`, `errors/`, `updater/`, `paths.ts`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
@@ -52,8 +52,10 @@ This package encapsulates persistent infrastructure subsystems, file mutation sa
 | | `getSessionsDir` / `getCheckpointsDir` | Function | Returns paths to sessions, checkpoints, todos, and error logs directories. | Creates directories if missing. |
 | `config/settings.ts` | `loadSettings` / `saveSettings` | Function | Reads and writes `~/.steward/settings.json` preserving unknown user keys. | Tolerates unknown legacy keys (e.g. `voiceLanguage`). |
 | `config/env.ts` | `hasProviderConfig` / `getAvailableProviders` | Function | Detects API keys across 8 providers (`gemini`, `anthropic`, `openai`, `xai`, `mistral`, `deepseek`, `openrouter`, `custom`). | Safe environment variable scanning. |
+| `errors/classifier.ts` | `classifyError` | Function | Maps AI SDK errors, network drops, auth issues, and empty output into actionable StructuredError objects. | Structured classification with retryability. |
 | `errors/logger.ts` | `logError` | Function | Logs structured error diagnostics with stack traces to `~/.steward/logs/errors-<date>.log`. | Prevents unhandled crash loss. |
-| `errors/global-handler.ts` | `setupGlobalErrorHandlers` | Function | Attaches `uncaughtException` and `unhandledRejection` handlers to process. | Ensures graceful cleanup. |
+| `errors/global-handler.ts` | `setupGlobalErrorHandlers` | Function | Attaches `uncaughtException` and `unhandledRejection` handlers to process. | Ensures graceful terminal restore and formatted error display. |
+| `updater/service.ts` | `UpdateCheckerService` | Class | Read-only background checker for newer Steward CLI versions via GitHub repo releases. | Non-blocking, mutation-free update check. |
 
 ---
 

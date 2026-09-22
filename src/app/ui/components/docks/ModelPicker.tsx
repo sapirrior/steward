@@ -1,8 +1,8 @@
-import { SelectList } from '../../../../packages/tui/src/primitives/index.js';
-import type { ModelDescriptor } from '../../../../packages/agents/src/models/discovery.js';
-import { figures } from '../../../../packages/tui/src/theme/index.js';
-import { c, bold } from '../../../../packages/tui/src/theme/style.js';
-import { Box, Text } from '../../../../packages/tui/src/primitives/index.js';
+import { SelectList } from '@steward/tui/primitives/index.js';
+import type { ModelDescriptor } from '@steward/agents/models/discovery.js';
+import { figures } from '@steward/tui/theme/index.js';
+import { c, bold } from '@steward/tui/theme/style.js';
+import { Box, Text } from '@steward/tui/primitives/index.js';
 
 export interface ModelPickerProps {
   models: ModelDescriptor[];

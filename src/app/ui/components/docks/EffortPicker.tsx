@@ -1,13 +1,13 @@
-import Component from '../../../../packages/tui/src/engine/Component.js';
-import type { ReasoningEffort } from '../../../../packages/agents/src/engine/types.js';
-import { figures } from '../../../../packages/tui/src/theme/index.js';
-import { c, bold } from '../../../../packages/tui/src/theme/style.js';
+import Component from '@steward/tui/engine/Component.js';
+import type { ReasoningEffort } from '@steward/agents/engine/types.js';
+import { figures } from '@steward/tui/theme/index.js';
+import { c, bold } from '@steward/tui/theme/style.js';
 import {
   Box,
   Text,
   renderModalBox,
   parseKeyInput,
-} from '../../../../packages/tui/src/primitives/index.js';
+} from '@steward/tui/primitives/index.js';
 
 export interface EffortOption {
   id: ReasoningEffort;

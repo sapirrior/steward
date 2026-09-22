@@ -1,9 +1,9 @@
 import { homedir } from 'node:os';
 import pkg from '../../../../package.json' with { type: 'json' };
-import Component from '../../../packages/tui/src/engine/Component.js';
-import { LOGO_LINES } from '../../../packages/tui/src/theme/index.js';
-import { c, bold } from '../../../packages/tui/src/theme/style.js';
-import { Box, Text } from '../../../packages/tui/src/primitives/index.js';
+import Component from '@steward/tui/engine/Component.js';
+import { LOGO_LINES } from '@steward/tui/theme/index.js';
+import { c, bold } from '@steward/tui/theme/style.js';
+import { Box, Text } from '@steward/tui/primitives/index.js';
 
 const DEFAULT_VERSION = pkg.version || '0.0.0';
 

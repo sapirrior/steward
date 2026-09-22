@@ -9,21 +9,23 @@ import {
   SessionLogWriter,
   chooseTurnStatusVerb,
   type SessionData,
-} from '../../../services/src/session/index.js';
+  type SessionLogEvent,
+} from '@steward/services/session/index.js';
 import {
   MutationCheckpointTracker,
   globalMutationLockManager,
-} from '../../../services/src/checkpoint/index.js';
+} from '@steward/services/checkpoint/index.js';
 import { defaultToolCatalog, summarizeToolResult, formatPlainToolSummary } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
-import { ShellTaskManager } from '../../../services/src/tasks/manager.js';
-import { saveSettings } from '../../../services/src/config/index.js';
-import { logError } from '../../../services/src/errors/index.js';
+import { ShellTaskManager } from '@steward/services/tasks/manager.js';
+import { saveSettings } from '@steward/services/config/index.js';
+import { logError } from '@steward/services/errors/index.js';
 import { runAgentTurn } from './agent-runner.js';
 import { SAFETY_STEP_CEILING } from './constants.js';
 import { getActiveMode, MODES } from './mode.js';
 import { createModelInstance, resolveActiveModelSelection } from './model-provider.js';
 import { buildSystemPrompt } from './system-prompt.js';
+import type { AgentEvent, AgentEventListener } from './events.js';
 import type {
   ModelSelection,
   ReasoningEffort,
@@ -31,6 +33,86 @@ import type {
   TokenUsage,
   TurnSummary,
 } from './types.js';
+
+/**
+ * Pure helper to translate agent events into presentation journal log events.
+ */
+export function translateAgentEventToLogEvent(
+  event: AgentEvent,
+  context: { sessionId: string; turnId: string },
+): SessionLogEvent | null {
+  if (event.type === 'tool-call') {
+    return {
+      schemaVersion: 1,
+      sessionId: context.sessionId,
+      turnId: context.turnId,
+      type: 'tool-start',
+      timestamp: new Date().toISOString(),
+      toolCallId: event.toolCall.id,
+      toolName: event.toolCall.name,
+      startedAt: new Date().toISOString(),
+    };
+  }
+
+  if (event.type === 'tool-result') {
+    const toolDef = defaultToolCatalog.get(event.toolResult.name);
+    const summaryObj = summarizeToolResult(
+      toolDef,
+      event.toolResult.args,
+      event.toolResult.result,
+      event.toolResult.isError,
+    );
+    const outputSummary = formatPlainToolSummary(summaryObj);
+    const errorMessage = event.toolResult.isError
+      ? typeof event.toolResult.result === 'object' && event.toolResult.result !== null
+        ? ((event.toolResult.result as any).message ?? JSON.stringify(event.toolResult.result))
+        : String(event.toolResult.result)
+      : undefined;
+    const status = event.toolResult.isError ? 'failed' : 'completed';
+
+    return {
+      schemaVersion: 1,
+      sessionId: context.sessionId,
+      turnId: context.turnId,
+      type: 'tool-end',
+      timestamp: event.toolResult.finishedAt ?? new Date().toISOString(),
+      toolCallId: event.toolResult.id,
+      toolName: event.toolResult.name,
+      finishedAt: event.toolResult.finishedAt ?? new Date().toISOString(),
+      durationMs: event.toolResult.durationMs,
+      status,
+      displayName: toolDef?.displayName,
+      icon: toolDef?.icon,
+      outputSummary,
+      errorMessage,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Pure helper to accumulate token usage metrics safely.
+ */
+export function accumulateUsage(current: TokenUsage, delta: TokenUsage): TokenUsage {
+  return {
+    inputTokens: current.inputTokens + delta.inputTokens,
+    outputTokens: current.outputTokens + delta.outputTokens,
+    totalTokens: current.totalTokens + delta.totalTokens,
+    reasoningTokens:
+      delta.reasoningTokens !== undefined
+        ? (current.reasoningTokens ?? 0) + delta.reasoningTokens
+        : current.reasoningTokens,
+    cacheReadTokens:
+      delta.cacheReadTokens !== undefined
+        ? (current.cacheReadTokens ?? 0) + delta.cacheReadTokens
+        : current.cacheReadTokens,
+    cacheWriteTokens:
+      delta.cacheWriteTokens !== undefined
+        ? (current.cacheWriteTokens ?? 0) + delta.cacheWriteTokens
+        : current.cacheWriteTokens,
+  };
+}
 
 export interface SubmitPromptOptions {
   cwd?: string;
@@ -286,49 +368,12 @@ export class AgentSession {
     });
 
     const wrappedOnEvent: AgentEventListener = (event) => {
-      if (event.type === 'tool-call') {
-        this.sessionLogWriter?.append({
-          schemaVersion: 1,
-          sessionId: this.sessionData.id,
-          turnId,
-          type: 'tool-start',
-          timestamp: new Date().toISOString(),
-          toolCallId: event.toolCall.id,
-          toolName: event.toolCall.name,
-          startedAt: new Date().toISOString(),
-        });
-      } else if (event.type === 'tool-result') {
-        const toolDef = defaultToolCatalog.get(event.toolResult.name);
-        const summaryObj = summarizeToolResult(
-          toolDef,
-          event.toolResult.args,
-          event.toolResult.result,
-          event.toolResult.isError,
-        );
-        const outputSummary = formatPlainToolSummary(summaryObj);
-        const errorMessage = event.toolResult.isError
-          ? typeof event.toolResult.result === 'object' && event.toolResult.result !== null
-            ? ((event.toolResult.result as any).message ?? JSON.stringify(event.toolResult.result))
-            : String(event.toolResult.result)
-          : undefined;
-        const status = event.toolResult.isError ? 'failed' : 'completed';
-
-        this.sessionLogWriter?.append({
-          schemaVersion: 1,
-          sessionId: this.sessionData.id,
-          turnId,
-          type: 'tool-end',
-          timestamp: event.toolResult.finishedAt ?? new Date().toISOString(),
-          toolCallId: event.toolResult.id,
-          toolName: event.toolResult.name,
-          finishedAt: event.toolResult.finishedAt ?? new Date().toISOString(),
-          durationMs: event.toolResult.durationMs,
-          status,
-          displayName: toolDef?.displayName,
-          icon: toolDef?.icon,
-          outputSummary,
-          errorMessage,
-        });
+      const logEvent = translateAgentEventToLogEvent(event, {
+        sessionId: this.sessionData.id,
+        turnId,
+      });
+      if (logEvent) {
+        this.sessionLogWriter?.append(logEvent);
       }
       options.onEvent?.(event);
     };
@@ -371,17 +416,7 @@ export class AgentSession {
       }
 
       // 5. Accumulate usage
-      this.accumulatedUsage.inputTokens += summary.usage.inputTokens;
-      this.accumulatedUsage.outputTokens += summary.usage.outputTokens;
-      this.accumulatedUsage.totalTokens += summary.usage.totalTokens;
-      if (summary.usage.reasoningTokens) {
-        this.accumulatedUsage.reasoningTokens =
-          (this.accumulatedUsage.reasoningTokens ?? 0) + summary.usage.reasoningTokens;
-      }
-      if (summary.usage.cacheReadTokens) {
-        this.accumulatedUsage.cacheReadTokens =
-          (this.accumulatedUsage.cacheReadTokens ?? 0) + summary.usage.cacheReadTokens;
-      }
+      this.accumulatedUsage = accumulateUsage(this.accumulatedUsage, summary.usage);
 
       const statusVerb = chooseTurnStatusVerb();
       summary.statusVerb = statusVerb;
@@ -432,17 +467,7 @@ export class AgentSession {
       const turnMessages: ModelMessage[] = [userMessage, ...responseMessages];
 
       if (summary) {
-        this.accumulatedUsage.inputTokens += summary.usage.inputTokens;
-        this.accumulatedUsage.outputTokens += summary.usage.outputTokens;
-        this.accumulatedUsage.totalTokens += summary.usage.totalTokens;
-        if (summary.usage.reasoningTokens) {
-          this.accumulatedUsage.reasoningTokens =
-            (this.accumulatedUsage.reasoningTokens ?? 0) + summary.usage.reasoningTokens;
-        }
-        if (summary.usage.cacheReadTokens) {
-          this.accumulatedUsage.cacheReadTokens =
-            (this.accumulatedUsage.cacheReadTokens ?? 0) + summary.usage.cacheReadTokens;
-        }
+        this.accumulatedUsage = accumulateUsage(this.accumulatedUsage, summary.usage);
 
         summary.statusVerb = statusVerb;
 

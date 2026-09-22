@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { TUIApp } from './app.js';
-import { AgentSession } from '../packages/agents/src/index.js';
+import { AgentSession } from '@steward/agents/index.js';
 import {
   logError,
   setupGlobalErrorHandlers,
@@ -10,16 +10,17 @@ import {
   getSavedMode,
   saveThemeSelection,
   saveModeSelection,
-} from '../packages/services/src/index.js';
+} from '@steward/services/index.js';
 import {
   setActiveTheme,
   listThemes,
   findTheme,
   getActiveThemeName,
-} from '../packages/tui/src/index.js';
-import { type ChatMode, MODE_NAMES } from '../packages/agents/src/index.js';
+} from '@steward/tui/index.js';
+import { type ChatMode, MODE_NAMES } from '@steward/agents/index.js';
+import pkg from '../../package.json' with { type: 'json' };
 
-export const VERSION = '0.17.0';
+export const VERSION = pkg.version;
 export const REPO_URL = 'https://github.com/sapirrior/steward';
 
 // Suppress raw SDK warning output to prevent TUI screen corruption

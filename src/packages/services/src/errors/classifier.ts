@@ -177,14 +177,31 @@ export function classifyError(error: unknown): StructuredError {
     lower.includes('fetch failed') ||
     lower.includes('econnrefused') ||
     lower.includes('enotfound') ||
+    lower.includes('connectionrefused') ||
+    lower.includes('unable to connect') ||
+    lower.includes('cannot connect to api') ||
     lower.includes('timeout')
   ) {
     return {
       category: 'network',
-      shortMessage: 'Network connection dropped / timed out',
+      shortMessage: 'Unable to connect to model API server',
       isRetryable: true,
       retryAfterSec: 4,
-      suggestedAction: 'Check your internet connection and provider status',
+      suggestedAction: 'Verify network connection, local model server (e.g. Ollama/vLLM), or endpoint URL',
+      originalError: error,
+    };
+  }
+
+  if (
+    (error as any)?.name === 'AI_NoOutputGeneratedError' ||
+    lower.includes('no output generated')
+  ) {
+    return {
+      category: 'server-error',
+      shortMessage: 'Model generated empty output',
+      isRetryable: true,
+      retryAfterSec: 3,
+      suggestedAction: 'The provider closed the stream without content. Retrying or switching models may help',
       originalError: error,
     };
   }

@@ -60,7 +60,12 @@ export class ToolCatalog {
             const modeLabel = MODES[mode]?.label ?? mode;
             throw new Error(`Tool "${name}" is not available in ${modeLabel} mode.`);
           }
-          return def.execute(args, context);
+          try {
+            return await def.execute(args, context);
+          } catch (err: any) {
+            const msg = err instanceof Error ? err.message : String(err);
+            throw new Error(msg || `Tool execution failed for "${name}".`);
+          }
         },
       });
     }

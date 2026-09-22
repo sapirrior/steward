@@ -1,8 +1,8 @@
 import stripAnsi from 'strip-ansi';
 import stringWidth from 'string-width';
-import { getTheme, figures, resolveThemeColor } from '../../../packages/tui/src/theme/index.js';
-import { c, bold } from '../../../packages/tui/src/theme/style.js';
-import { applyMarkdown } from '../../../packages/tui/src/format/markdown.js';
+import { getTheme, figures, resolveThemeColor } from '@steward/tui/theme/index.js';
+import { c, bold } from '@steward/tui/theme/style.js';
+import { applyMarkdown } from '@steward/tui/format/markdown.js';
 
 export function themeColor(color: string) {
   return resolveThemeColor(color, false);
@@ -59,6 +59,7 @@ export function extractPrimaryToolParam(args: unknown): string {
   for (const k of primaryKeys) {
     if (record[k] !== undefined && record[k] !== null && record[k] !== '') {
       const val = record[k];
+      if (Array.isArray(val)) return `${val.length} item${val.length === 1 ? '' : 's'}`;
       const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
       return str.split('\n')[0] ?? '';
     }
@@ -66,6 +67,7 @@ export function extractPrimaryToolParam(args: unknown): string {
 
   const firstVal = Object.values(record)[0];
   if (firstVal !== undefined && firstVal !== null && firstVal !== '') {
+    if (Array.isArray(firstVal)) return `${firstVal.length} item${firstVal.length === 1 ? '' : 's'}`;
     const str = typeof firstVal === 'object' ? JSON.stringify(firstVal) : String(firstVal);
     return str.split('\n')[0] ?? '';
   }

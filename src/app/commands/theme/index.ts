@@ -3,8 +3,8 @@ import {
   getActiveThemeName,
   setActiveTheme,
   findTheme,
-} from '../../../packages/tui/src/theme/index.js';
-import { saveThemeSelection } from '../../../packages/services/src/config/index.js';
+} from '@steward/tui/theme/index.js';
+import { saveThemeSelection } from '@steward/services/config/index.js';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
 /**

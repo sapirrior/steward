@@ -1,17 +1,17 @@
-import TerminalEngine from '../packages/tui/src/engine/TerminalEngine.js';
-import { AgentSession } from '../packages/agents/src/engine/agent-session.js';
+import TerminalEngine from '@steward/tui/engine/TerminalEngine.js';
+import { AgentSession } from '@steward/agents/engine/agent-session.js';
 import { defaultCommandRegistry } from './commands/registry.js';
-import { defaultToolCatalog, summarizeToolResult } from '../packages/agents/src/tools/index.js';
-import type { ModelDescriptor } from '../packages/agents/src/models/index.js';
-import type { SessionData } from '../packages/services/src/session/types.js';
-import { listSessions, loadSession } from '../packages/services/src/session/index.js';
+import { defaultToolCatalog, summarizeToolResult, summarizeToolArgs } from '@steward/agents/tools/index.js';
+import type { ModelDescriptor } from '@steward/agents/models/index.js';
+import type { SessionData } from '@steward/services/session/types.js';
+import { listSessions, loadSession } from '@steward/services/session/index.js';
 import {
   saveSettings,
   saveThemeSelection,
   isFolderTrusted,
   trustFolder,
-} from '../packages/services/src/config/index.js';
-import { setActiveTheme, getActiveThemeName, listThemes } from '../packages/tui/src/theme/index.js';
+} from '@steward/services/config/index.js';
+import { setActiveTheme, getActiveThemeName, listThemes } from '@steward/tui/theme/index.js';
 import Header from './ui/components/Header.js';
 import StatusBar from './ui/components/StatusBar.js';
 import StreamingView from './ui/components/StreamingView.js';
@@ -19,8 +19,8 @@ import PromptInput from './ui/components/PromptInput.js';
 import TrustGate from './ui/components/TrustGate.js';
 import ModelPicker from './ui/components/docks/ModelPicker.js';
 import ThemePicker from './ui/components/docks/ThemePicker.js';
-import { cycleMode } from '../packages/agents/src/policy/modes.js';
-import { saveModeSelection } from '../packages/services/src/config/settings.js';
+import { cycleMode } from '@steward/agents/policy/modes.js';
+import { saveModeSelection } from '@steward/services/config/settings.js';
 import SessionMenu from './ui/components/docks/SessionMenu.js';
 import ShortcutsMenu from './ui/components/docks/ShortcutsMenu.js';
 
@@ -29,12 +29,12 @@ import RewindMenu from './ui/components/docks/RewindMenu.js';
 import BashPermissionDock from './ui/components/docks/BashPermissionDock.js';
 import FilePermissionDock from './ui/components/docks/FilePermissionDock.js';
 import { PermissionQueue } from './ui/utils/permission-queue.js';
-import { parseKeyInput } from '../packages/tui/src/primitives/index.js';
+import { parseKeyInput } from '@steward/tui/primitives/index.js';
 
 import {
   executeRewind,
   recoverPendingCheckpoint,
-} from '../packages/services/src/checkpoint/index.js';
+} from '@steward/services/checkpoint/index.js';
 import {
   formatSystemMessage,
   formatAssistantMessage,
@@ -43,8 +43,8 @@ import {
   formatTurnStatus,
 } from './ui/utils/message-formatter.js';
 import { renderTranscript } from './ui/utils/transcript.js';
-import { classifyError } from '../packages/services/src/errors/index.js';
-import { UpdateCheckerService } from '../packages/services/src/updater/index.js';
+import { classifyError } from '@steward/services/errors/index.js';
+import { UpdateCheckerService } from '@steward/services/updater/index.js';
 
 export interface TUIAppOptions {
   version?: string;
@@ -617,7 +617,7 @@ export class TUIApp {
               const toolName = event.toolResult.name;
               const displayName = toolDef?.displayName;
               const icon = toolDef?.icon;
-              const argsSummary = JSON.stringify(event.toolResult.args);
+              const argsSummary = summarizeToolArgs(toolDef, event.toolResult.args);
               const status = event.toolResult.isError ? 'failed' : 'completed';
               const error = event.toolResult.isError
                 ? typeof event.toolResult.result === 'object' && event.toolResult.result !== null

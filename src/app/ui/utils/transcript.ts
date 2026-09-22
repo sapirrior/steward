@@ -1,12 +1,12 @@
-import type TerminalEngine from '../../../packages/tui/src/engine/TerminalEngine.js';
-import type { SessionData } from '../../../packages/services/src/session/types.js';
+import type TerminalEngine from '@steward/tui/engine/TerminalEngine.js';
+import type { SessionData } from '@steward/services/session/types.js';
 import type Header from '../components/Header.js';
 import {
   loadSessionLog,
   buildSessionPresentationProjection,
-} from '../../../packages/services/src/session/logs/store.js';
-import type { TurnPresentationEnd } from '../../../packages/services/src/session/logs/types.js';
-import { rehydrateSessionHistory } from '../../../packages/services/src/session/helpers.js';
+} from '@steward/services/session/logs/store.js';
+import type { TurnPresentationEnd } from '@steward/services/session/logs/types.js';
+import { rehydrateSessionHistory } from '@steward/services/session/helpers.js';
 import {
   formatTurnStatus,
   formatSystemMessage,
@@ -14,7 +14,7 @@ import {
   formatToolStatus,
   formatAssistantMessage,
 } from './message-formatter.js';
-import { classifyError } from '../../../packages/services/src/errors/index.js';
+import { classifyError } from '@steward/services/errors/index.js';
 
 export function formatTurnFooter(
   engine: TerminalEngine,
@@ -46,7 +46,11 @@ export function formatTurnFooter(
   }
 }
 
-import { defaultToolCatalog, summarizeToolResult } from '../../../packages/agents/src/index.js';
+import {
+  defaultToolCatalog,
+  summarizeToolResult,
+  summarizeToolArgs,
+} from '@steward/agents/index.js';
 
 export function renderTranscript(
   engine: TerminalEngine,
@@ -80,6 +84,11 @@ export function renderTranscript(
       const toolDef = defaultToolCatalog.get(toolData.toolName);
       const displayName = toolData.displayName ?? toolDef?.displayName;
       const icon = toolData.icon ?? toolDef?.icon;
+      // Use tool-def-aware args summary (matches live session path in app.ts)
+      const argsSummary =
+        toolDef && toolData.args != null
+          ? summarizeToolArgs(toolDef, toolData.args)
+          : (toolData.argsSummary ?? '');
       const summary =
         summarizeToolResult(
           toolDef,
@@ -95,7 +104,7 @@ export function renderTranscript(
             toolName: toolData.toolName,
             displayName,
             icon,
-            argsSummary: toolData.argsSummary,
+            argsSummary,
             status: toolData.status,
             durationMs: toolData.durationMs,
             error: toolData.error,

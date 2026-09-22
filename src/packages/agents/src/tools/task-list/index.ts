@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { ToolDefinition } from '../types.js';
-import type { ShellTask } from '../../../../services/src/tasks/types.js';
+import type { ShellTask } from '@steward/services/tasks/types.js';
 
 export const taskListInputSchema = z.object({});
 

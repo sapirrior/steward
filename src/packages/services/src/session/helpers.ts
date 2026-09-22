@@ -157,9 +157,10 @@ export function rehydrateSessionHistory(
             if (part.type === 'text') {
               textAccum += (textAccum ? '\n' : '') + part.text;
             } else if (part.type === 'tool-call') {
-              let parsedInput = (part.input as Record<string, unknown>) ?? {};
-              if (typeof part.input === 'string') {
-                const trimmed = part.input.trim();
+              const rawInput = (part as any).args ?? (part as any).input;
+              let parsedInput = (rawInput as Record<string, unknown>) ?? {};
+              if (typeof rawInput === 'string') {
+                const trimmed = rawInput.trim();
                 if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
                   try {
                     parsedInput = JSON.parse(trimmed);
@@ -168,7 +169,7 @@ export function rehydrateSessionHistory(
               }
               toolCallsMap.set(part.toolCallId, {
                 id: part.toolCallId,
-                name: part.toolName,
+                name: (part as any).toolName,
                 args: parsedInput,
                 isError: false,
               });
@@ -189,10 +190,19 @@ export function rehydrateSessionHistory(
           for (const part of msg.content) {
             if (part.type === 'tool-result') {
               const existing = toolCallsMap.get(part.toolCallId);
-              const isError = Boolean(part.isError);
-              const toolName = existing?.name ?? part.toolName ?? 'tool';
+              const isError = Boolean((part as any).isError);
+              const toolName = existing?.name ?? (part as any).toolName ?? 'tool';
               const argsSummary = existing?.args ? JSON.stringify(existing.args) : '';
-              let outputVal = part.output;
+              let outputVal = (part as any).result ?? (part as any).output;
+              // AI SDK v7 stores tool results as { type: "json", value: <payload> } — unwrap
+              if (
+                outputVal &&
+                typeof outputVal === 'object' &&
+                outputVal.type === 'json' &&
+                'value' in outputVal
+              ) {
+                outputVal = outputVal.value;
+              }
               if (typeof outputVal === 'string') {
                 const trimmed = outputVal.trim();
                 if (trimmed.startsWith('{') && trimmed.endsWith('}')) {

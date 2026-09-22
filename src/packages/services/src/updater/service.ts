@@ -1,6 +1,8 @@
 import { logError } from '../errors/index.js';
 import type { UpdateCheckerOptions, UpdateInfo, UpdateState } from './types.js';
 
+import pkg from '../../../../../package.json' with { type: 'json' };
+
 const DEFAULT_REPO = 'sapirrior/steward';
 
 export function parseSemver(v: string): [number, number, number] {
@@ -35,7 +37,7 @@ export class UpdateCheckerService {
 
   constructor(options: UpdateCheckerOptions = {}) {
     this.options = options;
-    this.currentVersion = options.currentVersion || '0.17.0';
+    this.currentVersion = options.currentVersion || pkg.version || '0.0.0';
     this.repo = options.repo || DEFAULT_REPO;
   }
 

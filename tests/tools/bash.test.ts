@@ -52,6 +52,23 @@ describe('Bash Tool & Command Policy', () => {
       expect(classifyCommand('pwd ; git checkout main')).toBe('REQUIRES_APPROVAL');
       expect(classifyCommand('ls && pwd')).toBe('SAFE_READ_ONLY');
     });
+
+    it('enforces workspace boundary containment for safe read-only commands', () => {
+      // Safe inside workspace
+      expect(classifyCommand('cat package.json', cwd)).toBe('SAFE_READ_ONLY');
+      expect(classifyCommand('ls src/', cwd)).toBe('SAFE_READ_ONLY');
+      expect(classifyCommand('head -n 10 README.md', cwd)).toBe('SAFE_READ_ONLY');
+      expect(classifyCommand('grep "foo" src/index.ts', cwd)).toBe('SAFE_READ_ONLY');
+
+      // Outside workspace paths must downgrade to REQUIRES_APPROVAL
+      expect(classifyCommand('cat ~/.ssh/id_rsa', cwd)).toBe('REQUIRES_APPROVAL');
+      expect(classifyCommand('cat /etc/shadow', cwd)).toBe('REQUIRES_APPROVAL');
+      expect(classifyCommand('ls /', cwd)).toBe('REQUIRES_APPROVAL');
+      expect(classifyCommand('ls /var/log', cwd)).toBe('REQUIRES_APPROVAL');
+      expect(classifyCommand('grep -rn "password" /home', cwd)).toBe('REQUIRES_APPROVAL');
+      expect(classifyCommand('head -n 20 /etc/passwd', cwd)).toBe('REQUIRES_APPROVAL');
+      expect(classifyCommand('tail -f log.txt', cwd)).toBe('REQUIRES_APPROVAL');
+    });
   });
 
   describe('Bash Execution & Validation', () => {

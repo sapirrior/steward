@@ -4,7 +4,7 @@ import {
   type PersistedTodoList,
   type TodoItem,
   type TodoItemStatus,
-} from '../../../../services/src/todos/index.js';
+} from '@steward/services/todos/index.js';
 import type { ToolDefinition } from '../types.js';
 
 const todoUpdateParamsSchema = z.object({
@@ -17,6 +17,8 @@ const todoUpdateParamsSchema = z.object({
 });
 
 export type TodoUpdateParams = z.infer<typeof todoUpdateParamsSchema>;
+
+import { c, bold, strikethrough } from '@steward/tui/theme/style.js';
 
 function formatTodoCheckbox(status: TodoItemStatus): string {
   switch (status) {
@@ -37,9 +39,24 @@ function formatTodoCheckbox(status: TodoItemStatus): string {
 function formatTodoListSummary(todos: TodoItem[], maxItems = 10): string {
   const visible = todos.slice(0, maxItems);
   const hiddenCount = todos.length - visible.length;
-  const lines = visible.map((t, i) => `${i + 1}. ${formatTodoCheckbox(t.status)} ${t.description}`);
+  const lines = visible.map((t, i) => {
+    const raw = `${i + 1}. ${formatTodoCheckbox(t.status)} ${t.description}`;
+    if (t.status === 'completed') {
+      return strikethrough(c.muted(raw));
+    }
+    if (t.status === 'in_progress') {
+      return bold(c.text(raw));
+    }
+    if (t.status === 'cancelled') {
+      return strikethrough(c.muted(raw));
+    }
+    if (t.status === 'blocked') {
+      return c.warning(raw);
+    }
+    return c.text(raw);
+  });
   if (hiddenCount > 0) {
-    lines.push(`… and ${hiddenCount} more`);
+    lines.push(c.muted(`… and ${hiddenCount} more`));
   }
   return lines.join('\n');
 }
@@ -54,10 +71,9 @@ export const todoUpdateTool: ToolDefinition<typeof todoUpdateParamsSchema, Persi
   parameters: todoUpdateParamsSchema,
 
   summarizeArgs(args) {
-    const parts: string[] = [`id: "${args.id}"`];
-    if (args.status) parts.push(`status: "${args.status}"`);
-    if (args.description) parts.push(`desc: "${args.description}"`);
-    return parts.join(', ');
+    if (args.status) return args.status;
+    if (args.id) return args.id;
+    return '';
   },
 
   async execute(args, context) {
@@ -71,15 +87,25 @@ export const todoUpdateTool: ToolDefinition<typeof todoUpdateParamsSchema, Persi
   },
 
   summarize(args, result) {
-    if (!result || !result.todos) {
+    // result may arrive as a JSON string from session replay — parse it first
+    let resolved = result;
+    if (typeof resolved === 'string') {
+      try {
+        resolved = JSON.parse(resolved);
+      } catch {
+        /* leave as-is; handled below */
+      }
+    }
+    if (!resolved || !(resolved as PersistedTodoList).todos) {
       return `Todo ${args.id} updated`;
     }
-    const total = result.todos.length;
-    const completed = result.todos.filter((t) => t.status === 'completed').length;
-    const updatedItem = result.todos.find((t) => t.id === args.id);
+    const result2 = resolved as PersistedTodoList;
+    const total = result2.todos.length;
+    const completed = result2.todos.filter((t) => t.status === 'completed').length;
+    const updatedItem = result2.todos.find((t) => t.id === args.id);
     const statusText = updatedItem?.status ?? args.status ?? 'updated';
     const header = `Todo ${args.id} ${statusText} · ${completed}/${total} done`;
-    const details = formatTodoListSummary(result.todos);
-    return `${header}\n${details}`;
+    const details = formatTodoListSummary(result2.todos);
+    return { headline: header, detail: { kind: 'pre-styled' as const, text: details } };
   },
 };

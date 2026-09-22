@@ -20,10 +20,27 @@ import {
 export const MAX_TOOL_OUTPUT_SUMMARY_CHARS = 16_000;
 export const MAX_TOOL_ERROR_CHARS = 4_000;
 
-export const STATUS_VERBS = ['Baked', 'Brewed', 'Churned', 'Swooped', 'Crafted', 'Cooked'] as const;
+export const STATUS_VERBS = [
+  'Forged',
+  'Synthesized',
+  'Crafted',
+  'Hacked',
+  'Refactored',
+  'Cooked',
+  'Brewed',
+  'Compiled',
+  'Marshaled',
+  'Orchestrated',
+  'Assembled',
+  'Dispatched',
+  'Iterated',
+  'Shipped',
+  'Polished',
+  'Engineered',
+] as const;
 
 export function chooseTurnStatusVerb(): string {
-  return STATUS_VERBS[Math.floor(Math.random() * STATUS_VERBS.length)] ?? 'Baked';
+  return STATUS_VERBS[Math.floor(Math.random() * STATUS_VERBS.length)] ?? 'Engineered';
 }
 
 /**

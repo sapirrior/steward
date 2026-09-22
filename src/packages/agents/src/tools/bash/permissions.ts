@@ -13,7 +13,7 @@ export async function evaluateBashPermission(
   req: BashPermissionRequest,
   context: ToolContext,
 ): Promise<BashPermissionEvaluation> {
-  const policy = classifyCommand(req.command);
+  const policy = classifyCommand(req.command, context.cwd);
 
   if (policy === 'SAFE_READ_ONLY') {
     return { allowed: true };

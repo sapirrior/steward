@@ -3,7 +3,7 @@ import type {
   BashPermissionResponse,
   FilePermissionRequest,
   FilePermissionResponse,
-} from '../../../packages/agents/src/tools/types.js';
+} from '@steward/agents/tools/types.js';
 
 export type QueuedPermissionItem =
   | {

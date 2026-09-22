@@ -1,4 +1,4 @@
 export type {
   ToolExecutionStatus,
   UIHistoryItem,
-} from '../../packages/services/src/session/types.js';
+} from '@steward/services/session/types.js';

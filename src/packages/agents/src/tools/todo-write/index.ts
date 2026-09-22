@@ -4,7 +4,7 @@ import {
   type PersistedTodoList,
   type TodoItem,
   type TodoItemStatus,
-} from '../../../../services/src/todos/index.js';
+} from '@steward/services/todos/index.js';
 import type { ToolDefinition } from '../types.js';
 
 const todoItemSchema = z.object({
@@ -28,6 +28,8 @@ const todoWriteParamsSchema = z.object({
 
 export type TodoWriteParams = z.infer<typeof todoWriteParamsSchema>;
 
+import { c, bold, strikethrough } from '@steward/tui/theme/style.js';
+
 function formatTodoCheckbox(status: TodoItemStatus): string {
   switch (status) {
     case 'completed':
@@ -47,9 +49,24 @@ function formatTodoCheckbox(status: TodoItemStatus): string {
 function formatTodoListSummary(todos: TodoItem[], maxItems = 10): string {
   const visible = todos.slice(0, maxItems);
   const hiddenCount = todos.length - visible.length;
-  const lines = visible.map((t, i) => `${i + 1}. ${formatTodoCheckbox(t.status)} ${t.description}`);
+  const lines = visible.map((t, i) => {
+    const raw = `${i + 1}. ${formatTodoCheckbox(t.status)} ${t.description}`;
+    if (t.status === 'completed') {
+      return strikethrough(c.muted(raw));
+    }
+    if (t.status === 'in_progress') {
+      return bold(c.text(raw));
+    }
+    if (t.status === 'cancelled') {
+      return strikethrough(c.muted(raw));
+    }
+    if (t.status === 'blocked') {
+      return c.warning(raw);
+    }
+    return c.text(raw);
+  });
   if (hiddenCount > 0) {
-    lines.push(`… and ${hiddenCount} more`);
+    lines.push(c.muted(`… and ${hiddenCount} more`));
   }
   return lines.join('\n');
 }
@@ -65,10 +82,8 @@ export const todoWriteTool: ToolDefinition<typeof todoWriteParamsSchema, Persist
 
   summarizeArgs(args) {
     if (!args.todos || args.todos.length === 0) return '';
-    if (args.todos.length <= 2) {
-      return args.todos.map((t) => `"${t.description}"`).join(', ');
-    }
-    return `"${args.todos[0]?.description}", "${args.todos[1]?.description}", +${args.todos.length - 2} more`;
+    const count = args.todos.length;
+    return `${count} items`;
   },
 
   async execute(args, context) {
@@ -83,6 +98,6 @@ export const todoWriteTool: ToolDefinition<typeof todoWriteParamsSchema, Persist
     const total = list.length;
     const header = `Added ${total} todos`;
     const details = formatTodoListSummary(list);
-    return `${header}\n${details}`;
+    return { headline: header, detail: { kind: 'pre-styled' as const, text: details } };
   },
 };

@@ -1,5 +1,23 @@
 import type { ToolDefinition, ToolSummary } from './types.js';
 
+export function summarizeToolArgs(
+  toolDef: ToolDefinition<any, any> | undefined,
+  args: any,
+): string {
+  if (toolDef?.summarizeArgs && args) {
+    try {
+      return toolDef.summarizeArgs(args);
+    } catch {}
+  }
+  if (!args) return '';
+  if (typeof args === 'string') return args;
+  try {
+    return JSON.stringify(args);
+  } catch {
+    return String(args);
+  }
+}
+
 export function summarizeToolResult(
   toolDef: ToolDefinition<any, any> | undefined,
   args: any,
@@ -41,8 +59,13 @@ export function summarizeToolResult(
 export function formatPlainToolSummary(summary: ToolSummary | undefined): string | undefined {
   if (!summary) return undefined;
   if (!summary.detail) return summary.headline;
-  if (summary.detail.kind === 'text') {
-    return `${summary.headline}\n${summary.detail.text}`;
+  if (summary.detail.kind === 'text' || summary.detail.kind === 'pre-styled') {
+    // For pre-styled, strip any ANSI codes so the log file is plain text
+    const text =
+      summary.detail.kind === 'pre-styled'
+        ? summary.detail.text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')
+        : summary.detail.text;
+    return `${summary.headline}\n${text}`;
   }
   if (summary.detail.kind === 'code') {
     const lines = summary.detail.text.split(/\r?\n/);

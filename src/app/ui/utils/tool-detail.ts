@@ -1,8 +1,13 @@
-import type { ToolDetail } from '../../../packages/agents/src/tools/types.js';
-import { c, bg, bold } from '../../../packages/tui/src/theme/style.js';
-import { highlightCode } from '../../../packages/tui/src/format/highlight.js';
+import type { ToolDetail } from '@steward/agents/tools/types.js';
+import { c, bg, bold } from '@steward/tui/theme/style.js';
+import { highlightCode } from '@steward/tui/format/highlight.js';
 
 export function renderToolDetail(detail: ToolDetail): string {
+  if (detail.kind === 'pre-styled') {
+    // Lines already carry per-item ANSI styling — render verbatim, no c.muted wrap
+    return detail.text;
+  }
+
   if (detail.kind === 'text') {
     return detail.text
       .split('\n')

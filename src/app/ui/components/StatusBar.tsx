@@ -1,8 +1,8 @@
-import Component from '../../../packages/tui/src/engine/Component.js';
-import { type ChatMode, MODES, getActiveMode } from '../../../packages/agents/src/policy/modes.js';
-import { figures } from '../../../packages/tui/src/theme/index.js';
-import { c, bold } from '../../../packages/tui/src/theme/style.js';
-import { Box, Text } from '../../../packages/tui/src/primitives/index.js';
+import Component from '@steward/tui/engine/Component.js';
+import { type ChatMode, MODES, getActiveMode } from '@steward/agents/policy/modes.js';
+import { figures } from '@steward/tui/theme/index.js';
+import { c, bold } from '@steward/tui/theme/style.js';
+import { Box, Text } from '@steward/tui/primitives/index.js';
 
 export interface StatusBarUpdateStatus {
   state: 'idle' | 'checking' | 'available' | 'no-updates' | 'error';

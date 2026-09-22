@@ -2,15 +2,16 @@ import type { z } from 'zod';
 import type {
   MutationCheckpointTracker,
   MutationLockManager,
-} from '../../../services/src/checkpoint/index.js';
-import type { ShellTaskManager } from '../../../services/src/tasks/manager.js';
+} from '@steward/services/checkpoint/index.js';
+import type { ShellTaskManager } from '@steward/services/tasks/manager.js';
 import type { ChatMode } from '../policy/modes.js';
-import type { DiffHunk } from '../../../services/src/diff/diff.js';
+import type { DiffHunk } from '@steward/services/diff/diff.js';
 
 export type ToolAccess = 'read' | 'write' | 'exec';
 
 export type ToolDetail =
   | { kind: 'text'; text: string }
+  | { kind: 'pre-styled'; text: string }
   | { kind: 'code'; filePath?: string; text: string; totalLines: number }
   | { kind: 'diff'; filePath?: string; hunks: DiffHunk[] };
 

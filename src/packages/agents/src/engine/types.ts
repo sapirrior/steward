@@ -3,7 +3,7 @@ import type {
   ReasoningEffort,
   ModelSelection,
   TokenUsage,
-} from '../../../services/src/contracts.js';
+} from '@steward/services/contracts.js';
 
 export type { ProviderName, ReasoningEffort, ModelSelection, TokenUsage };
 

@@ -127,4 +127,48 @@ describe('TUI Architecture Boundary Rules (Rules.txt)', () => {
     expect(content.length).toBeGreaterThan(100);
     expect(content).toContain('STEWARD TUI — MASTER RULES');
   });
+
+  it('Rule 5: Cross-package architecture - services must never import from agents or app', () => {
+    const servicesRoot = join(import.meta.dir, '../../src/packages/services/src');
+    const allServicesFiles = getAllTsFiles(servicesRoot);
+    const violations: string[] = [];
+
+    for (const file of allServicesFiles) {
+      const rel = relative(servicesRoot, file);
+      const imports = extractImports(file);
+      for (const imp of imports) {
+        if (
+          imp.source.includes('@steward/agents') ||
+          imp.source.includes('/agents/') ||
+          imp.source.includes('@steward/app') ||
+          imp.source.includes('/app/')
+        ) {
+          violations.push(`${rel}:${imp.line} -> ${imp.source}`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('Rule 6: Cross-package architecture - agents must never import from app', () => {
+    const agentsRoot = join(import.meta.dir, '../../src/packages/agents/src');
+    const allAgentsFiles = getAllTsFiles(agentsRoot);
+    const violations: string[] = [];
+
+    for (const file of allAgentsFiles) {
+      const rel = relative(agentsRoot, file);
+      const imports = extractImports(file);
+      for (const imp of imports) {
+        if (
+          imp.source.includes('@steward/app') ||
+          imp.source.includes('/app/')
+        ) {
+          violations.push(`${rel}:${imp.line} -> ${imp.source}`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
 });

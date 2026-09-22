@@ -1,11 +1,11 @@
-import { SelectList } from '../../../../packages/tui/src/primitives/index.js';
-import type { SessionData, SessionTurn } from '../../../../packages/services/src/session/types.js';
-import { loadCheckpointManifest } from '../../../../packages/services/src/checkpoint/store.js';
-import { readCasBlob } from '../../../../packages/services/src/checkpoint/cas.js';
-import { computeWorkspaceHash } from '../../../../packages/services/src/checkpoint/path.js';
-import { figures } from '../../../../packages/tui/src/theme/index.js';
-import { c } from '../../../../packages/tui/src/theme/style.js';
-import { Box, Text } from '../../../../packages/tui/src/primitives/index.js';
+import { SelectList } from '@steward/tui/primitives/index.js';
+import type { SessionData, SessionTurn } from '@steward/services/session/types.js';
+import { loadCheckpointManifest } from '@steward/services/checkpoint/store.js';
+import { readCasBlob } from '@steward/services/checkpoint/cas.js';
+import { computeWorkspaceHash } from '@steward/services/checkpoint/path.js';
+import { figures } from '@steward/tui/theme/index.js';
+import { c } from '@steward/tui/theme/style.js';
+import { Box, Text } from '@steward/tui/primitives/index.js';
 
 export interface RewindItem {
   turnId: string;

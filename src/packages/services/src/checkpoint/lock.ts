@@ -18,14 +18,12 @@ export class MutationLockManager {
     });
 
     const previousLock = this.locks.get(canonicalPath) ?? Promise.resolve();
-    // Update map immediately so subsequent callers chain behind this currentLock
-    this.locks.set(
-      canonicalPath,
-      previousLock.then(
-        () => currentLock,
-        () => currentLock,
-      ),
+    // Update map immediately so subsequent callers chain behind this tail
+    const chainedTail = previousLock.then(
+      () => currentLock,
+      () => currentLock,
     );
+    this.locks.set(canonicalPath, chainedTail);
 
     await previousLock;
 
@@ -34,7 +32,7 @@ export class MutationLockManager {
       if (!released) {
         released = true;
         releaseCurrent();
-        if (this.locks.get(canonicalPath) === currentLock) {
+        if (this.locks.get(canonicalPath) === chainedTail) {
           this.locks.delete(canonicalPath);
         }
       }

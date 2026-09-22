@@ -254,7 +254,10 @@ describe('Session-Scoped Todos System', () => {
         { todos: initial },
         { cwd: '/workspace', sessionId: 'summary-session' },
       );
-      const writeSummary = todoWriteTool.summarize({ todos: initial }, writeRes);
+      const writeSummaryRaw = todoWriteTool.summarize({ todos: initial }, writeRes);
+      const writeSummary = typeof writeSummaryRaw === 'string'
+        ? writeSummaryRaw
+        : `${writeSummaryRaw.headline}\n${writeSummaryRaw.detail?.text ?? ''}`;
       expect(writeSummary).toContain('Added 3 todos');
       expect(writeSummary).toContain('1. [x] Step one');
       expect(writeSummary).toContain('2. [▲] Step two');
@@ -264,7 +267,10 @@ describe('Session-Scoped Todos System', () => {
         { id: '2', status: 'completed' },
         { cwd: '/workspace', sessionId: 'summary-session' },
       );
-      const updateSummary = todoUpdateTool.summarize({ id: '2', status: 'completed' }, updateRes);
+      const updateSummaryRaw = todoUpdateTool.summarize({ id: '2', status: 'completed' }, updateRes);
+      const updateSummary = typeof updateSummaryRaw === 'string'
+        ? updateSummaryRaw
+        : `${updateSummaryRaw.headline}\n${updateSummaryRaw.detail?.text ?? ''}`;
       expect(updateSummary).toContain('Todo 2 completed · 2/3 done');
       expect(updateSummary).toContain('2. [x] Step two');
 
@@ -272,7 +278,10 @@ describe('Session-Scoped Todos System', () => {
         {},
         { cwd: '/workspace', sessionId: 'summary-session' },
       );
-      const readSummary = todoReadTool.summarize({}, readRes);
+      const readSummaryRaw = todoReadTool.summarize({}, readRes);
+      const readSummary = typeof readSummaryRaw === 'string'
+        ? readSummaryRaw
+        : `${readSummaryRaw.headline}\n${readSummaryRaw.detail?.text ?? ''}`;
       expect(readSummary).toContain('Todos 2/3 done');
       expect(readSummary).toContain('1. [x] Step one');
     });

@@ -1,15 +1,15 @@
-import Component from '../../../../packages/tui/src/engine/Component.js';
-import { figures } from '../../../../packages/tui/src/theme/index.js';
-import { c, bg, bold, italic } from '../../../../packages/tui/src/theme/style.js';
+import Component from '@steward/tui/engine/Component.js';
+import { figures } from '@steward/tui/theme/index.js';
+import { c, bg, bold, italic } from '@steward/tui/theme/style.js';
 import {
   Box,
   Text,
   parseKeyInput,
   prefixedBlock,
-} from '../../../../packages/tui/src/primitives/index.js';
-import type { FilePermissionRequest } from '../../../../packages/agents/src/tools/types.js';
-import { buildUnifiedDiff, type UnifiedDiff } from '../../../../packages/services/src/diff/diff.js';
-import { highlightCode } from '../../../../packages/tui/src/format/highlight.js';
+} from '@steward/tui/primitives/index.js';
+import type { FilePermissionRequest } from '@steward/agents/tools/types.js';
+import { buildUnifiedDiff, type UnifiedDiff } from '@steward/services/diff/diff.js';
+import { highlightCode } from '@steward/tui/format/highlight.js';
 
 export interface FilePermissionDockProps {
   request: FilePermissionRequest;

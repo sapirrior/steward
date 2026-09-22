@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { z } from 'zod';
-import { resolveDirectMutationPath } from '../../../../services/src/checkpoint/path.js';
-import { buildUnifiedDiff } from '../../../../services/src/diff/diff.js';
-import { atomicWriteFileSync } from '../../../../services/src/fs/atomic-write.js';
+import { resolveDirectMutationPath } from '@steward/services/checkpoint/path.js';
+import { buildUnifiedDiff } from '@steward/services/diff/diff.js';
+import { atomicWriteFileSync } from '@steward/services/fs/atomic-write.js';
 import type { ToolDefinition } from '../types.js';
 
 export const editFileInputSchema = z.object({

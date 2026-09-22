@@ -1,4 +1,54 @@
+import { existsSync, realpathSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
+
 export type CommandPolicyDecision = 'SAFE_READ_ONLY' | 'REQUIRES_APPROVAL' | 'BLOCKED';
+
+/**
+ * Expands leading ~ in path strings to user's home directory.
+ */
+function expandHome(filepath: string): string {
+  if (filepath === '~') {
+    return homedir();
+  }
+  if (filepath.startsWith('~/') || filepath.startsWith('~\\')) {
+    return resolve(homedir(), filepath.slice(2));
+  }
+  return filepath;
+}
+
+/**
+ * Normalizes a base folder path for containment checks (resolves symlinks, strips trailing slash).
+ */
+function normalizeRoot(inputPath: string): string {
+  let absolute = resolve(inputPath);
+  try {
+    absolute = realpathSync(absolute);
+  } catch {}
+
+  if (absolute.length > 1 && absolute.endsWith(sep)) {
+    absolute = absolute.slice(0, -1);
+  }
+
+  if (process.platform === 'darwin' || process.platform === 'win32') {
+    return absolute.toLowerCase();
+  }
+  return absolute;
+}
+
+/**
+ * Checks if target path is safely contained within workspace base directory.
+ */
+function isContainedInWorkspace(targetPath: string, workspaceRoot: string): boolean {
+  const normTarget = normalizeRoot(targetPath);
+  const normBase = normalizeRoot(workspaceRoot);
+
+  if (normTarget === normBase) {
+    return true;
+  }
+  const prefix = normBase.endsWith(sep) ? normBase : `${normBase}${sep}`;
+  return normTarget.startsWith(prefix);
+}
 
 /**
  * Commands that take no mutating arguments and produce only stdout/inspection.
@@ -142,9 +192,42 @@ function parseTokens(cmd: string): string[] {
 }
 
 /**
+ * Checks if path arguments are strictly contained within the workspace root.
+ * If any path points outside the workspace root (including resolved symlinks), returns false.
+ */
+function arePathTokensInsideWorkspace(tokens: string[], startIndex: number, cwd: string): boolean {
+  for (let i = startIndex; i < tokens.length; i++) {
+    const tok = tokens[i]!;
+    // Skip flags/options
+    if (tok.startsWith('-')) {
+      continue;
+    }
+
+    const expanded = expandHome(tok);
+    const resolved = isAbsolute(expanded) ? resolve(expanded) : resolve(cwd, expanded);
+    if (!isContainedInWorkspace(resolved, cwd)) {
+      return false;
+    }
+
+    if (existsSync(resolved)) {
+      try {
+        const real = realpathSync(resolved);
+        if (!isContainedInWorkspace(real, cwd)) {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+/**
  * Validates whether a given token list is strictly read-only for known safe tools.
  */
-function isStrictlyReadOnlyCommand(tokens: string[]): boolean {
+function isStrictlyReadOnlyCommand(tokens: string[], cwd?: string): boolean {
   if (tokens.length === 0) return true;
 
   const exe = tokens[0]!.toLowerCase();
@@ -196,11 +279,19 @@ function isStrictlyReadOnlyCommand(tokens: string[]): boolean {
         return false;
       }
     }
+
+    if (cwd && !arePathTokensInsideWorkspace(tokens, 2, cwd)) {
+      return false;
+    }
+
     return true;
   }
 
   // ls
   if (exe === 'ls') {
+    if (cwd && !arePathTokensInsideWorkspace(tokens, 1, cwd)) {
+      return false;
+    }
     return true;
   }
 
@@ -211,6 +302,16 @@ function isStrictlyReadOnlyCommand(tokens: string[]): boolean {
 
   // head / tail / wc
   if (exe === 'head' || exe === 'tail' || exe === 'wc') {
+    // Check for unbounded DoS flags (e.g. tail -f, head -c <huge>)
+    for (let i = 1; i < tokens.length; i++) {
+      const tok = tokens[i]!;
+      if (tok === '-f' || tok === '--follow') {
+        return false;
+      }
+    }
+    if (cwd && !arePathTokensInsideWorkspace(tokens, 1, cwd)) {
+      return false;
+    }
     return true;
   }
 
@@ -225,6 +326,9 @@ function isStrictlyReadOnlyCommand(tokens: string[]): boolean {
         }
       }
     }
+    if (cwd && !arePathTokensInsideWorkspace(tokens, 1, cwd)) {
+      return false;
+    }
     return true;
   }
 
@@ -235,6 +339,9 @@ function isStrictlyReadOnlyCommand(tokens: string[]): boolean {
       if (tok === '-f' || tok.startsWith('--file') || tok === '--null-data') {
         return false;
       }
+    }
+    if (cwd && !arePathTokensInsideWorkspace(tokens, 1, cwd)) {
+      return false;
     }
     return true;
   }
@@ -253,6 +360,9 @@ function isStrictlyReadOnlyCommand(tokens: string[]): boolean {
       ) {
         return false;
       }
+    }
+    if (cwd && !arePathTokensInsideWorkspace(tokens, 1, cwd)) {
+      return false;
     }
     return true;
   }
@@ -275,6 +385,9 @@ function isStrictlyReadOnlyCommand(tokens: string[]): boolean {
         return false;
       }
     }
+    if (cwd && !arePathTokensInsideWorkspace(tokens, 1, cwd)) {
+      return false;
+    }
     return true;
   }
 
@@ -284,7 +397,7 @@ function isStrictlyReadOnlyCommand(tokens: string[]): boolean {
 /**
  * Evaluates a single command segment.
  */
-function classifySingleSegment(segment: string): CommandPolicyDecision {
+function classifySingleSegment(segment: string, cwd?: string): CommandPolicyDecision {
   const trimmed = segment.trim();
   if (!trimmed) return 'SAFE_READ_ONLY';
 
@@ -295,7 +408,7 @@ function classifySingleSegment(segment: string): CommandPolicyDecision {
   const tokens = parseTokens(trimmed);
   if (tokens.length === 0) return 'SAFE_READ_ONLY';
 
-  if (isStrictlyReadOnlyCommand(tokens)) {
+  if (isStrictlyReadOnlyCommand(tokens, cwd)) {
     return 'SAFE_READ_ONLY';
   }
 
@@ -305,7 +418,7 @@ function classifySingleSegment(segment: string): CommandPolicyDecision {
 /**
  * Classifies an arbitrary shell command into SAFE_READ_ONLY or REQUIRES_APPROVAL.
  */
-export function classifyCommand(command: string): CommandPolicyDecision {
+export function classifyCommand(command: string, cwd?: string): CommandPolicyDecision {
   const trimmed = command.trim();
   if (!trimmed) return 'SAFE_READ_ONLY';
 
@@ -313,7 +426,7 @@ export function classifyCommand(command: string): CommandPolicyDecision {
   if (segments.length === 0) return 'SAFE_READ_ONLY';
 
   for (const seg of segments) {
-    const decision = classifySingleSegment(seg);
+    const decision = classifySingleSegment(seg, cwd);
     if (decision !== 'SAFE_READ_ONLY') {
       return decision;
     }

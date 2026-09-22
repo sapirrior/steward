@@ -3,8 +3,8 @@ import {
   listModes,
   findMode,
   setActiveMode,
-} from '../../../packages/agents/src/policy/modes.js';
-import { saveModeSelection } from '../../../packages/services/src/config/settings.js';
+} from '@steward/agents/policy/modes.js';
+import { saveModeSelection } from '@steward/services/config/settings.js';
 import type { CommandDefinition } from '../types.js';
 
 export const modeCommand: CommandDefinition = {

@@ -1,11 +1,11 @@
-import Component from '../../../packages/tui/src/engine/Component.js';
+import Component from '@steward/tui/engine/Component.js';
 import { defaultCommandRegistry } from '../../commands/registry.js';
 import type { SlashCommand } from '../../commands/types.js';
 import { searchWorkspaceFiles } from '../utils/file-search.js';
-import { figures } from '../../../packages/tui/src/theme/index.js';
-import { c, bold } from '../../../packages/tui/src/theme/style.js';
+import { figures } from '@steward/tui/theme/index.js';
+import { c, bold } from '@steward/tui/theme/style.js';
 import { truncateToWidth } from '../utils/format.js';
-import { parseKeyInput } from '../../../packages/tui/src/primitives/index.js';
+import { parseKeyInput } from '@steward/tui/primitives/index.js';
 
 export interface PromptInputProps {
   onSubmit: (text: string) => void;

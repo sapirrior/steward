@@ -343,7 +343,6 @@ export async function executeRewind(options: RewindOptions): Promise<RewindResul
       await saveCheckpointManifest(workspaceHash, session.id, manifest);
     }
 
-    rewindJournal.phase = 'session-committed';
     await deletePendingJournal(workspaceHash, session.id);
 
     return {

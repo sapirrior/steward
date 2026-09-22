@@ -7,7 +7,13 @@
     "paths": {
       "steward/tui/*": ["./src/packages/tui/src/*"],
       "steward/tui/jsx-runtime": ["./src/packages/tui/src/jsx-runtime.ts"],
-      "steward/tui/jsx-dev-runtime": ["./src/packages/tui/src/jsx-dev-runtime.ts"]
+      "steward/tui/jsx-dev-runtime": ["./src/packages/tui/src/jsx-dev-runtime.ts"],
+      "@steward/tui": ["./src/packages/tui/src/index.ts"],
+      "@steward/tui/*": ["./src/packages/tui/src/*"],
+      "@steward/agents": ["./src/packages/agents/src/index.ts"],
+      "@steward/agents/*": ["./src/packages/agents/src/*"],
+      "@steward/services": ["./src/packages/services/src/index.ts"],
+      "@steward/services/*": ["./src/packages/services/src/*"]
     },
     "jsx": "react-jsx",
     "jsxImportSource": "steward/tui",

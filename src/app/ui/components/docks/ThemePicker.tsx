@@ -1,8 +1,8 @@
-import { SelectList } from '../../../../packages/tui/src/primitives/index.js';
-import type { ThemeMeta } from '../../../../packages/tui/src/theme/colors.js';
-import { figures, resolveThemeColor } from '../../../../packages/tui/src/theme/index.js';
-import { c, bold } from '../../../../packages/tui/src/theme/style.js';
-import { Box, Text } from '../../../../packages/tui/src/primitives/index.js';
+import { SelectList } from '@steward/tui/primitives/index.js';
+import type { ThemeMeta } from '@steward/tui/theme/colors.js';
+import { figures, resolveThemeColor } from '@steward/tui/theme/index.js';
+import { c, bold } from '@steward/tui/theme/style.js';
+import { Box, Text } from '@steward/tui/primitives/index.js';
 
 export interface ThemePickerProps {
   themes: ThemeMeta[];

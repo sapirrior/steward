@@ -1,13 +1,13 @@
-import Component from '../../../packages/tui/src/engine/Component.js';
-import { figures } from '../../../packages/tui/src/theme/index.js';
-import { c, bold } from '../../../packages/tui/src/theme/style.js';
+import Component from '@steward/tui/engine/Component.js';
+import { figures } from '@steward/tui/theme/index.js';
+import { c, bold } from '@steward/tui/theme/style.js';
 import {
   formatMarkdown,
   getStatusBullet,
   truncateMiddle,
   extractPrimaryToolParam,
 } from '../utils/format.js';
-import { wrapVisualLine } from '../../../packages/tui/src/engine/cell-layout.js';
+import { wrapVisualLine } from '@steward/tui/engine/cell-layout.js';
 
 export interface ActiveToolCall {
   id: string;
@@ -139,7 +139,7 @@ export default class StreamingView extends Component<{}, StreamingViewState> {
 
       const targetArg = extractPrimaryToolParam(activeTool.args);
 
-      let line = `${bullet} ${toolName}`;
+      let line = `${bullet} ${bold(toolName)}`;
       if (targetArg) {
         const maxArgLen = Math.max(10, maxCols - toolName.length - 8);
         const truncatedArg =
@@ -171,15 +171,42 @@ export default class StreamingView extends Component<{}, StreamingViewState> {
         ? performance.now() - thinkingStartTime
         : pulseFrame * 120;
 
+      // 20 progressive phrases matched to current style across 4 time horizons
       let subText = 'wait...';
-      if (elapsedMs < 2000) {
-        subText = pulseFrame % 16 < 8 ? 'hmm..' : 'wait...';
-      } else if (elapsedMs < 4500) {
-        subText = pulseFrame % 16 < 8 ? 'analyzing...' : 'thinking...';
-      } else if (elapsedMs < 8000) {
-        subText = 'still thinking...';
+      if (elapsedMs < 2500) {
+        // Phase 1 (<2.5s)
+        const p1 = ['wait...', 'hmm...', 'one sec...', 'looking into it...', 'checking...'];
+        subText = p1[Math.floor(pulseFrame / 5) % p1.length]!;
+      } else if (elapsedMs < 6000) {
+        // Phase 2 (2.5s - 6s)
+        const p2 = [
+          'analyzing...',
+          'thinking...',
+          'working on it...',
+          'connecting the dots...',
+          'figuring this out...',
+        ];
+        subText = p2[Math.floor(pulseFrame / 6) % p2.length]!;
+      } else if (elapsedMs < 11000) {
+        // Phase 3 (6s - 11s)
+        const p3 = [
+          'still thinking...',
+          'deep in thought...',
+          'almost there...',
+          'crunching details...',
+          'piecing it together...',
+        ];
+        subText = p3[Math.floor(pulseFrame / 7) % p3.length]!;
       } else {
-        subText = 'taking a bit time...';
+        // Phase 4 (>11s)
+        const p4 = [
+          'taking a bit of time...',
+          'complex one, still on it...',
+          'polishing up the answer...',
+          'wrapping up thoughts...',
+          'finishing up...',
+        ];
+        subText = p4[Math.floor(pulseFrame / 8) % p4.length]!;
       }
 
       lines.push(`  ${c.muted('└ ')}${c.muted(subText)}`);

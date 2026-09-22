@@ -2,7 +2,7 @@ import {
   getEnvConfig,
   type EnvConfig,
   type ProviderName,
-} from '../../../services/src/config/index.js';
+} from '@steward/services/config/index.js';
 
 /**
  * Normalized model descriptor schema as specified in data.txt.
@@ -29,15 +29,9 @@ export interface ModelDiscoveryResult {
   providers: Record<ProviderName, ProviderDiscoveryStatus>;
 }
 
-// Regex patterns to filter only core textual and multimodal foundation models
-const ANTHROPIC_MODEL_REGEX = /^claude-/i;
-const OPENAI_MODEL_REGEX = /^(gpt-4|gpt-3\.5|o1|o3)/i;
-
-// Google models: include only gemini- and gemma- models
-const GOOGLE_MODEL_INCLUDE_REGEX = /^(gemini|gemma)-/i;
-// Exclude non-text/specialized models: omni, antigravity, robotics, embedding, audio, tts, transcribe, live, computer, image
-const GOOGLE_MODEL_EXCLUDE_REGEX =
-  /(omni|antigravity|robotics|embedding|audio|tts|transcribe|live|computer|image)/i;
+// Shared exclude list matching non-chat, non-text, audio, image, video, embedding, and specialized endpoints
+export const NON_CHAT_MODEL_KEYWORDS =
+  /(embed|similarity|search-document|dall-e|imagen|veo|whisper|tts|transcribe|speech|voice|audio|image|video|moderation|rerank|robotics|live|aqa|babbage|davinci|lyria|chirp)/i;
 
 const DEFAULT_FETCH_TIMEOUT_MS = 10_000;
 
@@ -67,10 +61,7 @@ export async function fetchOpenAIModels(
 
   return payload.data
     .filter(
-      (item) =>
-        typeof item.id === 'string' &&
-        OPENAI_MODEL_REGEX.test(item.id) &&
-        !/(audio|tts|transcribe)/i.test(item.id),
+      (item) => typeof item.id === 'string' && !NON_CHAT_MODEL_KEYWORDS.test(item.id),
     )
     .map((item) => ({
       provider: 'openai' as const,
@@ -105,9 +96,7 @@ export async function fetchGeminiModels(
 
   return payload.data
     .map((item) => (typeof item.id === 'string' ? item.id.replace(/^models\//, '') : ''))
-    .filter(
-      (id) => id && GOOGLE_MODEL_INCLUDE_REGEX.test(id) && !GOOGLE_MODEL_EXCLUDE_REGEX.test(id),
-    )
+    .filter((id) => id && !NON_CHAT_MODEL_KEYWORDS.test(id))
     .map((id) => ({
       provider: 'gemini' as const,
       model_id: id,
@@ -143,7 +132,7 @@ export async function fetchAnthropicModels(
   }
 
   return payload.data
-    .filter((item) => typeof item.id === 'string' && ANTHROPIC_MODEL_REGEX.test(item.id))
+    .filter((item) => typeof item.id === 'string' && !NON_CHAT_MODEL_KEYWORDS.test(item.id))
     .map((item) => ({
       provider: 'anthropic' as const,
       model_id: item.id,
@@ -152,12 +141,6 @@ export async function fetchAnthropicModels(
 }
 
 // --- xAI ---------------------------------------------------------------
-// xAI's /v1/models list mixes chat/text models with image, video, speech,
-// and transcription model IDs (no type/modality field to filter on),
-// so filter by ID pattern: keep grok-* chat/reasoning models, exclude known non-text families.
-const XAI_MODEL_INCLUDE_REGEX = /^grok-/i;
-const XAI_MODEL_EXCLUDE_REGEX = /(imagine-image|imagine-video|-voice-|^grok-imagine)/i;
-
 export async function fetchXaiModels(
   apiKey: string,
   timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
@@ -176,20 +159,14 @@ export async function fetchXaiModels(
   if (!Array.isArray(payload.data)) return [];
 
   return payload.data
-    .filter(
-      (item) =>
-        typeof item.id === 'string' &&
-        XAI_MODEL_INCLUDE_REGEX.test(item.id) &&
-        !XAI_MODEL_EXCLUDE_REGEX.test(item.id),
-    )
+    .filter((item) => typeof item.id === 'string' && !NON_CHAT_MODEL_KEYWORDS.test(item.id))
     .map((item) => ({ provider: 'xai' as const, model_id: item.id }))
     .sort((a, b) => a.model_id.localeCompare(b.model_id));
 }
 
 // --- Mistral -------------------------------------------------------------
 // Mistral's /v1/models response is self-describing (capabilities.completion_chat),
-// so no regex is needed — filter on the capability flag directly and drop
-// archived / fine-tuned entries so the picker only shows base chat models.
+// prefer structured signal and fall back to keyword filtering.
 interface MistralModelCard {
   id: string;
   capabilities?: { completion_chat?: boolean };
@@ -215,22 +192,19 @@ export async function fetchMistralModels(
   if (!Array.isArray(payload.data)) return [];
 
   return payload.data
-    .filter(
-      (item) =>
-        typeof item.id === 'string' &&
-        item.capabilities?.completion_chat === true &&
-        item.archived !== true &&
-        item.TYPE !== 'fine-tuned',
-    )
+    .filter((item) => {
+      if (typeof item.id !== 'string') return false;
+      if (item.archived === true || item.TYPE === 'fine-tuned') return false;
+      if (item.capabilities && typeof item.capabilities.completion_chat === 'boolean') {
+        return item.capabilities.completion_chat;
+      }
+      return !NON_CHAT_MODEL_KEYWORDS.test(item.id);
+    })
     .map((item) => ({ provider: 'mistral' as const, model_id: item.id }))
     .sort((a, b) => a.model_id.localeCompare(b.model_id));
 }
 
 // --- DeepSeek --------------------------------------------------------------
-// DeepSeek's list endpoint today only returns chat-capable text models.
-// Guard against unexpected future additions with a light deny-list.
-const DEEPSEEK_MODEL_EXCLUDE_REGEX = /(embed|rerank|moderation)/i;
-
 export async function fetchDeepSeekModels(
   apiKey: string,
   timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
@@ -251,15 +225,12 @@ export async function fetchDeepSeekModels(
   if (!Array.isArray(payload.data)) return [];
 
   return payload.data
-    .filter((item) => typeof item.id === 'string' && !DEEPSEEK_MODEL_EXCLUDE_REGEX.test(item.id))
+    .filter((item) => typeof item.id === 'string' && !NON_CHAT_MODEL_KEYWORDS.test(item.id))
     .map((item) => ({ provider: 'deepseek' as const, model_id: item.id }))
     .sort((a, b) => a.model_id.localeCompare(b.model_id));
 }
 
 // --- OpenRouter --------------------------------------------------------------
-// OpenRouter's catalog is large (paginated) and mixes every modality.
-// Filter on architecture.output_modalities including "text".
-// IDs are namespaced (e.g. "openai/gpt-4") and preserved as-is.
 interface OpenRouterModelEntry {
   id: string;
   architecture?: { output_modalities?: string[] };
@@ -292,10 +263,10 @@ export async function fetchOpenRouterModels(
     const payload = (await response.json()) as OpenRouterModelsPage;
     if (Array.isArray(payload.data)) {
       for (const item of payload.data) {
-        if (
-          typeof item.id === 'string' &&
-          (item.architecture?.output_modalities?.includes('text') ?? true)
-        ) {
+        if (typeof item.id !== 'string') continue;
+        const hasTextModality = item.architecture?.output_modalities?.includes('text');
+        if (hasTextModality === false) continue;
+        if (!NON_CHAT_MODEL_KEYWORDS.test(item.id)) {
           results.push({ provider: 'openrouter', model_id: item.id });
         }
       }

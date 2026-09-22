@@ -1,4 +1,4 @@
-import { parseReasoningEffort } from '../../../packages/agents/src/engine/model-provider.js';
+import { parseReasoningEffort } from '@steward/agents/engine/model-provider.js';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
 const EFFORT_HELP = `Reasoning Effort Levels:

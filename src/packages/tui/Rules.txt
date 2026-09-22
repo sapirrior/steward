@@ -65,7 +65,7 @@ Layer 2 → Layer 1 → (nothing in src/tui/). Layer 0 is independent.
 
   ┌─────────────────────────────────────────────────────────────────────────┐
   │ LAYER 0 — ENGINE & LAYOUT                                               │
-  │ src/tui/engine/    src/tui/layout/                                      │
+  │ src/packages/tui/src/engine/    src/packages/tui/src/layout/            │
   │                                                                         │
   │ Files: TerminalEngine, DocumentTree, HistoryStore, HistoryLayoutCache,  │
   │        StateRenderer, FrameBuffer, ScreenBuffer, cell-layout.ts         │
@@ -80,15 +80,15 @@ Layer 2 → Layer 1 → (nothing in src/tui/). Layer 0 is independent.
   │                                                                         │
   │ NEVER knows: What a "message" is. What a "tool call" is. What a        │
   │ "bullet" or "markdown heading" is. Any specific component's layout.    │
-  │ Anything that requires importing from src/tui/components/ or           │
-  │ src/tui/primitives/ or src/tui/utils/message-formatter.ts.             │
+  │ Anything that requires importing from src/app/ui/components/ or        │
+  │ src/packages/tui/src/primitives/ or src/app/ui/utils/message-formatter.ts│
   └─────────────────────────────────────────────────────────────────────────┘
                            ↑ Layer 2 and Layer 1 MAY import from here.
                              Layer 0 MUST NOT import from Layer 1 or 2.
 
   ┌─────────────────────────────────────────────────────────────────────────┐
   │ LAYER 1 — PRIMITIVES                                                    │
-  │ src/tui/primitives/                                                     │
+  │ src/packages/tui/src/primitives/                                        │
   │                                                                         │
   │ Files: Box, Text, PrefixedLine, SelectList, ModalBox, KeyReader         │
   │        (and future generic helpers)                                     │
@@ -110,9 +110,9 @@ Layer 2 → Layer 1 → (nothing in src/tui/). Layer 0 is independent.
                              Layer 1 MUST NOT import from Layer 0.
 
   ┌─────────────────────────────────────────────────────────────────────────┐
-  │ LAYER 2 — COMPONENTS                                                    │
-  │ src/tui/components/    src/tui/app.ts                                   │
-  │ src/tui/utils/message-formatter.ts                                      │
+  │ LAYER 2 — DOMAIN UI COMPONENTS                                          │
+  │ src/app/ui/components/    src/app/app.ts                                │
+  │ src/app/ui/utils/message-formatter.ts                                   │
   │                                                                         │
   │ Files: Header, StatusBar, PromptInput, StreamingView, docks/*, app.ts, │
   │        message-formatter.ts                                             │

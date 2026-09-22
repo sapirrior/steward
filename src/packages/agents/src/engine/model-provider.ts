@@ -13,7 +13,7 @@ import {
   hasProviderConfig,
   type EnvConfig,
   type ProviderName,
-} from '../../../services/src/config/index.js';
+} from '@steward/services/config/index.js';
 import type { ModelSelection, ReasoningEffort } from './types.js';
 
 export interface ProviderDescriptor {

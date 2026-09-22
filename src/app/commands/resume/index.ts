@@ -1,5 +1,5 @@
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
-import { listSessions, loadSession } from '../../../packages/services/src/session/index.js';
+import { listSessions, loadSession } from '@steward/services/session/index.js';
 
 export const resumeCommand: SlashCommand = {
   name: 'resume',

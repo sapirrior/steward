@@ -1,5 +1,5 @@
-import { figures } from '../../../packages/tui/src/theme/index.js';
-import { c, bg } from '../../../packages/tui/src/theme/style.js';
+import { figures } from '@steward/tui/theme/index.js';
+import { c, bg, bold } from '@steward/tui/theme/style.js';
 import {
   formatMarkdown,
   getStatusBullet,
@@ -7,17 +7,17 @@ import {
   extractPrimaryToolParam,
   visibleWidth,
 } from './format.js';
-import { wrapVisualLine } from '../../../packages/tui/src/engine/cell-layout.js';
+import { wrapVisualLine } from '@steward/tui/engine/cell-layout.js';
 import type { ToolExecutionStatus } from '../types.js';
-import type { StructuredError } from '../../../packages/services/src/errors/index.js';
-import type { ToolSummary } from '../../../packages/agents/src/tools/types.js';
+import type { StructuredError } from '@steward/services/errors/index.js';
+import type { ToolSummary } from '@steward/agents/tools/types.js';
 import { renderToolDetail } from './tool-detail.js';
 import {
   chooseTurnStatusVerb,
   STATUS_VERBS,
-} from '../../../packages/services/src/session/logs/store.js';
+} from '@steward/services/session/logs/store.js';
 
-import { formatUserMessage } from '../../../packages/tui/src/engine/user-message.js';
+import { formatUserMessage } from '@steward/tui/engine/user-message.js';
 
 export { chooseTurnStatusVerb, STATUS_VERBS, formatUserMessage };
 
@@ -90,7 +90,7 @@ export function formatToolStatus(options: {
   const truncatedArg =
     cleanFirstLine.length > maxArgLen ? truncateMiddle(cleanFirstLine, maxArgLen) : cleanFirstLine;
 
-  let mainLine = `${bullet} ${dispName}`;
+  let mainLine = `${bullet} ${bold(dispName)}`;
   if (truncatedArg) {
     mainLine += `${c.muted('(')}${c.muted(truncatedArg)}${c.muted(')')}`;
   } else {

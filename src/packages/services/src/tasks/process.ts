@@ -9,6 +9,32 @@ export const MAX_OUTPUT_BYTES = 5 * 1024 * 1024; // 5 MB hard cap on disk output
 export const MAX_MEMORY_BUFFER_BYTES = 500 * 1024; // 500 KB memory buffer tail
 export const DEFAULT_HANDOFF_DEADLINE_MS = 12000; // 12 seconds
 
+/**
+ * Secret environment variable names that must not leak to child shell processes by default.
+ */
+export const PROVIDER_SECRET_ENV_KEYS: readonly string[] = [
+  'ANTHROPIC_API_KEY',
+  'GEMINI_API_KEY',
+  'GOOGLE_GENERATIVE_AI_API_KEY',
+  'OPENAI_API_KEY',
+  'XAI_API_KEY',
+  'MISTRAL_API_KEY',
+  'DEEPSEEK_API_KEY',
+  'OPENROUTER_API_KEY',
+  'CUSTOM_API_KEY',
+] as const;
+
+/**
+ * Produces a sanitized copy of process.env excluding sensitive provider API keys.
+ */
+export function getFilteredChildEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of PROVIDER_SECRET_ENV_KEYS) {
+    delete env[key];
+  }
+  return env;
+}
+
 export interface ShellExecutionOptions {
   taskId: string;
   command: string;
@@ -113,7 +139,7 @@ export class ShellExecution {
 
     const child = spawn(shell, childArgs, {
       cwd: this.cwd,
-      env: { ...process.env },
+      env: getFilteredChildEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
       detached: process.platform !== 'win32',
     });

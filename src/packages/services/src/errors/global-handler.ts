@@ -1,3 +1,4 @@
+import { classifyError } from './classifier.js';
 import { logError } from './logger.js';
 
 /**
@@ -49,12 +50,18 @@ export function setupGlobalErrorHandlers(): void {
     const logPath = logError(error, { source: 'uncaughtException', fatal: true });
     emergencyRestoreTerminal();
 
+    const classified = classifyError(error);
+
     process.stderr.write(
-      `\n\x1b[31m✖ Fatal error in Steward:\x1b[0m ${error.message || String(error)}\n`,
+      `\n\x1b[31m✖ Fatal error in Steward:\x1b[0m ${classified.shortMessage}\n`,
     );
 
+    if (classified.suggestedAction) {
+      process.stderr.write(`\x1b[36mℹ ${classified.suggestedAction}\x1b[0m\n`);
+    }
+
     if (error.stack) {
-      process.stderr.write(`\x1b[90m${error.stack}\x1b[0m\n`);
+      process.stderr.write(`\n\x1b[90mTechnical details:\n${error.stack}\x1b[0m\n`);
     }
 
     if (logPath) {
@@ -65,6 +72,27 @@ export function setupGlobalErrorHandlers(): void {
   });
 
   process.on('unhandledRejection', (reason: unknown) => {
-    logError(reason, { source: 'unhandledRejection', fatal: false });
+    const logPath = logError(reason, { source: 'unhandledRejection', fatal: true });
+    emergencyRestoreTerminal();
+
+    const classified = classifyError(reason);
+
+    process.stderr.write(
+      `\n\x1b[31m✖ Unhandled asynchronous rejection:\x1b[0m ${classified.shortMessage}\n`,
+    );
+
+    if (classified.suggestedAction) {
+      process.stderr.write(`\x1b[36mℹ ${classified.suggestedAction}\x1b[0m\n`);
+    }
+
+    if (reason instanceof Error && reason.stack) {
+      process.stderr.write(`\n\x1b[90mTechnical details:\n${reason.stack}\x1b[0m\n`);
+    }
+
+    if (logPath) {
+      process.stderr.write(`\x1b[33mℹ Detailed diagnostics saved to: ${logPath}\x1b[0m\n\n`);
+    }
+
+    process.exit(1);
   });
 }

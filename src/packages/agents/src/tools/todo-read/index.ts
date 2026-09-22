@@ -4,7 +4,7 @@ import {
   type PersistedTodoList,
   type TodoItem,
   type TodoItemStatus,
-} from '../../../../services/src/todos/index.js';
+} from '@steward/services/todos/index.js';
 import type { ToolDefinition } from '../types.js';
 
 const todoReadParamsSchema = z.object({});
@@ -17,6 +17,8 @@ export interface TodoReadResult {
   updatedAt?: string;
   message?: string;
 }
+
+import { c, bold, strikethrough } from '@steward/tui/theme/style.js';
 
 function formatTodoCheckbox(status: TodoItemStatus): string {
   switch (status) {
@@ -37,9 +39,16 @@ function formatTodoCheckbox(status: TodoItemStatus): string {
 function formatTodoListSummary(todos: TodoItem[], maxItems = 10): string {
   const visible = todos.slice(0, maxItems);
   const hiddenCount = todos.length - visible.length;
-  const lines = visible.map((t, i) => `${i + 1}. ${formatTodoCheckbox(t.status)} ${t.description}`);
+  const lines = visible.map((t, i) => {
+    const raw = `${i + 1}. ${formatTodoCheckbox(t.status)} ${t.description}`;
+    if (t.status === 'completed') return strikethrough(c.muted(raw));
+    if (t.status === 'in_progress') return bold(c.text(raw));
+    if (t.status === 'cancelled') return strikethrough(c.muted(raw));
+    if (t.status === 'blocked') return c.warning(raw);
+    return c.text(raw);
+  });
   if (hiddenCount > 0) {
-    lines.push(`… and ${hiddenCount} more`);
+    lines.push(c.muted(`… and ${hiddenCount} more`));
   }
   return lines.join('\n');
 }
@@ -77,16 +86,28 @@ export const todoReadTool: ToolDefinition<typeof todoReadParamsSchema, TodoReadR
   },
 
   summarize(_args, result) {
-    if (!result || !result.hasTodos || result.todos.length === 0) {
+    // result may arrive as a JSON string from session replay — parse it first
+    let resolved: TodoReadResult | null = result ?? null;
+    if (typeof resolved === 'string') {
+      try {
+        resolved = JSON.parse(resolved as unknown as string);
+      } catch {
+        /* leave null; falls through to "No active todos" */
+      }
+    }
+    // Accept both { hasTodos, todos } and bare { todos } shapes
+    const todos: TodoItem[] | undefined =
+      resolved && Array.isArray((resolved as any).todos) ? (resolved as any).todos : undefined;
+    if (!todos || todos.length === 0) {
       return 'No active todos';
     }
-    const total = result.todos.length;
-    const completed = result.todos.filter((t) => t.status === 'completed').length;
-    const active = result.todos.find((t) => t.status === 'in_progress');
+    const total = todos.length;
+    const completed = todos.filter((t) => t.status === 'completed').length;
+    const active = todos.find((t) => t.status === 'in_progress');
     const header = active
       ? `Todos ${completed}/${total} done · ▶ ${active.description}`
       : `Todos ${completed}/${total} done`;
-    const details = formatTodoListSummary(result.todos);
-    return `${header}\n${details}`;
+    const details = formatTodoListSummary(todos);
+    return { headline: header, detail: { kind: 'pre-styled' as const, text: details } };
   },
 };
