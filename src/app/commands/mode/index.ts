@@ -1,9 +1,4 @@
-import {
-  getActiveMode,
-  listModes,
-  findMode,
-  setActiveMode,
-} from '@steward/agents/policy/modes.js';
+import { getActiveMode, listModes, findMode, setActiveMode } from '@steward/agents/policy/modes.js';
 import { saveModeSelection } from '@steward/services/config/settings.js';
 import type { CommandDefinition } from '../types.js';
 

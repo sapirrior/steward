@@ -1,8 +1,4 @@
-import {
-  getEnvConfig,
-  type EnvConfig,
-  type ProviderName,
-} from '@steward/services/config/index.js';
+import { getEnvConfig, type EnvConfig, type ProviderName } from '@steward/services/config/index.js';
 
 /**
  * Normalized model descriptor schema as specified in data.txt.
@@ -60,9 +56,7 @@ export async function fetchOpenAIModels(
   }
 
   return payload.data
-    .filter(
-      (item) => typeof item.id === 'string' && !NON_CHAT_MODEL_KEYWORDS.test(item.id),
-    )
+    .filter((item) => typeof item.id === 'string' && !NON_CHAT_MODEL_KEYWORDS.test(item.id))
     .map((item) => ({
       provider: 'openai' as const,
       model_id: item.id,

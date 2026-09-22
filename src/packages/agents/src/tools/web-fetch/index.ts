@@ -41,7 +41,13 @@ function isPrivateOrReservedIPv6(ip: string): boolean {
     const ipv4 = normalized.slice(7);
     return isPrivateOrReservedIPv4(ipv4);
   }
-  if (normalized.startsWith('fe80:') || normalized.startsWith('fe8') || normalized.startsWith('fe9') || normalized.startsWith('fea') || normalized.startsWith('feb')) {
+  if (
+    normalized.startsWith('fe80:') ||
+    normalized.startsWith('fe8') ||
+    normalized.startsWith('fe9') ||
+    normalized.startsWith('fea') ||
+    normalized.startsWith('feb')
+  ) {
     return true; // fe80::/10 (Link-local)
   }
   if (normalized.startsWith('fc') || normalized.startsWith('fd')) {
@@ -83,7 +89,12 @@ export async function validateSafeUrl(urlStr: string): Promise<URL> {
   }
 
   const hostname = parsed.hostname;
-  if (!hostname || hostname === 'localhost' || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
+  if (
+    !hostname ||
+    hostname === 'localhost' ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal')
+  ) {
     throw new Error(`Access to local or private host "${hostname}" is blocked for security.`);
   }
 
@@ -295,4 +306,3 @@ export const webFetchTool: ToolDefinition<typeof webFetchInputSchema, WebFetchOu
     };
   },
 };
-

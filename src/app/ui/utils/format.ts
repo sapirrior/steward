@@ -67,7 +67,8 @@ export function extractPrimaryToolParam(args: unknown): string {
 
   const firstVal = Object.values(record)[0];
   if (firstVal !== undefined && firstVal !== null && firstVal !== '') {
-    if (Array.isArray(firstVal)) return `${firstVal.length} item${firstVal.length === 1 ? '' : 's'}`;
+    if (Array.isArray(firstVal))
+      return `${firstVal.length} item${firstVal.length === 1 ? '' : 's'}`;
     const str = typeof firstVal === 'object' ? JSON.stringify(firstVal) : String(firstVal);
     return str.split('\n')[0] ?? '';
   }

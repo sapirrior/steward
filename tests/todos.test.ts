@@ -255,9 +255,10 @@ describe('Session-Scoped Todos System', () => {
         { cwd: '/workspace', sessionId: 'summary-session' },
       );
       const writeSummaryRaw = todoWriteTool.summarize({ todos: initial }, writeRes);
-      const writeSummary = typeof writeSummaryRaw === 'string'
-        ? writeSummaryRaw
-        : `${writeSummaryRaw.headline}\n${writeSummaryRaw.detail?.text ?? ''}`;
+      const writeSummary =
+        typeof writeSummaryRaw === 'string'
+          ? writeSummaryRaw
+          : `${writeSummaryRaw.headline}\n${writeSummaryRaw.detail?.text ?? ''}`;
       expect(writeSummary).toContain('Added 3 todos');
       expect(writeSummary).toContain('1. [x] Step one');
       expect(writeSummary).toContain('2. [▲] Step two');
@@ -267,10 +268,14 @@ describe('Session-Scoped Todos System', () => {
         { id: '2', status: 'completed' },
         { cwd: '/workspace', sessionId: 'summary-session' },
       );
-      const updateSummaryRaw = todoUpdateTool.summarize({ id: '2', status: 'completed' }, updateRes);
-      const updateSummary = typeof updateSummaryRaw === 'string'
-        ? updateSummaryRaw
-        : `${updateSummaryRaw.headline}\n${updateSummaryRaw.detail?.text ?? ''}`;
+      const updateSummaryRaw = todoUpdateTool.summarize(
+        { id: '2', status: 'completed' },
+        updateRes,
+      );
+      const updateSummary =
+        typeof updateSummaryRaw === 'string'
+          ? updateSummaryRaw
+          : `${updateSummaryRaw.headline}\n${updateSummaryRaw.detail?.text ?? ''}`;
       expect(updateSummary).toContain('Todo 2 completed · 2/3 done');
       expect(updateSummary).toContain('2. [x] Step two');
 
@@ -279,9 +284,10 @@ describe('Session-Scoped Todos System', () => {
         { cwd: '/workspace', sessionId: 'summary-session' },
       );
       const readSummaryRaw = todoReadTool.summarize({}, readRes);
-      const readSummary = typeof readSummaryRaw === 'string'
-        ? readSummaryRaw
-        : `${readSummaryRaw.headline}\n${readSummaryRaw.detail?.text ?? ''}`;
+      const readSummary =
+        typeof readSummaryRaw === 'string'
+          ? readSummaryRaw
+          : `${readSummaryRaw.headline}\n${readSummaryRaw.detail?.text ?? ''}`;
       expect(readSummary).toContain('Todos 2/3 done');
       expect(readSummary).toContain('1. [x] Step one');
     });

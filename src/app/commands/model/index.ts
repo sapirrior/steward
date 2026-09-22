@@ -1,8 +1,5 @@
 import { ALL_PROVIDER_NAMES, saveSettings } from '@steward/services/config/index.js';
-import {
-  fetchAvailableModels,
-  type ModelDescriptor,
-} from '@steward/agents/models/index.js';
+import { fetchAvailableModels, type ModelDescriptor } from '@steward/agents/models/index.js';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
 /**

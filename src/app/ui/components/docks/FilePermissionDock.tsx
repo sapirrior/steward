@@ -1,12 +1,7 @@
 import Component from '@steward/tui/engine/Component.js';
 import { figures } from '@steward/tui/theme/index.js';
 import { c, bg, bold, italic } from '@steward/tui/theme/style.js';
-import {
-  Box,
-  Text,
-  parseKeyInput,
-  prefixedBlock,
-} from '@steward/tui/primitives/index.js';
+import { Box, Text, parseKeyInput, prefixedBlock } from '@steward/tui/primitives/index.js';
 import type { FilePermissionRequest } from '@steward/agents/tools/types.js';
 import { buildUnifiedDiff, type UnifiedDiff } from '@steward/services/diff/diff.js';
 import { highlightCode } from '@steward/tui/format/highlight.js';

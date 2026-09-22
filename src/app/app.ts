@@ -1,7 +1,11 @@
 import TerminalEngine from '@steward/tui/engine/TerminalEngine.js';
 import { AgentSession } from '@steward/agents/engine/agent-session.js';
 import { defaultCommandRegistry } from './commands/registry.js';
-import { defaultToolCatalog, summarizeToolResult, summarizeToolArgs } from '@steward/agents/tools/index.js';
+import {
+  defaultToolCatalog,
+  summarizeToolResult,
+  summarizeToolArgs,
+} from '@steward/agents/tools/index.js';
 import type { ModelDescriptor } from '@steward/agents/models/index.js';
 import type { SessionData } from '@steward/services/session/types.js';
 import { listSessions, loadSession } from '@steward/services/session/index.js';
@@ -31,10 +35,7 @@ import FilePermissionDock from './ui/components/docks/FilePermissionDock.js';
 import { PermissionQueue } from './ui/utils/permission-queue.js';
 import { parseKeyInput } from '@steward/tui/primitives/index.js';
 
-import {
-  executeRewind,
-  recoverPendingCheckpoint,
-} from '@steward/services/checkpoint/index.js';
+import { executeRewind, recoverPendingCheckpoint } from '@steward/services/checkpoint/index.js';
 import {
   formatSystemMessage,
   formatAssistantMessage,

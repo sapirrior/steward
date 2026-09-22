@@ -12,10 +12,7 @@ import type { ToolExecutionStatus } from '../types.js';
 import type { StructuredError } from '@steward/services/errors/index.js';
 import type { ToolSummary } from '@steward/agents/tools/types.js';
 import { renderToolDetail } from './tool-detail.js';
-import {
-  chooseTurnStatusVerb,
-  STATUS_VERBS,
-} from '@steward/services/session/logs/store.js';
+import { chooseTurnStatusVerb, STATUS_VERBS } from '@steward/services/session/logs/store.js';
 
 import { formatUserMessage } from '@steward/tui/engine/user-message.js';
 

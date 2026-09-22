@@ -187,7 +187,8 @@ export function classifyError(error: unknown): StructuredError {
       shortMessage: 'Unable to connect to model API server',
       isRetryable: true,
       retryAfterSec: 4,
-      suggestedAction: 'Verify network connection, local model server (e.g. Ollama/vLLM), or endpoint URL',
+      suggestedAction:
+        'Verify network connection, local model server (e.g. Ollama/vLLM), or endpoint URL',
       originalError: error,
     };
   }
@@ -201,7 +202,8 @@ export function classifyError(error: unknown): StructuredError {
       shortMessage: 'Model generated empty output',
       isRetryable: true,
       retryAfterSec: 3,
-      suggestedAction: 'The provider closed the stream without content. Retrying or switching models may help',
+      suggestedAction:
+        'The provider closed the stream without content. Retrying or switching models may help',
       originalError: error,
     };
   }

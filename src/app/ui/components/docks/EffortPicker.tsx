@@ -2,12 +2,7 @@ import Component from '@steward/tui/engine/Component.js';
 import type { ReasoningEffort } from '@steward/agents/engine/types.js';
 import { figures } from '@steward/tui/theme/index.js';
 import { c, bold } from '@steward/tui/theme/style.js';
-import {
-  Box,
-  Text,
-  renderModalBox,
-  parseKeyInput,
-} from '@steward/tui/primitives/index.js';
+import { Box, Text, renderModalBox, parseKeyInput } from '@steward/tui/primitives/index.js';
 
 export interface EffortOption {
   id: ReasoningEffort;

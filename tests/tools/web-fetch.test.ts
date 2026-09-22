@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { isPrivateIP, validateSafeUrl } from '../../src/packages/agents/src/tools/web-fetch/index.js';
+import {
+  isPrivateIP,
+  validateSafeUrl,
+} from '../../src/packages/agents/src/tools/web-fetch/index.js';
 
 describe('Web Fetch Tool & SSRF Hardening', () => {
   describe('Private & Reserved IP Detection', () => {
@@ -41,17 +44,27 @@ describe('Web Fetch Tool & SSRF Hardening', () => {
     });
 
     it('rejects localhost, .local, and internal hostnames', async () => {
-      await expect(validateSafeUrl('http://localhost:8080/')).rejects.toThrow(/blocked for security/);
-      await expect(validateSafeUrl('http://myserver.local/test')).rejects.toThrow(/blocked for security/);
-      await expect(validateSafeUrl('http://service.internal/')).rejects.toThrow(/blocked for security/);
+      await expect(validateSafeUrl('http://localhost:8080/')).rejects.toThrow(
+        /blocked for security/,
+      );
+      await expect(validateSafeUrl('http://myserver.local/test')).rejects.toThrow(
+        /blocked for security/,
+      );
+      await expect(validateSafeUrl('http://service.internal/')).rejects.toThrow(
+        /blocked for security/,
+      );
     });
 
     it('rejects direct private IP literals and cloud metadata endpoint', async () => {
       await expect(validateSafeUrl('http://169.254.169.254/latest/meta-data/')).rejects.toThrow(
         /blocked for security/,
       );
-      await expect(validateSafeUrl('http://127.0.0.1:9000/')).rejects.toThrow(/blocked for security/);
-      await expect(validateSafeUrl('http://192.168.1.100/admin')).rejects.toThrow(/blocked for security/);
+      await expect(validateSafeUrl('http://127.0.0.1:9000/')).rejects.toThrow(
+        /blocked for security/,
+      );
+      await expect(validateSafeUrl('http://192.168.1.100/admin')).rejects.toThrow(
+        /blocked for security/,
+      );
       await expect(validateSafeUrl('http://10.0.0.5/')).rejects.toThrow(/blocked for security/);
     });
   });

@@ -52,9 +52,7 @@ export function setupGlobalErrorHandlers(): void {
 
     const classified = classifyError(error);
 
-    process.stderr.write(
-      `\n\x1b[31m✖ Fatal error in Steward:\x1b[0m ${classified.shortMessage}\n`,
-    );
+    process.stderr.write(`\n\x1b[31m✖ Fatal error in Steward:\x1b[0m ${classified.shortMessage}\n`);
 
     if (classified.suggestedAction) {
       process.stderr.write(`\x1b[36mℹ ${classified.suggestedAction}\x1b[0m\n`);

@@ -160,10 +160,7 @@ describe('TUI Architecture Boundary Rules (Rules.txt)', () => {
       const rel = relative(agentsRoot, file);
       const imports = extractImports(file);
       for (const imp of imports) {
-        if (
-          imp.source.includes('@steward/app') ||
-          imp.source.includes('/app/')
-        ) {
+        if (imp.source.includes('@steward/app') || imp.source.includes('/app/')) {
           violations.push(`${rel}:${imp.line} -> ${imp.source}`);
         }
       }
