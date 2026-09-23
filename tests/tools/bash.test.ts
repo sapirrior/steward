@@ -142,6 +142,18 @@ describe('Bash Tool & Command Policy', () => {
       );
       expect(summary).toBe('Ran successfully · exit code: 0');
 
+      const outputSummary = bashTool.summarize?.(
+        { command: 'echo hello', explanation: 'Echo' },
+        { command: 'echo hello', exitCode: 0, stdout: 'hello\nworld', stderr: '', durationMs: 10 },
+      );
+      expect(outputSummary).toEqual({
+        headline: 'Ran successfully · exit code: 0',
+        detail: {
+          kind: 'text',
+          text: 'hello\nworld',
+        },
+      });
+
       const bgSummary = bashTool.summarize?.(
         { command: 'sleep 20', explanation: 'Sleep' },
         {

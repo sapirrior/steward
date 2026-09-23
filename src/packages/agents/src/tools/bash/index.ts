@@ -66,7 +66,24 @@ export const bashTool: ToolDefinition<typeof bashInputSchema, BashOutput> = {
       return `Moved to background · task id: ${result.taskId}`;
     }
     const code = result && 'exitCode' in result ? (result.exitCode as number) : 0;
-    return `Ran successfully · exit code: ${code}`;
+    const headline = `Ran successfully · exit code: ${code}`;
+    const stdout =
+      result && 'stdout' in result && typeof result.stdout === 'string' ? result.stdout : '';
+    const stderr =
+      result && 'stderr' in result && typeof result.stderr === 'string' ? result.stderr : '';
+    const output = (stdout + (stdout && stderr ? '\n' : '') + stderr).trim();
+
+    if (output) {
+      return {
+        headline,
+        detail: {
+          kind: 'text',
+          text: output,
+        },
+      };
+    }
+
+    return headline;
   },
 
   execute: async (args, context) => {

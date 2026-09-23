@@ -56,6 +56,7 @@ export function renderTranscript(
   engine: TerminalEngine,
   sessionData: SessionData,
   header: Header,
+  options?: { expanded?: boolean },
 ): void {
   engine.clearAll();
   engine.commit('header', header.render());
@@ -110,6 +111,7 @@ export function renderTranscript(
             error: toolData.error,
             summary,
             targetWidth: w,
+            expanded: options?.expanded,
           }),
         { hangingIndent: 2 },
       );

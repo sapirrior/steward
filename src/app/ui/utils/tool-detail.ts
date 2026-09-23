@@ -3,17 +3,25 @@ import { c, bg, bold } from '@steward/tui/theme/style.js';
 import { highlightCode } from '@steward/tui/format/highlight.js';
 import stripAnsi from 'strip-ansi';
 
-export function renderToolDetail(detail: ToolDetail, targetWidth?: number): string {
+export function renderToolDetail(
+  detail: ToolDetail,
+  targetWidth?: number,
+  expanded = false,
+): string {
   if (detail.kind === 'pre-styled') {
     // Lines already carry per-item ANSI styling — render verbatim, no c.muted wrap
     return detail.text;
   }
 
   if (detail.kind === 'text') {
-    return detail.text
-      .split('\n')
-      .map((l) => c.muted(l))
-      .join('\n');
+    const rawLines = detail.text.split('\n');
+    const cap = expanded ? Infinity : 15;
+    const shown = rawLines.slice(0, cap);
+    const lines = shown.map((l) => c.muted(l));
+    if (rawLines.length > cap) {
+      lines.push(c.text(`   … (${rawLines.length - cap} more lines)`));
+    }
+    return lines.join('\n');
   }
 
   if (detail.kind === 'code') {
@@ -22,12 +30,12 @@ export function renderToolDetail(detail: ToolDetail, targetWidth?: number): stri
     if (contentLines.length === 0 || (contentLines.length === 1 && !contentLines[0])) {
       return '';
     }
-    const cap = 50;
+    const cap = expanded ? Infinity : 50;
     const shown = contentLines.slice(0, cap);
     const padWidth = String(contentLines.length).length;
     const lines = shown.map((l, i) => `${c.muted(String(i + 1).padStart(padWidth))}  ${l}`);
     if (contentLines.length > cap) {
-      lines.push(c.muted(`   … (${contentLines.length - cap} more lines)`));
+      lines.push(c.text(`   … (${contentLines.length - cap} more lines)`));
     }
     return lines.join('\n');
   }
@@ -44,7 +52,7 @@ export function renderToolDetail(detail: ToolDetail, targetWidth?: number): stri
     const blockWidth = targetWidth ? Math.max(30, targetWidth) : undefined;
 
     const diffLines: string[] = [];
-    const cap = 30;
+    const cap = expanded ? Infinity : 30;
     let count = 0;
     let overflow = 0;
 
@@ -80,7 +88,7 @@ export function renderToolDetail(detail: ToolDetail, targetWidth?: number): stri
     }
 
     if (overflow > 0) {
-      diffLines.push(c.muted(`   … (${overflow} more lines)`));
+      diffLines.push(c.text(`   … (${overflow} more lines)`));
     }
 
     return diffLines.join('\n');

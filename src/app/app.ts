@@ -291,18 +291,21 @@ export class TUIApp {
 
   private toggleScrollViewMode(): void {
     if (this.isScrollViewMode) {
-      // Exit scroll view mode: re-mount interactive controls and scroll to bottom
+      // Exit scroll view mode: re-render compact transcript, re-mount interactive controls, and scroll to bottom
       this.isScrollViewMode = false;
+      renderTranscript(this.engine, this.session.session, this.header, { expanded: false });
+      this.engine.mount(this.streamingView, { kind: 'custom' });
       this.engine.mount(this.promptInput, { keepCursorVisible: true, kind: 'input' });
       this.engine.mount(this.statusBar, { kind: 'custom' });
       this.engine.scrollToBottom();
     } else {
-      // Enter scroll view mode: unmount input & status bar, hide cursor for clean reading
+      // Enter scroll view mode: unmount interactive controls, hide cursor, and re-render full expanded transcript
       this.isScrollViewMode = true;
+      this.engine.unmount(this.streamingView);
       this.engine.unmount(this.promptInput);
       this.engine.unmount(this.statusBar);
       this.engine.hideCursor();
-      this.engine.requestFrame();
+      renderTranscript(this.engine, this.session.session, this.header, { expanded: true });
     }
   }
 

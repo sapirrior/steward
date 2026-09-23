@@ -73,6 +73,7 @@ export function formatToolStatus(options: {
   toolOutput?: string | ToolSummary;
   summary?: ToolSummary | string;
   targetWidth?: number;
+  expanded?: boolean;
 }): string[] {
   const { toolName, displayName, icon, argsSummary, status, error, targetWidth } = options;
   const fullTermWidth =
@@ -110,7 +111,7 @@ export function formatToolStatus(options: {
     } else {
       headline = summaryVal.headline;
       if (summaryVal.detail) {
-        detailText = renderToolDetail(summaryVal.detail);
+        detailText = renderToolDetail(summaryVal.detail, fullTermWidth, options.expanded);
       }
     }
 
@@ -136,14 +137,24 @@ export function formatToolStatus(options: {
     }
   }
 
-  // Failed calls display a single-line red error continuation
+  // Failed calls display error continuation (single-line in normal mode, full output in expanded mode)
   if (status === 'failed' || error) {
     const rawError = error || 'Operation failed';
-    const firstLineErr = rawError.split('\n')[0]?.trim() || rawError;
+    const errLines = rawError.split('\n');
+    const firstLineErr = errLines[0]?.trim() || rawError;
     const maxErrLen = Math.max(10, fullTermWidth - 6);
     const truncatedErr =
       firstLineErr.length > maxErrLen ? `${firstLineErr.slice(0, maxErrLen - 1)}…` : firstLineErr;
     lines.push(`  ${c.muted('└ ')}${c.error(truncatedErr)}`);
+
+    if (options.expanded && errLines.length > 1) {
+      for (let i = 1; i < errLines.length; i++) {
+        const line = errLines[i];
+        if (line.trim()) {
+          lines.push(`     ${c.error(line)}`);
+        }
+      }
+    }
   }
 
   return lines;

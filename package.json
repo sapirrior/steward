@@ -9,8 +9,8 @@
   ],
   "type": "module",
   "bin": {
-    "steward": "./dist/cli.js",
-    "steward-cli": "./dist/cli.js"
+    "steward": "dist/cli.js",
+    "steward-cli": "dist/cli.js"
   },
   "scripts": {
     "dev": "bun --watch src/app/main.ts",
