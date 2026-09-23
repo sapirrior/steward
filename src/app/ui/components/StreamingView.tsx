@@ -18,12 +18,18 @@ export interface ActiveToolCall {
   recentLines?: string[];
 }
 
+export interface ActiveCommandState {
+  command: string;
+  recentLines?: string[];
+}
+
 export interface StreamingViewState {
   text: string;
   isStreaming: boolean;
   isThinking: boolean;
   thinkingStartTime?: number;
   activeTool?: ActiveToolCall | null;
+  activeCommand?: ActiveCommandState | null;
   pulseFrame: number;
 }
 
@@ -39,6 +45,7 @@ export default class StreamingView extends Component<{}, StreamingViewState> {
       isStreaming: false,
       isThinking: false,
       activeTool: null,
+      activeCommand: null,
       pulseFrame: 0,
     };
   }
@@ -84,8 +91,31 @@ export default class StreamingView extends Component<{}, StreamingViewState> {
     }
   }
 
+  setActiveCommand(command: string | null): void {
+    this.setState({
+      activeCommand: command ? { command, recentLines: [] } : null,
+      isThinking: false,
+    });
+    this.ensurePulse();
+  }
+
+  updateCommandOutput(recentLines: string[]): void {
+    if (this.state.activeCommand) {
+      this.setState({
+        activeCommand: {
+          ...this.state.activeCommand,
+          recentLines,
+        },
+      });
+    }
+  }
+
   private ensurePulse(): void {
-    const isBusy = this.state.isStreaming || this.state.activeTool || this.state.isThinking;
+    const isBusy =
+      this.state.isStreaming ||
+      this.state.activeTool ||
+      this.state.activeCommand ||
+      this.state.isThinking;
     if (isBusy && !this.pulseTimer) {
       this.pulseTimer = setInterval(() => {
         this.setState({ pulseFrame: this.state.pulseFrame + 1 });
@@ -107,6 +137,7 @@ export default class StreamingView extends Component<{}, StreamingViewState> {
       isThinking: false,
       thinkingStartTime: undefined,
       activeTool: null,
+      activeCommand: null,
       pulseFrame: 0,
     });
   }
@@ -119,14 +150,40 @@ export default class StreamingView extends Component<{}, StreamingViewState> {
   }
 
   override render(width?: number): string[] {
-    const { text, isStreaming, isThinking, thinkingStartTime, activeTool, pulseFrame } = this.state;
-    if (!isStreaming && !text && !activeTool && !isThinking) return [];
+    const {
+      text,
+      isStreaming,
+      isThinking,
+      thinkingStartTime,
+      activeTool,
+      activeCommand,
+      pulseFrame,
+    } = this.state;
+    if (!isStreaming && !text && !activeTool && !activeCommand && !isThinking) return [];
 
     const termWidth = width ?? process.stdout.columns ?? 80;
     const maxCols = Math.max(1, termWidth);
     const textWidth = Math.max(1, maxCols - 2);
 
     const lines: string[] = [];
+
+    // 0. Ongoing direct bash command (running live stream)
+    if (activeCommand) {
+      lines.push(`${c.permission('!')} ${c.text(activeCommand.command)}`);
+      if (activeCommand.recentLines && activeCommand.recentLines.length > 0) {
+        const toShow = activeCommand.recentLines.slice(-10);
+        const maxLogLen = Math.max(10, maxCols - 6);
+        for (let i = 0; i < toShow.length; i++) {
+          const l = toShow[i] ?? '';
+          const p = i === 0 ? `  ${c.muted('└ ')}` : '    ';
+          const truncatedLog = l.length > maxLogLen ? `${l.slice(0, maxLogLen - 1)}…` : l;
+          lines.push(`${p}${c.text(truncatedLog)}`);
+        }
+      } else {
+        lines.push(`  ${c.muted('└ ')}${c.muted('Running...')}`);
+      }
+      return lines;
+    }
 
     // 1. Ongoing active tool call (streaming live output)
     if (activeTool) {

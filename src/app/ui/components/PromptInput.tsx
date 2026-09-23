@@ -11,6 +11,7 @@ export interface PromptInputProps {
   onSubmit: (text: string) => void;
   onAbort?: () => void;
   onToggleHelp?: () => void;
+  onBashModeChange?: (isBashMode: boolean) => void;
   cwd?: string;
   initialHistory?: string[];
 }
@@ -105,7 +106,7 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
           return true;
         }
         if (this.commandPalette.dismiss()) {
-          this.forceUpdate();
+          this.markDirty();
           return true;
         }
         if (this.state.value.length > 0) {
@@ -170,6 +171,9 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
 
         const trimmed = this.state.value.trim();
         if (trimmed) {
+          if (trimmed.startsWith('!')) {
+            this.props.onBashModeChange?.(false);
+          }
           this.historyController.add(trimmed);
           this.setState({ value: '', cursorPos: 0, fileMatches: [] });
           this.autocomplete.clear();
@@ -340,6 +344,11 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
 
   private updateValueAndCheckCompletions(nextVal: string, nextPos: number): void {
     const clampedPos = Math.max(0, Math.min(nextVal.length, nextPos));
+    const prevIsBash = this.state.value.startsWith('!');
+    const nextIsBash = nextVal.startsWith('!');
+    if (prevIsBash !== nextIsBash) {
+      this.props.onBashModeChange?.(nextIsBash);
+    }
     this.commandPalette.resetDismissed();
     this.setState({ value: nextVal, cursorPos: clampedPos });
     this.autocomplete.updateQuery(nextVal, clampedPos, () => {
@@ -386,7 +395,8 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
       lines.push(c.permission('Press Esc again to clear'));
     }
 
-    const borderColor = disabled ? c.subtle : c.promptBorder;
+    const isBashMode = value.startsWith('!');
+    const borderColor = isBashMode ? c.permission : disabled ? c.subtle : c.promptBorder;
 
     // 1. Disabled (generating) state — Clean minimal layout with Esc to stop
     if (disabled) {

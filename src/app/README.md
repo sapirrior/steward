@@ -52,3 +52,11 @@ The application layer serves as the composition root and orchestrator for Stewar
 | `/rewind` | `commands/rewind/` | Opens RewindMenu dock to roll back workspace mutations. |
 | `/clear` | `commands/clear/` | Clears current terminal history buffer. |
 | `/exit` | `commands/exit/` | Gracefully cleans up terminal and exits Steward. |
+
+---
+
+### Utilities (`utils/` Sub-directory)
+
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `bash.ts` | `executeDirectBash` | Function | Executes direct user shell commands (`!<command>`) with real-time streaming output. | Bypasses LLM turn history and checkpointing; logged to presentation journal. |

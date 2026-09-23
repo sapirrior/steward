@@ -235,6 +235,30 @@ export function rehydrateSessionHistory(
     }
   }
 
+  // Rehydrate standalone direct bash executions that bypass LLM turns
+  if (projection) {
+    for (const [turnId, turnPres] of projection.turns) {
+      if (turnId.startsWith('direct-')) {
+        for (const [toolCallId, toolLog] of turnPres.tools) {
+          restoredItems.push({
+            id: `direct-bash-${toolCallId}`,
+            turnId,
+            type: 'tool',
+            content: '',
+            toolData: {
+              toolName: toolLog.toolName, // 'direct-bash'
+              displayName: toolLog.displayName, // command
+              status: toolLog.status,
+              durationMs: toolLog.durationMs,
+              error: toolLog.errorMessage,
+              toolOutput: toolLog.outputSummary,
+            },
+          });
+        }
+      }
+    }
+  }
+
   return restoredItems;
 }
 

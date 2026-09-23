@@ -19,6 +19,7 @@ export interface StatusBarProps {
   };
   isBusy: boolean;
   exitPending?: boolean;
+  isBashMode?: boolean;
   warning?: string;
   updateStatus?: StatusBarUpdateStatus;
 }
@@ -32,6 +33,7 @@ export interface StatusBarState {
   };
   isBusy: boolean;
   exitPending?: boolean;
+  isBashMode?: boolean;
   warning?: string;
   updateStatus?: StatusBarUpdateStatus;
 }
@@ -50,9 +52,16 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
       model: props.model,
       isBusy: props.isBusy,
       exitPending: props.exitPending,
+      isBashMode: props.isBashMode,
       warning: props.warning,
       updateStatus: props.updateStatus,
     };
+  }
+
+  setBashMode(isBashMode: boolean): void {
+    if (this.state.isBashMode !== isBashMode) {
+      this.setState({ isBashMode });
+    }
   }
 
   setMode(mode: ChatMode): void {
@@ -117,13 +126,17 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
   override render(width?: number): string[] {
     const termWidth = width ?? process.stdout.columns ?? 80;
     const maxCols = Math.max(1, termWidth);
-    const { model, isBusy, exitPending, warning, updateStatus, chatMode } = this.state;
+    const { model, isBusy, exitPending, isBashMode, warning, updateStatus, chatMode } = this.state;
 
     let left = '';
     if (warning) {
       left = c.warning(warning);
     } else if (exitPending) {
       left = `${c.error('▸ ')}${c.muted('Press ')}${c.error('Ctrl+C')}${c.muted(' again to exit')}`;
+    } else if (isBusy) {
+      left = c.muted('esc to interrupt');
+    } else if (isBashMode) {
+      left = c.permission('! for bash mode');
     } else if (updateStatus && updateStatus.state !== 'idle') {
       if (updateStatus.state === 'checking') {
         left = c.text(updateStatus.message ?? 'Checking for updates...');
@@ -133,13 +146,9 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
         left = c.text(updateStatus.message ?? 'Steward is up to date');
       } else if (updateStatus.state === 'error' && updateStatus.message) {
         left = c.error(updateStatus.message);
-      } else if (isBusy) {
-        left = c.muted('esc to interrupt');
       } else {
         left = c.muted('? for shortcuts');
       }
-    } else if (isBusy) {
-      left = c.muted('esc to interrupt');
     } else {
       left = c.muted('? for shortcuts');
     }

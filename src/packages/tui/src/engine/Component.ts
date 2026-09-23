@@ -56,6 +56,13 @@ export class Component<
     }
   }
 
+  /**
+   * Force update alias for markDirty.
+   */
+  forceUpdate(): void {
+    this.markDirty();
+  }
+
   _cachedCursor: { logicalLineIndex: number; characterOffsetWithinLine: number } | null = null;
 
   /**

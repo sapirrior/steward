@@ -1,10 +1,13 @@
+import { existsSync } from 'node:fs';
 import TerminalEngine from '@steward/tui/engine/TerminalEngine.js';
 import { AgentSession } from '@steward/agents/engine/agent-session.js';
 import { defaultCommandRegistry } from './commands/registry.js';
 import { defaultToolCatalog } from '@steward/agents/tools/index.js';
 import type { SessionData } from '@steward/services/session/types.js';
+import { SessionLogWriter, getSessionLogPath } from '@steward/services/session/index.js';
 import { isFolderTrusted, trustFolder } from '@steward/services/config/index.js';
 import { listThemes } from '@steward/tui/theme/index.js';
+import { c } from '@steward/tui/theme/style.js';
 import Header from './ui/components/Header.js';
 import StatusBar from './ui/components/StatusBar.js';
 import StreamingView from './ui/components/StreamingView.js';
@@ -27,6 +30,7 @@ import { saveModeSelection } from '@steward/services/config/settings.js';
 import { ModalController } from './ui/modal-controller.js';
 import { createAgentEventHandler, type AgentEventState } from './ui/agent-event-router.js';
 import { applyCommandResult } from './commands/handle-command-result.js';
+import { executeDirectBash } from './utils/bash.js';
 
 export interface TUIAppOptions {
   version?: string;
@@ -53,6 +57,7 @@ export class TUIApp {
   private isScrollViewMode = false;
   private updateChecker: UpdateCheckerService;
   private permissionQueue: PermissionQueue;
+  private directBashAbortController: AbortController | null = null;
 
   constructor(options: TUIAppOptions = {}) {
     this.cwd = options.cwd ?? process.cwd();
@@ -74,6 +79,7 @@ export class TUIApp {
       onSubmit: (text) => this.handleSubmit(text),
       onAbort: () => this.handleAbort(),
       onToggleHelp: () => this.modals.toggleHelp(),
+      onBashModeChange: (isBash) => this.statusBar.setBashMode(isBash),
       cwd: this.cwd,
       initialHistory: this.session.session.turns
         .map((t) => {
@@ -200,8 +206,9 @@ export class TUIApp {
   private proceedStart(): void {
     this.engine.ensureAlternateScreen();
 
-    // Rehydrate previous session turns if any, or render header
-    if (this.session.session.turns.length > 0) {
+    // Rehydrate previous session turns or direct commands if any, or render header
+    const logPath = getSessionLogPath(this.session.session.date, this.session.session.id);
+    if (this.session.session.turns.length > 0 || existsSync(logPath)) {
       renderTranscript(this.engine, this.session.session, this.header);
     } else {
       this.engine.commit('header', this.header.render());
@@ -311,6 +318,9 @@ export class TUIApp {
 
   private handleAbort(): void {
     if (this.isBusy) {
+      if (this.directBashAbortController) {
+        this.directBashAbortController.abort();
+      }
       this.permissionQueue.clear();
       this.session.abort();
     }
@@ -338,7 +348,112 @@ export class TUIApp {
       return;
     }
 
-    // 2. Submit user prompt to AgentSession
+    // 2. Direct bash command execution (!)
+    if (text.startsWith('!')) {
+      const command = text.slice(1).trim();
+      if (!command) return;
+
+      this.setBusy(true);
+      this.directBashAbortController = new AbortController();
+      const callId = `direct-bash-${Date.now()}`;
+      const startedAt = new Date().toISOString();
+      const logWriter = new SessionLogWriter(this.session.session.date, this.session.session.id);
+
+      logWriter.append({
+        schemaVersion: 1,
+        sessionId: this.session.session.id,
+        turnId: `direct-${Date.now()}`,
+        type: 'tool-start',
+        timestamp: startedAt,
+        toolCallId: callId,
+        toolName: 'bash',
+        startedAt,
+      });
+
+      this.streamingView.setActiveCommand(command);
+
+      try {
+        const result = await executeDirectBash({
+          command,
+          cwd: this.cwd,
+          abortSignal: this.directBashAbortController.signal,
+          onChunk: (_chunk, fullOutput) => {
+            const recent = fullOutput.split(/\r?\n/).filter(Boolean);
+            this.streamingView.updateCommandOutput(recent);
+          },
+        });
+
+        this.streamingView.setActiveCommand(null);
+        this.streamingView.reset();
+
+        logWriter.append({
+          schemaVersion: 1,
+          sessionId: this.session.session.id,
+          turnId: `direct-${Date.now()}`,
+          type: 'tool-end',
+          timestamp: new Date().toISOString(),
+          toolCallId: callId,
+          toolName: 'direct-bash',
+          finishedAt: new Date().toISOString(),
+          durationMs: result.durationMs,
+          status: result.exitCode === 0 ? 'completed' : 'failed',
+          displayName: command,
+          outputSummary: result.output,
+          errorMessage:
+            result.exitCode !== 0
+              ? `Command failed with exit code ${result.exitCode ?? 1}`
+              : undefined,
+        });
+
+        const lines: string[] = [`${c.permission('!')} ${c.text(command)}`];
+        if (result.exitCode === 0) {
+          if (result.output) {
+            const outLines = result.output.split(/\r?\n/);
+            lines.push(`  ${c.muted('└ ')}${c.text(outLines[0] ?? '')}`);
+            for (let i = 1; i < outLines.length; i++) {
+              lines.push(`    ${c.text(outLines[i] ?? '')}`);
+            }
+          }
+        } else {
+          const errMsg = `Command failed with exit code ${result.exitCode ?? 1}${result.output ? ': ' + result.output : ''}`;
+          const errLines = errMsg.split(/\r?\n/);
+          lines.push(`  ${c.muted('└ ')}${c.error(errLines[0] ?? '')}`);
+          for (let i = 1; i < errLines.length; i++) {
+            lines.push(`     ${c.error(errLines[i] ?? '')}`);
+          }
+        }
+        this.engine.commit('raw', lines);
+      } catch (err: any) {
+        this.streamingView.setActiveCommand(null);
+        this.streamingView.reset();
+        const msg = err instanceof Error ? err.message : String(err);
+
+        logWriter.append({
+          schemaVersion: 1,
+          sessionId: this.session.session.id,
+          turnId: `direct-${Date.now()}`,
+          type: 'tool-end',
+          timestamp: new Date().toISOString(),
+          toolCallId: callId,
+          toolName: 'direct-bash',
+          finishedAt: new Date().toISOString(),
+          status: 'failed',
+          displayName: command,
+          errorMessage: msg,
+        });
+
+        this.engine.commit('raw', [
+          `${c.permission('!')} ${c.text(command)}`,
+          `  ${c.muted('└ ')}${c.error(msg)}`,
+        ]);
+      } finally {
+        this.directBashAbortController = null;
+        this.setBusy(false);
+      }
+      return;
+    }
+
+    // 3. Submit user prompt to AgentSession
     this.engine.commitPrompt(text);
     this.setBusy(true);
     this.streamingView.setThinking(true);

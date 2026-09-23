@@ -15,6 +15,7 @@ import {
   formatAssistantMessage,
 } from './message-formatter.js';
 import { classifyError } from '@steward/services/errors/index.js';
+import { c } from '@steward/tui/theme/style.js';
 
 export function formatTurnFooter(
   engine: TerminalEngine,
@@ -82,6 +83,31 @@ export function renderTranscript(
       engine.commit('system', formatSystemMessage(item.content));
     } else if (item.type === 'tool' && item.toolData) {
       const toolData = item.toolData;
+      if (toolData.toolName === 'direct-bash') {
+        const cmd = toolData.displayName || '';
+        const lines: string[] = [`${c.permission('!')} ${c.text(cmd)}`];
+        if (toolData.status === 'completed') {
+          if (toolData.toolOutput) {
+            const outLines = toolData.toolOutput.split(/\r?\n/);
+            lines.push(`  ${c.muted('└ ')}${c.text(outLines[0] ?? '')}`);
+            for (let i = 1; i < outLines.length; i++) {
+              lines.push(`    ${c.text(outLines[i] ?? '')}`);
+            }
+          }
+        } else {
+          const errMsg =
+            toolData.error ||
+            (toolData.toolOutput ? `Command failed: ${toolData.toolOutput}` : 'Command failed');
+          const errLines = errMsg.split(/\r?\n/);
+          lines.push(`  ${c.muted('└ ')}${c.error(errLines[0] ?? '')}`);
+          for (let i = 1; i < errLines.length; i++) {
+            lines.push(`     ${c.error(errLines[i] ?? '')}`);
+          }
+        }
+        engine.commit('raw', lines);
+        continue;
+      }
+
       const toolDef = defaultToolCatalog.get(toolData.toolName);
       const displayName = toolData.displayName ?? toolDef?.displayName;
       const icon = toolData.icon ?? toolDef?.icon;

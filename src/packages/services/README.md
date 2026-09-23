@@ -16,8 +16,9 @@ This package encapsulates persistent infrastructure subsystems, file mutation sa
 | | `listSessions` | Function | Scans `~/.steward/sessions/` and returns session summaries. | Sorted descending by `updatedAt`. |
 | | `deleteSession` | Function | Permanently removes a session and its associated logs. | Deletes session directory safely. |
 | `schema.ts` | `SESSION_SCHEMA_VERSION` | Constant | Current schema version (`1`). | Frozen canonical schema. |
-| `validate.ts` | `parseSessionDocument` | Function | Validates raw session JSON with schema validation and legacy migration fallback. | Fails closed on invalid schema versions. |
 | `helpers.ts` | `recordTurn` | Function | Appends a completed model turn with usage metrics and tool records. | Updates session timestamps and token totals. |
+| | `rehydrateSessionHistory` | Function | Reconstructs UIHistoryItems from session data and presentation logs. | Rehydrates model turns and direct bash executions. |
+| `logs/store.ts` | `SessionLogWriter` / `loadSessionLog` | Class / Function | Appends and reads tolerance-checked presentation event journals (`~/.steward/session-logs/<date>/<id>.jsonl`). | Bound string lengths and projection builder. |
 
 ---
 
