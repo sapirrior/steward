@@ -11,9 +11,6 @@ export * from './checkpoint/index.js';
 // Background shell tasks subsystem
 export * from './tasks/index.js';
 
-// Session-scoped todos subsystem
-export * from './todos/index.js';
-
 // Read-only update checker
 export * from './updater/index.js';
 

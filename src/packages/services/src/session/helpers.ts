@@ -33,29 +33,6 @@ export function formatToolOutputSummary(res: unknown, isError = false): string |
     if (obj.url && obj.status) {
       return `Fetched ${obj.contentType ?? 'content'} (${obj.status} OK, ${obj.content?.length ?? 0} chars)`;
     }
-    if (Array.isArray(obj.todos)) {
-      const total = obj.todos.length;
-      const completed = obj.todos.filter((t: any) => t.status === 'completed').length;
-      const inProgress = obj.todos.filter((t: any) => t.status === 'in_progress').length;
-      const header = `Todos (${completed}/${total} completed${inProgress > 0 ? `, ${inProgress} in progress` : ''})`;
-      const items = obj.todos
-        .slice(0, 10)
-        .map((t: any, i: number) => {
-          const mark =
-            t.status === 'completed'
-              ? '[x]'
-              : t.status === 'in_progress'
-                ? '[▲]'
-                : t.status === 'cancelled'
-                  ? '[✖]'
-                  : t.status === 'blocked'
-                    ? '[⚠]'
-                    : '[ ]';
-          return `${i + 1}. ${mark} ${t.description}`;
-        })
-        .join('\n');
-      return `${header}\n${items}`;
-    }
     if (obj.linesWritten !== undefined && obj.path) {
       return `Wrote ${obj.linesWritten} lines to ${obj.path}`;
     }

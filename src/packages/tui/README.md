@@ -69,7 +69,6 @@ This package implements a state-driven, flicker-free, mouse-free terminal render
    - Layer 0 (`engine/`, `layout/`) and Layer 1 (`primitives/`) never import Layer 2 domain components (`src/app/ui/components`).
    - Layer 0 never imports Layer 1 primitives.
    - Layer 2 components never import `string-width` or `strip-ansi` directly for layout math (they must use Layer 0 layout utilities).
-2. **Alternate Screen**: Interactive mode runs inside `\x1b[?1049h` with raw mode stdin listeners.
+2. **Alternate Screen & Mouse Reporting**: Interactive mode runs inside `\x1b[?1049h` with SGR extended mouse tracking (`\x1b[?1000h\x1b[?1002h\x1b[?1006h`) for smooth mouse wheel scrolling.
 3. **Synchronized Output**: Uses Mode 2026 (`\x1b[?2026h` ... `\x1b[?2026l`) to batch screen buffer flushes and eliminate render tearing.
-4. **Zero Mouse Tracking**: All mouse tracking escape sequences are disabled to avoid Termux stdin corruption.
-5. **Deterministic Golden Snapshots**: All engine visual layouts are verified by headless golden snapshot tests.
+4. **Deterministic Golden Snapshots**: All engine visual layouts are verified by headless golden snapshot tests.

@@ -17,9 +17,9 @@ describe('ToolCatalog & AI SDK v7 Integration', () => {
     expect(writeFile).toBeDefined();
     expect((writeFile as any).inputSchema).toBeDefined();
 
-    // Verify TodoWrite has inputSchema properly attached
-    const todoWrite = aiTools['TodoWrite'] || aiTools['todo_write'];
-    expect(todoWrite).toBeDefined();
-    expect((todoWrite as any).inputSchema).toBeDefined();
+    // Verify read_file also has inputSchema properly attached
+    const readFile = aiTools['read_file'];
+    expect(readFile).toBeDefined();
+    expect((readFile as any).inputSchema).toBeDefined();
   });
 });

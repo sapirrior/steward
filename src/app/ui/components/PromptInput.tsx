@@ -1,11 +1,11 @@
 import Component from '@steward/tui/engine/Component.js';
-import { defaultCommandRegistry } from '../../commands/registry.js';
-import type { SlashCommand } from '../../commands/types.js';
-import { searchWorkspaceFiles } from '../utils/file-search.js';
 import { figures } from '@steward/tui/theme/index.js';
 import { c, bold } from '@steward/tui/theme/style.js';
 import { truncateToWidth } from '../utils/format.js';
 import { parseKeyInput } from '@steward/tui/primitives/index.js';
+import { AutocompleteController } from './prompt-input/autocomplete-controller.js';
+import { CommandPaletteController } from './prompt-input/command-palette-controller.js';
+import { HistoryController } from './prompt-input/history-controller.js';
 
 export interface PromptInputProps {
   onSubmit: (text: string) => void;
@@ -19,12 +19,12 @@ export interface PromptInputState {
   value: string;
   cursorPos: number;
   disabled: boolean;
-  historyIndex: number;
   escPending: boolean;
   spinnerFrame: number;
-  fileMatches: string[];
-  fileSelectIdx: number;
-  paletteIdx: number;
+  fileMatches?: string[];
+  fileSelectIdx?: number;
+  paletteIdx?: number;
+  historyIndex?: number;
 }
 
 export default class PromptInput extends Component<PromptInputProps, PromptInputState> {
@@ -32,8 +32,10 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
   override clip = true;
   override ellipsis = false;
 
-  private history: string[] = [];
-  private draft = '';
+  private autocomplete: AutocompleteController;
+  private commandPalette: CommandPaletteController;
+  private historyController: HistoryController;
+
   private removeInputListener: (() => void) | null = null;
   private spinnerTimer: NodeJS.Timeout | null = null;
   private escTimer: NodeJS.Timeout | null = null;
@@ -41,17 +43,16 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
 
   constructor(props: PromptInputProps) {
     super(props);
-    this.history = [...(props.initialHistory ?? [])];
+    this.autocomplete = new AutocompleteController(props.cwd);
+    this.commandPalette = new CommandPaletteController();
+    this.historyController = new HistoryController(props.initialHistory);
+
     this.state = {
       value: '',
       cursorPos: 0,
       disabled: false,
-      historyIndex: -1,
       escPending: false,
       spinnerFrame: 0,
-      fileMatches: [],
-      fileSelectIdx: 0,
-      paletteIdx: 0,
     };
   }
 
@@ -77,12 +78,7 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
   }
 
   addHistory(item: string): void {
-    if (!item.trim()) return;
-    if (this.history.length === 0 || this.history[this.history.length - 1] !== item) {
-      this.history.push(item);
-    }
-    this.setState({ historyIndex: -1 });
-    this.draft = '';
+    this.historyController.add(item);
   }
 
   override componentDidMount(): void {
@@ -102,17 +98,22 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
         return false;
       }
 
-      // 3. Escape: dismiss completions or double-tap to clear
+      // 2. Escape: dismiss completions or double-tap to clear
       if (action.type === 'escape') {
-        if (this.state.fileMatches.length > 0) {
+        if (this.autocomplete.onEscape()) {
           this.setState({ fileMatches: [] });
+          return true;
+        }
+        if (this.commandPalette.dismiss()) {
+          this.forceUpdate();
           return true;
         }
         if (this.state.value.length > 0) {
           if (this.state.escPending) {
             if (this.escTimer) clearTimeout(this.escTimer);
             this.escTimer = null;
-            this.setState({ value: '', cursorPos: 0, historyIndex: -1, escPending: false });
+            this.historyController.resetIndex();
+            this.setState({ value: '', cursorPos: 0, escPending: false, historyIndex: -1 });
           } else {
             this.setState({ escPending: true });
             if (this.escTimer) clearTimeout(this.escTimer);
@@ -125,20 +126,13 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
         return false;
       }
 
-      // 4. Question mark when empty opens Help
+      // 3. Question mark when empty opens Help
       if (action.type === 'insert' && action.char === '?' && this.state.value.length === 0) {
         this.props.onToggleHelp?.();
         return true;
       }
 
-      const isSlashMode = this.state.value.startsWith('/') && !this.state.value.includes(' ');
-      const matchingCommands = isSlashMode
-        ? defaultCommandRegistry
-            .getAll()
-            .filter((c) => `/${c.name}`.toLowerCase().startsWith(this.state.value.toLowerCase()))
-        : [];
-
-      // 5. Multiline Newline insertion
+      // 4. Multiline Newline insertion
       if (action.type === 'newline') {
         const before = this.state.value.slice(0, this.state.cursorPos);
         const after = this.state.value.slice(this.state.cursorPos);
@@ -146,34 +140,25 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
         return true;
       }
 
-      // 6. Submit or \+Enter
+      // 5. Submit
       if (action.type === 'submit') {
-        if (this.state.fileMatches.length > 0) {
-          const atData = this.getAtData();
-          if (atData) {
-            const chosen = this.state.fileMatches[this.state.fileSelectIdx];
-            if (chosen) {
-              const before = this.state.value.slice(0, atData.atIndex);
-              const after = this.state.value.slice(this.state.cursorPos);
-              this.setState({
-                value: `${before}@${chosen} ${after}`,
-                cursorPos: atData.atIndex + 1 + chosen.length + 1,
-                fileMatches: [],
-              });
-              return true;
-            }
-          }
+        const autoResult = this.autocomplete.onSubmit(this.state.value, this.state.cursorPos);
+        if (autoResult.handled && autoResult.nextValue !== undefined) {
+          this.setState({
+            value: autoResult.nextValue,
+            cursorPos: autoResult.nextPos ?? autoResult.nextValue.length,
+            fileMatches: [],
+          });
+          return true;
         }
 
-        if (isSlashMode && matchingCommands.length > 0) {
-          const chosen = matchingCommands[this.state.paletteIdx] ?? matchingCommands[0];
-          if (chosen) {
-            const cmdText = `/${chosen.name}`;
-            this.addHistory(cmdText);
-            this.setState({ value: '', cursorPos: 0, fileMatches: [] });
-            this.props.onSubmit(cmdText);
-            return true;
-          }
+        const cmdResult = this.commandPalette.onSubmit(this.state.value);
+        if (cmdResult.handled && cmdResult.chosenCommand) {
+          this.historyController.add(cmdResult.chosenCommand);
+          this.setState({ value: '', cursorPos: 0, fileMatches: [] });
+          this.autocomplete.clear();
+          this.props.onSubmit(cmdResult.chosenCommand);
+          return true;
         }
 
         if (this.state.cursorPos > 0 && this.state.value[this.state.cursorPos - 1] === '\\') {
@@ -185,58 +170,45 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
 
         const trimmed = this.state.value.trim();
         if (trimmed) {
-          this.addHistory(trimmed);
+          this.historyController.add(trimmed);
           this.setState({ value: '', cursorPos: 0, fileMatches: [] });
+          this.autocomplete.clear();
           this.props.onSubmit(trimmed);
         }
         return true;
       }
 
-      // 7. Tab Completion
+      // 6. Tab Completion
       if (action.type === 'tab') {
-        if (this.state.fileMatches.length > 0) {
-          const atData = this.getAtData();
-          if (atData) {
-            const chosen = this.state.fileMatches[this.state.fileSelectIdx];
-            if (chosen) {
-              const before = this.state.value.slice(0, atData.atIndex);
-              const after = this.state.value.slice(this.state.cursorPos);
-              this.setState({
-                value: `${before}@${chosen} ${after}`,
-                cursorPos: atData.atIndex + 1 + chosen.length + 1,
-                fileMatches: [],
-              });
-              return true;
-            }
-          }
+        const autoResult = this.autocomplete.onTab(this.state.value, this.state.cursorPos);
+        if (autoResult.handled && autoResult.nextValue !== undefined) {
+          this.setState({
+            value: autoResult.nextValue,
+            cursorPos: autoResult.nextPos ?? autoResult.nextValue.length,
+            fileMatches: [],
+          });
+          return true;
         }
-        if (isSlashMode && matchingCommands.length > 0) {
-          const chosen = matchingCommands[this.state.paletteIdx] ?? matchingCommands[0];
-          if (chosen) {
-            const completed = `/${chosen.name} `;
-            this.setState({ value: completed, cursorPos: completed.length });
-            return true;
-          }
+
+        const cmdResult = this.commandPalette.onTab(this.state.value);
+        if (cmdResult.handled && cmdResult.completedText) {
+          this.setState({
+            value: cmdResult.completedText,
+            cursorPos: cmdResult.completedText.length,
+          });
+          return true;
         }
         return true;
       }
 
-      // 8. Arrow Up
+      // 7. Arrow Up
       if (action.type === 'cursor-up') {
-        if (this.state.fileMatches.length > 0) {
-          this.setState({
-            fileSelectIdx:
-              this.state.fileSelectIdx > 0
-                ? this.state.fileSelectIdx - 1
-                : this.state.fileMatches.length - 1,
-          });
+        if (this.autocomplete.onUp()) {
+          this.setState({ fileSelectIdx: this.autocomplete.getSelectedIndex() });
           return true;
         }
-        if (isSlashMode && matchingCommands.length > 0) {
-          this.setState({
-            paletteIdx:
-              this.state.paletteIdx > 0 ? this.state.paletteIdx - 1 : matchingCommands.length - 1,
-          });
+        if (this.commandPalette.onUp(this.state.value)) {
+          this.setState({ paletteIdx: this.commandPalette.getSelectedIndex() });
           return true;
         }
 
@@ -251,38 +223,25 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
           return true;
         }
 
-        if (this.history.length > 0) {
-          if (this.state.historyIndex === -1) this.draft = this.state.value;
-          const nextIndex =
-            this.state.historyIndex === -1
-              ? this.history.length - 1
-              : Math.max(0, this.state.historyIndex - 1);
-          const historical = this.history[nextIndex] ?? '';
+        const histResult = this.historyController.onUp(this.state.value);
+        if (histResult.handled && histResult.nextValue !== undefined) {
           this.setState({
-            historyIndex: nextIndex,
-            value: historical,
-            cursorPos: historical.length,
+            value: histResult.nextValue,
+            cursorPos: histResult.nextPos ?? histResult.nextValue.length,
+            historyIndex: this.historyController.getIndex(),
           });
         }
         return true;
       }
 
-      // 9. Arrow Down
+      // 8. Arrow Down
       if (action.type === 'cursor-down') {
-        if (this.state.fileMatches.length > 0) {
-          this.setState({
-            fileSelectIdx:
-              this.state.fileSelectIdx < this.state.fileMatches.length - 1
-                ? this.state.fileSelectIdx + 1
-                : 0,
-          });
+        if (this.autocomplete.onDown()) {
+          this.setState({ fileSelectIdx: this.autocomplete.getSelectedIndex() });
           return true;
         }
-        if (isSlashMode && matchingCommands.length > 0) {
-          this.setState({
-            paletteIdx:
-              this.state.paletteIdx < matchingCommands.length - 1 ? this.state.paletteIdx + 1 : 0,
-          });
+        if (this.commandPalette.onDown(this.state.value)) {
+          this.setState({ paletteIdx: this.commandPalette.getSelectedIndex() });
           return true;
         }
 
@@ -301,24 +260,18 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
           return true;
         }
 
-        if (this.state.historyIndex !== -1) {
-          const nextIndex = this.state.historyIndex + 1;
-          if (nextIndex >= this.history.length) {
-            this.setState({ historyIndex: -1, value: this.draft, cursorPos: this.draft.length });
-            this.draft = '';
-          } else {
-            const historical = this.history[nextIndex] ?? '';
-            this.setState({
-              historyIndex: nextIndex,
-              value: historical,
-              cursorPos: historical.length,
-            });
-          }
+        const histResult = this.historyController.onDown();
+        if (histResult.handled && histResult.nextValue !== undefined) {
+          this.setState({
+            value: histResult.nextValue,
+            cursorPos: histResult.nextPos ?? histResult.nextValue.length,
+            historyIndex: this.historyController.getIndex(),
+          });
         }
         return true;
       }
 
-      // 10. Backspace & Deletion
+      // 9. Backspace & Deletion
       if (action.type === 'backspace') {
         if (this.state.cursorPos > 0) {
           const before = this.state.value.slice(0, this.state.cursorPos - 1);
@@ -351,7 +304,7 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
         return true;
       }
 
-      // 11. Navigation Left/Right/Home/End
+      // 10. Navigation Left/Right/Home/End
       if (action.type === 'cursor-left') {
         this.setState({ cursorPos: Math.max(0, this.state.cursorPos - 1) });
         return true;
@@ -369,7 +322,7 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
         return true;
       }
 
-      // 12. Text insertion
+      // 11. Text insertion
       if (action.type === 'insert' && action.char) {
         const clean = action.char.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
         const before = this.state.value.slice(0, this.state.cursorPos);
@@ -385,43 +338,16 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     });
   }
 
-  private getAtData(): { query: string; atIndex: number } | null {
-    const prefix = this.state.value.slice(0, this.state.cursorPos);
-    const lastAt = prefix.lastIndexOf('@');
-    if (
-      lastAt !== -1 &&
-      (lastAt === 0 || prefix[lastAt - 1] === ' ' || prefix[lastAt - 1] === '\t')
-    ) {
-      const query = prefix.slice(lastAt + 1);
-      if (!query.includes(' ') && !query.includes('\t') && !query.includes('\n')) {
-        return { query, atIndex: lastAt };
-      }
-    }
-    return null;
-  }
-
   private updateValueAndCheckCompletions(nextVal: string, nextPos: number): void {
     const clampedPos = Math.max(0, Math.min(nextVal.length, nextPos));
+    this.commandPalette.resetDismissed();
     this.setState({ value: nextVal, cursorPos: clampedPos });
-    const prefix = nextVal.slice(0, clampedPos);
-    const lastAt = prefix.lastIndexOf('@');
-    if (
-      lastAt !== -1 &&
-      (lastAt === 0 || prefix[lastAt - 1] === ' ' || prefix[lastAt - 1] === '\t')
-    ) {
-      const query = prefix.slice(lastAt + 1);
-      if (!query.includes(' ') && !query.includes('\t') && !query.includes('\n')) {
-        const cwd = this.props.cwd || process.cwd();
-        searchWorkspaceFiles(cwd, query).then((matches) => {
-          this.setState({ fileMatches: matches, fileSelectIdx: 0 });
-        });
-        return;
-      }
-    }
-
-    if (this.state.fileMatches.length > 0) {
-      this.setState({ fileMatches: [] });
-    }
+    this.autocomplete.updateQuery(nextVal, clampedPos, () => {
+      this.setState({
+        fileMatches: this.autocomplete.getMatches(),
+        fileSelectIdx: this.autocomplete.getSelectedIndex(),
+      });
+    });
   }
 
   override componentWillUnmount(): void {
@@ -448,17 +374,10 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     const termWidth = width ?? process.stdout.columns ?? 80;
     const maxCols = Math.max(1, termWidth);
     const dividerWidth = maxCols;
-    const {
-      value,
-      cursorPos,
-      disabled,
-      escPending,
-      spinnerFrame,
-      fileMatches,
-      fileSelectIdx,
-      paletteIdx,
-      historyIndex,
-    } = this.state;
+    const { value, cursorPos, disabled, escPending } = this.state;
+
+    const history = this.historyController.getHistory();
+    const historyIndex = this.state.historyIndex ?? this.historyController.getIndex();
 
     const lines: string[] = [];
     let cursor: { logicalLineIndex: number; characterOffsetWithinLine: number } | null = null;
@@ -478,8 +397,8 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     }
 
     // Top Border (embeds History text in white on the border without extra lines)
-    if (historyIndex !== -1 && this.history.length > 0) {
-      const histText = ` History ${historyIndex + 1}/${this.history.length} `;
+    if (historyIndex !== -1 && history.length > 0) {
+      const histText = ` History ${historyIndex + 1}/${history.length} `;
       const leftDashes = borderColor(figures.horizontalLine.repeat(4));
       const rightLen = Math.max(0, maxCols - (4 + histText.length));
       const rightDashes = borderColor(figures.horizontalLine.repeat(rightLen));
@@ -488,10 +407,8 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
       lines.push(borderColor(figures.horizontalLine.repeat(dividerWidth)));
     }
 
-    const displayData = { value, cursorPos };
-
-    const effectiveValue = displayData.value;
-    const effectiveCursorPos = displayData.cursorPos;
+    const effectiveValue = value;
+    const effectiveCursorPos = cursorPos;
 
     if (effectiveValue.length === 0) {
       cursor = {
@@ -529,15 +446,11 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     lines.push(borderColor(figures.horizontalLine.repeat(dividerWidth)));
 
     // Inline CommandPalette
-    const isSlashMode = effectiveValue.startsWith('/') && !effectiveValue.includes(' ');
-    const matchingCommands: SlashCommand[] = isSlashMode
-      ? defaultCommandRegistry
-          .getAll()
-          .filter((cmd) => `/${cmd.name}`.toLowerCase().startsWith(effectiveValue.toLowerCase()))
-      : [];
+    const matchingCommands = this.commandPalette.getMatchingCommands(effectiveValue);
+    const paletteIdx = this.state.paletteIdx ?? this.commandPalette.getSelectedIndex();
 
     if (
-      isSlashMode &&
+      this.commandPalette.isSlashMode(effectiveValue) &&
       matchingCommands.length > 0 &&
       effectiveValue !== `/${matchingCommands[0]?.name} `
     ) {
@@ -556,6 +469,8 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     }
 
     // Inline FileMatches
+    const fileMatches = this.state.fileMatches ?? this.autocomplete.getMatches();
+    const fileSelectIdx = this.state.fileSelectIdx ?? this.autocomplete.getSelectedIndex();
     if (fileMatches.length > 0) {
       lines.push(c.muted('Matching files (@):'));
       for (let i = 0; i < fileMatches.length; i++) {

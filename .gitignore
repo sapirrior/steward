@@ -34,3 +34,8 @@ coverage/
 
 # Local agent artifacts
 .steward/
+plan.md
+.tmp/
+.tmp
+core
+core.*

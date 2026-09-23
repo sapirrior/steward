@@ -11,6 +11,7 @@ This package is responsible for model provider resolution, streaming agent loops
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
 | `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, and turn execution. | Bridges UI commands to the runner. |
+| `turn-context.ts` | `prepareTurn` | Function | Prepares execution environment, checkpoint tracker, and event logging for a turn. | Parameterized dependencies; isolated setup. |
 | `agent-runner.ts` | `runAgentTurn` | Function | Executes a streaming AI SDK turn using `streamText`, handling tool calls and emitting lifecycle events. | AI SDK v7 compliant; emits typed event stream. |
 | `model-provider.ts` | `resolveModelProvider` | Function | Instantiates AI SDK language model instances across 8 providers (`gemini`, `anthropic`, `openai`, `xai`, `mistral`, `deepseek`, `openrouter`, `custom`). | Configures reasoning effort and API credentials. |
 | | `PROVIDER_REGISTRY` | Export | Metadata and default models for all 8 supported providers. | Declares default models and capabilities. |
@@ -38,9 +39,6 @@ Every tool has an implementation file in `tools/` and a corresponding schema def
 | `task-kill/` | `task_kill` | Terminates a background task by ID. | Graceful SIGTERM with SIGKILL fallback. |
 | `web-fetch/` | `web_fetch` | Fetches webpage content and converts HTML to markdown. | Strips scripts and stylesheets; SSRF protection. |
 | `web-search/` | `web_search` | Performs web search via DuckDuckGo HTML. | Parses titles, snippets, and URLs (max 10 results). |
-| `todo-write/` | `TodoWrite` | Writes or replaces session todo list. | Persisted under `~/.steward/todos/<sessionId>/`. |
-| `todo-update/` | `TodoUpdate` | Updates status of existing session todo items. | Atomic state modification. |
-| `todo-read/` | `TodoRead` | Reads the current session todo items. | Retrieves active task list. |
 | `skill-list/` | `SkillList` | Lists available on-demand skills from `.agents/skills/`. | Discovers project and user skills. |
 | `skill-read/` | `SkillRead` | Reads the `SKILL.md` instructions for a specific skill. | Loads on-demand skill documentation into context. |
 

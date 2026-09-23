@@ -20,6 +20,7 @@ export interface KeyAction {
     | 'ctrl-c'
     | 'ctrl-b'
     | 'ctrl-t'
+    | 'ctrl-o'
     | 'page-up'
     | 'page-down'
     | 'other';
@@ -33,6 +34,7 @@ export function parseKeyInput(chunk: Buffer | string): KeyAction {
   // Control Keys
   if (str === '\x03') return { type: 'ctrl-c', raw: str };
   if (str === '\x02') return { type: 'ctrl-b', raw: str }; // Ctrl+B — cycle mode
+  if (str === '\x0f') return { type: 'ctrl-o', raw: str }; // Ctrl+O — toggle scroll/view mode
   if (str === '\x14') return { type: 'ctrl-t', raw: str };
 
   // Page Navigation

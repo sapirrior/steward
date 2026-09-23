@@ -15,28 +15,34 @@ The application layer serves as the composition root and orchestrator for Stewar
 
 ---
 
-### UI Components (`ui/components/` Sub-directory)
+### UI Components & Controllers (`ui/` Sub-directory)
 
-| Component | Description | Key Details / Constraints |
-| :--- | :--- | :--- |
-| `Header.tsx` | Sticky top banner showing Steward logo, version, working directory, and model. | Renders at top of history. |
-| `PromptInput.tsx` | Main interactive prompt input with typing, cursor navigation, history, `@file` search, and `/slash` command palette. | Unicode-safe and ANSI-safe text buffer. |
-| `StreamingView.tsx` | Live streaming response view rendering incremental text, thinking indicator, and active tool execution status. | Real-time ANSI-rendered markdown output. |
-| `StatusBar.tsx` | Sticky bottom bar displaying active model, reasoning effort, token usage counters, mode badge, and update notifications. | Subline status bar. |
-| `docks/FilePermissionDock.tsx` | Interactive modal reviewing file creations, edits, and overwrites with line diffs before applying changes. | Yes / No / Review (F) mode. |
-| `docks/BashPermissionDock.tsx` | Interactive modal prompting for approval before executing bash commands. | Yes / No selection with command preview. |
-| `docks/ModelPicker.tsx` | Interactive dock for switching LLM models across all configured providers. | Searchable provider list with capability badges. |
-| `docks/ThemePicker.tsx` | Interactive dock for live theme preview and selection. | Arrow-key navigation across color themes. |
-| `docks/SessionMenu.tsx` | Interactive dock for browsing, resuming, or deleting saved session transcripts. | Lists past sessions with turn counts. |
-| `docks/RewindMenu.tsx` | Interactive dock for rolling back file changes to previous session turns with diff statistics. | Computes accurate `+lines / -lines` per turn. |
-| `docks/TrustGate.tsx` | Security gate displayed when launching in an untrusted workspace folder. | Requires explicit folder authorization. |
+| File / Component | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- |
+| `Header.tsx` | Component | Sticky top banner showing Steward logo, version, working directory, and model. | Renders at top of history. |
+| `PromptInput.tsx` | Component | Main interactive prompt input with typing, cursor navigation, history, `@file` search, and `/slash` command palette. | Unicode-safe and ANSI-safe text buffer. |
+| `prompt-input/autocomplete-controller.ts` | Class | Manages `@file` prefix path discovery and selection navigation. | Discovers files matching input token. |
+| `prompt-input/command-palette-controller.ts` | Class | Manages slash command suggestion palette navigation and selection. | Untrapped arrow fallthrough for history. |
+| `prompt-input/history-controller.ts` | Class | Manages prompt history navigation stack and working draft caching. | Up/Down navigation across prompt history. |
+| `modal-controller.ts` | Class | Coordinates modal docks (Pickers, Permission Docks, Help, Menus) and focus transitions. | Centralizes modal open/close lifecycle. |
+| `agent-event-router.ts` | Class | Dispatches streaming agent events (`text-delta`, `tool-call`, `error`) to UI views. | Routes streaming updates to components. |
+| `StreamingView.tsx` | Component | Live streaming response view rendering incremental text, thinking indicator, and active tool execution status. | Real-time ANSI-rendered markdown output. |
+| `StatusBar.tsx` | Component | Sticky bottom bar displaying active model, reasoning effort, token usage counters, mode badge, and update notifications. | Subline status bar. |
+| `docks/FilePermissionDock.tsx` | Component | Interactive modal reviewing file creations, edits, and overwrites with line diffs before applying changes. | Yes / No / Review (F) mode. |
+| `docks/BashPermissionDock.tsx` | Component | Interactive modal prompting for approval before executing bash commands. | Yes / No selection with command preview. |
+| `docks/ModelPicker.tsx` | Component | Interactive dock for switching LLM models across all configured providers. | Searchable provider list with capability badges. |
+| `docks/ThemePicker.tsx` | Component | Interactive dock for live theme preview and selection. | Arrow-key navigation across color themes. |
+| `docks/SessionMenu.tsx` | Component | Interactive dock for browsing, resuming, or deleting saved session transcripts. | Lists past sessions with turn counts. |
+| `docks/RewindMenu.tsx` | Component | Interactive dock for rolling back file changes to previous session turns with diff statistics. | Computes accurate `+lines / -lines` per turn. |
+| `docks/TrustGate.tsx` | Component | Security gate displayed when launching in an untrusted workspace folder. | Requires explicit folder authorization. |
 
 ---
 
-### Slash Commands (`commands/` Sub-directory)
+### Slash Commands & Handlers (`commands/` Sub-directory)
 
-| Command | File | Description |
+| File / Command | Export / Item | Description |
 | :--- | :--- | :--- |
+| `handle-command-result.ts` | `handleCommandResult` | Dispatches command execution outcomes (modal triggers, mode switches, clear, errors) to UI. |
 | `/help` | `commands/help/` | Opens help manual and keyboard shortcut reference. |
 | `/model` | `commands/model/` | Opens interactive ModelPicker dock. |
 | `/mode` | `commands/mode/` | Cycles through or sets active chat mode (`normal`, `chat`, `review`, `build`). |

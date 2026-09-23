@@ -1,8 +1,9 @@
 import type { ToolDetail } from '@steward/agents/tools/types.js';
 import { c, bg, bold } from '@steward/tui/theme/style.js';
 import { highlightCode } from '@steward/tui/format/highlight.js';
+import stripAnsi from 'strip-ansi';
 
-export function renderToolDetail(detail: ToolDetail): string {
+export function renderToolDetail(detail: ToolDetail, targetWidth?: number): string {
   if (detail.kind === 'pre-styled') {
     // Lines already carry per-item ANSI styling — render verbatim, no c.muted wrap
     return detail.text;
@@ -40,6 +41,7 @@ export function renderToolDetail(detail: ToolDetail): string {
       }
     }
     const padWidth = Math.max(1, String(maxLineNum).length);
+    const blockWidth = targetWidth ? Math.max(30, targetWidth) : undefined;
 
     const diffLines: string[] = [];
     const cap = 30;

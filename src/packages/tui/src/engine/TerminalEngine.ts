@@ -2,6 +2,7 @@ import Component from './Component.js';
 import HistoryStore from './HistoryStore.js';
 import StateRenderer from './StateRenderer.js';
 import { DocumentTree, type ComponentNode } from './DocumentTree.js';
+import { logError } from '@steward/services/errors/index.js';
 
 class ComponentNodeAdapter implements ComponentNode {
   id: string;
@@ -73,6 +74,7 @@ export class TerminalEngine {
   private pendingForceFull = false;
   private lineWidthCache: Map<string, number> = new Map();
   private customInputListeners: Array<(chunk: Buffer) => boolean | void> = [];
+  private consecutiveRenderFailures = 0;
 
   constructor() {
     this.tree = new DocumentTree();
@@ -136,6 +138,42 @@ export class TerminalEngine {
         }
       }
 
+      // SGR Extended Mouse reporting: \x1b[<btn;col;row[M|m]
+      if (str.includes('\x1b[<')) {
+        const sgrRegex = /\x1b\[<(\d+);(\d+);(\d+)([Mm])/g;
+        let sgrMatch: RegExpExecArray | null;
+        let handledMouse = false;
+        while ((sgrMatch = sgrRegex.exec(str)) !== null) {
+          handledMouse = true;
+          const btn = parseInt(sgrMatch[1], 10);
+          if ((btn & 64) === 64) {
+            if ((btn & 1) === 1) {
+              this.scrollDown(3);
+            } else {
+              this.scrollUp(3);
+            }
+          }
+        }
+        if (handledMouse) return;
+      }
+
+      // Legacy X10 / Normal Mouse reporting: \x1b[M b col row
+      if (str.includes('\x1b[M')) {
+        const legacyRegex = /\x1b\[M([\x20-\xff])([\x20-\xff])([\x20-\xff])/g;
+        let legMatch: RegExpExecArray | null;
+        let handledLegacy = false;
+        while ((legMatch = legacyRegex.exec(str)) !== null) {
+          handledLegacy = true;
+          const btn = legMatch[1].charCodeAt(0) - 32;
+          if (btn === 64) {
+            this.scrollUp(3);
+          } else if (btn === 65) {
+            this.scrollDown(3);
+          }
+        }
+        if (handledLegacy) return;
+      }
+
       const halfPage = Math.max(1, Math.floor(((process.stdout.rows || 24) - 1) / 2));
 
       // PageUp / PageDown / Ctrl+U / Ctrl+D scrolling
@@ -187,7 +225,7 @@ export class TerminalEngine {
 
   ensureAlternateScreen(): void {
     if (!this.inAlternateScreen) {
-      process.stdout.write('\x1b[?1049h\x1b[?1004h\x1b[?7l\x1b[H');
+      process.stdout.write('\x1b[?1049h\x1b[?1004h\x1b[?1000h\x1b[?1002h\x1b[?1006h\x1b[?7l\x1b[H');
       this.inAlternateScreen = true;
       if (process.stdin.isTTY) {
         process.stdin.setRawMode(true);
@@ -201,7 +239,7 @@ export class TerminalEngine {
   cleanupSync(): void {
     this.showCursor();
     if (this.inAlternateScreen) {
-      process.stdout.write('\x1b[?7h\x1b[?1004l\x1b[?1049l');
+      process.stdout.write('\x1b[?7h\x1b[?1006l\x1b[?1002l\x1b[?1000l\x1b[?1004l\x1b[?1049l');
       this.inAlternateScreen = false;
       try {
         if (process.stdin.isTTY) process.stdin.setRawMode(false);
@@ -212,7 +250,7 @@ export class TerminalEngine {
   async exitAlternateScreen(): Promise<void> {
     this.showCursor();
     if (this.inAlternateScreen) {
-      process.stdout.write('\x1b[?7h\x1b[?1004l\x1b[?1049l');
+      process.stdout.write('\x1b[?7h\x1b[?1006l\x1b[?1002l\x1b[?1000l\x1b[?1004l\x1b[?1049l');
       this.inAlternateScreen = false;
       if (process.stdin.isTTY) {
         process.stdin.off('data', this.inputHandler);
@@ -345,13 +383,31 @@ export class TerminalEngine {
         const shouldForceFull = this.pendingForceFull;
         this.pendingForceFull = false;
         if (this.inAlternateScreen) {
-          const frame = this.renderer.render(
-            this.tree,
-            this.scrollOffset,
-            shouldForceFull,
-            this.lineWidthCache,
-          );
-          this.scrollOffset = frame.currentScrollOffset;
+          try {
+            const frame = this.renderer.render(
+              this.tree,
+              this.scrollOffset,
+              shouldForceFull,
+              this.lineWidthCache,
+            );
+            this.scrollOffset = frame.currentScrollOffset;
+            // Reset failure counter on any successful render.
+            this.consecutiveRenderFailures = 0;
+          } catch (err) {
+            this.consecutiveRenderFailures += 1;
+            logError(err, { source: 'render-frame', forcedFull: shouldForceFull });
+
+            if (this.consecutiveRenderFailures >= 3) {
+              // Three consecutive failures: real corruption, not a transient glitch.
+              // Rethrow so global-handler.ts's existing fatal path takes over.
+              throw err;
+            }
+
+            // Transient failure: force a full repaint on the next tick so a corrupted
+            // diff/cache doesn't compound into further bad frames.
+            this.pendingForceFull = true;
+            this.requestFrame(true);
+          }
         }
       }
     });

@@ -104,17 +104,6 @@ export function getTasksDir(): string {
 }
 
 /**
- * Resolves directory for session todos: ~/.steward/todos
- */
-export function getTodosRootDir(): string {
-  return join(getSettingsDir(), 'todos');
-}
-
-export function getSessionTodosPath(sessionId: string): string {
-  return join(getTodosRootDir(), sessionId, 'todos.json');
-}
-
-/**
  * Resolves directory for diagnostic error logs: ~/.steward/logs
  */
 export function getLogsDir(): string {

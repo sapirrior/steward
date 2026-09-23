@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import type { LanguageModel, ModelMessage } from 'ai';
 import {
   createSession,
@@ -11,28 +10,26 @@ import {
   type SessionData,
   type SessionLogEvent,
 } from '@steward/services/session/index.js';
-import {
-  MutationCheckpointTracker,
-  globalMutationLockManager,
-} from '@steward/services/checkpoint/index.js';
+import type { MutationCheckpointTracker } from '@steward/services/checkpoint/index.js';
 import { defaultToolCatalog, summarizeToolResult, formatPlainToolSummary } from '../tools/index.js';
-import type { ToolContext } from '../tools/types.js';
 import { ShellTaskManager } from '@steward/services/tasks/manager.js';
 import { saveSettings } from '@steward/services/config/index.js';
 import { logError } from '@steward/services/errors/index.js';
 import { runAgentTurn } from './agent-runner.js';
 import { SAFETY_STEP_CEILING } from './constants.js';
-import { getActiveMode, MODES } from './mode.js';
 import { createModelInstance, resolveActiveModelSelection } from './model-provider.js';
-import { buildSystemPrompt } from './system-prompt.js';
-import type { AgentEvent, AgentEventListener } from './events.js';
+import type { AgentEvent } from './events.js';
 import type {
   ModelSelection,
   ReasoningEffort,
   SessionConfig,
+  SubmitPromptOptions,
   TokenUsage,
   TurnSummary,
 } from './types.js';
+import { prepareTurn } from './turn-context.js';
+
+export { SubmitPromptOptions };
 
 /**
  * Pure helper to translate agent events into presentation journal log events.
@@ -112,19 +109,6 @@ export function accumulateUsage(current: TokenUsage, delta: TokenUsage): TokenUs
         ? (current.cacheWriteTokens ?? 0) + delta.cacheWriteTokens
         : current.cacheWriteTokens,
   };
-}
-
-export interface SubmitPromptOptions {
-  cwd?: string;
-  tools?: Record<string, any> | ((context: ToolContext) => Record<string, any>);
-  extraInstructions?: string;
-  onEvent?: AgentEventListener;
-  requestBashPermission?: (
-    req: import('../tools/types.js').BashPermissionRequest,
-  ) => Promise<import('../tools/types.js').BashPermissionResponse>;
-  requestFilePermission?: (
-    req: import('../tools/types.js').FilePermissionRequest,
-  ) => Promise<import('../tools/types.js').FilePermissionResponse>;
 }
 
 /**
@@ -297,104 +281,35 @@ export class AgentSession {
       throw new Error('Prompt cannot be empty.');
     }
 
-    // 1. Append user message to history
-    const userMessage: ModelMessage = {
-      role: 'user',
-      content: trimmedPrompt,
-    };
-    this.messages.push(userMessage);
-
-    // 2. Prepare turn environment
     this.isGenerating = true;
-    this.activeAbortController = new AbortController();
 
-    const turnId = randomUUID();
-    const turnStartedAt = new Date().toISOString();
-    const turnStartMonotonic = performance.now();
-    const turnModel = this.getModel();
-
-    this.sessionLogWriter?.append({
-      schemaVersion: 1,
+    const prep = await prepareTurn(trimmedPrompt, options, {
       sessionId: this.sessionData.id,
-      turnId,
-      type: 'turn-start',
-      timestamp: turnStartedAt,
-      startedAt: turnStartedAt,
-      model: {
-        provider: turnModel.provider,
-        modelId: turnModel.modelId,
-        effort: turnModel.effort,
-      },
-    });
-
-    const cwd = options.cwd ?? process.cwd();
-    const tracker = new MutationCheckpointTracker({
-      workspaceRoot: cwd,
-      sessionId: this.sessionData.id,
-      lockManager: globalMutationLockManager,
-    });
-    await tracker.beginTurn(turnId, this.sessionData.turns.length + 1);
-
-    const mode = getActiveMode();
-    const effectiveFilePermission = MODES[mode]?.autoApproveFiles
-      ? async (_req: import('../tools/types.js').FilePermissionRequest) => ({ allowed: true })
-      : options.requestFilePermission;
-
-    const toolContext: ToolContext = {
-      cwd,
-      mode,
-      sessionId: this.sessionData.id,
-      abortSignal: this.activeAbortController.signal,
-      checkpointTracker: tracker,
-      mutationLocks: globalMutationLockManager,
-      requestBashPermission: options.requestBashPermission,
-      requestFilePermission: effectiveFilePermission,
       shellTasks: this.shellTasks,
-    };
-
-    let activeTools: Record<string, any> | undefined;
-    if (typeof options.tools === 'function') {
-      activeTools = (options.tools as any)(toolContext);
-    } else if (options.tools) {
-      activeTools = options.tools;
-    } else {
-      activeTools = defaultToolCatalog.toAISDKTools(toolContext);
-    }
-
-    const instructions = buildSystemPrompt({
-      cwd,
-      extraInstructions: options.extraInstructions,
-      chatMode: mode,
+      sessionLogWriter: this.sessionLogWriter,
+      turnNumber: this.sessionData.turns.length + 1,
+      model: this.getModel(),
     });
 
-    const wrappedOnEvent: AgentEventListener = (event) => {
-      const logEvent = translateAgentEventToLogEvent(event, {
-        sessionId: this.sessionData.id,
-        turnId,
-      });
-      if (logEvent) {
-        this.sessionLogWriter?.append(logEvent);
-      }
-      options.onEvent?.(event);
-    };
+    this.messages.push(prep.userMessage);
+    this.activeAbortController = prep.abortController;
 
     let summary: TurnSummary | undefined;
 
     try {
-      // 3. Execute the turn loop
       summary = await runAgentTurn({
         model: this.model,
         messages: this.messages,
-        instructions,
-        tools: activeTools,
+        instructions: prep.instructions,
+        tools: prep.activeTools,
         maxSteps: this.config.maxSteps,
         temperature: this.config.temperature,
         reasoningEffort: this.config.reasoningEffort,
-        abortSignal: this.activeAbortController.signal,
-        onEvent: wrappedOnEvent,
+        abortSignal: prep.abortController.signal,
+        onEvent: prep.wrappedOnEvent,
       });
 
-      // 4. Append turn response messages to history
+      // Append turn response messages to history
       const responseMessages: ModelMessage[] = [];
       if (summary.rawMessages && summary.rawMessages.length > 0) {
         for (const msg of summary.rawMessages) {
@@ -403,8 +318,6 @@ export class AgentSession {
         }
       }
 
-      // If the model produced final text (e.g. Gemini, Anthropic, OpenAI) that was not
-      // represented in rawMessages, ensure it is preserved in history and persisted
       const hasAssistantMessage = responseMessages.some((m) => m.role === 'assistant');
       if (summary.text && !hasAssistantMessage) {
         const assistantMsg: ModelMessage = {
@@ -415,40 +328,14 @@ export class AgentSession {
         responseMessages.push(assistantMsg);
       }
 
-      // 5. Accumulate usage
-      this.accumulatedUsage = accumulateUsage(this.accumulatedUsage, summary.usage);
-
-      const statusVerb = chooseTurnStatusVerb();
-      summary.statusVerb = statusVerb;
-
-      // 6. Record and persist turn in session document (~/.steward/sessions/<date>/<sessionId>.json)
-      const turnMessages: ModelMessage[] = [userMessage, ...responseMessages];
-
-      recordSessionTurn(this.sessionData, {
-        id: turnId,
+      await this.finalizeTurn({
+        turnId: prep.turnId,
+        turnStartMonotonic: prep.turnStartMonotonic,
+        userMessage: prep.userMessage,
+        responseMessages,
+        summary,
         status: 'complete',
-        usage: summary.usage,
-        messages: turnMessages,
-      });
-
-      await tracker.commitTurn(turnId, 'complete');
-
-      const turnFinishedAt = summary.finishedAt ?? new Date().toISOString();
-      const turnDurationMs =
-        summary.durationMs ?? Math.max(0, Math.round(performance.now() - turnStartMonotonic));
-
-      this.sessionLogWriter?.append({
-        schemaVersion: 1,
-        sessionId: this.sessionData.id,
-        turnId,
-        type: 'turn-end',
-        timestamp: turnFinishedAt,
-        finishedAt: turnFinishedAt,
-        durationMs: turnDurationMs,
-        status: 'complete',
-        statusVerb,
-        stopReason: summary.stopReason,
-        finishReason: summary.finishReason,
+        tracker: prep.tracker,
       });
 
       return summary;
@@ -459,71 +346,90 @@ export class AgentSession {
         hasPartialSummary: Boolean(summary),
       });
 
-      const turnFinishedAt = new Date().toISOString();
-      const turnDurationMs = Math.max(0, Math.round(performance.now() - turnStartMonotonic));
-      const statusVerb = chooseTurnStatusVerb();
-
       const responseMessages: ModelMessage[] = summary?.rawMessages ?? [];
-      const turnMessages: ModelMessage[] = [userMessage, ...responseMessages];
+      await this.finalizeTurn({
+        turnId: prep.turnId,
+        turnStartMonotonic: prep.turnStartMonotonic,
+        userMessage: prep.userMessage,
+        responseMessages,
+        summary,
+        status: summary ? 'interrupted' : 'errored',
+        tracker: prep.tracker,
+        errorMessage: err instanceof Error ? err.message : String(err),
+      });
 
-      if (summary) {
-        this.accumulatedUsage = accumulateUsage(this.accumulatedUsage, summary.usage);
-
-        summary.statusVerb = statusVerb;
-
-        recordSessionTurn(this.sessionData, {
-          id: turnId,
-          status: 'interrupted',
-          usage: summary.usage,
-          messages: turnMessages,
-        });
-        await tracker.commitTurn(turnId, 'interrupted');
-
-        this.sessionLogWriter?.append({
-          schemaVersion: 1,
-          sessionId: this.sessionData.id,
-          turnId,
-          type: 'turn-end',
-          timestamp: turnFinishedAt,
-          finishedAt: turnFinishedAt,
-          durationMs: turnDurationMs,
-          status: 'interrupted',
-          statusVerb,
-          stopReason: summary.stopReason,
-          finishReason: summary.finishReason,
-          errorMessage: err instanceof Error ? err.message : String(err),
-        });
-      } else {
-        recordSessionTurn(this.sessionData, {
-          id: turnId,
-          status: 'errored',
-          usage: {
-            inputTokens: 0,
-            outputTokens: 0,
-            totalTokens: 0,
-          },
-          messages: [userMessage],
-        });
-        await tracker.commitTurn(turnId, 'errored');
-
-        this.sessionLogWriter?.append({
-          schemaVersion: 1,
-          sessionId: this.sessionData.id,
-          turnId,
-          type: 'turn-end',
-          timestamp: turnFinishedAt,
-          finishedAt: turnFinishedAt,
-          durationMs: turnDurationMs,
-          status: 'errored',
-          statusVerb,
-          errorMessage: err instanceof Error ? err.message : String(err),
-        });
-      }
       throw err;
     } finally {
       this.isGenerating = false;
       this.activeAbortController = null;
     }
+  }
+
+  /**
+   * Unified turn finalization for complete, interrupted, and errored states.
+   * Parameterizes shared session store updating, CAS commit, and journal logging.
+   */
+  private async finalizeTurn(params: {
+    turnId: string;
+    turnStartMonotonic: number;
+    userMessage: ModelMessage;
+    responseMessages: ModelMessage[];
+    summary: TurnSummary | undefined;
+    status: 'complete' | 'interrupted' | 'errored';
+    tracker: MutationCheckpointTracker;
+    errorMessage?: string;
+  }): Promise<void> {
+    const {
+      turnId,
+      turnStartMonotonic,
+      userMessage,
+      responseMessages,
+      summary,
+      status,
+      tracker,
+      errorMessage,
+    } = params;
+
+    const statusVerb = chooseTurnStatusVerb();
+    const turnFinishedAt = summary?.finishedAt ?? new Date().toISOString();
+    const turnDurationMs =
+      summary?.durationMs ?? Math.max(0, Math.round(performance.now() - turnStartMonotonic));
+
+    if (summary) {
+      this.accumulatedUsage = accumulateUsage(this.accumulatedUsage, summary.usage);
+      summary.statusVerb = statusVerb;
+    }
+
+    const turnMessages: ModelMessage[] =
+      status === 'errored' ? [userMessage] : [userMessage, ...responseMessages];
+
+    const usage: TokenUsage = summary
+      ? summary.usage
+      : { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+
+    recordSessionTurn(this.sessionData, {
+      id: turnId,
+      status,
+      usage,
+      messages: turnMessages,
+    });
+
+    await tracker.commitTurn(turnId, status);
+
+    this.sessionLogWriter?.append({
+      schemaVersion: 1,
+      sessionId: this.sessionData.id,
+      turnId,
+      type: 'turn-end',
+      timestamp: turnFinishedAt,
+      finishedAt: turnFinishedAt,
+      durationMs: turnDurationMs,
+      status,
+      statusVerb,
+      stopReason: summary?.stopReason,
+      finishReason: summary?.finishReason,
+      errorMessage,
+    });
   }
 
   /**

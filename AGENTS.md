@@ -23,9 +23,9 @@ All application source code resides in `src/` under a structured modular layout:
 - **Application Orchestration (`src/app/`):**
   - CLI entry point (`main.ts`), application orchestrator (`app.ts`), slash commands (`commands/`), and domain UI components (`ui/components/`, `ui/utils/`).
 - **Agents Package (`src/packages/agents/`):**
-  - Model provider integration, streaming agent loop, system prompt construction, chat modes/policy, skill discovery, and tool catalog (18 tools).
+  - Model provider integration, streaming agent loop, system prompt construction, chat modes/policy, skill discovery, and tool catalog (15 tools).
 - **Services Package (`src/packages/services/`):**
-  - Infrastructure subsystems: Session Schema v1 store, Checkpoint & CAS manager with atomic rewind, Background Shell Tasks, Todo state store, Settings/Config loader, and structured error logger.
+  - Infrastructure subsystems: Session Schema v1 store, Checkpoint & CAS manager with atomic rewind, Background Shell Tasks, Settings/Config loader, and structured error logger.
 - **TUI Package (`src/packages/tui/`):**
   - Alternate-screen diff rendering engine (`engine/`), physical cell layout math (`layout/`), content-blind primitives (`primitives/`), color themes (`theme/`), and formatting helpers (`format/`). Strictly follows the 3-layer architecture and frozen engine contract defined in [`src/packages/tui/Rules.txt`](src/packages/tui/Rules.txt).
 
@@ -53,7 +53,6 @@ Standard scripts defined in `package.json`:
 
 - **Strict Boundaries:** Never edit, delete, or generate files in `.agents/`. These are strictly human-managed.
 - **Permission & Checkpoint Protection:** Workspace mutations and bash commands are gated by user permission and automated rewind checkpoints.
-- **Session-Scoped Todos:** Operational todo state is persisted outside the repository at `~/.steward/todos/<sessionId>/todos.json`.
 - **Secrets Policy:** Never commit secrets, API keys, credentials, or `.env*` files.
 - **Workflow & Style:** Follow Conventional Commits and code formatting guidelines defined in [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Ambiguity:** Ask the maintainer for clarification instead of guessing or making unverified architectural assumptions.

@@ -19,19 +19,15 @@ describe('System Prompt Structure & Invariants', () => {
     expect(prompt).toContain('file_path:line_number');
   });
 
-  it('should contain TodoWrite, TodoUpdate, and TodoRead policies and omit legacy plans', () => {
+  it('does not contain legacy todo or plan policy sections', () => {
     const prompt = buildSystemPrompt({
       cwd: '/workspace/steward',
     });
 
-    expect(prompt).toContain('# Task and Plan Management (Todos)');
-    expect(prompt).toContain('TodoWrite');
-    expect(prompt).toContain('TodoUpdate');
-    expect(prompt).toContain('TodoRead');
-    expect(prompt).toContain('2 to 10 items');
-    expect(prompt).toContain("at most one item in 'in_progress' status");
-
-    // Must NOT contain old plan references
+    expect(prompt).not.toContain('Task and Plan Management (Todos)');
+    expect(prompt).not.toContain('TodoWrite');
+    expect(prompt).not.toContain('TodoUpdate');
+    expect(prompt).not.toContain('TodoRead');
     expect(prompt).not.toContain('.steward/plans/');
     expect(prompt).not.toContain('◉');
     expect(prompt).not.toContain('WebFetch');

@@ -49,7 +49,7 @@ This package encapsulates persistent infrastructure subsystems, file mutation sa
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
 | `paths.ts` | `getStewardRootDir` | Function | Returns authoritative root directory for Steward files (`~/.steward` or env override). | Centralized source of truth for all paths. |
-| | `getSessionsDir` / `getCheckpointsDir` | Function | Returns paths to sessions, checkpoints, todos, and error logs directories. | Creates directories if missing. |
+| | `getSessionsDir` / `getCheckpointsDir` | Function | Returns paths to sessions, checkpoints, and error logs directories. | Creates directories if missing. |
 | `config/settings.ts` | `loadSettings` / `saveSettings` | Function | Reads and writes `~/.steward/settings.json` preserving unknown user keys. | Tolerates unknown legacy keys (e.g. `voiceLanguage`). |
 | `config/env.ts` | `hasProviderConfig` / `getAvailableProviders` | Function | Detects API keys across 8 providers (`gemini`, `anthropic`, `openai`, `xai`, `mistral`, `deepseek`, `openrouter`, `custom`). | Safe environment variable scanning. |
 | `errors/classifier.ts` | `classifyError` | Function | Maps AI SDK errors, network drops, auth issues, and empty output into actionable StructuredError objects. | Structured classification with retryability. |
