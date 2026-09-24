@@ -1,7 +1,7 @@
 {
   "name": "steward-cli",
   "version": "0.22.0",
-  "description": "Interactive AI engineering assistant for the terminal with human-in-the-loop control across local and frontier models.",
+  "description": "Interactive AI engineering assistant for the terminal.",
   "author": "sapirrior",
   "license": "MIT",
   "files": [

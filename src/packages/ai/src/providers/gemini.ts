@@ -3,7 +3,9 @@
  */
 
 import { decodeSSE } from '../stream.js';
+import { sanitizeSurrogates } from '../json.js';
 import type {
+  AssistantContent,
   AssistantMessage,
   FinishReason,
   InferenceEvent,
@@ -11,6 +13,8 @@ import type {
   InferenceStream,
   Message,
   ReasoningEffort,
+  TextContent,
+  ThinkingContent,
   TokenUsage,
   ToolCallContent,
 } from '../types.js';
@@ -53,7 +57,7 @@ function sanitizeSchema(schema: unknown): unknown {
 function mapGeminiEffort(effort: ReasoningEffort): { thinkingBudget?: number } | undefined {
   switch (effort) {
     case 'none':
-      return { thinkingBudget: 0 };
+      return undefined;
     case 'low':
       return { thinkingBudget: 2048 };
     case 'medium':
@@ -67,20 +71,23 @@ function mapGeminiEffort(effort: ReasoningEffort): { thinkingBudget?: number } |
 
 function convertMessages(messages: readonly Message[]): {
   systemInstruction?: { parts: Array<{ text: string }> };
-  contents: any[];
+  contents: unknown[];
 } {
   let systemText = '';
-  const contents: any[] = [];
+  const contents: unknown[] = [];
 
   for (const msg of messages) {
     if (msg.role === 'system') {
-      systemText = systemText ? `${systemText}\n\n${msg.content}` : msg.content;
+      const sanitized = sanitizeSurrogates(msg.content);
+      systemText = systemText ? `${systemText}\n\n${sanitized}` : sanitized;
       continue;
     }
 
     if (msg.role === 'user') {
       const text =
-        typeof msg.content === 'string' ? msg.content : msg.content.map((c) => c.text).join('\n');
+        typeof msg.content === 'string'
+          ? sanitizeSurrogates(msg.content)
+          : msg.content.map((c) => sanitizeSurrogates(c.text)).join('\n');
       contents.push({
         role: 'user',
         parts: [{ text }],
@@ -89,20 +96,20 @@ function convertMessages(messages: readonly Message[]): {
     }
 
     if (msg.role === 'assistant') {
-      const parts: any[] = [];
+      const parts: unknown[] = [];
       for (const block of msg.content) {
         if (block.type === 'text') {
-          if (!block.text && !block.thoughtSignature) continue;
+          if (!block.text && !block.textSignature) continue;
           parts.push({
-            text: block.text || '',
-            ...(block.thoughtSignature ? { thoughtSignature: block.thoughtSignature } : {}),
+            text: sanitizeSurrogates(block.text || ''),
+            ...(block.textSignature ? { thoughtSignature: block.textSignature } : {}),
           });
         } else if (block.type === 'thinking') {
-          if (!block.thinking && !block.thoughtSignature) continue;
+          if (!block.thinking && !block.thinkingSignature) continue;
           parts.push({
             thought: true,
-            text: block.thinking || '',
-            ...(block.thoughtSignature ? { thoughtSignature: block.thoughtSignature } : {}),
+            text: sanitizeSurrogates(block.thinking || ''),
+            ...(block.thinkingSignature ? { thoughtSignature: block.thinkingSignature } : {}),
           });
         } else if (block.type === 'tool-call') {
           parts.push({
@@ -124,13 +131,13 @@ function convertMessages(messages: readonly Message[]): {
     }
 
     if (msg.role === 'tool') {
-      const parts: any[] = [];
+      const parts: unknown[] = [];
       for (const res of msg.content) {
         parts.push({
           functionResponse: {
             name: res.toolName,
             response: {
-              result: res.output,
+              result: sanitizeSurrogates(res.output),
             },
           },
         });
@@ -166,7 +173,7 @@ export function streamGemini(options: GeminiStreamOptions): InferenceStream {
         ]
       : undefined;
 
-  const generationConfig: Record<string, any> = {};
+  const generationConfig: Record<string, unknown> = {};
   if (request.temperature !== undefined) {
     generationConfig.temperature = request.temperature;
   }
@@ -176,7 +183,7 @@ export function streamGemini(options: GeminiStreamOptions): InferenceStream {
     };
   }
 
-  const body: Record<string, any> = {
+  const body: Record<string, unknown> = {
     contents,
     generationConfig,
   };
@@ -189,7 +196,17 @@ export function streamGemini(options: GeminiStreamOptions): InferenceStream {
   }
 
   const modelId = request.model.modelId.replace(/^models\//, '');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse&key=${auth.token}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?alt=sse`;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'text/event-stream',
+    ...(auth.headers || {}),
+  };
+
+  if (auth.token && auth.token !== 'none') {
+    headers['x-goog-api-key'] = auth.token;
+  }
 
   let finalResult:
     { message: AssistantMessage; usage: TokenUsage; finishReason: FinishReason } | undefined;
@@ -200,17 +217,16 @@ export function streamGemini(options: GeminiStreamOptions): InferenceStream {
     try {
       response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'text/event-stream',
-        },
+        headers,
         body: JSON.stringify(body),
         signal: request.abortSignal,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       const isAbort = request.abortSignal?.aborted;
       const error = new AIError(
-        isAbort ? 'Inference request aborted.' : `Network request to Gemini failed: ${err.message}`,
+        isAbort
+          ? 'Inference request aborted.'
+          : `Network request to Gemini failed: ${err instanceof Error ? err.message : String(err)}`,
         {
           code: isAbort ? 'aborted' : 'network',
           provider: 'gemini',
@@ -223,10 +239,9 @@ export function streamGemini(options: GeminiStreamOptions): InferenceStream {
     }
 
     if (!response.ok) {
-      const errBody = await response.text().catch(() => '');
       const isRateLimit = response.status === 429;
       const isAuth = response.status === 401 || response.status === 403;
-      const error = new AIError(`Gemini error (HTTP ${response.status}): ${errBody}`, {
+      const error = new AIError(`Gemini request failed with HTTP status ${response.status}`, {
         code: isAuth ? 'auth' : isRateLimit ? 'rate-limit' : 'provider',
         provider: 'gemini',
         status: response.status,
@@ -246,7 +261,7 @@ export function streamGemini(options: GeminiStreamOptions): InferenceStream {
       return;
     }
 
-    const assistantContent: AssistantMessage['content'] = [];
+    const assistantContent: AssistantContent[] = [];
     const usage: TokenUsage = {
       inputTokens: 0,
       outputTokens: 0,
@@ -258,46 +273,52 @@ export function streamGemini(options: GeminiStreamOptions): InferenceStream {
     try {
       for await (const sse of decodeSSE(response.body, request.abortSignal)) {
         if (!sse.data) continue;
-        let eventData: any;
+        let eventData: Record<string, unknown>;
         try {
-          eventData = JSON.parse(sse.data);
+          eventData = JSON.parse(sse.data) as Record<string, unknown>;
         } catch {
           continue;
         }
 
-        if (eventData.usageMetadata) {
-          const u = eventData.usageMetadata;
-          usage.inputTokens = u.promptTokenCount ?? usage.inputTokens;
-          usage.outputTokens = u.candidatesTokenCount ?? usage.outputTokens;
-          usage.totalTokens = u.totalTokenCount ?? usage.totalTokens;
+        if (eventData.usageMetadata && typeof eventData.usageMetadata === 'object') {
+          const u = eventData.usageMetadata as Record<string, unknown>;
+          if (typeof u.promptTokenCount === 'number') usage.inputTokens = u.promptTokenCount;
+          if (typeof u.candidatesTokenCount === 'number')
+            usage.outputTokens = u.candidatesTokenCount;
+          if (typeof u.totalTokenCount === 'number') usage.totalTokens = u.totalTokenCount;
         }
 
-        const candidate = eventData.candidates?.[0];
+        const candidates = eventData.candidates as unknown[];
+        const candidate = candidates?.[0] as Record<string, unknown> | undefined;
         if (candidate) {
-          if (candidate.finishReason) {
+          if (typeof candidate.finishReason === 'string') {
             const fr = candidate.finishReason;
             if (fr === 'STOP') finishReason = 'stop';
             else if (fr === 'MAX_TOKENS') finishReason = 'length';
             else if (fr === 'SAFETY') finishReason = 'error';
           }
 
-          if (candidate.content?.parts) {
-            for (const part of candidate.content.parts) {
+          const content = candidate.content as Record<string, unknown> | undefined;
+          if (Array.isArray(content?.parts)) {
+            for (const rawPart of content.parts) {
+              const part = rawPart as Record<string, unknown>;
+              const thoughtSig =
+                typeof part.thoughtSignature === 'string' ? part.thoughtSignature : undefined;
+
               if (part.thought) {
-                const thoughtDelta = part.text || '';
-                if (thoughtDelta || part.thoughtSignature) {
-                  const existing = assistantContent.find(
-                    (c): c is Extract<(typeof assistantContent)[0], { type: 'thinking' }> =>
-                      c.type === 'thinking',
-                  );
-                  if (existing) {
-                    existing.thinking += thoughtDelta;
-                    if (part.thoughtSignature) existing.thoughtSignature = part.thoughtSignature;
+                const thoughtDelta = typeof part.text === 'string' ? part.text : '';
+                if (thoughtDelta || thoughtSig) {
+                  const lastBlock = assistantContent[assistantContent.length - 1];
+                  if (lastBlock && lastBlock.type === 'thinking') {
+                    (lastBlock as ThinkingContent).thinking += thoughtDelta;
+                    if (thoughtSig) {
+                      (lastBlock as ThinkingContent).thinkingSignature = thoughtSig;
+                    }
                   } else {
-                    (assistantContent as any).push({
+                    assistantContent.push({
                       type: 'thinking',
                       thinking: thoughtDelta,
-                      thoughtSignature: part.thoughtSignature,
+                      ...(thoughtSig ? { thinkingSignature: thoughtSig } : {}),
                     });
                   }
                   if (thoughtDelta) {
@@ -305,37 +326,41 @@ export function streamGemini(options: GeminiStreamOptions): InferenceStream {
                   }
                 }
               } else if (part.text !== undefined) {
-                const textDelta = part.text || '';
-                if (textDelta || part.thoughtSignature) {
-                  const existing = assistantContent.find(
-                    (c): c is Extract<(typeof assistantContent)[0], { type: 'text' }> =>
-                      c.type === 'text',
-                  );
-                  if (existing) {
-                    existing.text += textDelta;
-                    if (part.thoughtSignature) existing.thoughtSignature = part.thoughtSignature;
+                const textDelta = typeof part.text === 'string' ? part.text : '';
+                if (textDelta || thoughtSig) {
+                  const lastBlock = assistantContent[assistantContent.length - 1];
+                  if (lastBlock && lastBlock.type === 'text') {
+                    (lastBlock as TextContent).text += textDelta;
+                    if (thoughtSig) {
+                      (lastBlock as TextContent).textSignature = thoughtSig;
+                    }
                   } else {
-                    (assistantContent as any).push({
+                    assistantContent.push({
                       type: 'text',
                       text: textDelta,
-                      thoughtSignature: part.thoughtSignature,
+                      ...(thoughtSig ? { textSignature: thoughtSig } : {}),
                     });
                   }
                   if (textDelta) {
                     yield { type: 'text-delta', delta: textDelta };
                   }
                 }
-              } else if (part.functionCall) {
+              } else if (part.functionCall && typeof part.functionCall === 'object') {
+                const fc = part.functionCall as Record<string, unknown>;
                 toolCallIdx++;
-                const toolId = `call_${Date.now()}_${toolCallIdx}`;
+                const toolId = `call_${toolCallIdx}`;
+                const fnName = typeof fc.name === 'string' ? fc.name : '';
+                const fnArgs = (
+                  typeof fc.args === 'object' && fc.args !== null ? fc.args : {}
+                ) as Record<string, unknown>;
                 const toolCall: ToolCallContent = {
                   type: 'tool-call',
                   id: toolId,
-                  name: part.functionCall.name,
-                  arguments: part.functionCall.args || {},
-                  thoughtSignature: part.thoughtSignature,
+                  name: fnName,
+                  arguments: fnArgs,
+                  ...(thoughtSig ? { thoughtSignature: thoughtSig } : {}),
                 };
-                (assistantContent as any).push(toolCall);
+                assistantContent.push(toolCall);
                 finishReason = 'tool-use';
 
                 yield { type: 'tool-call-start', id: toolId, name: toolCall.name };
@@ -368,10 +393,12 @@ export function streamGemini(options: GeminiStreamOptions): InferenceStream {
         usage,
         finishReason,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       const isAbort = request.abortSignal?.aborted;
       const error = new AIError(
-        isAbort ? 'Inference request aborted.' : `Gemini stream reading failed: ${err.message}`,
+        isAbort
+          ? 'Inference request aborted.'
+          : `Gemini stream reading failed: ${err instanceof Error ? err.message : String(err)}`,
         {
           code: isAbort ? 'aborted' : 'provider',
           provider: 'gemini',

@@ -5,6 +5,17 @@
 import type { JsonObject, JsonValue } from './types.js';
 import { AIError } from './errors.js';
 
+/**
+ * Removes unpaired Unicode surrogate characters from a string to prevent
+ * JSON serialization and remote API tokenizer errors.
+ */
+export function sanitizeSurrogates(text: string): string {
+  return text.replace(
+    /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+    '',
+  );
+}
+
 export function parseJson<T = JsonValue>(text: string): T {
   try {
     return JSON.parse(text) as T;

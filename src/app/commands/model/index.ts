@@ -12,39 +12,8 @@ function getDiscoveryAuthContext() {
   const authManager = createAuthManager();
   return {
     getApiKey: async (provider: ProviderId) => {
-      // 1. Check stored OAuth / resolved credentials first
       const resolved = await authManager.resolve(provider).catch(() => undefined);
-      if (resolved?.token && resolved.token !== 'none') {
-        return resolved.token;
-      }
-
-      // 2. Check static env config
-      switch (provider) {
-        case 'openai':
-          return config.openaiApiKey;
-        case 'gemini':
-          return config.geminiApiKey;
-        case 'anthropic':
-          return config.anthropicApiKey;
-        case 'deepseek':
-          return config.deepseekApiKey;
-        case 'openrouter':
-          return config.openrouterApiKey;
-        case 'github-copilot':
-          return config.copilotGithubToken;
-        case 'groq':
-          return config.groqApiKey;
-        case 'xai':
-          return config.xaiApiKey;
-        case 'mistral':
-          return config.mistralApiKey;
-        case 'ollama':
-          return 'none';
-        case 'custom':
-          return config.custom.apiKey || 'none';
-        default:
-          return undefined;
-      }
+      return resolved?.token && resolved.token !== 'none' ? resolved.token : undefined;
     },
     getCustomEndpoint: () => config.custom,
     getOllamaEndpoint: () => config.ollamaBaseUrl,

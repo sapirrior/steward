@@ -11,10 +11,7 @@ import type {
   OAuthCredential,
   ResolvedAuth,
 } from './types.js';
-import { AuthResolver, type StaticApiKeyProvider } from './resolver.js';
-import { loginAnthropic } from './oauth/anthropic.js';
-import { loginOpenRouter } from './oauth/openrouter.js';
-import { loginGitHubCopilot } from './oauth/github-copilot.js';
+import { AuthResolver, OAUTH_ADAPTERS, type StaticApiKeyProvider } from './resolver.js';
 import { createFileCredentialStore } from './store.js';
 import { AIError } from '../errors.js';
 
@@ -84,20 +81,15 @@ export class DefaultAuthManager implements AuthManager {
   }
 
   public async login(provider: ProviderId, interaction: AuthInteraction): Promise<OAuthCredential> {
-    let credential: OAuthCredential;
-
-    if (provider === 'anthropic') {
-      credential = await loginAnthropic(interaction);
-    } else if (provider === 'openrouter') {
-      credential = await loginOpenRouter(interaction);
-    } else if (provider === 'github-copilot') {
-      credential = await loginGitHubCopilot(interaction);
-    } else {
+    const adapter = OAUTH_ADAPTERS[provider];
+    if (!adapter) {
       throw new AIError(`No browser OAuth login is available for "${provider}".`, {
         code: 'oauth',
         provider,
       });
     }
+
+    const credential = await adapter.login(interaction);
 
     // Persist replacement credential atomically
     await this.store.modify(provider, async () => credential);

@@ -2,7 +2,7 @@
  * @steward/ai - Model Registry & Provider Descriptors
  */
 
-import type { ProviderId, ModelDescriptor } from '../types.js';
+import type { ProviderId } from '../types.js';
 
 export type WireProtocol =
   'openai-responses' | 'openai-chat' | 'anthropic-messages' | 'gemini' | 'openai-compatible';

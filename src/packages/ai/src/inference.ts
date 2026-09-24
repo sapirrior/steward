@@ -11,6 +11,7 @@ import type {
 } from './types.js';
 import { AuthManager, createAuthManager } from './auth/manager.js';
 import { ModelSelectionRequest, resolveModelSelection } from './models/selection.js';
+import { getProviderDescriptor } from './models/registry.js';
 import { streamOpenAI } from './providers/openai.js';
 import { streamAnthropic } from './providers/anthropic.js';
 import { streamGemini } from './providers/gemini.js';
@@ -36,8 +37,17 @@ export function streamInference(
 ): InferenceStream {
   const provider = request.model.provider;
 
-  let streamPromise: Promise<InferenceStream> | null = null;
   const getStream = async (): Promise<InferenceStream> => {
+    let descriptor;
+    try {
+      descriptor = getProviderDescriptor(provider);
+    } catch {
+      throw new AIError(`Unsupported provider: "${provider}"`, {
+        code: 'invalid-request',
+        provider,
+      });
+    }
+
     const resolvedAuth = await authManager.resolve(provider, request.abortSignal);
     if (!resolvedAuth && provider !== 'custom' && provider !== 'ollama') {
       throw new AIError(`No credentials configured for provider: ${provider}`, {
@@ -52,41 +62,45 @@ export function streamInference(
       source: 'custom',
     };
 
-    switch (provider) {
-      case 'anthropic':
+    switch (descriptor.protocol) {
+      case 'anthropic-messages':
         return streamAnthropic({ request, auth });
       case 'gemini':
         return streamGemini({ request, auth });
-      case 'openai':
+      case 'openai-chat':
         return streamOpenAI({ request, auth });
-      case 'deepseek':
-      case 'openrouter':
-      case 'github-copilot':
-      case 'groq':
-      case 'xai':
-      case 'mistral':
-      case 'ollama':
-      case 'custom':
+      case 'openai-compatible':
         return streamOpenAICompatible({ request, auth, customBaseUrl });
+      case 'openai-responses':
+        throw new AIError(
+          `Protocol "openai-responses" is not yet implemented for provider "${provider}"`,
+          {
+            code: 'invalid-request',
+            provider,
+          },
+        );
       default:
-        throw new AIError(`Unsupported provider: "${provider}"`, {
-          code: 'invalid-request',
-          provider,
-        });
+        throw new AIError(
+          `Unsupported protocol "${descriptor.protocol}" for provider "${provider}"`,
+          {
+            code: 'invalid-request',
+            provider,
+          },
+        );
     }
   };
 
-  streamPromise = getStream();
+  const streamPromise = getStream();
 
   return {
     async *[Symbol.asyncIterator]() {
-      const activeStream = await streamPromise!;
+      const activeStream = await streamPromise;
       for await (const event of activeStream) {
         yield event;
       }
     },
     async result() {
-      const activeStream = await streamPromise!;
+      const activeStream = await streamPromise;
       return await activeStream.result();
     },
   };

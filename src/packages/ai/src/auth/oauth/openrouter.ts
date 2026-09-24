@@ -51,15 +51,11 @@ async function exchangeAuthorizationCode(
   });
 
   if (!response.ok) {
-    const errText = await response.text().catch(() => '');
-    throw new AIError(
-      `OpenRouter OAuth key exchange failed (HTTP ${response.status}): ${errText}`,
-      {
-        code: 'oauth',
-        provider: 'openrouter',
-        status: response.status,
-      },
-    );
+    throw new AIError(`OpenRouter OAuth key exchange failed with HTTP status ${response.status}`, {
+      code: 'oauth',
+      provider: 'openrouter',
+      status: response.status,
+    });
   }
 
   const body = (await response.json()) as { key?: string };

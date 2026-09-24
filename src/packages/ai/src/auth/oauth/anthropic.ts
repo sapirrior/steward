@@ -71,15 +71,11 @@ async function exchangeAuthorizationCode(
   });
 
   if (!response.ok) {
-    const errText = await response.text().catch(() => '');
-    throw new AIError(
-      `Anthropic OAuth token exchange failed (HTTP ${response.status}): ${errText}`,
-      {
-        code: 'oauth',
-        provider: 'anthropic',
-        status: response.status,
-      },
-    );
+    throw new AIError(`Anthropic OAuth token exchange failed with HTTP status ${response.status}`, {
+      code: 'oauth',
+      provider: 'anthropic',
+      status: response.status,
+    });
   }
 
   const tokenData = (await response.json()) as {
@@ -206,15 +202,11 @@ export async function refreshAnthropic(
   });
 
   if (!response.ok) {
-    const errText = await response.text().catch(() => '');
-    throw new AIError(
-      `Anthropic OAuth token refresh failed (HTTP ${response.status}): ${errText}`,
-      {
-        code: 'oauth',
-        provider: 'anthropic',
-        status: response.status,
-      },
-    );
+    throw new AIError(`Anthropic OAuth token refresh failed with HTTP status ${response.status}`, {
+      code: 'oauth',
+      provider: 'anthropic',
+      status: response.status,
+    });
   }
 
   const tokenData = (await response.json()) as {

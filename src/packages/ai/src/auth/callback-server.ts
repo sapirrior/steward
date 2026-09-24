@@ -47,6 +47,7 @@ export async function startOAuthCallbackServer(
   let settled = false;
   let resolvePromise: (value: OAuthCallbackResult) => void;
   let rejectPromise: (reason: Error) => void;
+  let abortHandler: (() => void) | undefined;
 
   const promise = new Promise<OAuthCallbackResult>((res, rej) => {
     resolvePromise = res;
@@ -58,7 +59,11 @@ export async function startOAuthCallbackServer(
       const s = server;
       server = null;
       await new Promise<void>((res) => {
-        s.close(() => res());
+        try {
+          s.close(() => res());
+        } catch {
+          res();
+        }
       });
     }
   };
@@ -67,6 +72,11 @@ export async function startOAuthCallbackServer(
     if (settled) return;
     settled = true;
     clearTimeout(timer);
+
+    if (signal && abortHandler) {
+      signal.removeEventListener('abort', abortHandler);
+    }
+
     await closeServer();
 
     if (error) {
@@ -88,9 +98,10 @@ export async function startOAuthCallbackServer(
       clearTimeout(timer);
       throw new AIError('OAuth login was cancelled.', { code: 'aborted' });
     }
-    signal.addEventListener('abort', () => {
+    abortHandler = () => {
       finish(undefined, new AIError('OAuth login was cancelled.', { code: 'aborted' }));
-    });
+    };
+    signal.addEventListener('abort', abortHandler, { once: true });
   }
 
   server = http.createServer((req, res) => {
@@ -164,30 +175,39 @@ export async function startOAuthCallbackServer(
     }
   });
 
-  await new Promise<void>((resolve, reject) => {
-    server!.on('error', (err: NodeJS.ErrnoException) => {
-      clearTimeout(timer);
-      if (err.code === 'EADDRINUSE') {
-        reject(
-          new AIError(`Port ${port} is already in use. Cannot start OAuth callback server.`, {
-            code: 'oauth',
-            cause: err,
-          }),
-        );
-      } else {
-        reject(
-          new AIError(`Failed to bind OAuth callback server: ${err.message}`, {
-            code: 'oauth',
-            cause: err,
-          }),
-        );
-      }
-    });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server!.on('error', async (err: NodeJS.ErrnoException) => {
+        clearTimeout(timer);
+        if (signal && abortHandler) {
+          signal.removeEventListener('abort', abortHandler);
+        }
+        await closeServer();
+        if (err.code === 'EADDRINUSE') {
+          reject(
+            new AIError(`Port ${port} is already in use. Cannot start OAuth callback server.`, {
+              code: 'oauth',
+              cause: err,
+            }),
+          );
+        } else {
+          reject(
+            new AIError(`Failed to bind OAuth callback server: ${err.message}`, {
+              code: 'oauth',
+              cause: err,
+            }),
+          );
+        }
+      });
 
-    server!.listen(port, host, () => {
-      resolve();
+      server!.listen(port, host, () => {
+        resolve();
+      });
     });
-  });
+  } catch (listenErr) {
+    await closeServer();
+    throw listenErr;
+  }
 
   return {
     redirectUri,
@@ -195,6 +215,8 @@ export async function startOAuthCallbackServer(
     cancel: () => {
       finish(undefined, new AIError('OAuth callback cancelled.', { code: 'aborted' }));
     },
-    close: closeServer,
+    close: async () => {
+      await finish(undefined, new AIError('OAuth callback server closed.', { code: 'aborted' }));
+    },
   };
 }

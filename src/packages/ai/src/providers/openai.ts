@@ -1,5 +1,5 @@
 /**
- * @steward/ai - OpenAI Provider Adapter (Chat Completions & Responses)
+ * @steward/ai - OpenAI Provider Adapter (Chat Completions)
  */
 
 import { streamOpenAICompatible } from './openai-compatible.js';
@@ -17,7 +17,7 @@ export function streamOpenAI(options: OpenAIStreamOptions): InferenceStream {
     request,
     auth,
     profile: {
-      provider: 'custom',
+      provider: 'openai',
       baseUrl: 'https://api.openai.com/v1',
       supportsReasoning: true,
       reasoningFormat: 'openai',

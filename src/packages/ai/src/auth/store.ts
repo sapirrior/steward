@@ -19,42 +19,123 @@ export interface FileCredentialStoreOptions {
   filePath?: string;
 }
 
+const fileMutexes = new Map<string, Promise<unknown>>();
+
+function validateAuthStorage(data: unknown): data is AuthStorageSchema {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return false;
+  }
+
+  const root = data as Record<string, unknown>;
+  if (root.version !== 1) {
+    return false;
+  }
+
+  if (
+    !root.credentials ||
+    typeof root.credentials !== 'object' ||
+    Array.isArray(root.credentials)
+  ) {
+    return false;
+  }
+
+  const credentials = root.credentials as Record<string, unknown>;
+  for (const [_, cred] of Object.entries(credentials)) {
+    if (!cred || typeof cred !== 'object' || Array.isArray(cred)) {
+      return false;
+    }
+    const c = cred as Record<string, unknown>;
+    if (c.type !== 'oauth') {
+      return false;
+    }
+    if (typeof c.accessToken !== 'string') {
+      return false;
+    }
+    if (
+      c.refreshToken !== undefined &&
+      c.refreshToken !== null &&
+      typeof c.refreshToken !== 'string'
+    ) {
+      return false;
+    }
+    if (c.expiresAt !== undefined && c.expiresAt !== null && typeof c.expiresAt !== 'number') {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export class FileCredentialStore implements CredentialStore {
   private readonly dirPath: string;
   private readonly filePath: string;
-  private mutex = Promise.resolve();
+  private readonly canonicalPath: string;
 
   constructor(options?: FileCredentialStoreOptions) {
     this.dirPath = options?.storageDir ?? path.join(os.homedir(), '.steward');
     this.filePath = options?.filePath ?? path.join(this.dirPath, 'auth.json');
+    this.canonicalPath = path.resolve(this.filePath);
   }
 
   private async ensureDirectory(): Promise<void> {
     try {
       await fs.mkdir(this.dirPath, { recursive: true, mode: 0o700 });
       await fs.chmod(this.dirPath, 0o700).catch(() => {});
-    } catch {
-      // Ignore if already exists
+    } catch (err: unknown) {
+      const isExist = (err as { code?: string })?.code === 'EEXIST';
+      if (!isExist) {
+        throw new AIError(
+          `Failed to create directory "${this.dirPath}": ${err instanceof Error ? err.message : String(err)}`,
+          {
+            code: 'auth',
+            cause: err,
+          },
+        );
+      }
     }
   }
 
   private async loadData(): Promise<AuthStorageSchema> {
     try {
       const content = await fs.readFile(this.filePath, 'utf-8');
-      const parsed = JSON.parse(content);
-      if (!parsed || typeof parsed !== 'object' || parsed.version !== 1 || !parsed.credentials) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(content);
+      } catch (jsonErr) {
+        throw new AIError('Invalid or corrupt auth.json schema.', {
+          code: 'auth',
+          cause: jsonErr,
+        });
+      }
+
+      if (!validateAuthStorage(parsed)) {
         throw new AIError('Invalid or corrupt auth.json schema.', { code: 'auth' });
       }
-      return parsed as AuthStorageSchema;
-    } catch (err: any) {
-      if (err.code === 'ENOENT') {
+
+      for (const cred of Object.values(parsed.credentials)) {
+        if (cred) {
+          if ((cred as { expiresAt?: unknown }).expiresAt === null) {
+            delete (cred as { expiresAt?: unknown }).expiresAt;
+          }
+          if ((cred as { refreshToken?: unknown }).refreshToken === null) {
+            delete (cred as { refreshToken?: unknown }).refreshToken;
+          }
+        }
+      }
+
+      return parsed;
+    } catch (err: unknown) {
+      if ((err as { code?: string })?.code === 'ENOENT') {
         return { version: 1, credentials: {} };
       }
       if (err instanceof AIError) throw err;
-      throw new AIError(`Failed to read auth store: ${err.message}`, {
-        code: 'auth',
-        cause: err,
-      });
+      throw new AIError(
+        `Failed to read auth store: ${err instanceof Error ? err.message : String(err)}`,
+        {
+          code: 'auth',
+          cause: err,
+        },
+      );
     }
   }
 
@@ -71,12 +152,15 @@ export class FileCredentialStore implements CredentialStore {
       await fs.chmod(tempFile, 0o600).catch(() => {});
       await fs.rename(tempFile, this.filePath);
       await fs.chmod(this.filePath, 0o600).catch(() => {});
-    } catch (err: any) {
+    } catch (err: unknown) {
       await fs.unlink(tempFile).catch(() => {});
-      throw new AIError(`Failed to atomically save auth store: ${err.message}`, {
-        code: 'auth',
-        cause: err,
-      });
+      throw new AIError(
+        `Failed to atomically save auth store: ${err instanceof Error ? err.message : String(err)}`,
+        {
+          code: 'auth',
+          cause: err,
+        },
+      );
     }
   }
 
@@ -104,27 +188,28 @@ export class FileCredentialStore implements CredentialStore {
     provider: ProviderId,
     fn: (current: OAuthCredential | undefined) => Promise<OAuthCredential | undefined>,
   ): Promise<OAuthCredential | undefined> {
-    // In-process serialized lock
-    return new Promise((resolve, reject) => {
-      this.mutex = this.mutex.then(async () => {
-        try {
-          const data = await this.loadData();
-          const current = data.credentials[provider];
-          const updated = await fn(current);
+    const currentMutex = fileMutexes.get(this.canonicalPath) ?? Promise.resolve();
+    const nextMutex = currentMutex.then(async () => {
+      const data = await this.loadData();
+      const current = data.credentials[provider];
+      const updated = await fn(current);
 
-          if (updated) {
-            data.credentials[provider] = updated;
-          } else {
-            delete data.credentials[provider];
-          }
+      if (updated) {
+        data.credentials[provider] = updated;
+      } else {
+        delete data.credentials[provider];
+      }
 
-          await this.saveData(data);
-          resolve(updated);
-        } catch (err) {
-          reject(err);
-        }
-      });
+      await this.saveData(data);
+      return updated;
     });
+
+    fileMutexes.set(
+      this.canonicalPath,
+      nextMutex.catch(() => {}),
+    );
+
+    return await nextMutex;
   }
 
   public async delete(provider: ProviderId): Promise<void> {

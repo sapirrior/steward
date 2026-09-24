@@ -3,15 +3,43 @@
  */
 
 import type { ProviderId } from '../types.js';
-import type { CredentialStore, OAuthCredential, ResolvedAuth } from './types.js';
-import { refreshAnthropic, toAnthropicAuth } from './oauth/anthropic.js';
-import { refreshOpenRouter, toOpenRouterAuth } from './oauth/openrouter.js';
-import { refreshGitHubCopilot, toGitHubCopilotAuth } from './oauth/github-copilot.js';
+import type { AuthInteraction, CredentialStore, OAuthCredential, ResolvedAuth } from './types.js';
+import { loginAnthropic, refreshAnthropic, toAnthropicAuth } from './oauth/anthropic.js';
+import { loginOpenRouter, refreshOpenRouter, toOpenRouterAuth } from './oauth/openrouter.js';
+import {
+  loginGitHubCopilot,
+  refreshGitHubCopilot,
+  toGitHubCopilotAuth,
+} from './oauth/github-copilot.js';
 import { AIError } from '../errors.js';
 
 export interface StaticApiKeyProvider {
   getApiKey(provider: ProviderId): string | undefined;
 }
+
+export interface OAuthProviderAdapter {
+  login(interaction: AuthInteraction): Promise<OAuthCredential>;
+  refresh(credential: OAuthCredential, signal?: AbortSignal): Promise<OAuthCredential>;
+  toResolvedAuth(credential: OAuthCredential): ResolvedAuth;
+}
+
+export const OAUTH_ADAPTERS: Partial<Record<ProviderId, OAuthProviderAdapter>> = {
+  anthropic: {
+    login: loginAnthropic,
+    refresh: refreshAnthropic,
+    toResolvedAuth: toAnthropicAuth,
+  },
+  openrouter: {
+    login: loginOpenRouter,
+    refresh: refreshOpenRouter,
+    toResolvedAuth: toOpenRouterAuth,
+  },
+  'github-copilot': {
+    login: loginGitHubCopilot,
+    refresh: refreshGitHubCopilot,
+    toResolvedAuth: toGitHubCopilotAuth,
+  },
+};
 
 export interface AuthResolverOptions {
   store: CredentialStore;
@@ -90,32 +118,21 @@ export class AuthResolver {
     credential: OAuthCredential,
     signal?: AbortSignal,
   ): Promise<OAuthCredential> {
-    if (provider === 'anthropic') {
-      return await refreshAnthropic(credential, signal);
-    }
-    if (provider === 'openrouter') {
-      return await refreshOpenRouter(credential, signal);
-    }
-    if (provider === 'github-copilot') {
-      return await refreshGitHubCopilot(credential, signal);
+    const adapter = OAUTH_ADAPTERS[provider];
+    if (adapter) {
+      return await adapter.refresh(credential, signal);
     }
     return credential;
   }
 
   private formatOAuth(provider: ProviderId, credential: OAuthCredential): ResolvedAuth {
-    if (provider === 'anthropic') {
-      return toAnthropicAuth(credential);
+    const adapter = OAUTH_ADAPTERS[provider];
+    if (adapter) {
+      return adapter.toResolvedAuth(credential);
     }
-    if (provider === 'openrouter') {
-      return toOpenRouterAuth(credential);
-    }
-    if (provider === 'github-copilot') {
-      return toGitHubCopilotAuth(credential);
-    }
-    return {
-      type: 'oauth',
-      token: credential.accessToken,
-      source: 'oauth',
-    };
+    throw new AIError(`Unsupported OAuth provider: "${provider}"`, {
+      code: 'oauth',
+      provider,
+    });
   }
 }

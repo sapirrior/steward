@@ -167,8 +167,7 @@ async function refreshGitHubCopilotToken(
   }
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new AIError(`GitHub Copilot token exchange failed (HTTP ${res.status}): ${text}`, {
+    throw new AIError(`GitHub Copilot token exchange failed with HTTP status ${res.status}`, {
       code: 'oauth',
       provider: 'github-copilot',
       status: res.status,

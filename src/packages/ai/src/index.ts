@@ -73,5 +73,5 @@ export { startOAuthCallbackServer, type OAuthCallbackServer } from './auth/callb
 // Errors
 export { AIError, type AIErrorCode, type AIErrorOptions } from './errors.js';
 
-// JSON utilities
-export { parseJson, parseStreamingJson } from './json.js';
+// JSON & string utilities
+export { parseJson, parseStreamingJson, sanitizeSurrogates } from './json.js';

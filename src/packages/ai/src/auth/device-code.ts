@@ -2,6 +2,8 @@
  * @steward/ai - RFC 8628 OAuth 2.0 Device Authorization Poller
  */
 
+import { AIError } from '../errors.js';
+
 export interface DeviceCodePollOptions<T> {
   intervalSeconds?: number;
   expiresInSeconds?: number;
@@ -22,16 +24,17 @@ const SLOW_DOWN_INCREMENT_MS = 5000;
 function abortableSleep(ms: number, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
-      reject(new Error('Login cancelled'));
+      reject(new AIError('Login cancelled', { code: 'aborted' }));
       return;
     }
 
+    let timeout: NodeJS.Timeout | undefined;
     const onAbort = () => {
-      clearTimeout(timeout);
-      reject(new Error('Login cancelled'));
+      if (timeout) clearTimeout(timeout);
+      reject(new AIError('Login cancelled', { code: 'aborted' }));
     };
 
-    const timeout = setTimeout(() => {
+    timeout = setTimeout(() => {
       signal.removeEventListener('abort', onAbort);
       resolve();
     }, ms);
@@ -60,7 +63,7 @@ export async function pollOAuthDeviceCodeFlow<T>(options: DeviceCodePollOptions<
 
   while (Date.now() < deadline) {
     if (options.signal.aborted) {
-      throw new Error('Login cancelled');
+      throw new AIError('Login cancelled', { code: 'aborted' });
     }
 
     const result = await options.poll();
@@ -70,7 +73,7 @@ export async function pollOAuthDeviceCodeFlow<T>(options: DeviceCodePollOptions<
     }
 
     if (result.status === 'failed') {
-      throw new Error(result.message);
+      throw new AIError(result.message, { code: 'oauth' });
     }
 
     if (result.status === 'slow_down') {
@@ -86,5 +89,5 @@ export async function pollOAuthDeviceCodeFlow<T>(options: DeviceCodePollOptions<
     await abortableSleep(Math.min(intervalMs, remaining), options.signal);
   }
 
-  throw new Error('Device authorization flow timed out.');
+  throw new AIError('Device authorization flow timed out.', { code: 'oauth' });
 }

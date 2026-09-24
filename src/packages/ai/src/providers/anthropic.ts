@@ -3,8 +3,9 @@
  */
 
 import { decodeSSE } from '../stream.js';
-import { parseStreamingJson } from '../json.js';
+import { parseStreamingJson, sanitizeSurrogates } from '../json.js';
 import type {
+  AssistantContent,
   AssistantMessage,
   FinishReason,
   InferenceEvent,
@@ -42,10 +43,10 @@ function mapAnthropicEffort(
 
 function convertMessages(messages: readonly Message[]): {
   system?: string;
-  anthropicMessages: any[];
+  anthropicMessages: unknown[];
 } {
   let system: string | undefined;
-  const anthropicMessages: any[] = [];
+  const anthropicMessages: unknown[] = [];
 
   for (const msg of messages) {
     if (msg.role === 'system') {
@@ -55,23 +56,23 @@ function convertMessages(messages: readonly Message[]): {
 
     if (msg.role === 'user') {
       if (typeof msg.content === 'string') {
-        anthropicMessages.push({ role: 'user', content: msg.content });
+        anthropicMessages.push({ role: 'user', content: sanitizeSurrogates(msg.content) });
       } else {
         const text = msg.content.map((c) => c.text).join('\n');
-        anthropicMessages.push({ role: 'user', content: text });
+        anthropicMessages.push({ role: 'user', content: sanitizeSurrogates(text) });
       }
       continue;
     }
 
     if (msg.role === 'assistant') {
-      const content: any[] = [];
+      const content: unknown[] = [];
       for (const block of msg.content) {
         if (block.type === 'text') {
-          content.push({ type: 'text', text: block.text });
+          content.push({ type: 'text', text: sanitizeSurrogates(block.text) });
         } else if (block.type === 'thinking') {
           content.push({
             type: 'thinking',
-            thinking: block.thinking,
+            thinking: sanitizeSurrogates(block.thinking),
             signature: block.thinkingSignature,
           });
         } else if (block.type === 'tool-call') {
@@ -88,12 +89,13 @@ function convertMessages(messages: readonly Message[]): {
     }
 
     if (msg.role === 'tool') {
-      const content: any[] = [];
+      const content: unknown[] = [];
       for (const res of msg.content) {
+        const outStr = typeof res.output === 'string' ? res.output : JSON.stringify(res.output);
         content.push({
           type: 'tool_result',
           tool_use_id: res.toolCallId,
-          content: typeof res.output === 'string' ? res.output : JSON.stringify(res.output),
+          content: sanitizeSurrogates(outStr),
           is_error: res.isError,
         });
       }
@@ -110,13 +112,14 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
 
   const { system, anthropicMessages } = convertMessages(request.messages);
 
-  const tools = request.tools?.map((t) => ({
+  const tools = request.tools?.map((t, idx, arr) => ({
     name: t.name,
     description: t.description,
     input_schema: t.inputSchema,
+    ...(idx === arr.length - 1 ? { cache_control: { type: 'ephemeral' } } : {}),
   }));
 
-  const body: Record<string, any> = {
+  const body: Record<string, unknown> = {
     model: request.model.modelId,
     messages: anthropicMessages,
     max_tokens: thinkingConfig ? 32000 : 8192,
@@ -124,7 +127,13 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
   };
 
   if (system) {
-    body.system = system;
+    body.system = [
+      {
+        type: 'text',
+        text: sanitizeSurrogates(system),
+        cache_control: { type: 'ephemeral' },
+      },
+    ];
   }
   if (tools && tools.length > 0) {
     body.tools = tools;
@@ -140,7 +149,7 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
     'Content-Type': 'application/json',
     Accept: 'text/event-stream',
     'anthropic-version': '2023-06-01',
-    ...auth.headers,
+    ...(auth.headers || {}),
   };
 
   if (auth.type === 'api-key') {
@@ -162,12 +171,12 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
         body: JSON.stringify(body),
         signal: request.abortSignal,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       const isAbort = request.abortSignal?.aborted;
       const error = new AIError(
         isAbort
           ? 'Inference request aborted.'
-          : `Network request to Anthropic failed: ${err.message}`,
+          : `Network request to Anthropic failed: ${err instanceof Error ? err.message : String(err)}`,
         {
           code: isAbort ? 'aborted' : 'network',
           provider: 'anthropic',
@@ -180,10 +189,9 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
     }
 
     if (!response.ok) {
-      const errBody = await response.text().catch(() => '');
       const isRateLimit = response.status === 429;
       const isAuth = response.status === 401 || response.status === 403;
-      const error = new AIError(`Anthropic error (HTTP ${response.status}): ${errBody}`, {
+      const error = new AIError(`Anthropic request failed with HTTP status ${response.status}`, {
         code: isAuth
           ? auth.type === 'oauth'
             ? 'oauth'
@@ -209,7 +217,7 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
       return;
     }
 
-    const assistantContent: AssistantMessage['content'] = [];
+    const assistantContent: AssistantContent[] = [];
     const usage: TokenUsage = {
       inputTokens: 0,
       outputTokens: 0,
@@ -228,79 +236,104 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
     try {
       for await (const sse of decodeSSE(response.body, request.abortSignal)) {
         if (!sse.data) continue;
-        let eventData: any;
+        let eventData: Record<string, unknown>;
         try {
-          eventData = JSON.parse(sse.data);
+          eventData = JSON.parse(sse.data) as Record<string, unknown>;
         } catch {
           continue;
         }
 
-        const eventType = sse.event || eventData.type;
+        const eventType =
+          (typeof sse.event === 'string' && sse.event) ||
+          (typeof eventData.type === 'string' && eventData.type) ||
+          '';
 
         switch (eventType) {
           case 'message_start': {
-            if (eventData.message?.usage) {
-              const u = eventData.message.usage;
-              usage.inputTokens = u.input_tokens ?? 0;
-              usage.cacheReadTokens = u.cache_read_input_tokens ?? 0;
-              usage.cacheWriteTokens = u.cache_creation_input_tokens ?? 0;
+            const msg = eventData.message as Record<string, unknown> | undefined;
+            if (msg?.usage && typeof msg.usage === 'object') {
+              const u = msg.usage as Record<string, unknown>;
+              if (typeof u.input_tokens === 'number') usage.inputTokens = u.input_tokens;
+              if (typeof u.cache_read_input_tokens === 'number')
+                usage.cacheReadTokens = u.cache_read_input_tokens;
+              if (typeof u.cache_creation_input_tokens === 'number')
+                usage.cacheWriteTokens = u.cache_creation_input_tokens;
             }
             break;
           }
 
           case 'content_block_start': {
-            const block = eventData.content_block;
+            const block = eventData.content_block as Record<string, unknown> | undefined;
+            if (!block || typeof block !== 'object' || typeof block.type !== 'string') {
+              const error = new AIError('Malformed Anthropic content_block_start event', {
+                code: 'parse',
+                provider: 'anthropic',
+              });
+              errorResult = error;
+              yield { type: 'error', error };
+              return;
+            }
+
             if (block.type === 'text') {
-              currentBlock = { type: 'text', text: block.text || '' };
-              if (block.text) {
-                yield { type: 'text-delta', delta: block.text };
+              const blockText = typeof block.text === 'string' ? block.text : '';
+              currentBlock = { type: 'text', text: blockText };
+              if (blockText) {
+                yield { type: 'text-delta', delta: blockText };
               }
             } else if (block.type === 'thinking') {
+              const blockThinking = typeof block.thinking === 'string' ? block.thinking : '';
+              const blockSig = typeof block.signature === 'string' ? block.signature : undefined;
               currentBlock = {
                 type: 'thinking',
-                thinking: block.thinking || '',
-                signature: block.signature,
+                thinking: blockThinking,
+                signature: blockSig,
               };
-              if (block.thinking) {
-                yield { type: 'reasoning-delta', delta: block.thinking };
+              if (blockThinking) {
+                yield { type: 'reasoning-delta', delta: blockThinking };
               }
             } else if (block.type === 'tool_use') {
+              const blockId = typeof block.id === 'string' ? block.id : '';
+              const blockName = typeof block.name === 'string' ? block.name : '';
               currentBlock = {
                 type: 'tool-call',
-                id: block.id,
-                name: block.name,
+                id: blockId,
+                name: blockName,
                 rawArgs: '',
               };
-              yield { type: 'tool-call-start', id: block.id, name: block.name };
+              yield { type: 'tool-call-start', id: blockId, name: blockName };
             }
             break;
           }
 
           case 'content_block_delta': {
-            const delta = eventData.delta;
-            if (!delta) break;
+            const delta = eventData.delta as Record<string, unknown> | undefined;
+            if (!delta || typeof delta.type !== 'string') break;
 
             if (delta.type === 'text_delta') {
+              const deltaText = typeof delta.text === 'string' ? delta.text : '';
               if (currentBlock && currentBlock.type === 'text') {
-                currentBlock.text += delta.text;
+                currentBlock.text += deltaText;
               }
-              yield { type: 'text-delta', delta: delta.text };
+              yield { type: 'text-delta', delta: deltaText };
             } else if (delta.type === 'thinking_delta') {
+              const deltaThinking = typeof delta.thinking === 'string' ? delta.thinking : '';
               if (currentBlock && currentBlock.type === 'thinking') {
-                currentBlock.thinking += delta.thinking;
+                currentBlock.thinking += deltaThinking;
               }
-              yield { type: 'reasoning-delta', delta: delta.thinking };
+              yield { type: 'reasoning-delta', delta: deltaThinking };
             } else if (delta.type === 'signature_delta') {
+              const deltaSig = typeof delta.signature === 'string' ? delta.signature : '';
               if (currentBlock && currentBlock.type === 'thinking') {
-                currentBlock.signature = (currentBlock.signature || '') + delta.signature;
+                currentBlock.signature = (currentBlock.signature || '') + deltaSig;
               }
             } else if (delta.type === 'input_json_delta') {
+              const partialJson = typeof delta.partial_json === 'string' ? delta.partial_json : '';
               if (currentBlock && currentBlock.type === 'tool-call') {
-                currentBlock.rawArgs += delta.partial_json;
+                currentBlock.rawArgs += partialJson;
                 yield {
                   type: 'tool-call-delta',
                   id: currentBlock.id,
-                  delta: delta.partial_json,
+                  delta: partialJson,
                 };
               }
             }
@@ -310,12 +343,12 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
           case 'content_block_stop': {
             if (currentBlock) {
               if (currentBlock.type === 'text') {
-                (assistantContent as any).push({
+                assistantContent.push({
                   type: 'text',
                   text: currentBlock.text,
                 });
               } else if (currentBlock.type === 'thinking') {
-                (assistantContent as any).push({
+                assistantContent.push({
                   type: 'thinking',
                   thinking: currentBlock.thinking,
                   thinkingSignature: currentBlock.signature,
@@ -328,7 +361,7 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
                   name: currentBlock.name,
                   arguments: parsedArgs,
                 };
-                (assistantContent as any).push(toolCall);
+                assistantContent.push(toolCall);
                 yield { type: 'tool-call-end', toolCall };
               }
               currentBlock = null;
@@ -337,14 +370,16 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
           }
 
           case 'message_delta': {
-            if (eventData.delta?.stop_reason) {
-              const sr = eventData.delta.stop_reason;
+            const delta = eventData.delta as Record<string, unknown> | undefined;
+            if (delta && typeof delta.stop_reason === 'string') {
+              const sr = delta.stop_reason;
               if (sr === 'end_turn' || sr === 'stop_sequence') finishReason = 'stop';
               else if (sr === 'max_tokens') finishReason = 'length';
               else if (sr === 'tool_use') finishReason = 'tool-use';
             }
-            if (eventData.usage?.output_tokens) {
-              usage.outputTokens = eventData.usage.output_tokens;
+            const u = eventData.usage as Record<string, unknown> | undefined;
+            if (typeof u?.output_tokens === 'number') {
+              usage.outputTokens = u.output_tokens;
             }
             break;
           }
@@ -355,14 +390,13 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
           }
 
           case 'error': {
-            const err = eventData.error;
-            const error = new AIError(
-              `Anthropic stream error: ${err?.message || JSON.stringify(err)}`,
-              {
-                code: 'provider',
-                provider: 'anthropic',
-              },
-            );
+            const err = eventData.error as Record<string, unknown> | undefined;
+            const errMsg =
+              typeof err?.message === 'string' ? err.message : 'Unknown provider error';
+            const error = new AIError(`Anthropic stream error: ${errMsg}`, {
+              code: 'provider',
+              provider: 'anthropic',
+            });
             errorResult = error;
             yield { type: 'error', error };
             return;
@@ -402,10 +436,12 @@ export function streamAnthropic(options: AnthropicStreamOptions): InferenceStrea
         usage,
         finishReason,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       const isAbort = request.abortSignal?.aborted;
       const error = new AIError(
-        isAbort ? 'Inference request aborted.' : `Stream reading failed: ${err.message}`,
+        isAbort
+          ? 'Inference request aborted.'
+          : `Stream reading failed: ${err instanceof Error ? err.message : String(err)}`,
         {
           code: isAbort ? 'aborted' : 'provider',
           provider: 'anthropic',

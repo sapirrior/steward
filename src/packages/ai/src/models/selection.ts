@@ -28,32 +28,59 @@ export const PROVIDER_SELECTION_PRIORITY: readonly ProviderId[] = [
 ] as const;
 
 export function inferProviderFromModelId(modelId: string): ProviderId | null {
-  const lower = modelId.toLowerCase();
+  const lower = modelId.trim().toLowerCase();
+  if (!lower) return null;
 
-  // Namespaced OpenRouter IDs, e.g. "openai/gpt-4", "anthropic/claude-sonnet-5"
-  if (/^[a-z0-9-_.]+\/[a-z0-9-_.]+$/.test(lower)) return 'openrouter';
+  // 1. Namespaced OpenRouter IDs, e.g. "meta-llama/llama-3.3-70b-instruct"
+  if (/^[a-z0-9-_.]+\/[a-z0-9-_.]+$/.test(lower)) {
+    return 'openrouter';
+  }
 
-  if (lower.startsWith('copilot/') || lower.startsWith('github-copilot/')) return 'github-copilot';
-  if (lower.startsWith('gemini-') || lower.startsWith('gemma-')) return 'gemini';
-  if (lower.startsWith('claude-')) return 'anthropic';
-  if (
-    lower.startsWith('gpt-') ||
-    lower.startsWith('o1') ||
-    lower.startsWith('o3') ||
-    lower.startsWith('chatgpt-')
-  ) {
+  // 2. Explicit Copilot prefixes
+  if (lower.startsWith('copilot/') || lower.startsWith('github-copilot/')) {
+    return 'github-copilot';
+  }
+
+  // 3. Gemini and Gemma families
+  if (lower.startsWith('gemini-') || lower.startsWith('gemma-')) {
+    return 'gemini';
+  }
+
+  // 4. Anthropic Claude family
+  if (lower.startsWith('claude-')) {
+    return 'anthropic';
+  }
+
+  // 5. OpenAI families (gpt-*, chatgpt-*, and o-series like o1, o1-mini, o3, o3-mini, o4)
+  if (lower.startsWith('gpt-') || lower.startsWith('chatgpt-') || /^o[1-9]($|-)/.test(lower)) {
     return 'openai';
   }
-  if (lower.startsWith('deepseek-')) return 'deepseek';
-  if (lower.startsWith('grok-')) return 'xai';
+
+  // 6. DeepSeek family
+  if (lower.startsWith('deepseek-')) {
+    return 'deepseek';
+  }
+
+  // 7. xAI Grok family
+  if (lower.startsWith('grok-')) {
+    return 'xai';
+  }
+
+  // 8. Mistral families
   if (
     lower.startsWith('codestral') ||
     lower.startsWith('mistral') ||
     lower.startsWith('pixtral') ||
     lower.startsWith('ministral')
-  )
+  ) {
     return 'mistral';
-  if (lower.includes(':latest') || lower.startsWith('ollama/')) return 'ollama';
+  }
+
+  // 9. Conservative Ollama-style tagged names (e.g. "qwen2.5-coder:7b", "llama3.2:3b", "ollama/*")
+  if (lower.startsWith('ollama/') || /^[a-z0-9_.-]+:[a-z0-9_.-]+$/.test(lower)) {
+    return 'ollama';
+  }
+
   return null;
 }
 
