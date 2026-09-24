@@ -1,6 +1,6 @@
 # Steward
 
-[![Version](https://img.shields.io/badge/version-v0.21.0-D77757.svg)](https://github.com/sapirrior/steward/releases)
+[![Version](https://img.shields.io/badge/version-v0.22.0-D77757.svg)](https://github.com/sapirrior/steward/releases)
 [![npm](https://img.shields.io/npm/v/steward-cli.svg?color=373737)](https://www.npmjs.com/package/steward-cli)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Runtime](https://img.shields.io/badge/runtime-Bun-fbf0df.svg?logo=bun)](https://bun.sh)
@@ -74,14 +74,35 @@ Steward operates on a strictly local-first architecture:
 
 ## Provider Setup & Configuration
 
-Steward supports local endpoints and major cloud providers. Configure your environment using environment variables or a `.env` file:
+Steward supports 11 local and cloud providers with native streaming, dynamic model discovery, and multi-turn tool calling. Configure via environment variables, `.env` file, or OAuth `/login`:
+
+### OAuth & Device Code Login
+
+Authenticate directly from the terminal without manual API key management:
+
+```bash
+# Authenticate with GitHub Copilot (Device Code flow)
+/login github-copilot
+
+# Authenticate with Anthropic or OpenRouter (Browser OAuth flow)
+/login anthropic
+/login openrouter
+
+# View or logout from authenticated providers
+/logout
+```
 
 ### Local Models (Ollama, LM Studio, vLLM)
 
 ```bash
-export CUSTOM_API_URL="http://localhost:11434/v1"
-export CUSTOM_API_MODEL_NAME="qwen2.5-coder:32b"
-export CUSTOM_API_KEY="ollama"
+# Ollama
+export OLLAMA_BASE_URL="http://localhost:11434"
+export OLLAMA_MODEL="qwen2.5-coder:32b"
+
+# Generic OpenAI-Compatible Endpoint (LM Studio, vLLM, LocalAI)
+export CUSTOM_API_URL="http://localhost:1234/v1"
+export CUSTOM_API_MODEL_NAME="qwen2.5-coder-32b-instruct"
+export CUSTOM_API_KEY="optional-api-key"
 ```
 
 ### Cloud Providers
@@ -99,6 +120,9 @@ export OPENAI_API_KEY="sk-..."
 # DeepSeek
 export DEEPSEEK_API_KEY="sk-..."
 
+# Groq
+export GROQ_API_KEY="gsk_..."
+
 # xAI
 export XAI_API_KEY="xai-..."
 
@@ -115,11 +139,13 @@ export OPENROUTER_API_KEY="sk-or-v1-..."
 
 | Command | Description |
 | :--- | :--- |
-| `/rewind` | Revert workspace modifications and conversation state to any prior turn |
-| `/model` | Switch active model or provider endpoint |
+| `/login` | Authenticate with cloud providers (`anthropic`, `openrouter`, `github-copilot`) |
+| `/logout` | Log out from authenticated providers and clear stored credentials |
+| `/model` | Switch active model or discover available models across providers |
 | `/mode` | Cycle through or set active chat mode (`normal`, `chat`, `review`, `build`) |
 | `/theme` | Change terminal color theme (`dark`, `light`, `dracula`, `dark-ansi`, `light-ansi`) |
-| `/effort` | Adjust model reasoning effort level (`none`, `low`, `medium`, `high`, `xhigh`) |
+| `/effort` | Adjust model reasoning effort level (`none`, `low`, `medium`, `high`) |
+| `/rewind` | Revert workspace modifications and conversation state to any prior turn |
 | `/sessions` | Browse, resume, or delete saved session transcripts |
 | `/clear` | Clear the current conversation and start a new session |
 | `/help` | View help manual and keyboard shortcuts |

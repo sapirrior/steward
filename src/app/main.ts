@@ -18,9 +18,6 @@ import pkg from '../../package.json' with { type: 'json' };
 export const VERSION = pkg.version;
 export const REPO_URL = 'https://github.com/sapirrior/steward';
 
-// Suppress raw SDK warning output to prevent TUI screen corruption
-(globalThis as any).AI_SDK_LOG_WARNINGS = false;
-
 // Initialize production-grade global error handlers
 setupGlobalErrorHandlers();
 

@@ -1,8 +1,8 @@
-import { APICallError, NoSuchModelError, TypeValidationError } from 'ai';
+import { AIError } from '@steward/ai';
 import type { StructuredError } from './types.js';
 
 /**
- * Classifies raw exceptions from the AI SDK, providers, and tools
+ * Classifies raw exceptions from @steward/ai, providers, and tools
  * into actionable, structured error objects.
  */
 export function classifyError(error: unknown): StructuredError {
@@ -18,7 +18,8 @@ export function classifyError(error: unknown): StructuredError {
   if (
     (error as any)?.name === 'AbortError' ||
     (error as any)?.message?.includes('aborted') ||
-    (error as any)?.message?.includes('AbortError')
+    (error as any)?.message?.includes('AbortError') ||
+    (error instanceof AIError && error.code === 'aborted')
   ) {
     return {
       category: 'aborted',
@@ -29,24 +30,21 @@ export function classifyError(error: unknown): StructuredError {
     };
   }
 
-  // 2. AI SDK APICallError
-  if (APICallError.isInstance(error)) {
-    const status = error.statusCode;
-    const body = typeof error.responseBody === 'string' ? error.responseBody : '';
-    const rawMsg = error.message || '';
+  // 2. AIError from @steward/ai
+  if (error instanceof AIError) {
+    const status = error.status;
+    const code = error.code;
 
-    if (
-      status === 401 ||
-      body.includes('invalid_api_key') ||
-      body.includes('User not found') ||
-      rawMsg.includes('401')
-    ) {
+    if (code === 'auth' || code === 'oauth' || status === 401) {
       return {
         category: 'auth',
-        statusCode: 401,
-        shortMessage: '401 User not found / Invalid API key',
+        statusCode: status ?? 401,
+        shortMessage: error.message || 'Authentication failed',
         isRetryable: false,
-        suggestedAction: 'Check your API key in ~/.env or select a model with /model',
+        suggestedAction:
+          code === 'oauth'
+            ? 'Run /login to authenticate with OAuth or /logout to clear credentials'
+            : 'Check your API key in ~/.env or select a model with /model',
         originalError: error,
       };
     }
@@ -62,7 +60,7 @@ export function classifyError(error: unknown): StructuredError {
       };
     }
 
-    if (status === 429 || body.includes('rate_limit') || rawMsg.includes('429')) {
+    if (code === 'rate-limit' || status === 429) {
       return {
         category: 'rate-limit',
         statusCode: 429,
@@ -74,28 +72,25 @@ export function classifyError(error: unknown): StructuredError {
       };
     }
 
-    if (status === 503 || status === 502 || status === 504 || status === 500) {
+    if (code === 'network') {
       return {
-        category: status === 503 ? 'overload' : 'server-error',
-        statusCode: status,
-        shortMessage: `${status} Provider service temporarily overloaded`,
+        category: 'network',
+        shortMessage: 'Unable to connect to model API server',
         isRetryable: true,
-        retryAfterSec: 6,
-        suggestedAction: 'Upstream model server is overloaded. Retrying automatically',
+        retryAfterSec: 4,
+        suggestedAction:
+          'Verify network connection, local model server (e.g. Ollama/vLLM), or endpoint URL',
         originalError: error,
       };
     }
 
-    if (
-      body.includes('context_length_exceeded') ||
-      body.includes('maximum context length') ||
-      rawMsg.includes('context length')
-    ) {
+    if (code === 'parse') {
       return {
-        category: 'context-length',
-        shortMessage: 'Context window limit exceeded',
-        isRetryable: false,
-        suggestedAction: 'Run /clear to start a new session or summarize past conversation',
+        category: 'validation',
+        code: 'PARSE_ERROR',
+        shortMessage: 'Failed to parse model response',
+        isRetryable: true,
+        suggestedAction: 'Model produced an unexpected format. Retrying may succeed',
         originalError: error,
       };
     }
@@ -103,33 +98,8 @@ export function classifyError(error: unknown): StructuredError {
     return {
       category: 'server-error',
       statusCode: status,
-      shortMessage: error.message?.slice(0, 100) || `API error (${status})`,
-      isRetryable: Boolean(error.isRetryable),
-      originalError: error,
-    };
-  }
-
-  // 3. NoSuchModelError
-  if (NoSuchModelError.isInstance(error)) {
-    return {
-      category: 'model-not-found',
-      code: 'NO_SUCH_MODEL',
-      shortMessage: `Model not found: ${error.modelId ?? 'unknown'}`,
-      isRetryable: false,
-      suggestedAction:
-        'The requested model ID is retired or invalid. Run /model to pick an active model',
-      originalError: error,
-    };
-  }
-
-  // 4. TypeValidationError
-  if (TypeValidationError.isInstance(error)) {
-    return {
-      category: 'validation',
-      code: 'VALIDATION_ERROR',
-      shortMessage: 'Structured output schema validation failed',
-      isRetryable: true,
-      suggestedAction: 'Model produced an unexpected format. Retrying may succeed',
+      shortMessage: error.message?.slice(0, 100) || `AI error (${status || code})`,
+      isRetryable: error.retryable,
       originalError: error,
     };
   }

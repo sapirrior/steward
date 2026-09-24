@@ -7,14 +7,14 @@ Universal operational guidelines for AI coding agents working in the `steward` r
 `steward` is an interactive AI engineering assistant for the terminal — built with:
 
 - **Language/Runtime:** TypeScript, executed natively by [Bun](https://bun.sh)
-- **Model Orchestration & Tool Calling:** Vercel AI SDK (`ai` v7)
+- **Model Orchestration & Tool Calling:** First-party zero-dependency AI engine (`@steward/ai`) supporting 11 providers (OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, GitHub Copilot, Groq, xAI, Mistral, Ollama, Custom).
 - **Terminal User Interface (TUI):** Custom Alternate-Screen TUI Engine with Mode 2026 Synchronized Output and line-differential rendering
 
-> Do not introduce alternative UI frameworks or LLM integration libraries without explicit maintainer approval.
+> Do not introduce alternative UI frameworks or external LLM wrapper libraries (`ai`, `@ai-sdk/*`, langchain, etc.) without explicit maintainer approval.
 
-## 2. Source of Truth for APIs & Libraries
+## 2. Source of Truth for Architecture
 
-- **Vercel AI SDK APIs:** Always consult reference skills in `.agents/skills/` before writing code. Do not hallucinate or rely on outdated pre-training memory for API signatures.
+- **Zero External AI SDKs:** All LLM communication, OAuth (Anthropic, OpenRouter, GitHub Copilot), streaming parsers, and tool calling runtime are maintained directly in `src/packages/ai/`.
 
 ## 3. Architecture & Modular Package Boundaries
 
@@ -22,8 +22,10 @@ All application source code resides in `src/` under a structured modular layout:
 
 - **Application Orchestration (`src/app/`):**
   - CLI entry point (`main.ts`), application orchestrator (`app.ts`), slash commands (`commands/`), and domain UI components (`ui/components/`, `ui/utils/`).
+- **AI Runtime Package (`src/packages/ai/`):**
+  - Zero-dependency streaming inference engine, provider adapters (OpenAI, Anthropic, Gemini, OpenAI-compatible), OAuth authentication & credential store, and dynamic model discovery.
 - **Agents Package (`src/packages/agents/`):**
-  - Model provider integration, streaming agent loop, system prompt construction, chat modes/policy, skill discovery, and tool catalog (15 tools).
+  - Agent session orchestration, multi-step turn runner, system prompt construction, chat modes/policy, and tool catalog (15 tools).
 - **Services Package (`src/packages/services/`):**
   - Infrastructure subsystems: Session Schema v1 store, Checkpoint & CAS manager with atomic rewind, Background Shell Tasks, Settings/Config loader, and structured error logger.
 - **TUI Package (`src/packages/tui/`):**
@@ -31,7 +33,7 @@ All application source code resides in `src/` under a structured modular layout:
 
 ## 4. Documentation & Package README Invariant
 
-- **Package README Invariant:** Whenever modifying or adding code inside a package (`agents`, `services`, `tui`, or `app`), you **MUST update the package's `README.md`** with accurate function, export, and tool breakdowns.
+- **Package README Invariant:** Whenever modifying or adding code inside a package (`ai`, `agents`, `services`, `tui`, or `app`), you **MUST update the package's `README.md`** with accurate function, export, and tool breakdowns.
 - Every package `README.md` must follow the Sonnet documentation convention (File $\to$ Export $\to$ Type $\to$ Description & Constraints).
 
 ## 5. Commands

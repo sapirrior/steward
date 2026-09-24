@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import type { ModelMessage } from 'ai';
-import { SessionLogWriter, type SessionLogEvent } from '@steward/services/session/index.js';
+import type { Message, ToolSpec } from '@steward/ai';
+import { SessionLogWriter } from '@steward/services/session/index.js';
 import {
   MutationCheckpointTracker,
   globalMutationLockManager,
@@ -26,24 +26,24 @@ export interface PreparedTurn {
   turnId: string;
   turnStartedAt: string;
   turnStartMonotonic: number;
-  userMessage: ModelMessage;
+  userMessage: Message;
   abortController: AbortController;
   tracker: MutationCheckpointTracker;
-  activeTools: Record<string, any> | undefined;
+  activeTools: readonly ToolSpec[] | undefined;
+  toolContext: ToolContext;
   instructions: string;
   wrappedOnEvent: AgentEventListener;
 }
 
 /**
  * Prepares the turn execution context (ID, tracker, tool context, system prompt, and event logging wrapper).
- * Extracted from AgentSession.submitPrompt (~75 lines) for modularity and isolation.
  */
 export async function prepareTurn(
   trimmedPrompt: string,
   options: SubmitPromptOptions,
   deps: PrepareTurnDeps,
 ): Promise<PreparedTurn> {
-  const userMessage: ModelMessage = {
+  const userMessage: Message = {
     role: 'user',
     content: trimmedPrompt,
   };
@@ -92,13 +92,13 @@ export async function prepareTurn(
     shellTasks: deps.shellTasks,
   };
 
-  let activeTools: Record<string, any> | undefined;
+  let activeTools: readonly ToolSpec[] | undefined;
   if (typeof options.tools === 'function') {
     activeTools = (options.tools as any)(toolContext);
-  } else if (options.tools) {
+  } else if (Array.isArray(options.tools)) {
     activeTools = options.tools;
   } else {
-    activeTools = defaultToolCatalog.toAISDKTools(toolContext);
+    activeTools = defaultToolCatalog.getSpecs(toolContext);
   }
 
   const instructions = buildSystemPrompt({
@@ -126,6 +126,7 @@ export async function prepareTurn(
     abortController,
     tracker,
     activeTools,
+    toolContext,
     instructions,
     wrappedOnEvent,
   };

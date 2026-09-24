@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { NON_CHAT_MODEL_KEYWORDS } from '../src/packages/agents/src/models/discovery.js';
+import { NON_CHAT_MODEL_KEYWORDS } from '../src/packages/ai/src/models/discovery.js';
 
 describe('Model Discovery Keyword Filter', () => {
   it('correctly filters out non-chat modalities and specialized endpoints', () => {

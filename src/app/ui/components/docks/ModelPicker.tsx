@@ -1,17 +1,17 @@
 import { SelectList } from '@steward/tui/primitives/index.js';
-import type { ModelDescriptor } from '@steward/agents/models/discovery.js';
+import type { DiscoveredModel } from '@steward/ai';
 import { figures } from '@steward/tui/theme/index.js';
 import { c, bold } from '@steward/tui/theme/style.js';
 import { Box, Text } from '@steward/tui/primitives/index.js';
 
 export interface ModelPickerProps {
-  models: ModelDescriptor[];
+  models: DiscoveredModel[];
   currentModel: { provider: string; modelId: string };
-  onSelect: (model: ModelDescriptor) => void;
+  onSelect: (model: DiscoveredModel) => void;
   onCancel: () => void;
 }
 
-export default class ModelPicker extends SelectList<ModelDescriptor> {
+export default class ModelPicker extends SelectList<DiscoveredModel> {
   override wrap = false;
   override clip = true;
   override ellipsis = false;
@@ -25,17 +25,17 @@ export default class ModelPicker extends SelectList<ModelDescriptor> {
       emptyMessage: '  No models matching query.',
       maxVisible: 4,
       searchFilter: (m, q) =>
-        m.model_id.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q),
+        m.modelId.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q),
       onSelect: props.onSelect,
       onCancel: props.onCancel,
       renderItem: (m, isSelected, maxCols) => {
         const isCurrent =
-          m.provider === props.currentModel.provider && m.model_id === props.currentModel.modelId;
+          m.provider === props.currentModel.provider && m.modelId === props.currentModel.modelId;
 
         const pointer = isSelected ? c.selected(`${figures.pointer} `) : '  ';
         const activeBadge = isCurrent ? bold(c.current(' (active)')) : '';
         const providerName = m.provider.toUpperCase();
-        const caps = m.capabilities?.reasoning ? 'reasoning' : 'chat';
+        const caps = m.reasoning ? 'reasoning' : 'chat';
         const meta = `${providerName} • ${caps}`;
 
         return (
@@ -46,7 +46,7 @@ export default class ModelPicker extends SelectList<ModelDescriptor> {
               clip={true}
               ellipsis={true}
             >
-              {`${pointer}${m.model_id}${activeBadge}`}
+              {`${pointer}${m.modelId}${activeBadge}`}
             </Text>
             <Text color="muted" wrap={false} clip={true} ellipsis={true}>
               {`  ${meta}`}

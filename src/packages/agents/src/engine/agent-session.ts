@@ -1,4 +1,16 @@
-import type { LanguageModel, ModelMessage } from 'ai';
+/**
+ * @steward/agents - AgentSession Implementation
+ */
+
+import type {
+  AIEngine,
+  Message,
+  ModelSelection,
+  ReasoningEffort,
+  TokenUsage,
+  ToolCallContent,
+} from '@steward/ai';
+import { createAIEngine } from '@steward/ai';
 import {
   createSession,
   getCurrentDateString,
@@ -13,20 +25,12 @@ import {
 import type { MutationCheckpointTracker } from '@steward/services/checkpoint/index.js';
 import { defaultToolCatalog, summarizeToolResult, formatPlainToolSummary } from '../tools/index.js';
 import { ShellTaskManager } from '@steward/services/tasks/manager.js';
-import { saveSettings } from '@steward/services/config/index.js';
+import { loadSettings, saveSettings } from '@steward/services/config/index.js';
 import { logError } from '@steward/services/errors/index.js';
 import { runAgentTurn } from './agent-runner.js';
 import { SAFETY_STEP_CEILING } from './constants.js';
-import { createModelInstance, resolveActiveModelSelection } from './model-provider.js';
 import type { AgentEvent } from './events.js';
-import type {
-  ModelSelection,
-  ReasoningEffort,
-  SessionConfig,
-  SubmitPromptOptions,
-  TokenUsage,
-  TurnSummary,
-} from './types.js';
+import type { SessionConfig, SubmitPromptOptions, ToolResultInfo, TurnSummary } from './types.js';
 import { prepareTurn } from './turn-context.js';
 
 export { SubmitPromptOptions };
@@ -111,14 +115,18 @@ export function accumulateUsage(current: TokenUsage, delta: TokenUsage): TokenUs
   };
 }
 
+export interface AgentSessionDeps {
+  ai?: AIEngine;
+}
+
 /**
  * Stateful conversation session harness managing message history,
  * active model configuration, abort controls, and turn execution.
  */
 export class AgentSession {
+  private readonly ai: AIEngine;
   private config: SessionConfig;
-  private model: LanguageModel;
-  private messages: ModelMessage[] = [];
+  private messages: Message[] = [];
   private sessionData: SessionData;
   private sessionLogWriter?: SessionLogWriter;
   private accumulatedUsage: TokenUsage = {
@@ -133,20 +141,24 @@ export class AgentSession {
   private isGenerating = false;
   private shellTasks: ShellTaskManager = new ShellTaskManager();
 
-  constructor(initialConfig?: Partial<SessionConfig>, existingSession?: SessionData) {
+  constructor(
+    initialConfig?: Partial<SessionConfig>,
+    existingSession?: SessionData,
+    deps?: AgentSessionDeps,
+  ) {
+    this.ai = deps?.ai ?? createAIEngine();
+
     if (existingSession) {
       this.sessionData = existingSession;
       this.config = {
         provider: existingSession.model.provider,
         modelId: existingSession.model.modelId,
-        reasoningEffort: existingSession.model.effort ?? 'provider-default',
+        reasoningEffort: existingSession.model.effort ?? 'medium',
         temperature: initialConfig?.temperature,
         maxSteps: initialConfig?.maxSteps ?? SAFETY_STEP_CEILING,
       };
-      this.model = createModelInstance(existingSession.model);
       this.accumulatedUsage = { ...existingSession.totalUsage };
 
-      // Rehydrate message history from stored turns — canonical single path from turn.messages
       for (const turn of existingSession.turns) {
         if (turn.messages && turn.messages.length > 0) {
           for (const msg of turn.messages) {
@@ -159,15 +171,25 @@ export class AgentSession {
         this.sessionData.id,
       );
     } else {
-      const selection = resolveActiveModelSelection(initialConfig);
+      const settings = loadSettings();
+      const provider = initialConfig?.provider ?? settings.model?.provider ?? 'gemini';
+      const modelId = initialConfig?.modelId ?? settings.model?.modelId ?? 'gemini-2.5-flash';
+      const effort: ReasoningEffort =
+        initialConfig?.reasoningEffort ?? settings.model?.effort ?? 'medium';
+
+      const selection: ModelSelection = {
+        provider,
+        modelId,
+        effort,
+      };
+
       this.config = {
         provider: selection.provider,
         modelId: selection.modelId,
-        reasoningEffort: selection.effort ?? 'provider-default',
+        reasoningEffort: selection.effort,
         temperature: initialConfig?.temperature,
         maxSteps: initialConfig?.maxSteps ?? SAFETY_STEP_CEILING,
       };
-      this.model = createModelInstance(selection);
       this.sessionData = createSession(selection);
       this.sessionLogWriter = new SessionLogWriter(
         this.sessionData.date || getCurrentDateString(),
@@ -176,63 +198,48 @@ export class AgentSession {
     }
   }
 
-  /**
-   * Resumes an existing session from its stored document.
-   */
-  public static resume(sessionData: SessionData): AgentSession {
-    return new AgentSession(undefined, sessionData);
+  public static resume(sessionData: SessionData, deps?: AgentSessionDeps): AgentSession {
+    return new AgentSession(undefined, sessionData, deps);
   }
 
-  /**
-   * Returns the underlying session persistence document.
-   */
   public get session(): SessionData {
     return this.sessionData;
   }
 
-  /**
-   * Switches the active model dynamically (e.g. via /model command).
-   */
-  public setModel(requested: Partial<ModelSelection>): ModelSelection {
-    const selection = resolveActiveModelSelection({
-      provider: requested.provider,
-      modelId: requested.modelId,
-      effort: requested.effort ?? this.config.reasoningEffort,
-    });
+  public setModel(selection: ModelSelection, persist = true): ModelSelection {
     this.config.provider = selection.provider;
     this.config.modelId = selection.modelId;
-    this.config.reasoningEffort = selection.effort ?? 'provider-default';
-    this.model = createModelInstance(selection);
+    this.config.reasoningEffort = selection.effort ?? 'medium';
 
-    // Update active session metadata & persist
     this.sessionData.model = { ...selection };
     this.sessionData.updatedAt = new Date().toISOString();
     saveSession(this.sessionData);
 
+    if (persist) {
+      saveSettings({
+        model: {
+          provider: selection.provider,
+          modelId: selection.modelId,
+          effort: selection.effort,
+        },
+      });
+    }
+
     return selection;
   }
 
-  /**
-   * Returns current active model configuration.
-   */
   public getModel(): ModelSelection {
     return {
       provider: this.config.provider,
       modelId: this.config.modelId,
-      effort: this.config.reasoningEffort ?? 'provider-default',
+      effort: this.config.reasoningEffort ?? 'medium',
     };
   }
 
-  /**
-   * Returns current reasoning effort level.
-   */
   public getEffort(): ReasoningEffort {
-    return this.config.reasoningEffort ?? 'provider-default';
+    return this.config.reasoningEffort ?? 'medium';
   }
 
-  /**
-   * Sets the reasoning effort level, updates session metadata and persists preference.
-   */
   public setEffort(effort: ReasoningEffort, persist = true): ReasoningEffort {
     this.config.reasoningEffort = effort;
     this.sessionData.model.effort = effort;
@@ -252,9 +259,6 @@ export class AgentSession {
     return effort;
   }
 
-  /**
-   * Renames the active session and saves the update to disk.
-   */
   public renameSession(newName: string): string {
     const trimmed = newName.trim();
     if (!trimmed) {
@@ -265,9 +269,6 @@ export class AgentSession {
     return trimmed;
   }
 
-  /**
-   * Submits a user prompt and runs the turn loop.
-   */
   public async submitPrompt(
     prompt: string,
     options: SubmitPromptOptions = {},
@@ -296,12 +297,55 @@ export class AgentSession {
 
     let summary: TurnSummary | undefined;
 
+    const toolExecutor = async (call: ToolCallContent): Promise<ToolResultInfo> => {
+      const startedAt = new Date().toISOString();
+      const monotonicStart = performance.now();
+
+      try {
+        const result = await defaultToolCatalog.execute(
+          call.name,
+          call.arguments,
+          prep.toolContext,
+        );
+        const finishedAt = new Date().toISOString();
+        const durationMs = Math.max(0, Math.round(performance.now() - monotonicStart));
+
+        return {
+          id: call.id,
+          name: call.name,
+          args: call.arguments,
+          result,
+          isError: false,
+          durationMs,
+          startedAt,
+          finishedAt,
+        };
+      } catch (err: any) {
+        const finishedAt = new Date().toISOString();
+        const durationMs = Math.max(0, Math.round(performance.now() - monotonicStart));
+        const errorMsg = err instanceof Error ? err.message : String(err);
+
+        return {
+          id: call.id,
+          name: call.name,
+          args: call.arguments,
+          result: errorMsg,
+          isError: true,
+          durationMs,
+          startedAt,
+          finishedAt,
+        };
+      }
+    };
+
     try {
       summary = await runAgentTurn({
-        model: this.model,
+        ai: this.ai,
+        model: this.getModel(),
         messages: this.messages,
         instructions: prep.instructions,
         tools: prep.activeTools,
+        toolExecutor,
         maxSteps: this.config.maxSteps,
         temperature: this.config.temperature,
         reasoningEffort: this.config.reasoningEffort,
@@ -309,8 +353,7 @@ export class AgentSession {
         onEvent: prep.wrappedOnEvent,
       });
 
-      // Append turn response messages to history
-      const responseMessages: ModelMessage[] = [];
+      const responseMessages: Message[] = [];
       if (summary.rawMessages && summary.rawMessages.length > 0) {
         for (const msg of summary.rawMessages) {
           this.messages.push(msg);
@@ -320,9 +363,9 @@ export class AgentSession {
 
       const hasAssistantMessage = responseMessages.some((m) => m.role === 'assistant');
       if (summary.text && !hasAssistantMessage) {
-        const assistantMsg: ModelMessage = {
+        const assistantMsg: Message = {
           role: 'assistant',
-          content: summary.text,
+          content: [{ type: 'text', text: summary.text }],
         };
         this.messages.push(assistantMsg);
         responseMessages.push(assistantMsg);
@@ -346,7 +389,7 @@ export class AgentSession {
         hasPartialSummary: Boolean(summary),
       });
 
-      const responseMessages: ModelMessage[] = summary?.rawMessages ?? [];
+      const responseMessages: Message[] = summary?.rawMessages ?? [];
       await this.finalizeTurn({
         turnId: prep.turnId,
         turnStartMonotonic: prep.turnStartMonotonic,
@@ -365,15 +408,11 @@ export class AgentSession {
     }
   }
 
-  /**
-   * Unified turn finalization for complete, interrupted, and errored states.
-   * Parameterizes shared session store updating, CAS commit, and journal logging.
-   */
   private async finalizeTurn(params: {
     turnId: string;
     turnStartMonotonic: number;
-    userMessage: ModelMessage;
-    responseMessages: ModelMessage[];
+    userMessage: Message;
+    responseMessages: Message[];
     summary: TurnSummary | undefined;
     status: 'complete' | 'interrupted' | 'errored';
     tracker: MutationCheckpointTracker;
@@ -400,7 +439,7 @@ export class AgentSession {
       summary.statusVerb = statusVerb;
     }
 
-    const turnMessages: ModelMessage[] =
+    const turnMessages: Message[] =
       status === 'errored' ? [userMessage] : [userMessage, ...responseMessages];
 
     const usage: TokenUsage = summary
@@ -432,47 +471,29 @@ export class AgentSession {
     });
   }
 
-  /**
-   * Aborts the ongoing generation if active.
-   */
   public abort(): void {
     if (this.activeAbortController && this.isGenerating) {
       this.activeAbortController.abort();
     }
   }
 
-  /**
-   * Returns whether the session is currently generating output.
-   */
   public get isBusy(): boolean {
     return this.isGenerating;
   }
 
-  /**
-   * Returns a copy of the conversation history.
-   */
-  public getHistory(): ModelMessage[] {
+  public getHistory(): Message[] {
     return [...this.messages];
   }
 
-  /**
-   * Returns the session-scoped ShellTaskManager instance.
-   */
   public get tasks(): ShellTaskManager {
     return this.shellTasks;
   }
 
-  /**
-   * Shuts down session resources including background shell tasks.
-   */
   public async shutdown(): Promise<void> {
     await this.shellTasks.shutdown();
     await this.sessionLogWriter?.close();
   }
 
-  /**
-   * Resets the conversation history, terminates old background tasks, and initializes a new active session document.
-   */
   public async resetSession(): Promise<void> {
     await this.shellTasks.shutdown();
     await this.sessionLogWriter?.close();
@@ -489,6 +510,7 @@ export class AgentSession {
     this.sessionData = createSession({
       provider: this.config.provider,
       modelId: this.config.modelId,
+      effort: this.config.reasoningEffort ?? 'medium',
     });
     this.sessionLogWriter = new SessionLogWriter(
       this.sessionData.date || getCurrentDateString(),
@@ -496,9 +518,6 @@ export class AgentSession {
     );
   }
 
-  /**
-   * Returns accumulated session token metrics.
-   */
   public getUsage(): TokenUsage {
     return { ...this.accumulatedUsage };
   }

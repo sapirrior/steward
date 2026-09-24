@@ -1,8 +1,8 @@
 [?2026h[H[J────────────────────────────────────────────────────────────────────────────────
 Effort Level                                                        Current: low
-    Faster                                                         Smarter
-    ───────────────────────────────────▲──────────────────────────────────
-     default     none    minimal     low      medium     high     xhigh
+    Faster                                           Smarter
+    ─────────────────────▲──────────────────────────────────
+         none          low          medium         high
     Fast thinking
 ←/→ adjust · Enter save · s session · Esc cancel
 

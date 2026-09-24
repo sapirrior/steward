@@ -1,17 +1,18 @@
-/**
- * Supported LLM provider identifiers.
- */
-export type ProviderName =
-  'gemini' | 'anthropic' | 'openai' | 'xai' | 'mistral' | 'deepseek' | 'openrouter' | 'custom';
+import type { ProviderId } from '@steward/ai';
+
+export type ProviderName = ProviderId;
 
 export const ALL_PROVIDER_NAMES: readonly ProviderName[] = [
   'gemini',
   'anthropic',
   'openai',
-  'xai',
-  'mistral',
   'deepseek',
   'openrouter',
+  'github-copilot',
+  'groq',
+  'xai',
+  'mistral',
+  'ollama',
   'custom',
 ] as const;
 
@@ -20,44 +21,16 @@ export const ALL_PROVIDER_NAMES: readonly ProviderName[] = [
  * loaded from global system environment variables.
  */
 export interface EnvConfig {
-  /**
-   * Google Gemini API key (from global GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY).
-   */
   geminiApiKey?: string;
-
-  /**
-   * Anthropic API key (from global ANTHROPIC_API_KEY).
-   */
   anthropicApiKey?: string;
-
-  /**
-   * OpenAI API key (from global OPENAI_API_KEY).
-   */
   openaiApiKey?: string;
-
-  /**
-   * xAI API key (from global XAI_API_KEY).
-   */
-  xaiApiKey?: string;
-
-  /**
-   * Mistral API key (from global MISTRAL_API_KEY).
-   */
-  mistralApiKey?: string;
-
-  /**
-   * DeepSeek API key (from global DEEPSEEK_API_KEY).
-   */
   deepseekApiKey?: string;
-
-  /**
-   * OpenRouter API key (from global OPENROUTER_API_KEY).
-   */
   openrouterApiKey?: string;
-
-  /**
-   * Custom OpenAI-compatible provider configuration.
-   */
+  copilotGithubToken?: string;
+  groqApiKey?: string;
+  xaiApiKey?: string;
+  mistralApiKey?: string;
+  ollamaBaseUrl?: string;
   custom: {
     apiKey?: string;
     modelName?: string;
@@ -78,13 +51,20 @@ export function getEnvConfig(): EnvConfig {
 
   const openaiApiKey = process.env['OPENAI_API_KEY']?.trim() || undefined;
 
-  const xaiApiKey = process.env['XAI_API_KEY']?.trim() || undefined;
-
-  const mistralApiKey = process.env['MISTRAL_API_KEY']?.trim() || undefined;
-
   const deepseekApiKey = process.env['DEEPSEEK_API_KEY']?.trim() || undefined;
 
   const openrouterApiKey = process.env['OPENROUTER_API_KEY']?.trim() || undefined;
+
+  const copilotGithubToken = process.env['COPILOT_GITHUB_TOKEN']?.trim() || undefined;
+
+  const groqApiKey = process.env['GROQ_API_KEY']?.trim() || undefined;
+
+  const xaiApiKey = process.env['XAI_API_KEY']?.trim() || undefined;
+
+  const mistralApiKey =
+    process.env['MISTRAL_API_KEY']?.trim() || process.env['CODESTRAL_API_KEY']?.trim() || undefined;
+
+  const ollamaBaseUrl = process.env['OLLAMA_BASE_URL']?.trim() || undefined;
 
   const customApiKey = process.env['CUSTOM_API_KEY']?.trim() || undefined;
   const customApiModelName = process.env['CUSTOM_API_MODEL_NAME']?.trim() || undefined;
@@ -94,10 +74,13 @@ export function getEnvConfig(): EnvConfig {
     geminiApiKey,
     anthropicApiKey,
     openaiApiKey,
-    xaiApiKey,
-    mistralApiKey,
     deepseekApiKey,
     openrouterApiKey,
+    copilotGithubToken,
+    groqApiKey,
+    xaiApiKey,
+    mistralApiKey,
+    ollamaBaseUrl,
     custom: {
       apiKey: customApiKey,
       modelName: customApiModelName,
@@ -117,16 +100,21 @@ export function hasProviderConfig(provider: ProviderName, config = getEnvConfig(
       return Boolean(config.anthropicApiKey);
     case 'openai':
       return Boolean(config.openaiApiKey);
-    case 'xai':
-      return Boolean(config.xaiApiKey);
-    case 'mistral':
-      return Boolean(config.mistralApiKey);
     case 'deepseek':
       return Boolean(config.deepseekApiKey);
     case 'openrouter':
       return Boolean(config.openrouterApiKey);
+    case 'github-copilot':
+      return Boolean(config.copilotGithubToken);
+    case 'groq':
+      return Boolean(config.groqApiKey);
+    case 'xai':
+      return Boolean(config.xaiApiKey);
+    case 'mistral':
+      return Boolean(config.mistralApiKey);
+    case 'ollama':
+      return Boolean(config.ollamaBaseUrl);
     case 'custom':
-      // Custom provider requires at least a baseURL and model name; apiKey may be optional (e.g. local Ollama/vLLM)
       return Boolean(config.custom.baseURL && config.custom.modelName);
   }
 }
@@ -137,14 +125,11 @@ export function hasProviderConfig(provider: ProviderName, config = getEnvConfig(
 export function getAvailableProviders(config = getEnvConfig()): ProviderName[] {
   const providers: ProviderName[] = [];
 
-  if (hasProviderConfig('gemini', config)) providers.push('gemini');
-  if (hasProviderConfig('anthropic', config)) providers.push('anthropic');
-  if (hasProviderConfig('openai', config)) providers.push('openai');
-  if (hasProviderConfig('xai', config)) providers.push('xai');
-  if (hasProviderConfig('mistral', config)) providers.push('mistral');
-  if (hasProviderConfig('deepseek', config)) providers.push('deepseek');
-  if (hasProviderConfig('openrouter', config)) providers.push('openrouter');
-  if (hasProviderConfig('custom', config)) providers.push('custom');
+  for (const name of ALL_PROVIDER_NAMES) {
+    if (hasProviderConfig(name, config)) {
+      providers.push(name);
+    }
+  }
 
   return providers;
 }

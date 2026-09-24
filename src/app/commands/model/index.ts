@@ -1,6 +1,55 @@
-import { ALL_PROVIDER_NAMES, saveSettings } from '@steward/services/config/index.js';
-import { fetchAvailableModels, type ModelDescriptor } from '@steward/agents/models/index.js';
+import { ALL_PROVIDER_NAMES, getEnvConfig, saveSettings } from '@steward/services/config/index.js';
+import {
+  fetchAvailableModels,
+  createAuthManager,
+  type DiscoveredModel,
+  type ProviderId,
+} from '@steward/ai';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
+
+function getDiscoveryAuthContext() {
+  const config = getEnvConfig();
+  const authManager = createAuthManager();
+  return {
+    getApiKey: async (provider: ProviderId) => {
+      // 1. Check stored OAuth / resolved credentials first
+      const resolved = await authManager.resolve(provider).catch(() => undefined);
+      if (resolved?.token && resolved.token !== 'none') {
+        return resolved.token;
+      }
+
+      // 2. Check static env config
+      switch (provider) {
+        case 'openai':
+          return config.openaiApiKey;
+        case 'gemini':
+          return config.geminiApiKey;
+        case 'anthropic':
+          return config.anthropicApiKey;
+        case 'deepseek':
+          return config.deepseekApiKey;
+        case 'openrouter':
+          return config.openrouterApiKey;
+        case 'github-copilot':
+          return config.copilotGithubToken;
+        case 'groq':
+          return config.groqApiKey;
+        case 'xai':
+          return config.xaiApiKey;
+        case 'mistral':
+          return config.mistralApiKey;
+        case 'ollama':
+          return 'none';
+        case 'custom':
+          return config.custom.apiKey || 'none';
+        default:
+          return undefined;
+      }
+    },
+    getCustomEndpoint: () => config.custom,
+    getOllamaEndpoint: () => config.ollamaBaseUrl,
+  };
+}
 
 /**
  * /model slash command: opens interactive model picker dock when invoked with no args,
@@ -13,10 +62,11 @@ export const modelCommand: SlashCommand = {
 
   async execute(args: string[], context: CommandContext): Promise<CommandResult> {
     const current = context.session.getModel();
+    const authCtx = getDiscoveryAuthContext();
 
     // 1. If no args provided, trigger interactive ModelPicker dock
     if (args.length === 0) {
-      const discovery = await fetchAvailableModels();
+      const discovery = await fetchAvailableModels(authCtx);
       return {
         handled: true,
         data: {
@@ -37,8 +87,9 @@ export const modelCommand: SlashCommand = {
       targetModelId = args[0].trim();
     } else {
       const first = args[0].trim().toLowerCase();
-      if (validProviders.includes(first)) {
-        targetProvider = first;
+      const normFirst = first === 'copilot' ? 'github-copilot' : first;
+      if (validProviders.includes(normFirst as any)) {
+        targetProvider = normFirst;
         targetModelId = args.slice(1).join(' ').trim();
       } else {
         targetModelId = args.join(' ').trim();
@@ -46,11 +97,11 @@ export const modelCommand: SlashCommand = {
     }
 
     // 3. Validate against discovered models
-    const discovery = await fetchAvailableModels();
-    const matches = discovery.models.filter((m: ModelDescriptor) => {
+    const discovery = await fetchAvailableModels(authCtx);
+    const matches = discovery.models.filter((m: DiscoveredModel) => {
       const idMatch =
-        m.model_id.toLowerCase() === targetModelId.toLowerCase() ||
-        m.model_id.toLowerCase().includes(targetModelId.toLowerCase());
+        m.modelId.toLowerCase() === targetModelId.toLowerCase() ||
+        m.modelId.toLowerCase().includes(targetModelId.toLowerCase());
       if (targetProvider) {
         return m.provider === targetProvider && idMatch;
       }
@@ -67,13 +118,14 @@ export const modelCommand: SlashCommand = {
     // Pick exact match if available, otherwise first match
     const selected =
       matches.find(
-        (m: ModelDescriptor) => m.model_id.toLowerCase() === targetModelId.toLowerCase(),
+        (m: DiscoveredModel) => m.modelId.toLowerCase() === targetModelId.toLowerCase(),
       ) ?? matches[0];
 
-    // 4. Update session (this also updates session metadata and persists session.json)
+    // 4. Update session
     const updatedSelection = context.session.setModel({
       provider: selected.provider,
-      modelId: selected.model_id,
+      modelId: selected.modelId,
+      effort: current.effort ?? 'medium',
     });
 
     // 5. Save to ~/.steward/settings.json
@@ -87,7 +139,7 @@ export const modelCommand: SlashCommand = {
 
     return {
       handled: true,
-      message: `Active model switched to ${selected.provider}/${selected.model_id} and saved to ~/.steward/settings.json.`,
+      message: `Active model switched to ${selected.provider}/${selected.modelId} and saved to ~/.steward/settings.json.`,
       data: { selected: updatedSelection },
     };
   },

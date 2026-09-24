@@ -1,6 +1,6 @@
 # A sub package named agents for Steward for orchestrating LLM interactions, tool executions, and system loops
 
-This package is responsible for model provider resolution, streaming agent loops (Vercel AI SDK v7), tool definition and execution, chat modes and policy, skill discovery, and model discovery.
+This package is responsible for agent loops, tool definition and execution, chat modes and policy, skill discovery, and session orchestration using `@steward/ai`.
 
 ---
 
@@ -10,13 +10,11 @@ This package is responsible for model provider resolution, streaming agent loops
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, and turn execution. | Bridges UI commands to the runner. |
-| `turn-context.ts` | `prepareTurn` | Function | Prepares execution environment, checkpoint tracker, and event logging for a turn. | Parameterized dependencies; isolated setup. |
-| `agent-runner.ts` | `runAgentTurn` | Function | Executes a streaming AI SDK turn using `streamText`, handling tool calls and emitting lifecycle events. | AI SDK v7 compliant; emits typed event stream. |
-| `model-provider.ts` | `resolveModelProvider` | Function | Instantiates AI SDK language model instances across 8 providers (`gemini`, `anthropic`, `openai`, `xai`, `mistral`, `deepseek`, `openrouter`, `custom`). | Configures reasoning effort and API credentials. |
-| | `PROVIDER_REGISTRY` | Export | Metadata and default models for all 8 supported providers. | Declares default models and capabilities. |
+| `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, and turn execution. | Injected with `@steward/ai` `AIEngine`. |
+| `turn-context.ts` | `prepareTurn` | Function | Prepares execution environment, checkpoint tracker, and event logging for a turn. | Builds canonical `Message` and plain `ToolSpec` array. |
+| `agent-runner.ts` | `runAgentTurn` | Function | Executes multi-step agent turn, dispatching tools sequentially and emitting lifecycle events. | Pure loop over `@steward/ai` stream. |
 | `system-prompt.ts` | `buildSystemPrompt` | Function | Assembles dynamic system instructions including workspace context, active mode policy, and available skills. | Injects mode rules and skill manifests. |
-| `events.ts` | `AgentEvent` | Type | Discriminated union of streaming events (`text-delta`, `tool-call-start`, `tool-call-result`, `finish`, `error`). | Typed event contract for UI rendering. |
+| `events.ts` | `AgentEvent` | Type | Discriminated union of streaming events (`text-delta`, `reasoning-delta`, `tool-call`, `tool-result`, `step-end`, `turn-complete`, `error`). | Typed event contract for UI rendering. |
 
 ---
 
@@ -26,6 +24,7 @@ Every tool has an implementation file in `tools/` and a corresponding schema def
 
 | File | Tool Name | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- |
+| `catalog.ts` | `ToolCatalog` | Central tool registry converting Zod schemas to JSON schema `ToolSpec` and dispatching execution. | Validates access permissions before execution. |
 | `read-file/` | `read_file` | Reads the full content of a workspace file with line numbers. | Bounded path resolution; returns line count and content. |
 | `write-file/` | `write_file` | Creates a new file or completely overwrites an existing file. | Requires user permission for new files or destructive overwrites; records CAS checkpoint pre-image. |
 | `edit-file/` | `edit_file` | Performs exact string replacements in an existing file. | Requires user permission; shows diff preview; records CAS checkpoint pre-image. |
@@ -55,10 +54,7 @@ Every tool has an implementation file in `tools/` and a corresponding schema def
 
 ## Agent Invariants & Safety
 
-1. **AI SDK v7 Compliance**: Uses `instructions`, `stopWhen`, `usage.inputTokenDetails`, and standard provider factories.
+1. **Pure Agent Loop**: Completely decoupled from provider implementations via `@steward/ai`.
 2. **Permission Gating**: Destructive mutations (`write_file`, `edit_file`, `bash`) require explicit human-in-the-loop permission callback approval before modifying the workspace.
-3. **Checkpoint Integration**: `write_file` and `edit_file` automatically record pre-mutation CAS hashes to enable lossless rewind.
-4. **Tool Extension Checklist**:
-   - Create tool folder in `tools/<tool-name>/` with schema and implementation.
-   - Register tool in `tools/catalog.ts`.
-   - Update README tools table.
+3. **Sequential Tool Execution**: Multiple tool calls in a turn execute sequentially in model order to prevent permission and checkpoint races.
+4. **Checkpoint Integration**: `write_file` and `edit_file` automatically record pre-mutation CAS hashes to enable lossless rewind.

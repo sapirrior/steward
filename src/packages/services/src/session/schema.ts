@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import type { ModelMessage } from 'ai';
-import type { ModelSelection, TokenUsage } from '../services/contracts.js';
+import type { Message, ModelSelection, TokenUsage } from '../services/contracts.js';
 
 export const SESSION_SCHEMA_VERSION = 1;
 
@@ -10,7 +9,7 @@ export interface SessionTurn {
   status: 'complete' | 'interrupted' | 'errored';
   usage: TokenUsage;
   /** Canonical source of truth for conversation replay and history */
-  messages: ModelMessage[];
+  messages: Message[];
 }
 
 export interface SessionDocument {
@@ -34,9 +33,7 @@ export const TokenUsageSchema = z.object({
   cacheWriteTokens: z.number().optional(),
 });
 
-export const ReasoningEffortSchema = z
-  .enum(['provider-default', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh'])
-  .optional();
+export const ReasoningEffortSchema = z.enum(['none', 'low', 'medium', 'high']).optional();
 
 export const ModelSelectionSchema = z.object({
   provider: z.string() as z.ZodType<any>,

@@ -31,13 +31,14 @@ bun run dev
 ```
 src/
 ├── app/                  # Application orchestrator, main entry, UI components, commands
-│   ├── commands/         # Slash command handlers (/model, /mode, /theme, /effort, etc.)
+│   ├── commands/         # Slash command handlers (/model, /mode, /theme, /effort, /login, etc.)
 │   ├── ui/               # Domain UI components (Header, StatusBar, PromptInput, Docks)
 │   ├── app.ts            # TUI orchestrator wiring all packages
 │   └── main.ts           # CLI entry point
 │
 └── packages/             # Internal modular packages
-    ├── agents/           # LLM agent loops (Vercel AI SDK v7), tools catalog, modes, skills
+    ├── ai/               # Zero-dependency AI runtime, wire adapters (11 providers), OAuth & discovery
+    ├── agents/           # Agent session runner, tools catalog (15 tools), chat modes & policy
     ├── services/         # Persistent infrastructure (Sessions v1, CAS Checkpoints, Tasks, Config)
     └── tui/              # Minimal-diff terminal rendering engine, layout math, primitives, themes
 ```
@@ -70,7 +71,7 @@ src/
 - Run `bun run format:fix` before committing.
 
 ### Package Documentation Invariant
-- Whenever you modify or add code inside a package (`agents`, `services`, `tui`, or `app`), **you must update its corresponding `README.md`**.
+- Whenever you modify or add code inside a package (`ai`, `agents`, `services`, `tui`, or `app`), **you must update its corresponding `README.md`**.
 
 ### TUI Architecture & Rules
 - All code under `src/packages/tui/` and `src/app/ui/` must strictly adhere to [`src/packages/tui/Rules.txt`](src/packages/tui/Rules.txt).

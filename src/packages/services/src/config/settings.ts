@@ -88,6 +88,17 @@ export function saveSettings(updates: Partial<UserSettings>): UserSettings {
   return updated;
 }
 
+export function normalizeReasoningEffort(val?: string | null): ReasoningEffort {
+  if (!val) return 'medium';
+  const lower = val.toLowerCase().trim();
+  if (lower === 'none' || lower === 'off' || lower === '0') return 'none';
+  if (lower === 'low' || lower === 'minimal' || lower === '1' || lower === '2' || lower === '3')
+    return 'low';
+  if (lower === 'high' || lower === 'xhigh' || lower === 'max' || lower === '5' || lower === '6')
+    return 'high';
+  return 'medium';
+}
+
 /**
  * Returns the persisted model selection from ~/.steward/settings.json if present.
  */
@@ -101,7 +112,7 @@ export function getSavedModel(): SavedModelSettings | undefined {
     return {
       provider: settings.model.provider,
       modelId: settings.model.modelId,
-      effort: settings.model.effort ?? 'provider-default',
+      effort: normalizeReasoningEffort(settings.model.effort),
     };
   }
   return undefined;

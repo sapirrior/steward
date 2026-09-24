@@ -1,11 +1,12 @@
-import { tool as createAISDKTool } from 'ai';
-import type { z } from 'zod';
-import { isAllowed, type ChatMode } from '../policy/modes.js';
+/**
+ * @steward/agents - Central Tool Catalog
+ */
+
+import { z } from 'zod';
+import type { JsonSchema, ToolSpec } from '@steward/ai';
+import { isAllowed, MODES, type ChatMode } from '../policy/modes.js';
 import type { ToolContext, ToolDefinition } from './types.js';
 
-/**
- * Central tool registry and catalog.
- */
 export class ToolCatalog {
   private tools = new Map<string, ToolDefinition>();
 
@@ -41,36 +42,52 @@ export class ToolCatalog {
   }
 
   /**
-   * Converts registered tools allowed by the active mode into AI SDK v7 `tool(...)` instances.
+   * Returns all available tools allowed by the context mode.
    */
-  public toAISDKTools(context: ToolContext): Record<string, ReturnType<typeof createAISDKTool>> {
-    const aiTools: Record<string, ReturnType<typeof createAISDKTool>> = {};
+  public getAvailable(context: ToolContext): ToolDefinition[] {
     const mode: ChatMode = context.mode ?? 'normal';
+    return Array.from(this.tools.values()).filter((def) => isAllowed(mode, def.access));
+  }
 
-    for (const [name, def] of this.tools.entries()) {
-      if (!isAllowed(mode, def.access)) {
-        continue;
+  /**
+   * Converts registered tools allowed by the active mode into plain serializable ToolSpec[].
+   */
+  public getSpecs(context: ToolContext): ToolSpec[] {
+    const available = this.getAvailable(context);
+    return available.map((def) => {
+      let inputSchema: JsonSchema;
+      try {
+        inputSchema = z.toJSONSchema(def.parameters) as JsonSchema;
+      } catch {
+        inputSchema = { type: 'object' };
       }
-
-      aiTools[name] = createAISDKTool({
+      return {
+        name: def.name,
         description: def.description,
-        inputSchema: def.parameters,
-        execute: async (args: any) => {
-          if (!isAllowed(mode, def.access)) {
-            const modeLabel = MODES[mode]?.label ?? mode;
-            throw new Error(`Tool "${name}" is not available in ${modeLabel} mode.`);
-          }
-          try {
-            return await def.execute(args, context);
-          } catch (err: any) {
-            const msg = err instanceof Error ? err.message : String(err);
-            throw new Error(msg || `Tool execution failed for "${name}".`);
-          }
-        },
-      });
+        inputSchema,
+      };
+    });
+  }
+
+  /**
+   * Validates and executes a tool safely through the catalog pipeline.
+   */
+  public async execute(name: string, input: unknown, context: ToolContext): Promise<unknown> {
+    const def = this.get(name);
+    if (!def) {
+      throw new Error(`Tool "${name}" not found in catalog.`);
     }
 
-    return aiTools;
+    const mode: ChatMode = context.mode ?? 'normal';
+    if (!isAllowed(mode, def.access)) {
+      const modeLabel = MODES[mode]?.label ?? mode;
+      throw new Error(`Tool "${name}" is not available in ${modeLabel} mode.`);
+    }
+
+    // Validate parameters schema
+    const parsedArgs = def.parameters.parse(input);
+
+    return await def.execute(parsedArgs, context);
   }
 }
 

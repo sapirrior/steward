@@ -1,6 +1,6 @@
 {
   "name": "steward-cli",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "description": "Interactive AI engineering assistant for the terminal with human-in-the-loop control across local and frontier models.",
   "author": "sapirrior",
   "license": "MIT",
@@ -24,14 +24,6 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "4.0.52",
-    "@ai-sdk/deepseek": "3.0.44",
-    "@ai-sdk/google": "4.0.67",
-    "@ai-sdk/mistral": "4.0.43",
-    "@ai-sdk/openai": "4.0.65",
-    "@ai-sdk/openai-compatible": "3.0.47",
-    "@ai-sdk/xai": "5.0.5",
-    "ai": "7.0.97",
     "chalk": "6.0.0",
     "cli-highlight": "2.1.11",
     "get-east-asian-width": "1.6.0",

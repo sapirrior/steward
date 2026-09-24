@@ -6,6 +6,9 @@ import { listSessions, loadSession } from '@steward/services/session/index.js';
 import { saveSettings, saveThemeSelection } from '@steward/services/config/index.js';
 import { setActiveTheme, getActiveThemeName, listThemes } from '@steward/tui/theme/index.js';
 import type { ThemeMeta } from '@steward/tui/theme/colors.js';
+import type { DiscoveredModel, ProviderId, AuthManager } from '@steward/ai';
+import { createAuthManager } from '@steward/ai';
+import LoginDock from './components/docks/LoginDock.js';
 import ModelPicker from './components/docks/ModelPicker.js';
 import ThemePicker from './components/docks/ThemePicker.js';
 import SessionMenu from './components/docks/SessionMenu.js';
@@ -42,6 +45,7 @@ export interface ModalControllerDeps {
 }
 
 type AnyModal =
+  | LoginDock
   | ModelPicker
   | ThemePicker
   | SessionMenu
@@ -58,6 +62,7 @@ type AnyModal =
 export class ModalController {
   private activeModal: AnyModal | null = null;
   private deps: ModalControllerDeps;
+  private authManager: AuthManager = createAuthManager();
 
   constructor(deps: ModalControllerDeps) {
     this.deps = deps;
@@ -106,7 +111,33 @@ export class ModalController {
     engine.mount(statusBar);
   }
 
-  public openModelPicker(models: ModelDescriptor[]): void {
+  public openLoginDock(targetProvider?: ProviderId): void {
+    const { engine, promptInput, statusBar } = this.deps;
+    if (this.activeModal) this.closeModal();
+    engine.unmount(promptInput);
+    engine.unmount(statusBar);
+
+    const dock = new LoginDock({
+      authManager: this.authManager,
+      targetProvider,
+      onSuccess: (provider) => {
+        engine.commit(
+          'system',
+          formatSystemMessage(
+            `Authenticated with ${provider}. Stored credentials in ~/.steward/auth.json`,
+          ),
+        );
+        this.closeModal();
+      },
+      onCancel: () => this.closeModal(),
+    });
+
+    this.activeModal = dock;
+    engine.mount(dock, { kind: 'dock' });
+    engine.mount(statusBar);
+  }
+
+  public openModelPicker(models: DiscoveredModel[]): void {
     const { engine, promptInput, statusBar, header } = this.deps;
     if (this.activeModal) this.closeModal();
     engine.unmount(promptInput);
@@ -120,7 +151,8 @@ export class ModalController {
       onSelect: (selected) => {
         const updated = session.setModel({
           provider: selected.provider,
-          modelId: selected.model_id,
+          modelId: selected.modelId,
+          effort: currentModel.effort ?? 'medium',
         });
         saveSettings({
           model: {
@@ -133,7 +165,7 @@ export class ModalController {
         this.deps.statusBar.update({ model: updated });
         engine.commit(
           'system',
-          formatSystemMessage(`Active model switched to ${selected.provider}/${selected.model_id}`),
+          formatSystemMessage(`Active model switched to ${selected.provider}/${selected.modelId}`),
         );
         this.closeModal();
       },

@@ -31,6 +31,7 @@ export interface CommandResultCtx {
     openModelPicker(models: any[]): void;
     openThemePicker(themes: any[]): void;
     openEffortPicker(): void;
+    openLoginDock(targetProvider?: any): void;
     switchToSession(s: any): void;
     openSessionMenu(sessions: any[]): void;
   };
@@ -67,6 +68,11 @@ export async function applyCommandResult(
   }
 
   ctx.commitPrompt(text);
+
+  if (cmdResult.data?.showLoginDock) {
+    ctx.modals.openLoginDock(cmdResult.data.targetProvider);
+    return true;
+  }
 
   if (cmdResult.data?.showRewind) {
     ctx.modals.openRewindMenu();

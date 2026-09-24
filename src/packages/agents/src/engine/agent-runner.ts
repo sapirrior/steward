@@ -1,19 +1,29 @@
-import { isStepCount, streamText, type LanguageModel, type ModelMessage } from 'ai';
-import { SAFETY_STEP_CEILING } from './constants.js';
-import type { AgentEventListener } from './events.js';
+/**
+ * @steward/agents - Pure Tool / Agent Loop Runner
+ */
+
 import type {
+  AIEngine,
+  AssistantMessage,
+  InferenceRequest,
+  Message,
+  ModelSelection,
   ReasoningEffort,
   TokenUsage,
-  ToolResultInfo,
-  TurnStopReason,
-  TurnSummary,
-} from './types.js';
+  ToolCallContent,
+  ToolSpec,
+} from '@steward/ai';
+import { SAFETY_STEP_CEILING } from './constants.js';
+import type { AgentEventListener } from './events.js';
+import type { ToolResultInfo, TurnStopReason, TurnSummary } from './types.js';
 
 export interface RunAgentTurnOptions {
-  model: LanguageModel;
-  messages: ModelMessage[];
+  ai: AIEngine;
+  model: ModelSelection;
+  messages: Message[];
   instructions?: string;
-  tools?: Record<string, any>;
+  tools?: readonly ToolSpec[];
+  toolExecutor?: (call: ToolCallContent) => Promise<ToolResultInfo>;
   maxSteps?: number;
   temperature?: number;
   reasoningEffort?: ReasoningEffort;
@@ -23,9 +33,6 @@ export interface RunAgentTurnOptions {
 
 export { SAFETY_STEP_CEILING };
 
-/**
- * Classifies the stop reason based on finish reason, step count, and abort state.
- */
 function classifyStopReason(hitStepCeiling: boolean, wasAborted: boolean): TurnStopReason {
   if (wasAborted) return 'aborted';
   if (hitStepCeiling) return 'step-limit';
@@ -33,182 +40,188 @@ function classifyStopReason(hitStepCeiling: boolean, wasAborted: boolean): TurnS
 }
 
 /**
- * Runs a single agent turn with multi-step tool support and event streaming.
+ * Runs a multi-step agent turn using @steward/ai without external AI SDK dependencies.
  */
 export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSummary> {
   const maxSteps = options.maxSteps ?? SAFETY_STEP_CEILING;
   const toolResults: ToolResultInfo[] = [];
-  const activeTools = new Map<string, { startedAt: string; monotonicStart: number }>();
-
   const turnStartedAt = new Date().toISOString();
   const turnStartMonotonic = performance.now();
 
+  const activeMessages: Message[] = [...options.messages];
+  if (options.instructions) {
+    activeMessages.unshift({ role: 'system', content: options.instructions });
+  }
+
+  const accumulatedUsage: TokenUsage = {
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    reasoningTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+  };
+
   let accumulatedText = '';
+  let accumulatedReasoning = '';
   let stepIndex = 0;
+  let finalFinishReason = 'stop';
+  const newTurnMessages: Message[] = [];
 
   try {
-    const result = streamText({
-      model: options.model,
-      messages: options.messages,
-      instructions: options.instructions,
-      tools: options.tools,
-      abortSignal: options.abortSignal,
-      stopWhen: isStepCount(maxSteps),
-      ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
-      // Pass reasoning effort to the model. 'provider-default' is a valid v7 token
-      // meaning "use whatever the provider defaults to". Only omit the field entirely
-      // when the caller passes undefined/null (unset — not the same as provider-default).
-      ...(options.reasoningEffort != null ? { reasoning: options.reasoningEffort } : {}),
-    });
-
-    for await (const chunk of result.stream) {
+    while (stepIndex < maxSteps) {
       if (options.abortSignal?.aborted) {
         break;
       }
 
-      switch (chunk.type) {
-        case 'text-delta': {
-          accumulatedText += chunk.text;
-          options.onEvent?.({
-            type: 'text-delta',
-            text: chunk.text,
-          });
+      const inferenceRequest: InferenceRequest = {
+        model: {
+          ...options.model,
+          effort: options.reasoningEffort ?? options.model.effort ?? 'medium',
+        },
+        messages: activeMessages,
+        tools: options.tools,
+        temperature: options.temperature,
+        abortSignal: options.abortSignal,
+      };
+
+      const stream = options.ai.stream(inferenceRequest);
+      const stepToolCalls: ToolCallContent[] = [];
+
+      for await (const event of stream) {
+        if (options.abortSignal?.aborted) {
           break;
         }
 
-        case 'tool-call': {
-          activeTools.set(chunk.toolCallId, {
-            startedAt: new Date().toISOString(),
-            monotonicStart: performance.now(),
-          });
-          const toolCall = {
-            id: chunk.toolCallId,
-            name: chunk.toolName,
-            args: (chunk.input as Record<string, unknown>) ?? {},
-          };
-          options.onEvent?.({
-            type: 'tool-call',
-            toolCall,
-          });
-          break;
-        }
+        switch (event.type) {
+          case 'text-delta': {
+            accumulatedText += event.delta;
+            options.onEvent?.({
+              type: 'text-delta',
+              text: event.delta,
+            });
+            break;
+          }
 
-        case 'tool-result': {
-          const timing = activeTools.get(chunk.toolCallId);
-          activeTools.delete(chunk.toolCallId);
-          const finishedAt = new Date().toISOString();
-          const durationMs = timing
-            ? Math.max(0, Math.round(performance.now() - timing.monotonicStart))
-            : undefined;
+          case 'reasoning-delta': {
+            accumulatedReasoning += event.delta;
+            options.onEvent?.({
+              type: 'reasoning-delta',
+              reasoning: event.delta,
+            });
+            break;
+          }
 
-          const toolResult: ToolResultInfo = {
-            id: chunk.toolCallId,
-            name: chunk.toolName,
-            args: (chunk.input as Record<string, unknown>) ?? {},
-            result: chunk.output,
-            isError: false,
-            durationMs,
-            startedAt: timing?.startedAt,
-            finishedAt,
-          };
-          toolResults.push(toolResult);
-          options.onEvent?.({
-            type: 'tool-result',
-            toolResult,
-          });
-          break;
-        }
+          case 'tool-call-start': {
+            // Started receiving tool call
+            break;
+          }
 
-        case 'tool-error': {
-          const timing = activeTools.get(chunk.toolCallId);
-          activeTools.delete(chunk.toolCallId);
-          const finishedAt = new Date().toISOString();
-          const durationMs = timing
-            ? Math.max(0, Math.round(performance.now() - timing.monotonicStart))
-            : undefined;
+          case 'tool-call-delta': {
+            // Fragment argument delta
+            break;
+          }
 
-          const toolResult: ToolResultInfo = {
-            id: chunk.toolCallId,
-            name: chunk.toolName,
-            args: (chunk.input as Record<string, unknown>) ?? {},
-            result: chunk.error,
-            isError: true,
-            durationMs,
-            startedAt: timing?.startedAt,
-            finishedAt,
-          };
-          toolResults.push(toolResult);
-          options.onEvent?.({
-            type: 'tool-result',
-            toolResult,
-          });
-          break;
-        }
+          case 'tool-call-end': {
+            stepToolCalls.push(event.toolCall);
+            options.onEvent?.({
+              type: 'tool-call',
+              toolCall: {
+                id: event.toolCall.id,
+                name: event.toolCall.name,
+                args: event.toolCall.arguments,
+              },
+            });
+            break;
+          }
 
-        case 'finish-step': {
-          stepIndex++;
-          const stepUsage: TokenUsage | undefined = chunk.usage
-            ? {
-                inputTokens: chunk.usage.inputTokens ?? 0,
-                outputTokens: chunk.usage.outputTokens ?? 0,
-                totalTokens: chunk.usage.totalTokens ?? 0,
-                // AI SDK v7: nested under outputTokenDetails / inputTokenDetails
-                reasoningTokens: chunk.usage.outputTokenDetails?.reasoningTokens,
-                cacheReadTokens: chunk.usage.inputTokenDetails?.cacheReadTokens,
-                cacheWriteTokens: chunk.usage.inputTokenDetails?.cacheWriteTokens,
-              }
-            : undefined;
-
-          options.onEvent?.({
-            type: 'step-end',
-            stepIndex,
-            usage: stepUsage,
-          });
-          break;
-        }
-
-        case 'error': {
-          const error = chunk.error instanceof Error ? chunk.error : new Error(String(chunk.error));
-          options.onEvent?.({
-            type: 'error',
-            error,
-            isFatal: false,
-          });
-          break;
-        }
-      }
-    }
-
-    const rawUsage = await result.usage;
-    const finishReason = await result.finishReason;
-    const rawTurnMessages = (await result.responseMessages) as ModelMessage[];
-
-    // Ensure finalTurnText captures the complete output (including Gemini buffered steps)
-    let finalTurnText = accumulatedText;
-    if (!finalTurnText) {
-      try {
-        const resolvedText = await result.text;
-        if (resolvedText) {
-          finalTurnText = resolvedText;
-        }
-      } catch {}
-    }
-
-    if (!finalTurnText && rawTurnMessages.length > 0) {
-      for (const msg of rawTurnMessages) {
-        if (msg.role === 'assistant') {
-          if (typeof msg.content === 'string' && msg.content.trim()) {
-            finalTurnText = msg.content;
-          } else if (Array.isArray(msg.content)) {
-            const textParts = msg.content
-              .filter((p: any) => p.type === 'text')
-              .map((p: any) => p.text)
-              .join('');
-            if (textParts.trim()) {
-              finalTurnText = textParts;
-            }
+          case 'error': {
+            options.onEvent?.({
+              type: 'error',
+              error: event.error,
+              isFatal: false,
+            });
+            throw event.error;
           }
         }
+      }
+
+      const stepResult = await stream.result();
+      finalFinishReason = stepResult.finishReason;
+
+      // Accumulate usage
+      accumulatedUsage.inputTokens += stepResult.usage.inputTokens;
+      accumulatedUsage.outputTokens += stepResult.usage.outputTokens;
+      accumulatedUsage.totalTokens += stepResult.usage.totalTokens;
+      if (stepResult.usage.reasoningTokens) {
+        accumulatedUsage.reasoningTokens =
+          (accumulatedUsage.reasoningTokens ?? 0) + stepResult.usage.reasoningTokens;
+      }
+      if (stepResult.usage.cacheReadTokens) {
+        accumulatedUsage.cacheReadTokens =
+          (accumulatedUsage.cacheReadTokens ?? 0) + stepResult.usage.cacheReadTokens;
+      }
+      if (stepResult.usage.cacheWriteTokens) {
+        accumulatedUsage.cacheWriteTokens =
+          (accumulatedUsage.cacheWriteTokens ?? 0) + stepResult.usage.cacheWriteTokens;
+      }
+
+      // Append assistant message to history
+      activeMessages.push(stepResult.message);
+      newTurnMessages.push(stepResult.message);
+
+      stepIndex++;
+      options.onEvent?.({
+        type: 'step-end',
+        stepIndex,
+        usage: stepResult.usage,
+      });
+
+      // If no tool calls, turn finishes naturally
+      if (stepToolCalls.length === 0) {
+        break;
+      }
+
+      // Execute tool calls sequentially in model order
+      const toolResultsForStep: Array<{
+        type: 'tool-result';
+        toolCallId: string;
+        toolName: string;
+        output: any;
+        isError?: boolean;
+      }> = [];
+
+      for (const call of stepToolCalls) {
+        if (options.abortSignal?.aborted) {
+          break;
+        }
+
+        if (options.toolExecutor) {
+          const resultInfo = await options.toolExecutor(call);
+          toolResults.push(resultInfo);
+          options.onEvent?.({
+            type: 'tool-result',
+            toolResult: resultInfo,
+          });
+
+          toolResultsForStep.push({
+            type: 'tool-result',
+            toolCallId: call.id,
+            toolName: call.name,
+            output: resultInfo.result,
+            isError: resultInfo.isError,
+          });
+        }
+      }
+
+      // Append tool result message
+      if (toolResultsForStep.length > 0) {
+        const toolMsg: Message = {
+          role: 'tool',
+          content: toolResultsForStep,
+        };
+        activeMessages.push(toolMsg);
+        newTurnMessages.push(toolMsg);
       }
     }
 
@@ -216,26 +229,17 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
     const wasAborted = Boolean(options.abortSignal?.aborted);
     const stopReason = classifyStopReason(hitStepCeiling, wasAborted);
 
-    const usage: TokenUsage = {
-      inputTokens: rawUsage.inputTokens ?? 0,
-      outputTokens: rawUsage.outputTokens ?? 0,
-      totalTokens: rawUsage.totalTokens ?? 0,
-      // AI SDK v7: nested under outputTokenDetails / inputTokenDetails
-      reasoningTokens: rawUsage.outputTokenDetails?.reasoningTokens,
-      cacheReadTokens: rawUsage.inputTokenDetails?.cacheReadTokens,
-      cacheWriteTokens: rawUsage.inputTokenDetails?.cacheWriteTokens,
-    };
-
     const turnFinishedAt = new Date().toISOString();
     const turnDurationMs = Math.max(0, Math.round(performance.now() - turnStartMonotonic));
 
     const summary: TurnSummary = {
-      text: finalTurnText,
+      text: accumulatedText,
+      reasoning: accumulatedReasoning || undefined,
       toolCalls: toolResults,
-      usage,
-      finishReason,
+      usage: accumulatedUsage,
+      finishReason: finalFinishReason,
       stopReason,
-      rawMessages: rawTurnMessages,
+      rawMessages: newTurnMessages,
       durationMs: turnDurationMs,
       startedAt: turnStartedAt,
       finishedAt: turnFinishedAt,

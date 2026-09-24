@@ -42,13 +42,10 @@ for (const tool of builtInTools) {
 }
 
 /**
- * Returns AI SDK v7 formatted tools object for all registered tools in the catalog.
+ * Returns plain ToolSpec array for all registered tools allowed in the given context.
  */
-export function getAISDKTools(
-  context: ToolContext,
-  catalog: ToolCatalog = defaultToolCatalog,
-): Record<string, any> {
-  return catalog.toAISDKTools(context);
+export function getToolSpecs(context: ToolContext, catalog: ToolCatalog = defaultToolCatalog) {
+  return catalog.getSpecs(context);
 }
 
 export * from './catalog.js';

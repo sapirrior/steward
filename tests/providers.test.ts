@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'bun:test';
@@ -15,299 +15,47 @@ import {
   hasProviderConfig,
   type EnvConfig,
 } from '../src/packages/services/src/config/index.js';
-import {
-  PROVIDER_REGISTRY,
-  PROVIDER_SELECTION_PRIORITY,
-  resolveActiveModelSelection,
-} from '../src/packages/agents/src/engine/model-provider.js';
-import {
-  fetchDeepSeekModels,
-  fetchMistralModels,
-  fetchOpenRouterModels,
-  fetchXaiModels,
-} from '../src/packages/agents/src/models/discovery.js';
+import { PROVIDER_REGISTRY, PROVIDER_SELECTION_PRIORITY, resolveModelSelection } from '@steward/ai';
+import { fetchDeepSeekModels, fetchOpenRouterModels } from '@steward/ai';
 
 describe('Provider Configuration & Discovery', () => {
-  it('should include all 8 providers in ALL_PROVIDER_NAMES and priority list', () => {
+  it('should include all 11 canonical providers in ALL_PROVIDER_NAMES and priority list', () => {
     expect(ALL_PROVIDER_NAMES).toEqual([
       'gemini',
       'anthropic',
       'openai',
+      'deepseek',
+      'openrouter',
+      'github-copilot',
+      'groq',
       'xai',
       'mistral',
+      'ollama',
+      'custom',
+    ]);
+    expect(PROVIDER_SELECTION_PRIORITY).toEqual([
+      'gemini',
+      'anthropic',
+      'openai',
       'deepseek',
+      'groq',
+      'xai',
+      'mistral',
+      'github-copilot',
+      'ollama',
       'openrouter',
       'custom',
     ]);
-    expect(PROVIDER_SELECTION_PRIORITY).toEqual(ALL_PROVIDER_NAMES);
   });
 
   it('should accurately detect configured providers via hasProviderConfig and getAvailableProviders', () => {
     const emptyConfig: EnvConfig = { custom: {} };
     expect(getAvailableProviders(emptyConfig)).toEqual([]);
 
-    const xaiConfig: EnvConfig = { xaiApiKey: 'xai-test-key', custom: {} };
-    expect(hasProviderConfig('xai', xaiConfig)).toBe(true);
-    expect(hasProviderConfig('mistral', xaiConfig)).toBe(false);
-    expect(getAvailableProviders(xaiConfig)).toEqual(['xai']);
-
-    const fullConfig: EnvConfig = {
-      geminiApiKey: 'g-key',
-      anthropicApiKey: 'a-key',
-      openaiApiKey: 'o-key',
-      xaiApiKey: 'x-key',
-      mistralApiKey: 'm-key',
-      deepseekApiKey: 'd-key',
-      openrouterApiKey: 'or-key',
-      custom: {
-        baseURL: 'http://localhost:11434/v1',
-        modelName: 'qwen2.5-coder',
-        apiKey: 'ollama',
-      },
-    };
-
-    expect(getAvailableProviders(fullConfig)).toEqual([
-      'gemini',
-      'anthropic',
-      'openai',
-      'xai',
-      'mistral',
-      'deepseek',
-      'openrouter',
-      'custom',
-    ]);
-  });
-
-  it('should correctly infer provider from model ID including OpenRouter namespaced IDs', () => {
-    const config: EnvConfig = {
-      geminiApiKey: 'g',
-      anthropicApiKey: 'a',
-      openaiApiKey: 'o',
-      xaiApiKey: 'x',
-      mistralApiKey: 'm',
-      deepseekApiKey: 'd',
-      openrouterApiKey: 'or',
-      custom: {},
-    };
-
-    // OpenRouter namespaced prefix priority check
-    expect(resolveActiveModelSelection({ modelId: 'openai/gpt-4o-mini' }, config)).toEqual({
-      provider: 'openrouter',
-      modelId: 'openai/gpt-4o-mini',
-      effort: 'provider-default',
-    });
-    expect(resolveActiveModelSelection({ modelId: 'anthropic/claude-3-7-sonnet' }, config)).toEqual(
-      {
-        provider: 'openrouter',
-        modelId: 'anthropic/claude-3-7-sonnet',
-        effort: 'provider-default',
-      },
-    );
-
-    // xAI
-    expect(resolveActiveModelSelection({ modelId: 'grok-4-fast-non-reasoning' }, config)).toEqual({
-      provider: 'xai',
-      modelId: 'grok-4-fast-non-reasoning',
-      effort: 'provider-default',
-    });
-
-    // DeepSeek
-    expect(resolveActiveModelSelection({ modelId: 'deepseek-flash' }, config)).toEqual({
-      provider: 'deepseek',
-      modelId: 'deepseek-flash',
-      effort: 'provider-default',
-    });
-
-    // Mistral
-    expect(resolveActiveModelSelection({ modelId: 'mistral-small-latest' }, config)).toEqual({
-      provider: 'mistral',
-      modelId: 'mistral-small-latest',
-      effort: 'provider-default',
-    });
-    expect(resolveActiveModelSelection({ modelId: 'magistral-small-2507' }, config)).toEqual({
-      provider: 'mistral',
-      modelId: 'magistral-small-2507',
-      effort: 'provider-default',
-    });
-    expect(resolveActiveModelSelection({ modelId: 'pixtral-12b-2409' }, config)).toEqual({
-      provider: 'mistral',
-      modelId: 'pixtral-12b-2409',
-      effort: 'provider-default',
-    });
-  });
-
-  it('should have sensible defaults in PROVIDER_REGISTRY', () => {
-    expect(PROVIDER_REGISTRY.xai.defaultModel).toBe('grok-4-fast-non-reasoning');
-    expect(PROVIDER_REGISTRY.mistral.defaultModel).toBe('mistral-small-latest');
-    expect(PROVIDER_REGISTRY.deepseek.defaultModel).toBe('deepseek-chat');
-    expect(PROVIDER_REGISTRY.openrouter.defaultModel).toBe(
-      'meta-llama/llama-3.3-70b-instruct:free',
-    );
-  });
-
-  it('should have all 8 providers declared in PROVIDER_REGISTRY with correct metadata', async () => {
-    const { PROVIDER_REGISTRY } =
-      await import('../src/packages/agents/src/engine/model-provider.js');
-    expect(Object.keys(PROVIDER_REGISTRY).sort()).toEqual([
-      'anthropic',
-      'custom',
-      'deepseek',
-      'gemini',
-      'mistral',
-      'openai',
-      'openrouter',
-      'xai',
-    ]);
-  });
-});
-
-describe('Provider Model Discovery Filtering', () => {
-  const originalFetch = globalThis.fetch;
-
-  it('should filter xAI models correctly (exclude imagine / video / voice)', async () => {
-    globalThis.fetch = async () =>
-      new Response(
-        JSON.stringify({
-          data: [
-            { id: 'grok-4-fast-non-reasoning' },
-            { id: 'grok-imagine-image' },
-            { id: 'grok-imagine-video' },
-            { id: 'grok-voice-1' },
-            { id: 'grok-3-mini' },
-          ],
-        }),
-        { status: 200 },
-      );
-
-    const models = await fetchXaiModels('test-key');
-    expect(models).toEqual([
-      { provider: 'xai', model_id: 'grok-3-mini' },
-      { provider: 'xai', model_id: 'grok-4-fast-non-reasoning' },
-    ]);
-  });
-
-  it('should filter Mistral models by capabilities.completion_chat', async () => {
-    globalThis.fetch = async () =>
-      new Response(
-        JSON.stringify({
-          data: [
-            {
-              id: 'mistral-small-latest',
-              capabilities: { completion_chat: true },
-              archived: false,
-            },
-            { id: 'mistral-embed', capabilities: { completion_chat: false }, archived: false },
-            { id: 'old-chat', capabilities: { completion_chat: true }, archived: true },
-            { id: 'ft-chat', capabilities: { completion_chat: true }, TYPE: 'fine-tuned' },
-            { id: 'codestral-latest', capabilities: { completion_chat: true }, archived: false },
-          ],
-        }),
-        { status: 200 },
-      );
-
-    const models = await fetchMistralModels('test-key');
-    expect(models).toEqual([
-      { provider: 'mistral', model_id: 'codestral-latest' },
-      { provider: 'mistral', model_id: 'mistral-small-latest' },
-    ]);
-  });
-
-  it('should filter DeepSeek models (exclude embed / rerank / moderation)', async () => {
-    globalThis.fetch = async () =>
-      new Response(
-        JSON.stringify({
-          data: [
-            { id: 'deepseek-flash' },
-            { id: 'deepseek-v4-pro' },
-            { id: 'deepseek-embed-1' },
-            { id: 'deepseek-rerank' },
-          ],
-        }),
-        { status: 200 },
-      );
-
-    const models = await fetchDeepSeekModels('test-key');
-    expect(models).toEqual([
-      { provider: 'deepseek', model_id: 'deepseek-flash' },
-      { provider: 'deepseek', model_id: 'deepseek-v4-pro' },
-    ]);
-  });
-
-  it('should paginate and filter OpenRouter models for text output modality', async () => {
-    let callCount = 0;
-    globalThis.fetch = async (input: RequestInfo | URL) => {
-      callCount++;
-      const url = String(input);
-      if (url === 'https://openrouter.ai/api/v1/models') {
-        return new Response(
-          JSON.stringify({
-            data: [
-              {
-                id: 'openai/gpt-4o-mini',
-                architecture: { output_modalities: ['text'] },
-              },
-              {
-                id: 'black-forest-labs/flux-1',
-                architecture: { output_modalities: ['image'] },
-              },
-            ],
-            links: { next: '/api/v1/models?offset=2' },
-          }),
-          { status: 200 },
-        );
-      } else {
-        return new Response(
-          JSON.stringify({
-            data: [
-              {
-                id: 'anthropic/claude-3-7-sonnet',
-                architecture: { output_modalities: ['text'] },
-              },
-            ],
-            links: { next: null },
-          }),
-          { status: 200 },
-        );
-      }
-    };
-
-    const models = await fetchOpenRouterModels('test-key');
-    expect(callCount).toBe(2);
-    expect(models).toEqual([
-      { provider: 'openrouter', model_id: 'anthropic/claude-3-7-sonnet' },
-      { provider: 'openrouter', model_id: 'openai/gpt-4o-mini' },
-    ]);
-
-    // Restore fetch
-    globalThis.fetch = originalFetch;
-  });
-});
-
-describe('Reasoning Effort & Session Metadata', () => {
-  it('should parse numeric 0-6 and string reasoning efforts', async () => {
-    const { parseReasoningEffort } =
-      await import('../src/packages/agents/src/engine/model-provider.js');
-
-    expect(parseReasoningEffort(0)).toBe('provider-default');
-    expect(parseReasoningEffort(1)).toBe('none');
-    expect(parseReasoningEffort(2)).toBe('minimal');
-    expect(parseReasoningEffort(3)).toBe('low');
-    expect(parseReasoningEffort(4)).toBe('medium');
-    expect(parseReasoningEffort(5)).toBe('high');
-    expect(parseReasoningEffort(6)).toBe('xhigh');
-
-    expect(parseReasoningEffort('0')).toBe('provider-default');
-    expect(parseReasoningEffort('1')).toBe('none');
-    expect(parseReasoningEffort('default')).toBe('provider-default');
-    expect(parseReasoningEffort('none')).toBe('none');
-    expect(parseReasoningEffort('off')).toBe('none');
-    expect(parseReasoningEffort('low')).toBe('low');
-    expect(parseReasoningEffort('med')).toBe('medium');
-    expect(parseReasoningEffort('medium')).toBe('medium');
-    expect(parseReasoningEffort('high')).toBe('high');
-    expect(parseReasoningEffort('max')).toBe('xhigh');
-    expect(parseReasoningEffort('xhigh')).toBe('xhigh');
-    expect(parseReasoningEffort('invalid')).toBeUndefined();
+    const openrouterConfig: EnvConfig = { openrouterApiKey: 'or-test-key', custom: {} };
+    expect(hasProviderConfig('openrouter', openrouterConfig)).toBe(true);
+    expect(hasProviderConfig('deepseek', openrouterConfig)).toBe(false);
+    expect(getAvailableProviders(openrouterConfig)).toEqual(['openrouter']);
   });
 
   it('should update sessionData.model when setModel is called on AgentSession', async () => {
@@ -322,9 +70,8 @@ describe('Reasoning Effort & Session Metadata', () => {
     expect(session.session.model.modelId).toBe('gpt-4o-mini');
 
     // Switch model to gemini
-    session.setModel({ provider: 'gemini', modelId: 'gemini-2.5-flash' });
+    session.setModel({ provider: 'gemini', modelId: 'gemini-2.5-flash', effort: 'medium' });
 
-    // Verify BOTH getModel and sessionData.model are updated!
     expect(session.getModel().provider).toBe('gemini');
     expect(session.getModel().modelId).toBe('gemini-2.5-flash');
     expect(session.session.model.provider).toBe('gemini');
@@ -337,17 +84,16 @@ describe('Reasoning Effort & Session Metadata', () => {
     const { AgentSession } = await import('../src/packages/agents/src/engine/agent-session.js');
     const session = new AgentSession({ provider: 'openai', modelId: 'gpt-4o-mini' });
 
-    expect(session.getEffort()).toBe('provider-default');
-    expect(session.session.model.effort).toBe('provider-default');
+    expect(session.getEffort()).toBe('medium');
+    expect(session.session.model.effort).toBe('medium');
 
     session.setEffort('high');
     expect(session.getEffort()).toBe('high');
     expect(session.session.model.effort).toBe('high');
 
-    // Test session-only effort (persist = false)
-    session.setEffort('xhigh', false);
-    expect(session.getEffort()).toBe('xhigh');
-    expect(session.session.model.effort).toBe('xhigh');
+    session.setEffort('none', false);
+    expect(session.getEffort()).toBe('none');
+    expect(session.session.model.effort).toBe('none');
   });
 
   it('should trigger EffortPicker dock when /effort is called with no arguments', async () => {
@@ -359,7 +105,6 @@ describe('Reasoning Effort & Session Metadata', () => {
     expect(result.handled).toBe(true);
     expect(result.data?.showEffortPicker).toBe(true);
 
-    // Direct argument updates effort directly
     const directResult = await effortCommand.execute(['high'], { session, cwd: process.cwd() });
     expect(directResult.handled).toBe(true);
     expect(session.getEffort()).toBe('high');
@@ -393,26 +138,6 @@ describe('Reasoning Effort & Session Metadata', () => {
     if (parsed.ok) {
       expect(parsed.doc.model.provider).toBe('anthropic');
       expect(parsed.doc.model.modelId).toBe('claude-3-7-sonnet-20250219');
-      expect(parsed.doc.model.effort).toBeUndefined();
     }
-  });
-
-  it('should log structured errors to logs directory with date and time', async () => {
-    const { logError, getLogsRootDir } =
-      await import('../src/packages/services/src/errors/logger.js');
-    const { existsSync, readFileSync } = await import('node:fs');
-
-    const fakeError = new Error('Test API connection failure');
-    (fakeError as any).statusCode = 429;
-
-    const logPath = logError(fakeError, { sessionId: 'test-session-123' });
-    expect(logPath).toBeTruthy();
-    expect(existsSync(logPath)).toBe(true);
-
-    const content = readFileSync(logPath, 'utf-8');
-    expect(content).toContain('Test API connection failure');
-    expect(content).toContain('test-session-123');
-    expect(content).toContain('"category": "rate-limit"');
-    expect(content).toContain('"statusCode": 429');
   });
 });

@@ -35,6 +35,7 @@ The application layer serves as the composition root and orchestrator for Stewar
 | `docks/SessionMenu.tsx` | Component | Interactive dock for browsing, resuming, or deleting saved session transcripts. | Lists past sessions with turn counts. |
 | `docks/RewindMenu.tsx` | Component | Interactive dock for rolling back file changes to previous session turns with diff statistics. | Computes accurate `+lines / -lines` per turn. |
 | `docks/TrustGate.tsx` | Component | Security gate displayed when launching in an untrusted workspace folder. | Requires explicit folder authorization. |
+| `docks/LoginDock.tsx` | Component | Interactive modal dock for OAuth / Device Code provider authentication. | Displays verification codes, URLs, and real-time auth status. |
 
 ---
 
@@ -44,10 +45,12 @@ The application layer serves as the composition root and orchestrator for Stewar
 | :--- | :--- | :--- |
 | `handle-command-result.ts` | `handleCommandResult` | Dispatches command execution outcomes (modal triggers, mode switches, clear, errors) to UI. |
 | `/help` | `commands/help/` | Opens help manual and keyboard shortcut reference. |
+| `/login` | `commands/login/` | Authenticates with cloud providers (Anthropic, OpenRouter, GitHub Copilot) via browser OAuth or Device Code flow. |
+| `/logout` | `commands/logout/` | Logs out from authenticated providers and revokes stored credentials. |
 | `/model` | `commands/model/` | Opens interactive ModelPicker dock. |
 | `/mode` | `commands/mode/` | Cycles through or sets active chat mode (`normal`, `chat`, `review`, `build`). |
 | `/theme` | `commands/theme/` | Opens ThemePicker dock to change visual styling. |
-| `/effort` | `commands/effort/` | Adjusts reasoning effort slider (`none`, `low`, `medium`, `high`, `xhigh`). |
+| `/effort` | `commands/effort/` | Adjusts reasoning effort slider (`none`, `low`, `medium`, `high`). |
 | `/sessions` | `commands/sessions/` | Opens SessionMenu dock to browse and switch sessions. |
 | `/rewind` | `commands/rewind/` | Opens RewindMenu dock to roll back workspace mutations. |
 | `/clear` | `commands/clear/` | Clears current terminal history buffer. |
@@ -60,3 +63,4 @@ The application layer serves as the composition root and orchestrator for Stewar
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
 | `bash.ts` | `executeDirectBash` | Function | Executes direct user shell commands (`!<command>`) with real-time streaming output. | Bypasses LLM turn history and checkpointing; logged to presentation journal. |
+| `open-url.ts` | `openUrl` | Function | Cross-platform utility to open URLs in default web browser. | Supports Linux (xdg-open), macOS (open), Termux (termux-open-url), and Windows (start). |

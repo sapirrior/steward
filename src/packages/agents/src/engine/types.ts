@@ -3,9 +3,10 @@ import type {
   ReasoningEffort,
   ModelSelection,
   TokenUsage,
+  Message,
 } from '@steward/services/contracts.js';
 
-export type { ProviderName, ReasoningEffort, ModelSelection, TokenUsage };
+export type { ProviderName, ReasoningEffort, ModelSelection, TokenUsage, Message };
 
 /**
  * Information describing a tool call requested by the model.
@@ -28,9 +29,9 @@ export interface ToolResultInfo extends ToolCallInfo {
 }
 
 /**
- * Standard conversation message type compatible with AI SDK v7.
+ * Standard conversation message type.
  */
-export type AgentMessage = ModelMessage;
+export type AgentMessage = Message;
 
 /**
  * Active configuration for an agent session.
@@ -58,7 +59,7 @@ export interface TurnSummary {
   usage: TokenUsage;
   finishReason: string;
   stopReason?: TurnStopReason;
-  rawMessages?: ModelMessage[];
+  rawMessages?: Message[];
   durationMs?: number;
   startedAt?: string;
   finishedAt?: string;
