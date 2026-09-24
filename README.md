@@ -1,10 +1,8 @@
 # Steward
 
-[![Version](https://img.shields.io/badge/version-v0.22.0-D77757.svg)](https://github.com/sapirrior/steward/releases)
-[![npm](https://img.shields.io/npm/v/steward-cli.svg?color=373737)](https://www.npmjs.com/package/steward-cli)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Runtime](https://img.shields.io/badge/runtime-Bun-fbf0df.svg?logo=bun)](https://bun.sh)
-[![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Termux%20%7C%20Windows-lightgrey.svg)](#get-started)
+[![npm](https://img.shields.io/npm/v/steward-cli?color=E5533D&label=steward&style=flat-square)](https://www.npmjs.com/package/steward-cli)
+[![license](https://img.shields.io/badge/license-MIT-7A88CF?style=flat-square)](LICENSE)
+[![chat](https://img.shields.io/badge/terminal-AI%20companion-30B08F?style=flat-square)](#get-started)
 
 Steward is an interactive AI engineering assistant that lives in your terminal, understands your codebase, and pairs with you to build, refactor, and debug software through natural language.
 
