@@ -22,7 +22,7 @@ The application layer serves as the composition root and orchestrator for Stewar
 | `Header.tsx` | Component | Sticky top banner showing Steward logo, version, working directory, and model. | Renders at top of history. |
 | `PromptInput.tsx` | Component | Main interactive prompt input with typing, cursor navigation, history, `@file` search, and `/slash` command palette. | Unicode-safe and ANSI-safe text buffer. |
 | `prompt-input/autocomplete-controller.ts` | Class | Manages `@file` prefix path discovery and selection navigation. | Discovers files matching input token. |
-| `prompt-input/command-palette-controller.ts` | Class | Manages slash command suggestion palette navigation and selection. | Untrapped arrow fallthrough for history. |
+| `prompt-input/command-palette-controller.ts` | Class | Manages slash command suggestion palette navigation and circular wrap selection. | Traps arrow keys to cycle options while open. |
 | `prompt-input/history-controller.ts` | Class | Manages prompt history navigation stack and working draft caching. | Up/Down navigation across prompt history. |
 | `modal-controller.ts` | Class | Coordinates modal docks (Pickers, Permission Docks, Help, Menus) and focus transitions. | Centralizes modal open/close lifecycle. |
 | `agent-event-router.ts` | Class | Dispatches streaming agent events (`text-delta`, `tool-call`, `error`) to UI views. | Routes streaming updates to components. |
