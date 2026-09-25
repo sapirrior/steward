@@ -38,8 +38,13 @@ export default class ThemePicker extends SelectList<ThemeMeta> {
       renderItem: (t, isSelected, maxCols) => {
         const isCurrent = t.name === props.currentTheme;
 
-        const pointer = isSelected ? c.selected(`${figures.pointer} `) : '  ';
+        const pointer = isSelected ? c.info(`${figures.pointer} `) : '  ';
         const activeBadge = isCurrent ? bold(c.current(' (active)')) : '';
+        const title = isSelected
+          ? c.info(t.label)
+          : isCurrent
+            ? c.current(t.label)
+            : c.text(t.label);
 
         // Swatch line using the candidate theme's own color palette
         const tBrand = resolveThemeColor(t.theme.brand, false)(figures.blackCircle);
@@ -52,13 +57,8 @@ export default class ThemePicker extends SelectList<ThemeMeta> {
 
         return (
           <Box direction="column" width={maxCols}>
-            <Text
-              color={isSelected ? 'selected' : isCurrent ? 'current' : 'text'}
-              wrap={false}
-              clip={true}
-              ellipsis={true}
-            >
-              {`${pointer}${t.label}${activeBadge}`}
+            <Text wrap={false} clip={true} ellipsis={true}>
+              {`${pointer}${title}${activeBadge}`}
             </Text>
             <Text color="muted" wrap={false} clip={true} ellipsis={true}>
               {swatches}

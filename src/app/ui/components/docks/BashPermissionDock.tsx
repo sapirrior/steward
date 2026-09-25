@@ -127,7 +127,7 @@ export default class BashPermissionDock extends Component<
     const { mode, selectedIndex, scrollOffset } = this.state;
     const { command, explanation } = this.props;
 
-    const pointer = figures.pointerBold ?? '❯';
+    const pointer = figures.pointer ?? '>';
     const isYesSelected = selectedIndex === 0;
     const isNoSelected = selectedIndex === 1;
 

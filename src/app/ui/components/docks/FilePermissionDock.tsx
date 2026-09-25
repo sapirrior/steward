@@ -226,7 +226,7 @@ export default class FilePermissionDock extends Component<
     const { request } = this.props;
     const { kind, filePath } = request;
 
-    const pointer = figures.pointerBold ?? '❯';
+    const pointer = figures.pointer ?? '>';
     const isYesSelected = selectedIndex === 0;
     const isNoSelected = selectedIndex === 1;
 

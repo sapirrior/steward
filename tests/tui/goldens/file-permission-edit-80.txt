@@ -14,7 +14,7 @@
 
 Do you want to make this edit to src/server.ts?
 
-❯ 1. Yes
+> 1. Yes
   2. No
 
 Esc to cancel · f to review

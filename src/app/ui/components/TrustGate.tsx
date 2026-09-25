@@ -78,7 +78,7 @@ export default class TrustGate extends Component<TrustGateProps, TrustGateState>
     const isYesSelected = selectedIndex === 0;
     const isNoSelected = selectedIndex === 1;
 
-    const pointer = figures.pointerBold ?? '❯';
+    const pointer = figures.pointer ?? '>';
 
     const yesOptionText = isYesSelected
       ? `${c.permission(pointer)} ${bold(c.permission('1. Yes, I trust this folder'))}`

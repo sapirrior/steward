@@ -3,7 +3,7 @@
 ────────────────────────────────────────────────────────────────────────────────
 Matching files (@):
   package.json
-❯ package-lock.json
+> package-lock.json
   packages/core/package.json
 
 

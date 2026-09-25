@@ -32,21 +32,21 @@ export default class ModelPicker extends SelectList<DiscoveredModel> {
         const isCurrent =
           m.provider === props.currentModel.provider && m.modelId === props.currentModel.modelId;
 
-        const pointer = isSelected ? c.selected(`${figures.pointer} `) : '  ';
+        const pointer = isSelected ? c.info(`${figures.pointer} `) : '  ';
         const activeBadge = isCurrent ? bold(c.current(' (active)')) : '';
+        const title = isSelected
+          ? c.info(m.modelId)
+          : isCurrent
+            ? c.current(m.modelId)
+            : c.text(m.modelId);
         const providerName = m.provider.toUpperCase();
         const caps = m.reasoning ? 'reasoning' : 'chat';
         const meta = `${providerName} • ${caps}`;
 
         return (
           <Box direction="column" width={maxCols}>
-            <Text
-              color={isSelected ? 'selected' : isCurrent ? 'current' : 'text'}
-              wrap={false}
-              clip={true}
-              ellipsis={true}
-            >
-              {`${pointer}${m.modelId}${activeBadge}`}
+            <Text wrap={false} clip={true} ellipsis={true}>
+              {`${pointer}${title}${activeBadge}`}
             </Text>
             <Text color="muted" wrap={false} clip={true} ellipsis={true}>
               {`  ${meta}`}

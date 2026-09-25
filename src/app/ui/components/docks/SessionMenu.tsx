@@ -34,7 +34,8 @@ export default class SessionMenu extends SelectList<SessionData> {
       renderItem: (s, isSelected, maxCols) => {
         const rawTitle = s.name || s.turns?.[0]?.userPrompt || 'Untitled Session';
         const cleanTitle = rawTitle.replace(/\s+/g, ' ').trim();
-        const pointer = isSelected ? c.selected(`${figures.pointer} `) : '  ';
+        const pointer = isSelected ? c.info(`${figures.pointer} `) : '  ';
+        const title = isSelected ? c.info(cleanTitle) : c.text(cleanTitle);
         const shortId = s.id.slice(0, 8);
         const dateStr = s.date ? s.date.split('T')[0] : '';
         const turnsCount = s.turns?.length ?? 0;
@@ -47,8 +48,8 @@ export default class SessionMenu extends SelectList<SessionData> {
 
         return (
           <Box direction="column" width={maxCols}>
-            <Text color={isSelected ? 'selected' : 'text'} wrap={false} clip={true} ellipsis={true}>
-              {`${pointer}${cleanTitle}`}
+            <Text wrap={false} clip={true} ellipsis={true}>
+              {`${pointer}${title}`}
             </Text>
             <Text color="muted" wrap={false} clip={true} ellipsis={true}>
               {`  ${meta}`}

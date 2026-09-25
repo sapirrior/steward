@@ -238,10 +238,11 @@ export default class LoginDock extends Component<LoginDockProps, LoginDockState>
     if (step === 'select-provider') {
       const items = OAUTH_PROVIDERS.map((p, idx) => {
         const isSelected = idx === selectedIndex;
-        const pointer = isSelected ? c.selected(`${figures.pointer} `) : '  ';
+        const pointer = isSelected ? c.info(`${figures.pointer} `) : '  ';
+        const name = isSelected ? c.info(bold(p.name)) : c.text(bold(p.name));
         return (
           <Box direction="column" width={maxCols} key={p.id}>
-            <Text color={isSelected ? 'selected' : 'text'}>{`${pointer}${bold(p.name)}`}</Text>
+            <Text>{`${pointer}${name}`}</Text>
             <Text color="muted">{`    ${p.description}`}</Text>
           </Box>
         );

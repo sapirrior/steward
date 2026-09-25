@@ -163,7 +163,8 @@ export default class RewindMenu extends SelectList<RewindItem> {
       onSelect: props.onSelect,
       onCancel: props.onCancel,
       renderItem: (item, isSelected, maxCols) => {
-        const pointer = isSelected ? c.selected(`${figures.pointer} `) : '  ';
+        const pointer = isSelected ? c.info(`${figures.pointer} `) : '  ';
+        const title = isSelected ? c.info(item.promptText) : c.text(item.promptText);
 
         let summaryText: string;
         if (item.hasCodeChanges) {
@@ -185,8 +186,8 @@ export default class RewindMenu extends SelectList<RewindItem> {
 
         return (
           <Box direction="column" width={maxCols}>
-            <Text color={isSelected ? 'selected' : 'text'} wrap={false} clip={true} ellipsis={true}>
-              {`${pointer}${item.promptText}`}
+            <Text wrap={false} clip={true} ellipsis={true}>
+              {`${pointer}${title}`}
             </Text>
             <Text wrap={false} clip={true} ellipsis={true}>
               {summaryText}

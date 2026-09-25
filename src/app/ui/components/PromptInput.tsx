@@ -486,7 +486,7 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
       for (let i = 0; i < fileMatches.length; i++) {
         const f = fileMatches[i]!;
         const isSelected = i === fileSelectIdx;
-        const p = isSelected ? c.info(`${figures.pointerBold} `) : '  ';
+        const p = isSelected ? c.info(`${figures.pointer} `) : '  ';
         const fileText = isSelected ? c.info(f) : c.muted(f);
         lines.push(truncateToWidth(`${p}${fileText}`, maxCols));
       }
