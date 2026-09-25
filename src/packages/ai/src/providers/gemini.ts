@@ -133,11 +133,12 @@ function convertMessages(messages: readonly Message[]): {
     if (msg.role === 'tool') {
       const parts: unknown[] = [];
       for (const res of msg.content) {
+        const outStr = typeof res.output === 'string' ? res.output : JSON.stringify(res.output);
         parts.push({
           functionResponse: {
             name: res.toolName,
             response: {
-              result: sanitizeSurrogates(res.output),
+              result: sanitizeSurrogates(outStr),
             },
           },
         });

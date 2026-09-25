@@ -9,7 +9,13 @@ import { AIError } from './errors.js';
  * Removes unpaired Unicode surrogate characters from a string to prevent
  * JSON serialization and remote API tokenizer errors.
  */
-export function sanitizeSurrogates(text: string): string {
+export function sanitizeSurrogates(text: unknown): string {
+  if (typeof text !== 'string') {
+    if (text === null || text === undefined) {
+      return '';
+    }
+    return sanitizeSurrogates(typeof text === 'object' ? JSON.stringify(text) : String(text));
+  }
   return text.replace(
     /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
     '',

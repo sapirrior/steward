@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { parseJson, parseStreamingJson } from '../../src/packages/ai/src/json.js';
+import {
+  parseJson,
+  parseStreamingJson,
+  sanitizeSurrogates,
+} from '../../src/packages/ai/src/json.js';
 
 describe('JSON and Streaming JSON Parser', () => {
   it('parses valid complete JSON', () => {
@@ -18,5 +22,15 @@ describe('JSON and Streaming JSON Parser', () => {
   it('handles empty or malformed strings gracefully', () => {
     expect(parseStreamingJson('')).toEqual({});
     expect(parseStreamingJson('   ')).toEqual({});
+  });
+
+  it('safely sanitizes Unicode surrogates and handles non-string inputs', () => {
+    expect(sanitizeSurrogates('valid text')).toBe('valid text');
+    expect(sanitizeSurrogates('lone surrogate \uD800 test')).toBe('lone surrogate  test');
+    expect(sanitizeSurrogates(null)).toBe('');
+    expect(sanitizeSurrogates(undefined)).toBe('');
+    expect(sanitizeSurrogates(123)).toBe('123');
+    expect(sanitizeSurrogates({ error: 'failed' })).toBe('{"error":"failed"}');
+    expect(sanitizeSurrogates(['a', 'b'])).toBe('["a","b"]');
   });
 });
