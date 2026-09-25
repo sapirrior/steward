@@ -60,4 +60,30 @@ describe('PromptInput Interaction & Typing', () => {
 
     engine.cleanupSync();
   });
+
+  it('cycles command palette suggestions with Arrow Up / Down without jumping to history', () => {
+    const engine = new TerminalEngine();
+    const prompt = new PromptInput({
+      initialHistory: ['git status'],
+      onSubmit: () => {},
+    });
+
+    engine.mount(prompt, { kind: 'input' });
+
+    // Type '/'
+    process.stdin.emit('data', Buffer.from('/'));
+    expect(prompt.state.value).toBe('/');
+
+    // Arrow Down multiple times (should wrap around and not jump to history)
+    for (let i = 0; i < 15; i++) {
+      process.stdin.emit('data', Buffer.from('\x1b[B')); // Arrow Down
+    }
+    expect(prompt.state.value).toBe('/');
+
+    // Arrow Up (should navigate suggestions upward and not replace with 'git status')
+    process.stdin.emit('data', Buffer.from('\x1b[A')); // Arrow Up
+    expect(prompt.state.value).toBe('/');
+
+    engine.cleanupSync();
+  });
 });

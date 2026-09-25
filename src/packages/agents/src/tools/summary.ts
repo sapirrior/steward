@@ -36,15 +36,19 @@ export function summarizeToolResult(
     return undefined;
   }
   if (toolDef.summarize) {
-    const sum = toolDef.summarize(args, result);
-    if (typeof sum === 'string') {
-      const [headline, ...rest] = sum.split('\n');
-      return {
-        headline: headline ?? '',
-        detail: rest.length > 0 ? { kind: 'text', text: rest.join('\n') } : undefined,
-      };
+    try {
+      const sum = toolDef.summarize(args, result);
+      if (typeof sum === 'string') {
+        const [headline, ...rest] = sum.split('\n');
+        return {
+          headline: headline ?? '',
+          detail: rest.length > 0 ? { kind: 'text', text: rest.join('\n') } : undefined,
+        };
+      }
+      return sum;
+    } catch {
+      // Fall through gracefully if summarize throws on malformed/legacy args
     }
-    return sum;
   }
   if (typeof result === 'string') {
     const firstLine = result.split('\n')[0]?.trim();

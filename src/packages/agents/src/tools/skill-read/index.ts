@@ -19,10 +19,10 @@ export const skillReadTool: ToolDefinition<typeof skillReadParamsSchema, SkillRe
   parameters: skillReadParamsSchema,
 
   summarizeArgs(args) {
-    if (args.path) {
+    if (args?.path) {
       return `name="${args.name}" path="${args.path}"`;
     }
-    return `name="${args.name}"`;
+    return `name="${args?.name ?? ''}"`;
   },
 
   async execute(args, context) {
@@ -31,7 +31,7 @@ export const skillReadTool: ToolDefinition<typeof skillReadParamsSchema, SkillRe
   },
 
   summarize(args, result) {
-    const target = args.path ? `${args.name}/${args.path}` : args.name;
+    const target = args?.path ? `${args.name}/${args.path}` : (args?.name ?? 'skill');
     const len = result?.content ? ` (${result.content.length} bytes)` : '';
     return `SkillRead: ${target}${len}`;
   },

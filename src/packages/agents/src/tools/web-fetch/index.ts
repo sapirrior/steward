@@ -224,10 +224,10 @@ export const webFetchTool: ToolDefinition<typeof webFetchInputSchema, WebFetchOu
   confirmationPolicy: 'never',
 
   summarize: (args, result) => {
-    if (!result) return `Fetching ${args.url}`;
-    const chars = result.content.length;
-    const truncated = result.isTruncated ? ' (truncated)' : '';
-    const type = result.contentType.split(';')[0]?.trim() ?? 'text';
+    if (!result) return `Fetching ${args?.url ?? ''}`;
+    const chars = result?.content?.length ?? 0;
+    const truncated = result?.isTruncated ? ' (truncated)' : '';
+    const type = result?.contentType?.split(';')[0]?.trim() ?? 'text';
     const label = type.includes('html')
       ? 'HTML'
       : type.includes('json')
@@ -235,9 +235,9 @@ export const webFetchTool: ToolDefinition<typeof webFetchInputSchema, WebFetchOu
         : type.includes('markdown') || type.includes('text/plain')
           ? 'text'
           : (type.split('/').pop() ?? 'content');
-    let host = args.url;
+    let host = args?.url ?? '';
     try {
-      host = new URL(args.url).hostname;
+      if (args?.url) host = new URL(args.url).hostname;
     } catch {}
     return `Fetched ${chars.toLocaleString()} chars of ${label} from ${host}${truncated}`;
   },

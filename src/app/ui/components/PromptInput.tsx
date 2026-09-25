@@ -464,17 +464,25 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
       matchingCommands.length > 0 &&
       effectiveValue !== `/${matchingCommands[0]?.name} `
     ) {
-      for (let i = 0; i < matchingCommands.length; i++) {
-        const cmd = matchingCommands[i]!;
-        const isSelected = i === paletteIdx;
-        const namePadded = `/${cmd.name}`.padEnd(18);
-        if (isSelected) {
-          lines.push(
-            truncateToWidth(`${bold(c.text(namePadded))}${bold(c.text(cmd.description))}`, maxCols),
-          );
-        } else {
-          lines.push(truncateToWidth(`${c.muted(namePadded)}${c.muted(cmd.description)}`, maxCols));
-        }
+      const maxVisible = 5;
+      const startIdx = Math.max(
+        0,
+        Math.min(paletteIdx - Math.floor(maxVisible / 2), matchingCommands.length - maxVisible),
+      );
+      const visibleCmds = matchingCommands.slice(
+        Math.max(0, startIdx),
+        Math.max(0, startIdx) + maxVisible,
+      );
+
+      for (let relIdx = 0; relIdx < visibleCmds.length; relIdx++) {
+        const cmd = visibleCmds[relIdx]!;
+        const actualIdx = Math.max(0, startIdx) + relIdx;
+        const isSelected = actualIdx === paletteIdx;
+        const p = isSelected ? c.info(`${figures.pointer} `) : '  ';
+        const namePadded = `/${cmd.name}`.padEnd(16);
+        const nameText = isSelected ? c.info(namePadded) : c.text(namePadded);
+        const descText = isSelected ? c.info(cmd.description) : c.muted(cmd.description);
+        lines.push(truncateToWidth(`${p}${nameText}${descText}`, maxCols));
       }
     }
 
@@ -483,9 +491,20 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     const fileSelectIdx = this.state.fileSelectIdx ?? this.autocomplete.getSelectedIndex();
     if (fileMatches.length > 0) {
       lines.push(c.muted('Matching files (@):'));
-      for (let i = 0; i < fileMatches.length; i++) {
-        const f = fileMatches[i]!;
-        const isSelected = i === fileSelectIdx;
+      const maxVisible = 5;
+      const startIdx = Math.max(
+        0,
+        Math.min(fileSelectIdx - Math.floor(maxVisible / 2), fileMatches.length - maxVisible),
+      );
+      const visibleFiles = fileMatches.slice(
+        Math.max(0, startIdx),
+        Math.max(0, startIdx) + maxVisible,
+      );
+
+      for (let relIdx = 0; relIdx < visibleFiles.length; relIdx++) {
+        const f = visibleFiles[relIdx]!;
+        const actualIdx = Math.max(0, startIdx) + relIdx;
+        const isSelected = actualIdx === fileSelectIdx;
         const p = isSelected ? c.info(`${figures.pointer} `) : '  ';
         const fileText = isSelected ? c.info(f) : c.muted(f);
         lines.push(truncateToWidth(`${p}${fileText}`, maxCols));

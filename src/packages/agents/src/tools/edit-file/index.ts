@@ -52,11 +52,15 @@ export const editFileTool: ToolDefinition<typeof editFileInputSchema, EditFileOu
   confirmationPolicy: 'never',
 
   summarize: (args, result) => {
-    if (args.old_string === args.new_string) {
-      return { headline: `No changes made to ${args.file_path}` };
+    const oldStr = args?.old_string ?? '';
+    const newStr = args?.new_string ?? '';
+    const filePath = args?.file_path ?? 'file';
+
+    if (oldStr === newStr) {
+      return { headline: `No changes made to ${filePath}` };
     }
 
-    const diff = buildUnifiedDiff(args.old_string, args.new_string, 2);
+    const diff = buildUnifiedDiff(oldStr, newStr, 2);
     let diffAdded = 0;
     let diffRemoved = 0;
     for (const hunk of diff.hunks) {
@@ -78,7 +82,7 @@ export const editFileTool: ToolDefinition<typeof editFileInputSchema, EditFileOu
       headline,
       detail: {
         kind: 'diff',
-        filePath: args.file_path,
+        filePath,
         hunks: diff.hunks,
       },
     };

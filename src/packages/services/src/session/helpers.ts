@@ -134,7 +134,9 @@ export function rehydrateSessionHistory(
             if (part.type === 'text') {
               textAccum += (textAccum ? '\n' : '') + part.text;
             } else if (part.type === 'tool-call') {
-              const rawInput = (part as any).args ?? (part as any).input;
+              const callId = (part as any).id ?? (part as any).toolCallId;
+              const toolName = (part as any).name ?? (part as any).toolName;
+              const rawInput = (part as any).arguments ?? (part as any).args ?? (part as any).input;
               let parsedInput = (rawInput as Record<string, unknown>) ?? {};
               if (typeof rawInput === 'string') {
                 const trimmed = rawInput.trim();
@@ -144,12 +146,14 @@ export function rehydrateSessionHistory(
                   } catch {}
                 }
               }
-              toolCallsMap.set(part.toolCallId, {
-                id: part.toolCallId,
-                name: (part as any).toolName,
-                args: parsedInput,
-                isError: false,
-              });
+              if (callId) {
+                toolCallsMap.set(callId, {
+                  id: callId,
+                  name: toolName,
+                  args: parsedInput,
+                  isError: false,
+                });
+              }
             }
           }
 
@@ -165,70 +169,72 @@ export function rehydrateSessionHistory(
       } else if (msg.role === 'tool') {
         if (Array.isArray(msg.content)) {
           for (const part of msg.content) {
-            if (part.type === 'tool-result') {
-              const existing = toolCallsMap.get(part.toolCallId);
-              const isError = Boolean((part as any).isError);
-              const toolName = existing?.name ?? (part as any).toolName ?? 'tool';
-              const argsSummary = existing?.args ? JSON.stringify(existing.args) : '';
-              let outputVal = (part as any).result ?? (part as any).output;
-              // AI SDK v7 stores tool results as { type: "json", value: <payload> } — unwrap
-              if (
-                outputVal &&
-                typeof outputVal === 'object' &&
-                outputVal.type === 'json' &&
-                'value' in outputVal
-              ) {
-                outputVal = outputVal.value;
-              }
-              if (typeof outputVal === 'string') {
-                const trimmed = outputVal.trim();
-                if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-                  try {
-                    outputVal = JSON.parse(trimmed);
-                  } catch {}
-                }
-              }
-              const canonicalOutputSummary = formatToolOutputSummary(outputVal, isError);
-
-              const toolLog = turnPresentation?.tools.get(part.toolCallId);
-
-              const status = toolLog
-                ? toolLog.status === 'failed'
-                  ? 'failed'
-                  : 'completed'
-                : isError
-                  ? 'failed'
-                  : 'completed';
-
-              const error = toolLog?.errorMessage
-                ? toolLog.errorMessage
-                : isError
-                  ? typeof outputVal === 'object' && outputVal !== null
-                    ? ((outputVal as any).message ?? JSON.stringify(outputVal))
-                    : String(outputVal)
-                  : undefined;
-
-              const toolOutput = toolLog?.outputSummary ?? canonicalOutputSummary;
-
-              restoredItems.push({
-                id: `tool-${part.toolCallId}`,
-                turnId: turn.id,
-                type: 'tool',
-                content: '',
-                toolData: {
-                  toolName,
-                  displayName: toolLog?.displayName,
-                  icon: toolLog?.icon,
-                  argsSummary,
-                  args: existing?.args,
-                  result: outputVal,
-                  status,
-                  durationMs: toolLog?.durationMs,
-                  error,
-                  toolOutput,
-                },
-              });
+            const callId = (part as any).toolCallId ?? (part as any).id;
+            if (!callId) continue;
+            const existing = toolCallsMap.get(callId);
+            const isError = Boolean((part as any).isError);
+            const toolName =
+              existing?.name ?? (part as any).toolName ?? (part as any).name ?? 'tool';
+            const args = existing?.args;
+            const argsSummary = args ? JSON.stringify(args) : '';
+            let outputVal = (part as any).output ?? (part as any).result;
+            // AI SDK v7 stores tool results as { type: "json", value: <payload> } — unwrap
+            if (
+              outputVal &&
+              typeof outputVal === 'object' &&
+              outputVal.type === 'json' &&
+              'value' in outputVal
+            ) {
+              outputVal = outputVal.value;
             }
+            if (typeof outputVal === 'string') {
+              const trimmed = outputVal.trim();
+              if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+                try {
+                  outputVal = JSON.parse(trimmed);
+                } catch {}
+              }
+            }
+            const canonicalOutputSummary = formatToolOutputSummary(outputVal, isError);
+
+            const toolLog = turnPresentation?.tools.get(callId);
+
+            const status = toolLog
+              ? toolLog.status === 'failed'
+                ? 'failed'
+                : 'completed'
+              : isError
+                ? 'failed'
+                : 'completed';
+
+            const error = toolLog?.errorMessage
+              ? toolLog.errorMessage
+              : isError
+                ? typeof outputVal === 'object' && outputVal !== null
+                  ? ((outputVal as any).message ?? JSON.stringify(outputVal))
+                  : String(outputVal)
+                : undefined;
+
+            const toolOutput = toolLog?.outputSummary ?? canonicalOutputSummary;
+
+            restoredItems.push({
+              id: `tool-${callId}`,
+              turnId: turn.id,
+              type: 'tool',
+              content: '',
+              toolData: {
+                toolName,
+                displayName: toolLog?.displayName,
+                icon: toolLog?.icon,
+                argsSummary,
+                args,
+                result: outputVal,
+                status,
+                durationMs: toolLog?.durationMs,
+                error,
+                toolOutput,
+              },
+            });
           }
         }
       }

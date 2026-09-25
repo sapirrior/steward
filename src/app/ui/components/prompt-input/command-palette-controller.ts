@@ -40,33 +40,23 @@ export class CommandPaletteController {
 
   /**
    * Handles Arrow Up.
-   * If there are matching commands:
-   * - If already at index 0 (top of suggestions), we don't trap: dismiss palette and return false so Arrow Up navigates prompt history.
-   * - Otherwise move up within palette suggestions.
+   * Cycles upward through suggestions, wrapping to the bottom if at the top.
    */
   public onUp(value: string): boolean {
     const matching = this.getMatchingCommands(value);
     if (matching.length === 0) return false;
-    if (this.paletteIdx === 0) {
-      this.dismiss();
-      return false;
-    }
-    this.paletteIdx = this.paletteIdx - 1;
+    this.paletteIdx = this.paletteIdx > 0 ? this.paletteIdx - 1 : matching.length - 1;
     return true;
   }
 
   /**
    * Handles Arrow Down.
-   * If at the bottom of matching commands, dismiss and allow normal cursor movement/history navigation.
+   * Cycles downward through suggestions, wrapping to the top if at the bottom.
    */
   public onDown(value: string): boolean {
     const matching = this.getMatchingCommands(value);
     if (matching.length === 0) return false;
-    if (this.paletteIdx >= matching.length - 1) {
-      this.dismiss();
-      return false;
-    }
-    this.paletteIdx = this.paletteIdx + 1;
+    this.paletteIdx = this.paletteIdx < matching.length - 1 ? this.paletteIdx + 1 : 0;
     return true;
   }
 

@@ -30,4 +30,13 @@ describe('ToolCatalog & Serialization Integration', () => {
     const result = await defaultToolCatalog.execute('list_dir', { path: '.' }, dummyContext);
     expect(result).toBeDefined();
   });
+
+  it('safely summarizes tools when args or results are undefined / malformed', () => {
+    const { summarizeToolResult } = require('../../src/packages/agents/src/tools/summary.js');
+    for (const tool of defaultToolCatalog.getAll()) {
+      expect(() => summarizeToolResult(tool, undefined, undefined)).not.toThrow();
+      expect(() => summarizeToolResult(tool, {}, undefined)).not.toThrow();
+      expect(() => summarizeToolResult(tool, undefined, { resultCount: 5 })).not.toThrow();
+    }
+  });
 });

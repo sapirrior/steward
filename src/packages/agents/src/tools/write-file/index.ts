@@ -33,8 +33,8 @@ export const writeFileTool: ToolDefinition<typeof writeFileInputSchema, WriteFil
   confirmationPolicy: 'never',
 
   summarize: (args, result) => {
-    const lines = result?.linesWritten ?? (args.content ? args.content.split(/\r?\n/).length : 0);
-    const filePath = args.file_path;
+    const lines = result?.linesWritten ?? (args?.content ? args.content.split(/\r?\n/).length : 0);
+    const filePath = args?.file_path ?? 'file';
     const isNew = result?.isNew ?? true;
     const headline = isNew
       ? `Created ${filePath} (${lines} line${lines === 1 ? '' : 's'})`
@@ -44,8 +44,8 @@ export const writeFileTool: ToolDefinition<typeof writeFileInputSchema, WriteFil
       headline,
       detail: {
         kind: 'code',
-        filePath: args.file_path,
-        text: args.content,
+        filePath: args?.file_path ?? filePath,
+        text: args?.content ?? '',
         totalLines: lines,
       },
     };
