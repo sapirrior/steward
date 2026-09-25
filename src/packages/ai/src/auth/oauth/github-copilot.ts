@@ -61,12 +61,15 @@ export async function loginGitHubCopilot(interaction: AuthInteraction): Promise<
       }),
       signal,
     });
-  } catch (err: any) {
-    throw new AIError(`Failed to initiate GitHub device authorization: ${err.message}`, {
-      code: 'oauth',
-      provider: 'github-copilot',
-      cause: err,
-    });
+  } catch (err: unknown) {
+    throw new AIError(
+      `Failed to initiate GitHub device authorization: ${err instanceof Error ? err.message : String(err)}`,
+      {
+        code: 'oauth',
+        provider: 'github-copilot',
+        cause: err,
+      },
+    );
   }
 
   if (!deviceRes.ok) {
@@ -109,8 +112,8 @@ export async function loginGitHubCopilot(interaction: AuthInteraction): Promise<
         signal,
       });
 
-      const data = (await res.json()) as any;
-      if (data?.access_token) {
+      const data = (await res.json()) as Record<string, unknown>;
+      if (typeof data?.access_token === 'string') {
         return { status: 'complete', value: data.access_token };
       }
 
@@ -119,12 +122,20 @@ export async function loginGitHubCopilot(interaction: AuthInteraction): Promise<
       }
 
       if (data?.error === 'slow_down') {
-        return { status: 'slow_down', intervalSeconds: data.interval };
+        return {
+          status: 'slow_down',
+          intervalSeconds: typeof data.interval === 'number' ? data.interval : undefined,
+        };
       }
 
       return {
         status: 'failed',
-        message: data?.error_description || data?.error || 'Authorization failed',
+        message:
+          typeof data?.error_description === 'string'
+            ? data.error_description
+            : typeof data?.error === 'string'
+              ? data.error
+              : 'Authorization failed',
       };
     },
   });
@@ -158,12 +169,15 @@ async function refreshGitHubCopilotToken(
       },
       signal,
     });
-  } catch (err: any) {
-    throw new AIError(`Failed to fetch Copilot token: ${err.message}`, {
-      code: 'oauth',
-      provider: 'github-copilot',
-      cause: err,
-    });
+  } catch (err: unknown) {
+    throw new AIError(
+      `Failed to fetch Copilot token: ${err instanceof Error ? err.message : String(err)}`,
+      {
+        code: 'oauth',
+        provider: 'github-copilot',
+        cause: err,
+      },
+    );
   }
 
   if (!res.ok) {

@@ -15,7 +15,7 @@ export interface ResolvedAuth {
   type: 'api-key' | 'oauth';
   token: string;
   headers?: Record<string, string>;
-  extra?: Record<string, any>;
+  extra?: Record<string, unknown>;
   source: string;
 }
 
