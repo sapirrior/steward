@@ -54,6 +54,7 @@ The application layer serves as the composition root and orchestrator for Stewar
 | `/sessions` | `commands/sessions/` | Opens SessionMenu dock to browse and switch sessions. |
 | `/rewind` | `commands/rewind/` | Opens RewindMenu dock to roll back workspace mutations. |
 | `/clear` | `commands/clear/` | Clears current terminal history buffer. |
+| `/copy` | `commands/copy/` | Copies the last AI assistant message to the clipboard. |
 | `/exit` | `commands/exit/` | Gracefully cleans up terminal and exits Steward. |
 
 ---
