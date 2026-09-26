@@ -51,7 +51,9 @@ This package encapsulates persistent infrastructure subsystems, file mutation sa
 | :--- | :--- | :--- | :--- | :--- |
 | `paths.ts` | `getStewardRootDir` | Function | Returns authoritative root directory for Steward files (`~/.steward` or env override). | Centralized source of truth for all paths. |
 | | `getSessionsDir` / `getCheckpointsDir` | Function | Returns paths to sessions, checkpoints, and error logs directories. | Creates directories if missing. |
+| `contracts.ts` | `ProviderName` / `ChatMode` | Type | Re-exported contracts and shared domain types for services. | Decouples services from agents package. |
 | `config/settings.ts` | `loadSettings` / `saveSettings` | Function | Reads and writes `~/.steward/settings.json` preserving unknown user keys. | Tolerates unknown legacy keys (e.g. `voiceLanguage`). |
+| | `getSavedMode` / `saveModeSelection` | Function | Persists and retrieves the active chat mode from `settings.json`. | Restored on application startup. |
 | `config/env.ts` | `hasProviderConfig` / `getAvailableProviders` | Function | Detects API keys across 11 supported providers (`openai`, `anthropic`, `gemini`, `deepseek`, `openrouter`, `github-copilot`, `groq`, `xai`, `mistral`, `ollama`, `custom`). | Safe environment variable scanning. |
 | `errors/classifier.ts` | `classifyError` | Function | Maps `@steward/ai` `AIError` instances, network drops, auth issues, and empty output into actionable StructuredError objects. | Structured classification with retryability. |
 | `errors/logger.ts` | `logError` | Function | Logs structured error diagnostics with stack traces to `~/.steward/logs/errors-<date>.log`. | Prevents unhandled crash loss. |

@@ -47,8 +47,12 @@ Every tool has an implementation file in `tools/` and a corresponding schema def
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `modes.ts` | `CHAT_MODES` | Constant | Supported chat modes (`normal`, `chat`, `review`, `build`). | Configures prompt persona and tool availability. |
-| | `getModePrompt` | Function | Returns specialized system prompt instructions for active mode. | Guides model behavior per mode. |
+| `modes.ts` | `CHAT_MODES` / `MODES` | Constant | Supported chat modes (`normal`, `chat`, `review`, `build`). | Configures prompt persona and tool availability. |
+| | `getActiveMode` / `setActiveMode` | Function | Gets or sets the canonical active chat mode state. | Single source of truth for runtime tool filtering. |
+| | `cycleMode` | Function | Cycles to the next available chat mode (`normal -> chat -> review -> build`). | Invoked by keyboard shortcut `Ctrl+B`. |
+| | `listModes` / `findMode` | Function | Lists metadata for all modes or searches mode by query. | Used by `/mode` slash command palette. |
+| | `isAllowed` | Function | Evaluates if a tool access level is permitted in the given mode. | Enforces tool permission boundaries. |
+| `mode.ts` (engine) | Re-exports | Module | Re-exports canonical policy modes for engine backwards compatibility. | Avoids duplicate state. |
 
 ---
 
