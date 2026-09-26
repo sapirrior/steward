@@ -133,26 +133,35 @@ describe('Slash Commands: /init, /copy, /usage', () => {
       const result = await usageCommand.execute([], {
         cwd: tempDir,
         session: {
-          session: { turns: [] },
+          session: { turns: [], createdAt: new Date().toISOString() },
           getModel: () => ({ provider: 'gemini', modelId: 'gemini-2.5-flash', effort: 'medium' }),
           getUsage: () => ({ inputTokens: 0, outputTokens: 0, totalTokens: 0 }),
         } as any,
       });
 
       expect(result.handled).toBe(true);
-      expect(result.message).toContain('Session Usage & Metrics:');
+      expect(result.message).toContain('Session Usage & Analytics:');
       expect(result.message).toContain('• Active Model: gemini-2.5-flash (gemini)');
-      expect(result.message).toContain('• Turns Completed: 0');
+      expect(result.message).toContain('• Activity: 0 turns (0 tool executions)');
+      expect(result.message).toContain('• Context Window:');
       expect(result.message).toContain('• Input Tokens: 0');
       expect(result.message).toContain('• Output Tokens: 0');
       expect(result.message).toContain('• Total Tokens: 0');
+      expect(result.message).toContain('• Session Spend: $0.00 USD');
     });
 
-    it('should format token breakdown with reasoning and cache metrics', async () => {
+    it('should format token breakdown with reasoning, cache metrics, and cost estimate', async () => {
       const result = await usageCommand.execute([], {
         cwd: tempDir,
         session: {
-          session: { turns: [{}, {}, {}] },
+          session: {
+            turns: [
+              { messages: [{ role: 'tool' }] },
+              { messages: [{ role: 'assistant', content: [{ type: 'tool-call' }] }] },
+              { messages: [] },
+            ],
+            createdAt: new Date(Date.now() - 120_000).toISOString(),
+          },
           getModel: () => ({ provider: 'anthropic', modelId: 'claude-3-7-sonnet', effort: 'high' }),
           getUsage: () => ({
             inputTokens: 15420,
@@ -169,13 +178,15 @@ describe('Slash Commands: /init, /copy, /usage', () => {
       expect(result.message).toContain(
         '• Active Model: claude-3-7-sonnet (anthropic, effort: high)',
       );
-      expect(result.message).toContain('• Turns Completed: 3');
+      expect(result.message).toContain('• Activity: 3 turns (2 tool executions)');
+      expect(result.message).toContain('• Context Window:');
       expect(result.message).toContain('• Input Tokens: 15,420');
       expect(result.message).toContain('• Output Tokens: 2,310');
       expect(result.message).toContain('• Reasoning Tokens: 1,200');
       expect(result.message).toContain('• Cache Read Tokens: 10,500');
       expect(result.message).toContain('• Cache Write Tokens: 1,200');
       expect(result.message).toContain('• Total Tokens: 17,730');
+      expect(result.message).toContain('• Session Spend: ~');
     });
   });
 });
