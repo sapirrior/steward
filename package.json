@@ -4,6 +4,17 @@
   "description": "Interactive AI engineering assistant for the terminal.",
   "author": "sapirrior",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sapirrior/steward.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sapirrior/steward/issues"
+  },
+  "homepage": "https://github.com/sapirrior/steward#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist"
   ],

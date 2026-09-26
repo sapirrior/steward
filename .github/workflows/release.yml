@@ -145,8 +145,8 @@ jobs:
 
       - name: Assemble npm package (bundled cli.js only)
         run: |
-          mkdir -p npm-package
-          cp dist/cli.js npm-package/cli.js
+          mkdir -p npm-package/dist
+          cp dist/cli.js npm-package/dist/cli.js
           # Carry over metadata needed for publish, but keep the package
           # to just the bundled file so nothing else leaks in.
           node -e "
@@ -156,9 +156,13 @@ jobs:
               version: pkg.version,
               description: pkg.description,
               license: pkg.license,
+              author: pkg.author,
               repository: pkg.repository,
+              bugs: pkg.bugs,
+              homepage: pkg.homepage,
+              publishConfig: pkg.publishConfig,
               bin: pkg.bin,
-              files: ['cli.js'],
+              files: ['dist'],
               engines: pkg.engines
             };
             require('fs').writeFileSync('npm-package/package.json', JSON.stringify(out, null, 2));
