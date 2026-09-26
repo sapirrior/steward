@@ -4,10 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initCommand } from '../src/app/commands/init/index.js';
 import { copyCommand } from '../src/app/commands/copy/index.js';
+import { exportCommand } from '../src/app/commands/export/index.js';
 import { usageCommand } from '../src/app/commands/usage/index.js';
 import { compileHooksConfig } from '../src/packages/plugins/src/hooks/config.js';
 
-describe('Slash Commands: /init, /copy, /usage', () => {
+describe('Slash Commands: /init, /copy, /usage, /export', () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -187,6 +188,79 @@ describe('Slash Commands: /init, /copy, /usage', () => {
       expect(result.message).toContain('• Cache Write Tokens: 1,200');
       expect(result.message).toContain('• Total Tokens: 17,730');
       expect(result.message).toContain('• Session Spend: ~');
+    });
+  });
+
+  describe('/export command', () => {
+    it('should reject if session is busy', async () => {
+      const result = await exportCommand.execute([], {
+        cwd: tempDir,
+        session: { isBusy: true, session: { turns: [] } } as any,
+      });
+
+      expect(result.handled).toBe(true);
+      expect(result.message).toContain('Cannot export while the agent is generating a response.');
+    });
+
+    it('should warn when no conversation messages exist', async () => {
+      const result = await exportCommand.execute([], {
+        cwd: tempDir,
+        session: { isBusy: false, session: { turns: [] } } as any,
+      });
+
+      expect(result.handled).toBe(true);
+      expect(result.message).toContain('No conversation messages found to export.');
+    });
+
+    it('should copy 1:1 UI screen lines when live buffer is available', async () => {
+      const mockScreenLines = [
+        '❯ hi',
+        '',
+        '● Hi! How can I help you today?',
+        '',
+        '✻ Done · 3:59 PM',
+      ];
+
+      const result = await exportCommand.execute([], {
+        cwd: tempDir,
+        session: { isBusy: false, session: { turns: [] } } as any,
+        getScreenLines: () => mockScreenLines,
+      });
+
+      expect(result.handled).toBe(true);
+      expect(result.message).toContain('Copied conversation transcript to clipboard.');
+    });
+
+    it('should export 1:1 UI text to file when filename is provided', async () => {
+      const mockScreenLines = [
+        '❯ please create sample.txt with hello world',
+        '',
+        '● write_file(sample.txt)',
+        '  └ Wrote 1 line to sample.txt',
+        '    1 hello world',
+        '',
+        '● Done! Created sample.txt with "hello world".',
+        '',
+        '✻ Done · 4:01 PM',
+      ];
+
+      const exportFile = join(tempDir, 'exports', 'transcript.txt');
+      const result = await exportCommand.execute([exportFile], {
+        cwd: tempDir,
+        session: { isBusy: false, session: { turns: [] } } as any,
+        getScreenLines: () => mockScreenLines,
+      });
+
+      expect(result.handled).toBe(true);
+      expect(result.message).toContain('Conversation transcript exported to');
+      expect(existsSync(exportFile)).toBe(true);
+
+      const content = readFileSync(exportFile, 'utf-8');
+      expect(content).toContain('❯ please create sample.txt with hello world');
+      expect(content).toContain('● write_file(sample.txt)');
+      expect(content).toContain('  └ Wrote 1 line to sample.txt');
+      expect(content).toContain('● Done! Created sample.txt with "hello world".');
+      expect(content).toContain('✻ Done · 4:01 PM');
     });
   });
 });

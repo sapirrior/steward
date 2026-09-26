@@ -3,6 +3,7 @@ import type { AgentSession } from '@steward/agents/engine/agent-session.js';
 export interface CommandContext {
   session: AgentSession;
   cwd: string;
+  getScreenLines?: () => string[];
 }
 
 export interface CommandResult {

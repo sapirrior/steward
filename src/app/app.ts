@@ -344,6 +344,11 @@ export class TUIApp {
       const cmdResult = await defaultCommandRegistry.execute(text, {
         session: this.session,
         cwd: this.cwd,
+        getScreenLines: () =>
+          this.engine.history
+            .getEntries()
+            .filter((e) => e.kind !== 'header' && e.kind !== 'logo')
+            .flatMap((e) => e.lines),
       });
 
       await applyCommandResult(text, cmdResult, {
