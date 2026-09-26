@@ -11,7 +11,9 @@ function extractAssistantText(msg: Message): string {
   if (typeof msg.content === 'string') return msg.content.trim();
   if (!Array.isArray(msg.content)) return '';
   return msg.content
-    .filter((b): b is { type: 'text'; text: string } => b?.type === 'text' && typeof b.text === 'string')
+    .filter(
+      (b): b is { type: 'text'; text: string } => b?.type === 'text' && typeof b.text === 'string',
+    )
     .map((b) => b.text.trim())
     .filter(Boolean)
     .join('\n\n');
@@ -21,7 +23,10 @@ function extractAssistantText(msg: Message): string {
  * Copies text to the OS clipboard across platforms with timeout and OSC 52 terminal fallback.
  */
 async function copyToClipboard(text: string): Promise<boolean> {
-  const isTermux = Boolean(process.env.TERMUX_VERSION || existsSync('/data/data/com.termux/files/usr/bin/termux-clipboard-set'));
+  const isTermux = Boolean(
+    process.env.TERMUX_VERSION ||
+    existsSync('/data/data/com.termux/files/usr/bin/termux-clipboard-set'),
+  );
   const [cmd, ...args] = isTermux
     ? ['termux-clipboard-set']
     : process.platform === 'darwin'
