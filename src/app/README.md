@@ -56,6 +56,7 @@ The application layer serves as the composition root and orchestrator for Stewar
 | `/clear` | `commands/clear/` | Clears current terminal history buffer. |
 | `/copy` | `commands/copy/` | Copies the last AI assistant message to the clipboard. |
 | `/init` | `commands/init/` | Scaffolds AGENTS.md, .steward/hooks.json, and .agents/skills/ in the workspace. |
+| `/usage` | `commands/usage/` | Displays token usage metrics and turn statistics for the active session. |
 | `/exit` | `commands/exit/` | Gracefully cleans up terminal and exits Steward. |
 
 ---

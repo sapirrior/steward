@@ -4,9 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initCommand } from '../src/app/commands/init/index.js';
 import { copyCommand } from '../src/app/commands/copy/index.js';
+import { usageCommand } from '../src/app/commands/usage/index.js';
 import { compileHooksConfig } from '../src/packages/plugins/src/hooks/config.js';
 
-describe('Slash Commands: /init and /copy', () => {
+describe('Slash Commands: /init, /copy, /usage', () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -124,6 +125,57 @@ describe('Slash Commands: /init and /copy', () => {
 
       expect(result.handled).toBe(true);
       expect(result.message).toContain('Copied last AI response to clipboard.');
+    });
+  });
+
+  describe('/usage command', () => {
+    it('should format zero usage cleanly on fresh session', async () => {
+      const result = await usageCommand.execute([], {
+        cwd: tempDir,
+        session: {
+          session: { turns: [] },
+          getModel: () => ({ provider: 'gemini', modelId: 'gemini-2.5-flash', effort: 'medium' }),
+          getUsage: () => ({ inputTokens: 0, outputTokens: 0, totalTokens: 0 }),
+        } as any,
+      });
+
+      expect(result.handled).toBe(true);
+      expect(result.message).toContain('Session Usage & Metrics:');
+      expect(result.message).toContain('• Active Model: gemini-2.5-flash (gemini)');
+      expect(result.message).toContain('• Turns Completed: 0');
+      expect(result.message).toContain('• Input Tokens: 0');
+      expect(result.message).toContain('• Output Tokens: 0');
+      expect(result.message).toContain('• Total Tokens: 0');
+    });
+
+    it('should format token breakdown with reasoning and cache metrics', async () => {
+      const result = await usageCommand.execute([], {
+        cwd: tempDir,
+        session: {
+          session: { turns: [{}, {}, {}] },
+          getModel: () => ({ provider: 'anthropic', modelId: 'claude-3-7-sonnet', effort: 'high' }),
+          getUsage: () => ({
+            inputTokens: 15420,
+            outputTokens: 2310,
+            totalTokens: 17730,
+            reasoningTokens: 1200,
+            cacheReadTokens: 10500,
+            cacheWriteTokens: 1200,
+          }),
+        } as any,
+      });
+
+      expect(result.handled).toBe(true);
+      expect(result.message).toContain(
+        '• Active Model: claude-3-7-sonnet (anthropic, effort: high)',
+      );
+      expect(result.message).toContain('• Turns Completed: 3');
+      expect(result.message).toContain('• Input Tokens: 15,420');
+      expect(result.message).toContain('• Output Tokens: 2,310');
+      expect(result.message).toContain('• Reasoning Tokens: 1,200');
+      expect(result.message).toContain('• Cache Read Tokens: 10,500');
+      expect(result.message).toContain('• Cache Write Tokens: 1,200');
+      expect(result.message).toContain('• Total Tokens: 17,730');
     });
   });
 });
