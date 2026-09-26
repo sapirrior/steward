@@ -2,8 +2,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
 import { homedir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import type { ProviderName } from './env.js';
-import type { ChatMode } from '../engine/policy.js';
-import type { ReasoningEffort } from '../services/contracts.js';
+import type { ChatMode, ReasoningEffort } from '../contracts.js';
 
 export type { ReasoningEffort };
 

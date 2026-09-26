@@ -25,8 +25,8 @@ import {
 import { renderTranscript } from './ui/utils/transcript.js';
 import { classifyError, logError } from '@steward/services/errors/index.js';
 import { UpdateCheckerService } from '@steward/services/updater/index.js';
-import { cycleMode } from '@steward/agents/policy/modes.js';
-import { saveModeSelection } from '@steward/services/config/settings.js';
+import { cycleMode, setActiveMode } from '@steward/agents/policy/modes.js';
+import { getSavedMode, saveModeSelection } from '@steward/services/config/settings.js';
 import { ModalController } from './ui/modal-controller.js';
 import { createAgentEventHandler, type AgentEventState } from './ui/agent-event-router.js';
 import { applyCommandResult } from './commands/handle-command-result.js';
@@ -64,6 +64,11 @@ export class TUIApp {
     this.session = options.initialSession ?? new AgentSession();
     this.onExitCallback = options.onExit;
     this.engine = new TerminalEngine();
+
+    const savedMode = getSavedMode();
+    if (savedMode) {
+      setActiveMode(savedMode);
+    }
 
     const model = this.session.getModel();
 
