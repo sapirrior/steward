@@ -206,6 +206,13 @@ export class TUIApp {
   private proceedStart(): void {
     this.engine.ensureAlternateScreen();
 
+    // Initialize session hooks after workspace trust confirmation
+    void this.session.initializeHooks({
+      cwd: this.cwd,
+      isTrusted: true,
+      source: this.session.session.turns.length > 0 ? 'resume' : 'startup',
+    });
+
     // Rehydrate previous session turns or direct commands if any, or render header
     const logPath = getSessionLogPath(this.session.session.date, this.session.session.id);
     if (this.session.session.turns.length > 0 || existsSync(logPath)) {

@@ -10,9 +10,9 @@ This package is responsible for agent loops, tool definition and execution, chat
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, and turn execution. | Injected with `@steward/ai` `AIEngine`. |
+| `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, turn execution, and lifecycle hook orchestration. | Injected with `@steward/ai` `AIEngine` and `@steward/plugins` `HookRuntime`. |
 | `turn-context.ts` | `prepareTurn` | Function | Prepares execution environment, checkpoint tracker, and event logging for a turn. | Builds canonical `Message` and plain `ToolSpec` array. |
-| `agent-runner.ts` | `runAgentTurn` | Function | Executes multi-step agent turn, dispatching tools sequentially and emitting lifecycle events. | Pure loop over `@steward/ai` stream. |
+| `agent-runner.ts` | `runAgentTurn` | Function | Executes multi-step agent turn, dispatching tools sequentially, invoking lifecycle callbacks (`beforeToolUse`, `afterToolUse`, `toolUseFailure`, `agentStop`), and emitting lifecycle events. | Pure loop over `@steward/ai` stream with callback seams. |
 | `system-prompt.ts` | `buildSystemPrompt` | Function | Assembles dynamic system instructions including workspace context, active mode policy, and available skills. | Injects mode rules and skill manifests. |
 | `events.ts` | `AgentEvent` | Type | Discriminated union of streaming events (`text-delta`, `reasoning-delta`, `tool-call`, `tool-result`, `step-end`, `turn-complete`, `error`). | Typed event contract for UI rendering. |
 
@@ -58,3 +58,5 @@ Every tool has an implementation file in `tools/` and a corresponding schema def
 2. **Permission Gating**: Destructive mutations (`write_file`, `edit_file`, `bash`) require explicit human-in-the-loop permission callback approval before modifying the workspace.
 3. **Sequential Tool Execution**: Multiple tool calls in a turn execute sequentially in model order to prevent permission and checkpoint races.
 4. **Checkpoint Integration**: `write_file` and `edit_file` automatically record pre-mutation CAS hashes to enable lossless rewind.
+5. **Lifecycle Hook Seams**: Ephemeral hook context (`SessionStart`, `UserPromptSubmit`, `AfterToolUse`, `ToolUseFailure`) attaches to system instructions without corrupting session message transcripts.
+6. **Bounded Turn Continuations**: Natural finish events checked by `AgentStop` hooks allow at most one retry continuation per turn.

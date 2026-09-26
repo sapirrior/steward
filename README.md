@@ -63,6 +63,33 @@ Steward natively connects to frontier APIs, gateways, and local offline inferenc
 
 ---
 
+## Lifecycle Hooks
+
+Steward supports deterministic command hooks configured in `.steward/hooks.json` (project-level) or `~/.steward/hooks.json` (user-level):
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "SessionStart": [
+      {
+        "name": "load-env-context",
+        "command": ".steward/hooks/session-start.sh"
+      }
+    ],
+    "BeforeToolUse": [
+      {
+        "name": "guard-deployments",
+        "command": ".steward/hooks/check-command.sh",
+        "matcher": "bash"
+      }
+    ]
+  }
+}
+```
+
+---
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.

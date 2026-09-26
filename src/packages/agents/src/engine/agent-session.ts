@@ -2,6 +2,7 @@
  * @steward/agents - AgentSession Implementation
  */
 
+import { randomUUID } from 'node:crypto';
 import type {
   AIEngine,
   Message,
@@ -25,9 +26,10 @@ import {
 import type { MutationCheckpointTracker } from '@steward/services/checkpoint/index.js';
 import { defaultToolCatalog, summarizeToolResult, formatPlainToolSummary } from '../tools/index.js';
 import { ShellTaskManager } from '@steward/services/tasks/manager.js';
-import { loadSettings, saveSettings } from '@steward/services/config/index.js';
+import { loadSettings, saveSettings, isFolderTrusted } from '@steward/services/config/index.js';
 import { logError } from '@steward/services/errors/index.js';
-import { runAgentTurn } from './agent-runner.js';
+import { HookRuntime, type SessionStartSource } from '@steward/plugins';
+import { runAgentTurn, type AgentTurnCallbacks } from './agent-runner.js';
 import { SAFETY_STEP_CEILING } from './constants.js';
 import type { AgentEvent } from './events.js';
 import type { SessionConfig, SubmitPromptOptions, ToolResultInfo, TurnSummary } from './types.js';
@@ -117,6 +119,7 @@ export function accumulateUsage(current: TokenUsage, delta: TokenUsage): TokenUs
 
 export interface AgentSessionDeps {
   ai?: AIEngine;
+  hookRuntime?: HookRuntime;
 }
 
 /**
@@ -129,6 +132,7 @@ export class AgentSession {
   private messages: Message[] = [];
   private sessionData: SessionData;
   private sessionLogWriter?: SessionLogWriter;
+  private hookRuntime?: HookRuntime;
   private accumulatedUsage: TokenUsage = {
     inputTokens: 0,
     outputTokens: 0,
@@ -147,6 +151,7 @@ export class AgentSession {
     deps?: AgentSessionDeps,
   ) {
     this.ai = deps?.ai ?? createAIEngine();
+    this.hookRuntime = deps?.hookRuntime;
 
     if (existingSession) {
       this.sessionData = existingSession;
@@ -204,6 +209,39 @@ export class AgentSession {
 
   public get session(): SessionData {
     return this.sessionData;
+  }
+
+  public getHookRuntime(): HookRuntime | undefined {
+    return this.hookRuntime;
+  }
+
+  /**
+   * Initializes the hook runtime subject to workspace trust and triggers SessionStart hooks.
+   */
+  public async initializeHooks(
+    options: {
+      cwd?: string;
+      isTrusted?: boolean;
+      source?: SessionStartSource;
+    } = {},
+  ): Promise<void> {
+    const cwd = options.cwd ?? process.cwd();
+    const isTrusted = options.isTrusted ?? isFolderTrusted(cwd);
+    const source: SessionStartSource = options.source ?? 'startup';
+
+    if (!this.hookRuntime) {
+      this.hookRuntime = HookRuntime.load({
+        projectDir: cwd,
+        isTrusted,
+      });
+    }
+
+    await this.hookRuntime.runSessionStart({
+      sessionId: this.sessionData.id,
+      projectDir: cwd,
+      cwd,
+      source,
+    });
   }
 
   public setModel(selection: ModelSelection, persist = true): ModelSelection {
@@ -282,15 +320,60 @@ export class AgentSession {
       throw new Error('Prompt cannot be empty.');
     }
 
+    const cwd = options.cwd ?? process.cwd();
+
+    // 1. Ensure hook runtime is initialized
+    if (!this.hookRuntime) {
+      await this.initializeHooks({
+        cwd,
+        isTrusted: isFolderTrusted(cwd),
+        source: 'startup',
+      });
+    }
+
+    // 2. UserPromptSubmit hook lifecycle (pre-turn validation before persistence/turn creation)
+    const previewTurnId = randomUUID();
+    const promptHookResult = await this.hookRuntime!.runUserPromptSubmit({
+      sessionId: this.sessionData.id,
+      turnId: previewTurnId,
+      projectDir: cwd,
+      cwd,
+      prompt: trimmedPrompt,
+    });
+
+    if (promptHookResult.blocked) {
+      const blockReason =
+        promptHookResult.firstBlockReason || 'UserPromptSubmit hook blocked the prompt.';
+      throw new Error(`Prompt blocked: ${blockReason}`);
+    }
+
     this.isGenerating = true;
 
-    const prep = await prepareTurn(trimmedPrompt, options, {
-      sessionId: this.sessionData.id,
-      shellTasks: this.shellTasks,
-      sessionLogWriter: this.sessionLogWriter,
-      turnNumber: this.sessionData.turns.length + 1,
-      model: this.getModel(),
-    });
+    // Collect ephemeral hook instructions (session start context + prompt submit context)
+    const consumedSessionStartCtx = this.hookRuntime!.consumePendingSessionContext();
+    const combinedHookContext = [...consumedSessionStartCtx, ...promptHookResult.context];
+    const hookInstructionText =
+      combinedHookContext.length > 0
+        ? `[Hook Instructions]\n` + combinedHookContext.join('\n')
+        : undefined;
+
+    const effectiveExtraInstructions =
+      [options.extraInstructions, hookInstructionText].filter(Boolean).join('\n\n') || undefined;
+
+    const prep = await prepareTurn(
+      trimmedPrompt,
+      {
+        ...options,
+        extraInstructions: effectiveExtraInstructions,
+      },
+      {
+        sessionId: this.sessionData.id,
+        shellTasks: this.shellTasks,
+        sessionLogWriter: this.sessionLogWriter,
+        turnNumber: this.sessionData.turns.length + 1,
+        model: this.getModel(),
+      },
+    );
 
     this.messages.push(prep.userMessage);
     this.activeAbortController = prep.abortController;
@@ -338,6 +421,67 @@ export class AgentSession {
       }
     };
 
+    const callbacks: AgentTurnCallbacks = {
+      beforeToolUse: async (params) => {
+        const res = await this.hookRuntime!.runBeforeToolUse({
+          sessionId: this.sessionData.id,
+          turnId: prep.turnId,
+          projectDir: prep.toolContext.cwd,
+          cwd: prep.toolContext.cwd,
+          toolCallId: params.toolCallId,
+          toolName: params.toolName,
+          toolInput: params.toolInput,
+          abortSignal: prep.abortController.signal,
+        });
+        return { blocked: res.blocked, reason: res.firstBlockReason };
+      },
+      afterToolUse: async (params) => {
+        const res = await this.hookRuntime!.runAfterToolUse({
+          sessionId: this.sessionData.id,
+          turnId: prep.turnId,
+          projectDir: prep.toolContext.cwd,
+          cwd: prep.toolContext.cwd,
+          toolCallId: params.toolCallId,
+          toolName: params.toolName,
+          toolInput: params.toolInput,
+          toolOutput: params.toolOutput,
+          isError: params.isError,
+          durationMs: params.durationMs,
+          abortSignal: prep.abortController.signal,
+        });
+        return { context: res.context };
+      },
+      toolUseFailure: async (params) => {
+        const res = await this.hookRuntime!.runToolUseFailure({
+          sessionId: this.sessionData.id,
+          turnId: prep.turnId,
+          projectDir: prep.toolContext.cwd,
+          cwd: prep.toolContext.cwd,
+          toolCallId: params.toolCallId,
+          toolName: params.toolName,
+          toolInput: params.toolInput,
+          error: params.error,
+          durationMs: params.durationMs,
+          abortSignal: prep.abortController.signal,
+        });
+        return { context: res.context };
+      },
+      agentStop: async (params) => {
+        const res = await this.hookRuntime!.runAgentStop({
+          sessionId: this.sessionData.id,
+          turnId: prep.turnId,
+          projectDir: prep.toolContext.cwd,
+          cwd: prep.toolContext.cwd,
+          stopReason: params.stopReason,
+          finishReason: params.finishReason,
+          assistantText: params.assistantText,
+          stopHookActive: params.stopHookActive,
+          abortSignal: prep.abortController.signal,
+        });
+        return { blocked: res.blocked, reason: res.firstBlockReason };
+      },
+    };
+
     try {
       summary = await runAgentTurn({
         ai: this.ai,
@@ -346,6 +490,7 @@ export class AgentSession {
         instructions: prep.instructions,
         tools: prep.activeTools,
         toolExecutor,
+        callbacks,
         maxSteps: this.config.maxSteps,
         temperature: this.config.temperature,
         reasoningEffort: this.config.reasoningEffort,
@@ -516,6 +661,15 @@ export class AgentSession {
       this.sessionData.date || getCurrentDateString(),
       this.sessionData.id,
     );
+
+    if (this.hookRuntime) {
+      await this.hookRuntime.runSessionStart({
+        sessionId: this.sessionData.id,
+        projectDir: process.cwd(),
+        cwd: process.cwd(),
+        source: 'reset',
+      });
+    }
   }
 
   public getUsage(): TokenUsage {

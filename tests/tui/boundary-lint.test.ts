@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 function getAllTsFiles(dir: string): string[] {
@@ -161,6 +161,36 @@ describe('TUI Architecture Boundary Rules (Rules.txt)', () => {
       const imports = extractImports(file);
       for (const imp of imports) {
         if (imp.source.includes('@steward/app') || imp.source.includes('/app/')) {
+          violations.push(`${rel}:${imp.line} -> ${imp.source}`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('Rule 7: Cross-package architecture - plugins must never import from agents, ai, tui, or app', () => {
+    const pluginsRoot = join(import.meta.dir, '../../src/packages/plugins/src');
+    if (!existsSync(pluginsRoot)) {
+      return;
+    }
+    const allPluginsFiles = getAllTsFiles(pluginsRoot);
+    const violations: string[] = [];
+
+    for (const file of allPluginsFiles) {
+      const rel = relative(pluginsRoot, file);
+      const imports = extractImports(file);
+      for (const imp of imports) {
+        if (
+          imp.source.includes('@steward/agents') ||
+          imp.source.includes('/agents/') ||
+          imp.source.includes('@steward/ai') ||
+          imp.source.includes('/ai/') ||
+          imp.source.includes('@steward/tui') ||
+          imp.source.includes('/tui/') ||
+          imp.source.includes('@steward/app') ||
+          imp.source.includes('/app/')
+        ) {
           violations.push(`${rel}:${imp.line} -> ${imp.source}`);
         }
       }

@@ -17,6 +17,38 @@ import { SAFETY_STEP_CEILING } from './constants.js';
 import type { AgentEventListener } from './events.js';
 import type { ToolResultInfo, TurnStopReason, TurnSummary } from './types.js';
 
+export interface AgentTurnCallbacks {
+  beforeToolUse?: (params: {
+    toolCallId: string;
+    toolName: string;
+    toolInput: Record<string, unknown>;
+  }) => Promise<{ blocked: boolean; reason?: string }>;
+
+  afterToolUse?: (params: {
+    toolCallId: string;
+    toolName: string;
+    toolInput: Record<string, unknown>;
+    toolOutput: unknown;
+    isError: boolean;
+    durationMs: number;
+  }) => Promise<{ context?: string[] }>;
+
+  toolUseFailure?: (params: {
+    toolCallId: string;
+    toolName: string;
+    toolInput: Record<string, unknown>;
+    error: string;
+    durationMs: number;
+  }) => Promise<{ context?: string[] }>;
+
+  agentStop?: (params: {
+    stopReason: string;
+    finishReason: string;
+    assistantText: string;
+    stopHookActive: boolean;
+  }) => Promise<{ blocked: boolean; reason?: string }>;
+}
+
 export interface RunAgentTurnOptions {
   ai: AIEngine;
   model: ModelSelection;
@@ -24,6 +56,7 @@ export interface RunAgentTurnOptions {
   instructions?: string;
   tools?: readonly ToolSpec[];
   toolExecutor?: (call: ToolCallContent) => Promise<ToolResultInfo>;
+  callbacks?: AgentTurnCallbacks;
   maxSteps?: number;
   temperature?: number;
   reasoningEffort?: ReasoningEffort;
@@ -48,9 +81,13 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
   const turnStartedAt = new Date().toISOString();
   const turnStartMonotonic = performance.now();
 
+  let baseInstructions = options.instructions ?? '';
+  let pendingStepContext: string[] = [];
+  let stopHookContinuations = 0;
+
   const activeMessages: Message[] = [...options.messages];
-  if (options.instructions) {
-    activeMessages.unshift({ role: 'system', content: options.instructions });
+  if (baseInstructions) {
+    activeMessages.unshift({ role: 'system', content: baseInstructions });
   }
 
   const accumulatedUsage: TokenUsage = {
@@ -72,6 +109,35 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
     while (stepIndex < maxSteps) {
       if (options.abortSignal?.aborted) {
         break;
+      }
+
+      // Inject ephemeral hook context into the system instructions if present
+      if (pendingStepContext.length > 0) {
+        const extraSection = '\n\n[Hook Context]\n' + pendingStepContext.join('\n');
+        pendingStepContext = [];
+
+        const systemMsgIdx = activeMessages.findIndex((m) => m.role === 'system');
+        if (systemMsgIdx >= 0) {
+          const currentSys = activeMessages[systemMsgIdx]!;
+          const currentContent =
+            typeof currentSys.content === 'string'
+              ? currentSys.content
+              : Array.isArray(currentSys.content)
+                ? currentSys.content
+                    .filter((c: any) => c.type === 'text')
+                    .map((c: any) => c.text)
+                    .join('\n')
+                : '';
+          activeMessages[systemMsgIdx] = {
+            role: 'system',
+            content: currentContent + extraSection,
+          };
+        } else {
+          activeMessages.unshift({
+            role: 'system',
+            content: extraSection.trim(),
+          });
+        }
       }
 
       const inferenceRequest: InferenceRequest = {
@@ -113,12 +179,10 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
           }
 
           case 'tool-call-start': {
-            // Started receiving tool call
             break;
           }
 
           case 'tool-call-delta': {
-            // Fragment argument delta
             break;
           }
 
@@ -177,8 +241,28 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
         usage: stepResult.usage,
       });
 
-      // If no tool calls, turn finishes naturally
+      // If no tool calls, check AgentStop hook before natural finish
       if (stepToolCalls.length === 0) {
+        if (
+          options.callbacks?.agentStop &&
+          !options.abortSignal?.aborted &&
+          stopHookContinuations === 0
+        ) {
+          const stopOutcome = await options.callbacks.agentStop({
+            stopReason: 'natural',
+            finishReason: finalFinishReason,
+            assistantText: accumulatedText,
+            stopHookActive: false,
+          });
+
+          if (stopOutcome.blocked && stopHookContinuations === 0 && stepIndex < maxSteps) {
+            stopHookContinuations++;
+            const retryGuidance =
+              stopOutcome.reason || 'AgentStop requested continuation. Please continue your turn.';
+            pendingStepContext.push(`[AgentStop Continuation]\n${retryGuidance}`);
+            continue;
+          }
+        }
         break;
       }
 
@@ -196,6 +280,52 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
           break;
         }
 
+        // 1. BeforeToolUse hook check
+        let isBlocked = false;
+        let blockReason: string | undefined;
+
+        if (options.callbacks?.beforeToolUse) {
+          const beforeRes = await options.callbacks.beforeToolUse({
+            toolCallId: call.id,
+            toolName: call.name,
+            toolInput: (call.arguments ?? {}) as Record<string, unknown>,
+          });
+          if (beforeRes.blocked) {
+            isBlocked = true;
+            blockReason = beforeRes.reason || `Tool execution blocked by hook.`;
+          }
+        }
+
+        if (isBlocked) {
+          // Tool was blocked before execution: emit error-shaped tool result without running ToolUseFailure
+          const blockedResultInfo: ToolResultInfo = {
+            id: call.id,
+            name: call.name,
+            args: call.arguments,
+            result: `Tool "${call.name}" blocked: ${blockReason}`,
+            isError: true,
+            durationMs: 0,
+            startedAt: new Date().toISOString(),
+            finishedAt: new Date().toISOString(),
+          };
+
+          toolResults.push(blockedResultInfo);
+          options.onEvent?.({
+            type: 'tool-result',
+            toolResult: blockedResultInfo,
+          });
+
+          toolResultsForStep.push({
+            type: 'tool-result',
+            toolCallId: call.id,
+            toolName: call.name,
+            output: blockedResultInfo.result,
+            isError: true,
+          });
+          continue;
+        }
+
+        // 2. Execute tool
         if (options.toolExecutor) {
           const resultInfo = await options.toolExecutor(call);
           toolResults.push(resultInfo);
@@ -211,6 +341,43 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
             output: resultInfo.result,
             isError: resultInfo.isError,
           });
+
+          // 3. AfterToolUse or ToolUseFailure hooks
+          if (resultInfo.isError) {
+            if (options.callbacks?.toolUseFailure) {
+              const errorText =
+                typeof resultInfo.result === 'object' && resultInfo.result !== null
+                  ? JSON.stringify(resultInfo.result)
+                  : String(resultInfo.result);
+
+              const failureRes = await options.callbacks.toolUseFailure({
+                toolCallId: call.id,
+                toolName: call.name,
+                toolInput: (call.arguments ?? {}) as Record<string, unknown>,
+                error: errorText,
+                durationMs: resultInfo.durationMs ?? 0,
+              });
+
+              if (failureRes?.context && failureRes.context.length > 0) {
+                pendingStepContext.push(...failureRes.context);
+              }
+            }
+          } else {
+            if (options.callbacks?.afterToolUse) {
+              const afterRes = await options.callbacks.afterToolUse({
+                toolCallId: call.id,
+                toolName: call.name,
+                toolInput: (call.arguments ?? {}) as Record<string, unknown>,
+                toolOutput: resultInfo.result,
+                isError: false,
+                durationMs: resultInfo.durationMs ?? 0,
+              });
+
+              if (afterRes?.context && afterRes.context.length > 0) {
+                pendingStepContext.push(...afterRes.context);
+              }
+            }
+          }
         }
       }
 

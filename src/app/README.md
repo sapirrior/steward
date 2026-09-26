@@ -62,5 +62,13 @@ The application layer serves as the composition root and orchestrator for Stewar
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `bash.ts` | `executeDirectBash` | Function | Executes direct user shell commands (`!<command>`) with real-time streaming output. | Bypasses LLM turn history and checkpointing; logged to presentation journal. |
+| `bash.ts` | `executeDirectBash` | Function | Executes direct user shell commands (`!<command>`) with real-time streaming output. | Bypasses LLM turn history, checkpoints, and agent lifecycle hooks; logged to presentation journal. |
 | `open-url.ts` | `openUrl` | Function | Cross-platform utility to open URLs in default web browser. | Supports Linux (xdg-open), macOS (open), Termux (termux-open-url), and Windows (start). |
+
+---
+
+## Application Invariants
+
+1. **Trust Gate Ordering**: External project and user lifecycle hooks are disabled until the user explicitly approves workspace trust via the `TrustGate`.
+2. **Direct Shell & Slash Command Bypass**: User direct bash executions (`!<command>`) and `/slash` commands are application-level operations and bypass agent lifecycle hooks (`UserPromptSubmit`, `BeforeToolUse`, etc.).
+
