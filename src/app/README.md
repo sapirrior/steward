@@ -55,6 +55,7 @@ The application layer serves as the composition root and orchestrator for Stewar
 | `/rewind` | `commands/rewind/` | Opens RewindMenu dock to roll back workspace mutations. |
 | `/clear` | `commands/clear/` | Clears current terminal history buffer. |
 | `/copy` | `commands/copy/` | Copies the last AI assistant message to the clipboard. |
+| `/init` | `commands/init/` | Scaffolds AGENTS.md, .steward/hooks.json, and .agents/skills/ in the workspace. |
 | `/exit` | `commands/exit/` | Gracefully cleans up terminal and exits Steward. |
 
 ---

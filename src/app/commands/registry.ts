@@ -1,5 +1,6 @@
 import { clearCommand } from './clear/index.js';
 import { copyCommand } from './copy/index.js';
+import { initCommand } from './init/index.js';
 import { effortCommand } from './effort/index.js';
 import { exitCommand, quitCommand } from './exit/index.js';
 import { loginCommand } from './login/index.js';
@@ -69,6 +70,7 @@ export class CommandRegistry {
 }
 
 export const builtInCommands: SlashCommand[] = [
+  initCommand,
   copyCommand,
   rewindCommand,
   modelCommand,
