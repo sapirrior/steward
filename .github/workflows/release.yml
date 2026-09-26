@@ -56,7 +56,7 @@ jobs:
           bun-version: latest
 
       - name: Install Dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Run Checks & Build
         run: |

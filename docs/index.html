@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Steward Documentation — Interactive AI Engineering Assistant for the Terminal</title>
+  <meta name="description" content="Official documentation for Steward: A zero-dependency, highly extensible AI terminal companion featuring deterministic lifecycle hooks, CAS checkpoints, and alternate-screen TUI.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              300: '#6ee7b7',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            },
+            dark: {
+              bg: '#0B0F17',
+              card: '#111827',
+              border: '#1F2937',
+              muted: '#9CA3AF',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Prism.js Syntax Highlighting CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Geist', sans-serif;
+      scroll-behavior: smooth;
+    }
+    pre, code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4B5563;
+    }
+    .callout-note { border-left-color: #3B82F6; background-color: rgba(59, 130, 246, 0.05); }
+    .callout-tip { border-left-color: #10B981; background-color: rgba(16, 185, 129, 0.05); }
+    .callout-warning { border-left-color: #F59E0B; background-color: rgba(245, 158, 11, 0.05); }
+    .callout-danger { border-left-color: #EF4444; background-color: rgba(239, 68, 68, 0.05); }
+  </style>
+
+  <!-- Importmap for React 19 & Lucide Icons via jsDelivr -->
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "https://cdn.jsdelivr.net/npm/react@19/+esm",
+        "react-dom/client": "https://cdn.jsdelivr.net/npm/react-dom@19/client/+esm",
+        "lucide-react": "https://cdn.jsdelivr.net/npm/lucide-react@0.475.0/+esm"
+      }
+    }
+  </script>
+</head>
+<body class="bg-dark-bg text-slate-100 antialiased selection:bg-brand-500/20 selection:text-brand-300">
+  <div id="root"></div>
+
+  <!-- Main Application Script -->
+  <script type="module">
+    import React, { useState, useEffect, useRef, useMemo } from 'react';
+    import ReactDOM from 'react-dom/client';
+    import * as Icons from 'lucide-react';
+
+    // Navigation Structure
+    const NAVIGATION = [
+      {
+        title: 'Getting Started',
+        items: [
+          { id: 'introduction', label: 'Introduction', icon: 'Sparkles' },
+          { id: 'installation', label: 'Installation', icon: 'Download' },
+          { id: 'quickstart', label: 'Quick Start', icon: 'Play' },
+          { id: 'providers-auth', label: 'Providers & Auth', icon: 'KeyRound' },
+        ]
+      },
+      {
+        title: 'Core Architecture',
+        items: [
+          { id: 'architecture', label: 'Zero-SDK AI Engine', icon: 'Cpu' },
+          { id: 'agent-loop', label: 'Agent Loop & Turns', icon: 'RefreshCw' },
+          { id: 'checkpoints-rewind', label: 'CAS Checkpoints & Rewind', icon: 'History' },
+          { id: 'tui-engine', label: 'Alternate-Screen TUI', icon: 'Terminal' },
+        ]
+      },
+      {
+        title: 'Lifecycle Hooks',
+        items: [
+          { id: 'hooks-overview', label: 'Hooks Overview', icon: 'Webhook' },
+          { id: 'hooks-events', label: 'The 6 Lifecycle Events', icon: 'ListTree' },
+          { id: 'hooks-config', label: 'Configuration & Matchers', icon: 'Settings' },
+          { id: 'hooks-examples', label: 'Example Security Hooks', icon: 'ShieldCheck' },
+        ]
+      },
+      {
+        title: 'Chat Modes & Policy',
+        items: [
+          { id: 'modes-overview', label: 'Modes & Safety Policy', icon: 'Sliders' },
+          { id: 'modes-reference', label: 'Normal, Chat, Review, Build', icon: 'Layers' },
+        ]
+      },
+      {
+        title: 'Tool Catalog',
+        items: [
+          { id: 'tools-reference', label: 'All 15 Tools', icon: 'Wrench' },
+        ]
+      },
+      {
+        title: 'Configuration',
+        items: [
+          { id: 'settings-reference', label: 'settings.json & Trust', icon: 'FileCode' },
+          { id: 'slash-commands', label: 'Slash Commands', icon: 'Slash' },
+        ]
+      }
+    ];
+
+    // Helper Code Snippet component with copy button
+    function CodeBlock({ code, language = 'bash', filename }) {
+      const [copied, setCopied] = useState(false);
+      const codeRef = useRef(null);
+
+      useEffect(() => {
+        if (codeRef.current && window.Prism) {
+          window.Prism.highlightElement(codeRef.current);
+        }
+      }, [code, language]);
+
+      const handleCopy = () => {
+        navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      return React.createElement('div', { className: 'my-4 rounded-xl border border-dark-border bg-black/40 overflow-hidden shadow-2xl' },
+        filename && React.createElement('div', { className: 'flex items-center justify-between border-b border-dark-border px-4 py-2 bg-dark-card/60 text-xs text-dark-muted font-mono' },
+          React.createElement('span', { className: 'flex items-center gap-2' },
+            React.createElement(Icons.FileCode, { size: 14, className: 'text-brand-400' }),
+            filename
+          ),
+          React.createElement('span', { className: 'uppercase tracking-wider text-[10px] bg-dark-border/60 px-2 py-0.5 rounded text-slate-400' }, language)
+        ),
+        React.createElement('div', { className: 'relative' },
+          React.createElement('button', {
+            onClick: handleCopy,
+            className: 'absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-dark-border bg-dark-card/90 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition-all backdrop-blur',
+            title: 'Copy code'
+          },
+            copied ? React.createElement(Icons.Check, { size: 14, className: 'text-brand-400' }) : React.createElement(Icons.Copy, { size: 14 }),
+            copied ? 'Copied!' : 'Copy'
+          ),
+          React.createElement('pre', { className: `!m-0 !p-4 !bg-transparent text-sm overflow-x-auto language-${language}` },
+            React.createElement('code', { ref: codeRef, className: `language-${language}` }, code)
+          )
+        )
+      );
+    }
+
+    // Callout Box
+    function Callout({ type = 'note', title, children }) {
+      const config = {
+        note: { icon: Icons.Info, border: 'border-blue-500', bg: 'bg-blue-950/20', text: 'text-blue-400' },
+        tip: { icon: Icons.Sparkles, border: 'border-brand-500', bg: 'bg-brand-950/20', text: 'text-brand-400' },
+        warning: { icon: Icons.AlertTriangle, border: 'border-amber-500', bg: 'bg-amber-950/20', text: 'text-amber-400' },
+        danger: { icon: Icons.AlertOctagon, border: 'border-rose-500', bg: 'bg-rose-950/20', text: 'text-rose-400' },
+      }[type];
+
+      const IconComponent = config.icon;
+
+      return React.createElement('div', { className: `my-5 rounded-xl border-l-4 ${config.border} ${config.bg} p-4 border border-dark-border` },
+        React.createElement('div', { className: `flex items-center gap-2 font-medium text-sm ${config.text} mb-1.5` },
+          React.createElement(IconComponent, { size: 16 }),
+          title || type.toUpperCase()
+        ),
+        React.createElement('div', { className: 'text-sm text-slate-300 leading-relaxed' }, children)
+      );
+    }
+
+    // Interactive Simulated Terminal Component
+    function InteractiveTerminal() {
+      const [input, setInput] = useState('');
+      const [history, setHistory] = useState([
+        { type: 'system', text: 'Steward AI v0.26.0 (Mode: Normal) ready.' },
+        { type: 'assistant', text: 'Hello! I pair program with you in this workspace. Try commands like "inspect README" or test our BeforeToolUse hook with "rm -rf tmp".' }
+      ]);
+      const [mode, setMode] = useState('normal');
+
+      const handleExecute = (e) => {
+        e.preventDefault();
+        const cmd = input.trim();
+        if (!cmd) return;
+
+        const newHist = [...history, { type: 'user', text: cmd }];
+
+        if (cmd === '/mode') {
+          const nextMode = mode === 'normal' ? 'chat' : mode === 'chat' ? 'review' : mode === 'chat' ? 'build' : 'normal';
+          setMode(nextMode);
+          newHist.push({ type: 'system', text: `Switched mode to: ${nextMode.toUpperCase()}` });
+        } else if (cmd.includes('rm -rf') || cmd.includes('delete')) {
+          newHist.push({ type: 'tool-block', text: '⛔ [BeforeToolUse Hook] Blocked: Security Hook disallowed destructive shell execution.' });
+          newHist.push({ type: 'assistant', text: 'The proposed deletion command was blocked by the workspace BeforeToolUse hook policy.' });
+        } else {
+          newHist.push({ type: 'assistant', text: `Analyzed workspace for "${cmd}". Ready to inspect files or apply CAS-safe mutations.` });
+        }
+
+        setHistory(newHist);
+        setInput('');
+      };
+
+      return React.createElement('div', { className: 'my-6 rounded-2xl border border-dark-border bg-[#080C14] shadow-2xl overflow-hidden' },
+        React.createElement('div', { className: 'flex items-center justify-between border-b border-dark-border px-4 py-3 bg-dark-card/70' },
+          React.createElement('div', { className: 'flex items-center gap-2' },
+            React.createElement('div', { className: 'w-3 h-3 rounded-full bg-rose-500/80' }),
+            React.createElement('div', { className: 'w-3 h-3 rounded-full bg-amber-500/80' }),
+            React.createElement('div', { className: 'w-3 h-3 rounded-full bg-emerald-500/80' }),
+            React.createElement('span', { className: 'ml-2 text-xs font-mono text-dark-muted font-medium' }, 'steward-tui-live')
+          ),
+          React.createElement('div', { className: 'flex items-center gap-2' },
+            React.createElement('span', { className: 'text-[11px] font-mono px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20' },
+              `Mode: ${mode.toUpperCase()}`
+            ),
+            React.createElement('span', { className: 'text-[11px] font-mono text-dark-muted' }, 'gemini-2.5-flash')
+          )
+        ),
+        React.createElement('div', { className: 'p-4 font-mono text-xs space-y-3 min-h-[220px] max-h-[320px] overflow-y-auto' },
+          history.map((item, idx) => {
+            if (item.type === 'user') {
+              return React.createElement('div', { key: idx, className: 'flex items-start gap-2 text-slate-100' },
+                React.createElement('span', { className: 'text-brand-400 font-bold' }, '>'),
+                React.createElement('span', null, item.text)
+              );
+            }
+            if (item.type === 'tool-block') {
+              return React.createElement('div', { key: idx, className: 'p-2 rounded bg-rose-950/30 border border-rose-800/40 text-rose-300' }, item.text);
+            }
+            if (item.type === 'system') {
+              return React.createElement('div', { key: idx, className: 'text-dark-muted italic' }, `ℹ ${item.text}`);
+            }
+            return React.createElement('div', { key: idx, className: 'text-emerald-300 pl-4 border-l-2 border-brand-500/40' }, item.text);
+          })
+        ),
+        React.createElement('form', { onSubmit: handleExecute, className: 'border-t border-dark-border p-2 bg-dark-card/40 flex items-center gap-2' },
+          React.createElement('span', { className: 'pl-3 text-brand-400 font-mono text-xs' }, '$'),
+          React.createElement('input', {
+            type: 'text',
+            value: input,
+            onChange: (e) => setInput(e.target.value),
+            placeholder: 'Type a command or prompt (e.g. "rm -rf tmp", "inspect repo", "/mode")...',
+            className: 'w-full bg-transparent border-0 px-2 py-1.5 text-xs font-mono text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-0'
+          }),
+          React.createElement('button', { type: 'submit', className: 'px-3 py-1 bg-brand-600 hover:bg-brand-500 text-slate-950 text-xs font-semibold rounded font-mono transition-colors' }, 'Send')
+        )
+      );
+    }
+
+    // Main App Component
+    function App() {
+      const [activeSection, setActiveSection] = useState('introduction');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [isSearchOpen, setIsSearchOpen] = useState(false);
+      const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+      useEffect(() => {
+        const handleHashChange = () => {
+          const hash = window.location.hash.replace('#', '');
+          if (hash) {
+            setActiveSection(hash);
+          }
+        };
+
+        window.addEventListener('hashchange', handleHashChange);
+        if (window.location.hash) {
+          handleHashChange();
+        }
+
+        const handleKeyDown = (e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            setIsSearchOpen((prev) => !prev);
+          }
+          if (e.key === 'Escape') {
+            setIsSearchOpen(false);
+          }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+          window.removeEventListener('hashchange', handleHashChange);
+          window.removeEventListener('keydown', handleKeyDown);
+        };
+      }, []);
+
+      const navigateTo = (id) => {
+        window.location.hash = id;
+        setActiveSection(id);
+        setMobileMenuOpen(false);
+        setIsSearchOpen(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      // Search matching items
+      const searchResults = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        const q = searchQuery.toLowerCase();
+        const results = [];
+        NAVIGATION.forEach((cat) => {
+          cat.items.forEach((item) => {
+            if (item.label.toLowerCase().includes(q) || item.id.toLowerCase().includes(q)) {
+              results.push({ category: cat.title, ...item });
+            }
+          });
+        });
+        return results;
+      }, [searchQuery]);
+
+      return React.createElement('div', { className: 'min-h-screen bg-dark-bg text-slate-100 flex flex-col' },
+        // Top Navigation Bar
+        React.createElement('header', { className: 'sticky top-0 z-40 w-full border-b border-dark-border bg-dark-bg/80 backdrop-blur-md px-6 py-3.5 flex items-center justify-between' },
+          React.createElement('div', { className: 'flex items-center gap-6' },
+            React.createElement('button', {
+              onClick: () => setMobileMenuOpen(!mobileMenuOpen),
+              className: 'lg:hidden p-1.5 rounded-lg border border-dark-border hover:bg-dark-card'
+            }, React.createElement(Icons.Menu, { size: 18 })),
+            React.createElement('a', { href: '#introduction', onClick: () => navigateTo('introduction'), className: 'flex items-center gap-2.5 font-bold text-lg tracking-tight' },
+              React.createElement('div', { className: 'w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-dark-bg shadow-lg shadow-brand-500/20' },
+                React.createElement(Icons.Terminal, { size: 16, className: 'stroke-[2.5]' })
+              ),
+              React.createElement('span', { className: 'bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent' }, 'Steward'),
+              React.createElement('span', { className: 'text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20' }, 'v0.26.0')
+            )
+          ),
+          React.createElement('div', { className: 'flex items-center gap-3' },
+            React.createElement('button', {
+              onClick: () => setIsSearchOpen(true),
+              className: 'flex items-center gap-3 px-3 py-1.5 rounded-xl border border-dark-border bg-dark-card/60 hover:border-slate-700 text-xs text-dark-muted transition-all shadow-inner'
+            },
+              React.createElement(Icons.Search, { size: 14 }),
+              React.createElement('span', { className: 'hidden sm:inline' }, 'Search documentation...'),
+              React.createElement('kbd', { className: 'px-1.5 py-0.5 rounded bg-dark-border text-[10px] font-mono text-slate-300' }, '⌘K')
+            ),
+            React.createElement('a', {
+              href: 'https://github.com/sapirrior/steward',
+              target: '_blank',
+              rel: 'noreferrer',
+              className: 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dark-border bg-dark-card/60 hover:bg-dark-card text-xs font-medium text-slate-200 transition-colors'
+            },
+              React.createElement(Icons.Github, { size: 14 }),
+              React.createElement('span', { className: 'hidden sm:inline' }, 'GitHub')
+            )
+          )
+        ),
+
+        // Search Modal (Command Palette)
+        isSearchOpen && React.createElement('div', { className: 'fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150' },
+          React.createElement('div', { className: 'w-full max-w-lg rounded-2xl border border-dark-border bg-dark-card p-4 shadow-2xl overflow-hidden' },
+            React.createElement('div', { className: 'flex items-center gap-3 border-b border-dark-border pb-3 px-1' },
+              React.createElement(Icons.Search, { size: 18, className: 'text-brand-400' }),
+              React.createElement('input', {
+                type: 'text',
+                autoFocus: true,
+                value: searchQuery,
+                onChange: (e) => setSearchQuery(e.target.value),
+                placeholder: 'Search topics, hooks, tools, modes...',
+                className: 'w-full bg-transparent text-sm text-slate-100 placeholder:text-dark-muted focus:outline-none'
+              }),
+              React.createElement('button', { onClick: () => setIsSearchOpen(false), className: 'text-dark-muted hover:text-white' },
+                React.createElement(Icons.X, { size: 18 })
+              )
+            ),
+            React.createElement('div', { className: 'mt-3 max-h-72 overflow-y-auto space-y-1' },
+              searchResults.length > 0 ? (
+                searchResults.map((item) => (
+                  React.createElement('button', {
+                    key: item.id,
+                    onClick: () => navigateTo(item.id),
+                    className: 'w-full text-left flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-800/80 transition-colors group'
+                  },
+                    React.createElement('div', { className: 'flex items-center gap-2.5' },
+                      React.createElement(Icons[item.icon] || Icons.FileText, { size: 16, className: 'text-brand-400 group-hover:scale-110 transition-transform' }),
+                      React.createElement('span', { className: 'text-sm font-medium text-slate-200' }, item.label)
+                    ),
+                    React.createElement('span', { className: 'text-xs text-dark-muted font-mono' }, item.category)
+                  )
+                ))
+              ) : searchQuery ? (
+                React.createElement('div', { className: 'py-8 text-center text-xs text-dark-muted' }, 'No matching documentation sections found.')
+              ) : (
+                React.createElement('div', { className: 'py-4 px-2 text-xs text-dark-muted space-y-1' },
+                  React.createElement('p', { className: 'font-semibold text-slate-400 mb-2 uppercase text-[10px] tracking-wider' }, 'Quick Links'),
+                  React.createElement('div', { className: 'grid grid-cols-2 gap-2' },
+                    React.createElement('button', { onClick: () => navigateTo('hooks-events'), className: 'text-left p-2 rounded-lg bg-dark-bg/60 hover:bg-slate-800 text-xs text-slate-300' }, '🪝 Lifecycle Hooks'),
+                    React.createElement('button', { onClick: () => navigateTo('modes-reference'), className: 'text-left p-2 rounded-lg bg-dark-bg/60 hover:bg-slate-800 text-xs text-slate-300' }, '🎛️ Chat Modes'),
+                    React.createElement('button', { onClick: () => navigateTo('checkpoints-rewind'), className: 'text-left p-2 rounded-lg bg-dark-bg/60 hover:bg-slate-800 text-xs text-slate-300' }, '⏪ CAS Rewind'),
+                    React.createElement('button', { onClick: () => navigateTo('tools-reference'), className: 'text-left p-2 rounded-lg bg-dark-bg/60 hover:bg-slate-800 text-xs text-slate-300' }, '🛠️ Tool Catalog')
+                  )
+                )
+              )
+            )
+          )
+        ),
+
+        // Main Layout Grid
+        React.createElement('div', { className: 'flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex gap-8 py-8' },
+          // Left Sidebar Navigation
+          React.createElement('aside', {
+            className: `fixed lg:sticky top-16 z-30 lg:z-0 w-64 shrink-0 h-[calc(100vh-4rem)] overflow-y-auto pr-4 transition-all duration-200 ${
+              mobileMenuOpen ? 'left-0 bg-dark-bg/95 backdrop-blur-lg p-6 border-r border-dark-border shadow-2xl' : '-left-full lg:left-0'
+            }`
+          },
+            React.createElement('nav', { className: 'space-y-6 text-sm' },
+              NAVIGATION.map((cat, idx) => (
+                React.createElement('div', { key: idx, className: 'space-y-2' },
+                  React.createElement('h4', { className: 'text-xs font-semibold uppercase tracking-wider text-slate-400 px-2' }, cat.title),
+                  React.createElement('div', { className: 'space-y-0.5' },
+                    cat.items.map((item) => {
+                      const IconComp = Icons[item.icon] || Icons.FileText;
+                      const isActive = activeSection === item.id;
+                      return React.createElement('button', {
+                        key: item.id,
+                        onClick: () => navigateTo(item.id),
+                        className: `w-full text-left flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          isActive
+                            ? 'bg-brand-500/15 text-brand-300 border border-brand-500/30 font-semibold shadow-sm'
+                            : 'text-dark-muted hover:text-slate-200 hover:bg-dark-card/50'
+                        }`
+                      },
+                        React.createElement(IconComp, { size: 15, className: isActive ? 'text-brand-400' : 'text-slate-500' }),
+                        item.label
+                      );
+                    })
+                  )
+                )
+              ))
+            )
+          ),
+
+          // Main Content Container
+          React.createElement('main', { className: 'flex-1 min-w-0 max-w-3xl space-y-12 pb-24' },
+            // Section: Introduction
+            activeSection === 'introduction' && React.createElement('div', { className: 'space-y-6 animate-in fade-in duration-200' },
+              React.createElement('div', { className: 'space-y-2' },
+                React.createElement('div', { className: 'inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-mono font-medium' },
+                  React.createElement(Icons.Sparkles, { size: 13 }),
+                  'Terminal Engineering Companion'
+                ),
+                React.createElement('h1', { className: 'text-3xl sm:text-4xl font-extrabold tracking-tight text-white' }, 'Welcome to Steward'),
+                React.createElement('p', { className: 'text-base text-dark-muted leading-relaxed' },
+                  'Steward is an interactive, zero-external-SDK AI engineering assistant designed natively for the terminal. It pairs with you to navigate, refactor, debug, and build software with atomic rewind safety and deterministic lifecycle hooks.'
+                )
+              ),
+
+              React.createElement(Callout, { type: 'tip', title: 'Interactive Live Simulation' },
+                'Experience how Steward executes in the terminal below. Try switching modes with "/mode" or testing safety bounds.'
+              ),
+
+              React.createElement(InteractiveTerminal, null),
+
+              React.createElement('h2', { className: 'text-xl font-bold text-white pt-4' }, 'Key Architectural Invariants'),
+              React.createElement('div', { className: 'grid sm:grid-cols-2 gap-4' },
+                React.createElement('div', { className: 'p-4 rounded-xl border border-dark-border bg-dark-card/50' },
+                  React.createElement('div', { className: 'flex items-center gap-2 font-semibold text-sm text-brand-400 mb-1' },
+                    React.createElement(Icons.ShieldCheck, { size: 16 }),
+                    'Zero External AI SDKs'
+                  ),
+                  React.createElement('p', { className: 'text-xs text-dark-muted' },
+                    'Zero dependencies on langchain or wrapper packages. Maintains raw streaming parsers and OAuth for 11 providers.'
+                  )
+                ),
+                React.createElement('div', { className: 'p-4 rounded-xl border border-dark-border bg-dark-card/50' },
+                  React.createElement('div', { className: 'flex items-center gap-2 font-semibold text-sm text-brand-400 mb-1' },
+                    React.createElement(Icons.History, { size: 16 }),
+                    'CAS Checkpoint Rewind'
+                  ),
+                  React.createElement('p', { className: 'text-xs text-dark-muted' },
+                    'Every mutation automatically captures SHA-256 pre-images in Content-Addressed Storage for lossless instant rewind.'
+                  )
+                ),
+                React.createElement('div', { className: 'p-4 rounded-xl border border-dark-border bg-dark-card/50' },
+                  React.createElement('div', { className: 'flex items-center gap-2 font-semibold text-sm text-brand-400 mb-1' },
+                    React.createElement(Icons.Webhook, { size: 16 }),
+                    'Deterministic Hooks'
+                  ),
+                  React.createElement('p', { className: 'text-xs text-dark-muted' },
+                    'Strict 6-event lifecycle extension engine with exact matchers, bounded JSON contracts, and secret filtering.'
+                  )
+                ),
+                React.createElement('div', { className: 'p-4 rounded-xl border border-dark-border bg-dark-card/50' },
+                  React.createElement('div', { className: 'flex items-center gap-2 font-semibold text-sm text-brand-400 mb-1' },
+                    React.createElement(Icons.Terminal, { size: 16 }),
+                    'Mode 2026 TUI Engine'
+                  ),
+                  React.createElement('p', { className: 'text-xs text-dark-muted' },
+                    'Alternate-screen line differential rendering engine ensuring zero terminal flicker and clean ANSI wrapping.'
+                  )
+                )
+              )
+            ),
+
+            // Section: Installation
+            activeSection === 'installation' && React.createElement('div', { className: 'space-y-6 animate-in fade-in duration-200' },
+              React.createElement('h1', { className: 'text-3xl font-extrabold text-white' }, 'Installation'),
+              React.createElement('p', { className: 'text-sm text-dark-muted' }, 'Install Steward on macOS, Linux, Windows, or Termux via your preferred method.'),
+
+              React.createElement('h3', { className: 'text-base font-bold text-slate-200 pt-2' }, '1. Universal Installer Script (Recommended)'),
+              React.createElement(CodeBlock, {
+                code: 'curl -fsSL https://raw.githubusercontent.com/sapirrior/steward/main/installer/install.sh | bash',
+                language: 'bash',
+                filename: 'macOS, Linux & Termux'
+              }),
+              React.createElement(CodeBlock, {
+                code: 'irm https://raw.githubusercontent.com/sapirrior/steward/main/installer/install.ps1 | iex',
+                language: 'powershell',
+                filename: 'Windows PowerShell'
+              }),
+
+              React.createElement('h3', { className: 'text-base font-bold text-slate-200 pt-2' }, '2. Package Managers (npm & Bun)'),
+              React.createElement(CodeBlock, {
+                code: '# Global installation via Bun\nbun add -g steward-cli\n\n# Or via npm\nnpm install -g steward-cli',
+                language: 'bash'
+              })
+            ),
+
+            // Section: Lifecycle Hooks
+            (activeSection === 'hooks-overview' || activeSection === 'hooks-events' || activeSection === 'hooks-config' || activeSection === 'hooks-examples') && React.createElement('div', { className: 'space-y-6 animate-in fade-in duration-200' },
+              React.createElement('div', { className: 'space-y-2' },
+                React.createElement('div', { className: 'inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-mono font-medium' },
+                  React.createElement(Icons.Webhook, { size: 13 }),
+                  '@steward/plugins'
+                ),
+                React.createElement('h1', { className: 'text-3xl font-extrabold text-white' }, 'Lifecycle Hooks System'),
+                React.createElement('p', { className: 'text-sm text-dark-muted' },
+                  'Steward v0.26.0 introduces a deterministic command-hook runtime around 6 public lifecycle extension seams. Hooks communicate via strict JSON over stdin/stdout and enforce complete process isolation.'
+                )
+              ),
+
+              React.createElement('h2', { className: 'text-xl font-bold text-white pt-2' }, 'The Exactly 6 Frozen Lifecycle Events'),
+              React.createElement('div', { className: 'overflow-x-auto rounded-xl border border-dark-border bg-dark-card/40' },
+                React.createElement('table', { className: 'w-full text-left text-xs' },
+                  React.createElement('thead', { className: 'border-b border-dark-border bg-dark-card/80 text-slate-300 font-mono' },
+                    React.createElement('tr', null,
+                      React.createElement('th', { className: 'p-3' }, 'Event'),
+                      React.createElement('th', { className: 'p-3' }, 'Trigger Point'),
+                      React.createElement('th', { className: 'p-3' }, 'Matcher'),
+                      React.createElement('th', { className: 'p-3' }, 'Can Block?'),
+                      React.createElement('th', { className: 'p-3' }, 'Add Context?')
+                    )
+                  ),
+                  React.createElement('tbody', { className: 'divide-y divide-dark-border text-dark-muted font-mono' },
+                    React.createElement('tr', null,
+                      React.createElement('td', { className: 'p-3 font-semibold text-brand-400' }, 'SessionStart'),
+                      React.createElement('td', { className: 'p-3' }, 'Session initialization after trust gate'),
+                      React.createElement('td', { className: 'p-3' }, 'startup | resume | reset | *'),
+                      React.createElement('td', { className: 'p-3 text-rose-400' }, 'No'),
+                      React.createElement('td', { className: 'p-3 text-emerald-400' }, 'Yes')
+                    ),
+                    React.createElement('tr', null,
+                      React.createElement('td', { className: 'p-3 font-semibold text-brand-400' }, 'UserPromptSubmit'),
+                      React.createElement('td', { className: 'p-3' }, 'Before turn / checkpoint creation'),
+                      React.createElement('td', { className: 'p-3' }, 'None'),
+                      React.createElement('td', { className: 'p-3 text-emerald-400' }, 'Yes'),
+                      React.createElement('td', { className: 'p-3 text-emerald-400' }, 'Yes')
+                    ),
+                    React.createElement('tr', null,
+                      React.createElement('td', { className: 'p-3 font-semibold text-brand-400' }, 'BeforeToolUse'),
+                      React.createElement('td', { className: 'p-3' }, 'Immediately before tool execution'),
+                      React.createElement('td', { className: 'p-3' }, 'Exact name, a|b, or *'),
+                      React.createElement('td', { className: 'p-3 text-emerald-400' }, 'Yes'),
+                      React.createElement('td', { className: 'p-3 text-rose-400' }, 'No')
+                    ),
+                    React.createElement('tr', null,
+                      React.createElement('td', { className: 'p-3 font-semibold text-brand-400' }, 'AfterToolUse'),
+                      React.createElement('td', { className: 'p-3' }, 'After successful tool execution'),
+                      React.createElement('td', { className: 'p-3' }, 'Exact name, a|b, or *'),
+                      React.createElement('td', { className: 'p-3 text-rose-400' }, 'No'),
+                      React.createElement('td', { className: 'p-3 text-emerald-400' }, 'Yes')
+                    ),
+                    React.createElement('tr', null,
+                      React.createElement('td', { className: 'p-3 font-semibold text-brand-400' }, 'ToolUseFailure'),
+                      React.createElement('td', { className: 'p-3' }, 'When tool execution or permission fails'),
+                      React.createElement('td', { className: 'p-3' }, 'Exact name, a|b, or *'),
+                      React.createElement('td', { className: 'p-3 text-rose-400' }, 'No'),
+                      React.createElement('td', { className: 'p-3 text-emerald-400' }, 'Yes')
+                    ),
+                    React.createElement('tr', null,
+                      React.createElement('td', { className: 'p-3 font-semibold text-brand-400' }, 'AgentStop'),
+                      React.createElement('td', { className: 'p-3' }, 'When runner finishes natural turn'),
+                      React.createElement('td', { className: 'p-3' }, 'None'),
+                      React.createElement('td', { className: 'p-3 text-emerald-400' }, 'Yes (≤1 retry)'),
+                      React.createElement('td', { className: 'p-3 text-rose-400' }, 'No')
+                    )
+                  )
+                )
+              ),
+
+              React.createElement('h2', { className: 'text-xl font-bold text-white pt-4' }, 'Configuration (.steward/hooks.json)'),
+              React.createElement(CodeBlock, {
+                filename: '.steward/hooks.json',
+                language: 'json',
+                code: JSON.stringify({
+                  version: 1,
+                  hooks: {
+                    SessionStart: [
+                      {
+                        name: "load-context",
+                        command: ".steward/hooks/session-start.sh",
+                        matcher: "startup",
+                        timeoutMs: 5000,
+                        enabled: true
+                      }
+                    ],
+                    BeforeToolUse: [
+                      {
+                        name: "guard-bash",
+                        command: ".steward/hooks/check-bash.sh",
+                        matcher: "bash",
+                        timeoutMs: 3000
+                      },
+                      {
+                        name: "guard-mutations",
+                        command: ".steward/hooks/check-files.sh",
+                        matcher: "write_file|edit_file",
+                        timeoutMs: 3000
+                      }
+                    ]
+                  }
+                }, null, 2)
+              }),
+
+              React.createElement(Callout, { type: 'note', title: 'Deterministic Ordering Invariant' },
+                'Hooks execute in strict priority: builtin → user (~/.steward/hooks.json) → project (.steward/hooks.json) → plugin. Within an array, declaration order is strictly preserved.'
+              )
+            ),
+
+            // Section: Chat Modes
+            (activeSection === 'modes-overview' || activeSection === 'modes-reference') && React.createElement('div', { className: 'space-y-6 animate-in fade-in duration-200' },
+              React.createElement('div', { className: 'space-y-2' },
+                React.createElement('div', { className: 'inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-mono font-medium' },
+                  React.createElement(Icons.Sliders, { size: 13 }),
+                  'Chat Modes & Safety'
+                ),
+                React.createElement('h1', { className: 'text-3xl font-extrabold text-white' }, 'Chat Modes & Safety Policy'),
+                React.createElement('p', { className: 'text-sm text-dark-muted' },
+                  'Steward provides 4 operational modes that control tool availability, prompt persona, and file auto-approval policies. Press Ctrl+B in the TUI to cycle modes anytime.'
+                )
+              ),
+
+              React.createElement('div', { className: 'grid sm:grid-cols-2 gap-4' },
+                React.createElement('div', { className: 'p-4 rounded-xl border border-dark-border bg-dark-card/60' },
+                  React.createElement('div', { className: 'flex items-center justify-between mb-2' },
+                    React.createElement('span', { className: 'font-bold text-sm text-white' }, 'Normal Mode'),
+                    React.createElement('span', { className: 'text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300' }, 'DEFAULT')
+                  ),
+                  React.createElement('p', { className: 'text-xs text-dark-muted' }, 'All tools enabled. Destructive file modifications and shell executions require user confirmation modal.')
+                ),
+                React.createElement('div', { className: 'p-4 rounded-xl border border-dark-border bg-dark-card/60' },
+                  React.createElement('div', { className: 'flex items-center justify-between mb-2' },
+                    React.createElement('span', { className: 'font-bold text-sm text-blue-400' }, 'Chat Mode'),
+                    React.createElement('span', { className: 'text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300' }, 'CONVERSATION')
+                  ),
+                  React.createElement('p', { className: 'text-xs text-dark-muted' }, 'All tools disabled. The agent responds conversationally only, without invoking any tools.')
+                ),
+                React.createElement('div', { className: 'p-4 rounded-xl border border-dark-border bg-dark-card/60' },
+                  React.createElement('div', { className: 'flex items-center justify-between mb-2' },
+                    React.createElement('span', { className: 'font-bold text-sm text-amber-400' }, 'Review Mode'),
+                    React.createElement('span', { className: 'text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300' }, 'READ-ONLY')
+                  ),
+                  React.createElement('p', { className: 'text-xs text-dark-muted' }, 'Only read tools enabled (read_file, grep, glob, list_dir). Writing files or executing bash is strictly blocked.')
+                ),
+                React.createElement('div', { className: 'p-4 rounded-xl border border-dark-border bg-dark-card/60' },
+                  React.createElement('div', { className: 'flex items-center justify-between mb-2' },
+                    React.createElement('span', { className: 'font-bold text-sm text-emerald-400' }, 'Build Mode'),
+                    React.createElement('span', { className: 'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300' }, 'AUTONOMOUS')
+                  ),
+                  React.createElement('p', { className: 'text-xs text-dark-muted' }, 'Full tool access. File writes and edits are auto-approved without prompts. Bash commands still prompt for safety.')
+                )
+              )
+            ),
+
+            // Section: Tools Reference
+            activeSection === 'tools-reference' && React.createElement('div', { className: 'space-y-6 animate-in fade-in duration-200' },
+              React.createElement('h1', { className: 'text-3xl font-extrabold text-white' }, 'Tool Catalog (15 Built-in Tools)'),
+              React.createElement('p', { className: 'text-sm text-dark-muted' }, 'Complete reference for all built-in tools participating in the permission and CAS checkpoint system.'),
+
+              React.createElement('div', { className: 'space-y-3' },
+                [
+                  { name: 'read_file', access: 'read', desc: 'Reads the full content of a workspace file with line numbers and bounded pagination.' },
+                  { name: 'write_file', access: 'write', desc: 'Creates a new file or completely overwrites an existing file with CAS checkpoint pre-image.' },
+                  { name: 'edit_file', access: 'write', desc: 'Performs exact string replacements with interactive line diff preview and rewind journal recording.' },
+                  { name: 'list_dir', access: 'read', desc: 'Lists directory contents with file types and sizes up to bounded depth.' },
+                  { name: 'glob', access: 'read', desc: 'Finds files matching glob patterns (e.g. "**/*.ts") respecting workspace boundaries.' },
+                  { name: 'grep', access: 'read', desc: 'Performs regular expression searches across workspace files with line numbers.' },
+                  { name: 'bash', access: 'exec', desc: 'Runs a shell command securely in the workspace; requires user confirmation modal.' },
+                  { name: 'task_read', access: 'read', desc: 'Reads recent buffered output tail from a running background shell task.' },
+                  { name: 'task_send_input', access: 'exec', desc: 'Pipes stdin text directly to an active background process.' },
+                  { name: 'task_kill', access: 'exec', desc: 'Terminates an active background task with process group tree termination.' },
+                  { name: 'web_fetch', access: 'read', desc: 'Fetches webpage content, strips styling/scripts, and converts HTML to markdown.' },
+                  { name: 'web_search', access: 'read', desc: 'Performs web search via DuckDuckGo HTML and returns titles, snippets, and URLs.' },
+                  { name: 'skill_list', access: 'read', desc: 'Discovers available on-demand specialized skills from .agents/skills/.' },
+                  { name: 'skill_read', access: 'read', desc: 'Loads on-demand skill documentation (SKILL.md) into model context.' },
+                  { name: 'sleep', access: 'read', desc: 'Pauses agent turn execution safely for a specified number of seconds.' },
+                ].map((tool) => (
+                  React.createElement('div', { key: tool.name, className: 'p-3.5 rounded-xl border border-dark-border bg-dark-card/40 flex items-start justify-between gap-4' },
+                    React.createElement('div', { className: 'space-y-1' },
+                      React.createElement('div', { className: 'flex items-center gap-2' },
+                        React.createElement('span', { className: 'font-mono font-bold text-sm text-brand-300' }, tool.name),
+                        React.createElement('span', { className: `text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                          tool.access === 'write' ? 'bg-amber-950 text-amber-400 border border-amber-800/40' :
+                          tool.access === 'exec' ? 'bg-rose-950 text-rose-400 border border-rose-800/40' :
+                          'bg-blue-950 text-blue-400 border border-blue-800/40'
+                        }` }, tool.access)
+                      ),
+                      React.createElement('p', { className: 'text-xs text-dark-muted' }, tool.desc)
+                    )
+                  ))
+                )
+              )
+            )
+          ),
+
+          // Right Table of Contents (On this page)
+          React.createElement('aside', { className: 'hidden xl:block w-48 shrink-0 h-[calc(100vh-4rem)] sticky top-16 text-xs' },
+            React.createElement('div', { className: 'space-y-3' },
+              React.createElement('h5', { className: 'font-semibold uppercase tracking-wider text-slate-400 text-[11px]' }, 'On this page'),
+              React.createElement('ul', { className: 'space-y-2 text-dark-muted border-l border-dark-border pl-3 font-medium' },
+                React.createElement('li', null, React.createElement('a', { href: '#', className: 'hover:text-brand-300 text-slate-200' }, 'Overview')),
+                React.createElement('li', null, React.createElement('a', { href: '#', className: 'hover:text-brand-300' }, 'Key Concepts')),
+                React.createElement('li', null, React.createElement('a', { href: '#', className: 'hover:text-brand-300' }, 'Invariants')),
+                React.createElement('li', null, React.createElement('a', { href: '#', className: 'hover:text-brand-300' }, 'Examples'))
+              )
+            )
+          )
+        )
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>
