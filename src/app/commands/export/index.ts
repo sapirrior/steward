@@ -12,6 +12,13 @@ function stripAnsi(str: string): string {
 }
 
 /**
+ * Strips ASCII art logo blocks from header lines while preserving the header text.
+ */
+function stripLogoFromLine(str: string): string {
+  return str.replace(/^[ ▄▀▙█▟▝▘]{6,8}\s*/, '');
+}
+
+/**
  * Copies text to the OS clipboard across platforms with timeout and OSC 52 terminal fallback.
  */
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -101,8 +108,14 @@ function formatToolOutput(output: any): string[] {
 /**
  * Fallback generator that reconstructs 1:1 UI text lines from session data if live buffer is unavailable.
  */
-export function generateTranscriptFromSession(sessionData: SessionDocument): string {
-  const lines: string[] = [];
+export function generateTranscriptFromSession(
+  sessionData: SessionDocument,
+  cwd = process.cwd(),
+): string {
+  const model = sessionData.model;
+  const modelTag = model ? `${model.provider}/${model.modelId}` : 'ai/model';
+  const lines: string[] = [`Steward`, `${modelTag} · API Usage Billing`, `${cwd}`, ``];
+
   const turns = sessionData.turns ?? [];
 
   for (let turnIdx = 0; turnIdx < turns.length; turnIdx++) {
@@ -191,14 +204,18 @@ export const exportCommand: SlashCommand = {
     if (typeof context.getScreenLines === 'function') {
       const screenLines = context.getScreenLines();
       if (screenLines && screenLines.length > 0) {
-        transcript = screenLines.map(stripAnsi).join('\n').trim() + '\n';
+        transcript =
+          screenLines
+            .map((l) => stripLogoFromLine(stripAnsi(l)))
+            .join('\n')
+            .trim() + '\n';
       }
     }
 
     // 2. Fallback to session turn history if live buffer is not attached
     if (!transcript.trim()) {
       const sessionData = context.session.session;
-      transcript = generateTranscriptFromSession(sessionData);
+      transcript = generateTranscriptFromSession(sessionData, context.cwd || process.cwd());
     }
 
     if (!transcript.trim()) {

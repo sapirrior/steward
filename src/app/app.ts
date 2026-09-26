@@ -347,7 +347,7 @@ export class TUIApp {
         getScreenLines: () =>
           this.engine.history
             .getEntries()
-            .filter((e) => e.kind !== 'header' && e.kind !== 'logo')
+            .filter((e) => e.kind !== 'logo')
             .flatMap((e) => e.lines),
       });
 

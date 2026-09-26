@@ -202,14 +202,17 @@ describe('Slash Commands: /init, /copy, /usage, /export', () => {
       expect(result.message).toContain('Cannot export while the agent is generating a response.');
     });
 
-    it('should warn when no conversation messages exist', async () => {
+    it('should export banner transcript when no conversation messages exist', async () => {
       const result = await exportCommand.execute([], {
         cwd: tempDir,
-        session: { isBusy: false, session: { turns: [] } } as any,
+        session: {
+          isBusy: false,
+          session: { turns: [], model: { modelId: 'gpt-4o', provider: 'openai' } },
+        } as any,
       });
 
       expect(result.handled).toBe(true);
-      expect(result.message).toContain('No conversation messages found to export.');
+      expect(result.message).toContain('Copied conversation transcript to clipboard.');
     });
 
     it('should copy 1:1 UI screen lines when live buffer is available', async () => {
