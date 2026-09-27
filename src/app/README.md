@@ -57,6 +57,7 @@ The application layer serves as the composition root and orchestrator for Stewar
 | `/copy` | `commands/copy/` | Copies the last AI assistant message to the clipboard. |
 | `/export` | `commands/export/` | Exports the 1:1 UI conversation transcript to the clipboard or a file. |
 | `/init` | `commands/init/` | Scaffolds AGENTS.md, .steward/hooks.json, and .agents/skills/ in the workspace. |
+| `/bug` | `commands/bug/` | Displays the issue tracker and feedback URL. |
 | `/usage` | `commands/usage/` | Displays token usage metrics and turn statistics for the active session. |
 | `/exit` | `commands/exit/` | Gracefully cleans up terminal and exits Steward. |
 

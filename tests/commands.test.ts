@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { bugCommand } from '../src/app/commands/bug/index.js';
 import { initCommand } from '../src/app/commands/init/index.js';
 import { copyCommand } from '../src/app/commands/copy/index.js';
 import { exportCommand } from '../src/app/commands/export/index.js';
@@ -264,6 +265,20 @@ describe('Slash Commands: /init, /copy, /usage, /export', () => {
       expect(content).toContain('  └ Wrote 1 line to sample.txt');
       expect(content).toContain('● Done! Created sample.txt with "hello world".');
       expect(content).toContain('✻ Done · 4:01 PM');
+    });
+  });
+
+  describe('/bug command', () => {
+    it('should return github issues url and instructions', async () => {
+      const result = await bugCommand.execute([], {
+        cwd: tempDir,
+        session: {} as any,
+      });
+
+      expect(result.handled).toBe(true);
+      expect(result.message).toBe(
+        'Report issues or feedback to https://github.com/sapirrior/steward/issues',
+      );
     });
   });
 });

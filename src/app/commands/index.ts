@@ -1,4 +1,5 @@
 export * from './types.js';
+export * from './bug/index.js';
 export * from './model/index.js';
 export * from './effort/index.js';
 export * from './clear/index.js';

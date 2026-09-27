@@ -1,3 +1,4 @@
+import { bugCommand } from './bug/index.js';
 import { clearCommand } from './clear/index.js';
 import { copyCommand } from './copy/index.js';
 import { exportCommand } from './export/index.js';
@@ -72,6 +73,7 @@ export class CommandRegistry {
 }
 
 export const builtInCommands: SlashCommand[] = [
+  bugCommand,
   initCommand,
   copyCommand,
   exportCommand,
