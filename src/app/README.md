@@ -69,6 +69,7 @@ The application layer serves as the composition root and orchestrator for Stewar
 | :--- | :--- | :--- | :--- | :--- |
 | `bash.ts` | `executeDirectBash` | Function | Executes direct user shell commands (`!<command>`) with real-time streaming output. | Bypasses LLM turn history, checkpoints, and agent lifecycle hooks; logged to presentation journal. |
 | `open-url.ts` | `openUrl` | Function | Cross-platform utility to open URLs in default web browser. | Supports Linux (xdg-open), macOS (open), Termux (termux-open-url), and Windows (start). |
+| `ui/utils/message-formatter.ts` | `formatSlashCommandOutput` | Function | Formats slash command and system messages with tree connector prefixes. | Uncolored natural text formatting. |
 
 ---
 

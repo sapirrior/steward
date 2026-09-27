@@ -25,33 +25,6 @@ function formatDuration(isoDateString?: string): string {
 }
 
 /**
- * Resolves nominal model context window capacity.
- */
-function getContextWindowLimit(modelId: string, provider: string): number {
-  const m = modelId.toLowerCase();
-  const p = provider.toLowerCase();
-
-  if (p === 'gemini' || m.includes('gemini')) return 1_000_000;
-  if (p === 'anthropic' || m.includes('claude')) return 200_000;
-  if (m.includes('deepseek')) return 64_000;
-  if (m.includes('gpt-4') || m.includes('o1') || m.includes('o3') || m.includes('llama'))
-    return 128_000;
-  return 128_000;
-}
-
-/**
- * Renders a compact ASCII/Unicode progress bar representing context window fill percentage.
- */
-function renderProgressBar(current: number, max: number, length = 16): string {
-  if (max <= 0) return `[${'░'.repeat(length)}] 0%`;
-  const ratio = Math.min(Math.max(current / max, 0), 1);
-  const percent = Math.round(ratio * 100);
-  const filled = Math.round(ratio * length);
-  const empty = length - filled;
-  return `[${'█'.repeat(filled)}${'░'.repeat(empty)}] ${percent}%`;
-}
-
-/**
  * Calculates a universally grounded cost estimate based on standard industry token pricing tiers.
  */
 function estimateUniversalCost(
@@ -93,7 +66,7 @@ function estimateUniversalCost(
 }
 
 /**
- * /usage slash command: displays session token usage metrics, context window fill, and turn statistics.
+ * /usage slash command: displays session token usage metrics and turn statistics.
  */
 export const usageCommand: SlashCommand = {
   name: 'usage',
@@ -107,22 +80,23 @@ export const usageCommand: SlashCommand = {
     const turns = sessionData?.turns ?? [];
     const turnsCount = turns.length;
 
-    // Count total tool executions across all turns
+    // Count total tool executions accurately across all turns without double-counting
     let toolCallsCount = 0;
     for (const turn of turns) {
       if (Array.isArray(turn.messages)) {
+        let turnToolCalls = 0;
+        let turnToolMessages = 0;
         for (const msg of turn.messages) {
-          if (msg.role === 'tool') {
-            toolCallsCount++;
-          } else if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-            toolCallsCount += msg.content.filter((c: any) => c?.type === 'tool-call').length;
+          if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+            turnToolCalls += msg.content.filter((c: any) => c?.type === 'tool-call').length;
+          } else if (msg.role === 'tool') {
+            turnToolMessages++;
           }
         }
+        toolCallsCount += turnToolCalls > 0 ? turnToolCalls : turnToolMessages;
       }
     }
 
-    const contextLimit = getContextWindowLimit(model.modelId, model.provider);
-    const contextBar = renderProgressBar(usage.totalTokens, contextLimit);
     const duration = formatDuration(sessionData?.createdAt);
     const costEstimate = estimateUniversalCost(usage, model.modelId, model.provider);
 
@@ -131,7 +105,6 @@ export const usageCommand: SlashCommand = {
       `• Active Model: ${model.modelId} (${model.provider}${model.effort !== 'medium' ? `, effort: ${model.effort}` : ''})`,
       `• Session Duration: ${duration}`,
       `• Activity: ${formatNumber(turnsCount)} turns (${formatNumber(toolCallsCount)} tool executions)`,
-      `• Context Window: ${contextBar} (${formatNumber(usage.totalTokens)} / ${formatNumber(contextLimit)} tokens)`,
       ``,
       `Token Breakdown:`,
       `• Input Tokens: ${formatNumber(usage.inputTokens)}`,

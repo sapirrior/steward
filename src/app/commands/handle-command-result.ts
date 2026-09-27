@@ -1,7 +1,7 @@
 import type { CommandResult } from './types.js';
 import { listSessions, loadSession } from '@steward/services/session/index.js';
 import { listThemes } from '@steward/tui/theme/index.js';
-import { formatSystemMessage } from '../ui/utils/message-formatter.js';
+import { formatSlashCommandOutput } from '../ui/utils/message-formatter.js';
 
 /**
  * Minimal interface of TUIApp methods that applyCommandResult needs to call.
@@ -118,7 +118,7 @@ export async function applyCommandResult(
   }
 
   if (cmdResult.message) {
-    ctx.engine.commit('system', formatSystemMessage(cmdResult.message));
+    ctx.engine.commit('system', formatSlashCommandOutput(cmdResult.message));
   }
 
   const updatedModel = ctx.session.getModel();

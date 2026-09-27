@@ -18,12 +18,12 @@ import { formatUserMessage } from '@steward/tui/engine/user-message.js';
 
 export { chooseTurnStatusVerb, STATUS_VERBS, formatUserMessage };
 
-export function formatSystemMessage(content: string): string[] {
+export function formatSlashCommandOutput(content: string): string[] {
   const rawLines = content.split('\n');
-  return rawLines.map((l, i) =>
-    i === 0 ? `  ${c.muted('└ ')}${c.permission(l)}` : `    ${c.permission(l)}`,
-  );
+  return rawLines.map((l, i) => (i === 0 ? `  ${c.muted('└ ')}${l}` : `    ${l}`));
 }
+
+export const formatSystemMessage = formatSlashCommandOutput;
 
 export function formatAssistantMessage(content: string): string[] {
   const lines: string[] = [];

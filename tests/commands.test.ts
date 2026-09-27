@@ -145,7 +145,6 @@ describe('Slash Commands: /init, /copy, /usage, /export', () => {
       expect(result.message).toContain('Session Usage & Analytics:');
       expect(result.message).toContain('• Active Model: gemini-2.5-flash (gemini)');
       expect(result.message).toContain('• Activity: 0 turns (0 tool executions)');
-      expect(result.message).toContain('• Context Window:');
       expect(result.message).toContain('• Input Tokens: 0');
       expect(result.message).toContain('• Output Tokens: 0');
       expect(result.message).toContain('• Total Tokens: 0');
@@ -181,7 +180,6 @@ describe('Slash Commands: /init, /copy, /usage, /export', () => {
         '• Active Model: claude-3-7-sonnet (anthropic, effort: high)',
       );
       expect(result.message).toContain('• Activity: 3 turns (2 tool executions)');
-      expect(result.message).toContain('• Context Window:');
       expect(result.message).toContain('• Input Tokens: 15,420');
       expect(result.message).toContain('• Output Tokens: 2,310');
       expect(result.message).toContain('• Reasoning Tokens: 1,200');
