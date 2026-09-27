@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'bun:test';
-import { buildSystemPrompt } from '../src/packages/agents/src/engine/system-prompt.js';
+import {
+  buildSystemPrompt,
+  buildSystemPromptSections,
+  diffSystemPromptSections,
+} from '../src/packages/agents/src/engine/system-prompt.js';
 
 describe('System Prompt Structure & Invariants', () => {
   it('should contain concise agent identity and core operating principles', () => {
@@ -84,5 +88,31 @@ describe('System Prompt Structure & Invariants', () => {
 
     const byteLength = Buffer.byteLength(prompt, 'utf-8');
     expect(byteLength).toBeLessThan(10 * 1024);
+  });
+
+  it('should build modular sections and omit tool rules in chat mode', () => {
+    const sections = buildSystemPromptSections({
+      cwd: '/workspace/steward',
+      chatMode: 'chat',
+    });
+
+    expect(sections.preamble).toBeDefined();
+    expect(sections.rules).toBeDefined();
+    expect(sections.rules).not.toContain('write_file');
+    expect(sections.rules).not.toContain('bash');
+    expect(sections.skills).toBeUndefined();
+    expect(sections.hooks).toBeUndefined();
+    expect(sections.mode).toContain('Mode: CHAT');
+  });
+
+  it('should diff system prompt sections accurately', () => {
+    const prev = { preamble: 'Hello', env: 'cwd1' };
+    const current = { preamble: 'Hello', env: 'cwd2', skills: 'skillA' };
+
+    const diff = diffSystemPromptSections(prev, current);
+    expect(diff).toEqual({
+      env: 'cwd2',
+      skills: 'skillA',
+    });
   });
 });

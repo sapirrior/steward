@@ -13,7 +13,7 @@ This package is responsible for agent loops, tool definition and execution, chat
 | `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, turn execution, and lifecycle hook orchestration. | Injected with `@steward/ai` `AIEngine` and `@steward/plugins` `HookRuntime`. |
 | `turn-context.ts` | `prepareTurn` | Function | Prepares execution environment, checkpoint tracker, and event logging for a turn. | Builds canonical `Message` and plain `ToolSpec` array. |
 | `agent-runner.ts` | `runAgentTurn` | Function | Executes multi-step agent turn, dispatching tools sequentially, invoking lifecycle callbacks (`beforeToolUse`, `afterToolUse`, `toolUseFailure`, `agentStop`), and emitting lifecycle events. | Pure loop over `@steward/ai` stream with callback seams. |
-| `system-prompt.ts` | `buildSystemPrompt` | Function | Assembles dynamic system instructions including workspace context, active mode policy, and available skills. | Injects mode rules and skill manifests. |
+| `system-prompt.ts` | `buildSystemPrompt` / `buildSystemPromptSections` / `diffSystemPromptSections` | Function | Assembles dynamic, modular system instructions, sections, and diff patches including workspace context, mode policy, and skills. | Injects mode rules and deduplicated guidelines. |
 | `events.ts` | `AgentEvent` | Type | Discriminated union of streaming events (`text-delta`, `reasoning-delta`, `tool-call`, `tool-result`, `step-end`, `turn-complete`, `error`). | Typed event contract for UI rendering. |
 
 ---
