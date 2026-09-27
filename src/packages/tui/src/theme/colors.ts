@@ -266,6 +266,47 @@ export const lightAnsiTheme: UITheme = {
   },
 };
 
+export const noColorTheme: UITheme = {
+  text: 'rgb(255,255,255)',
+  muted: 'rgb(255,255,255)',
+  subtle: 'rgb(255,255,255)',
+  brand: 'rgb(255,255,255)',
+  info: 'rgb(255,255,255)',
+  success: 'rgb(255,255,255)',
+  warning: 'rgb(255,255,255)',
+  error: 'rgb(255,255,255)',
+  permission: 'rgb(255,255,255)',
+  selected: 'rgb(255,255,255)',
+  current: 'rgb(255,255,255)',
+  promptBorder: 'rgb(255,255,255)',
+  rule: 'rgb(255,255,255)',
+  userChevron: 'rgb(255,255,255)',
+
+  userBg: 'default',
+  diffAddBg: 'default',
+  diffDelBg: 'default',
+
+  diffAddFg: 'rgb(255,255,255)',
+  diffDelFg: 'rgb(255,255,255)',
+
+  syntax: {
+    keyword: 'rgb(255,255,255)',
+    string: 'rgb(255,255,255)',
+    number: 'rgb(255,255,255)',
+    literal: 'rgb(255,255,255)',
+    comment: 'rgb(255,255,255)',
+    function: 'rgb(255,255,255)',
+    type: 'rgb(255,255,255)',
+    variable: 'rgb(255,255,255)',
+    tag: 'rgb(255,255,255)',
+    attr: 'rgb(255,255,255)',
+    meta: 'rgb(255,255,255)',
+    addition: 'rgb(255,255,255)',
+    deletion: 'rgb(255,255,255)',
+    default: 'rgb(255,255,255)',
+  },
+};
+
 const builtInThemes: ThemeMeta[] = [
   {
     name: 'dark',
@@ -302,6 +343,13 @@ const builtInThemes: ThemeMeta[] = [
     theme: lightAnsiTheme,
     source: 'built-in',
   },
+  {
+    name: 'no-color',
+    label: 'No Color',
+    description: 'Monochrome pure white palette with no color styling',
+    theme: noColorTheme,
+    source: 'built-in',
+  },
 ];
 
 const registry = new Map<string, ThemeMeta>();
@@ -325,11 +373,14 @@ export function findTheme(query: string): ThemeMeta | undefined {
     .toLowerCase()
     .replace(/^["']|["']$/g, '');
   if (!q) return undefined;
+  const normalizedQ = q.replace(/[\s-_]+/g, '');
   return listThemes().find(
     (t) =>
       t.name.toLowerCase() === q ||
       t.label.toLowerCase() === q ||
-      t.label.toLowerCase().startsWith(q),
+      t.label.toLowerCase().startsWith(q) ||
+      t.name.replace(/[\s-_]+/g, '') === normalizedQ ||
+      t.label.toLowerCase().replace(/[\s-_]+/g, '') === normalizedQ,
   );
 }
 

@@ -5,6 +5,7 @@ import {
   draculaTheme,
   darkAnsiTheme,
   lightAnsiTheme,
+  noColorTheme,
   getTheme,
   setActiveTheme,
   getActiveThemeName,
@@ -27,6 +28,21 @@ describe('Theme Subsystem Tests', () => {
     expect(darkTheme.text).toBe('rgb(255,255,255)');
     expect(darkTheme.subtle).toBe('rgb(80,80,80)');
     expect(darkTheme.muted).toBe('rgb(110,110,110)');
+  });
+
+  it('aligns noColorTheme with monochrome pure white specification', () => {
+    expect(noColorTheme.text).toBe('rgb(255,255,255)');
+    expect(noColorTheme.brand).toBe('rgb(255,255,255)');
+    expect(noColorTheme.info).toBe('rgb(255,255,255)');
+    expect(noColorTheme.success).toBe('rgb(255,255,255)');
+    expect(noColorTheme.warning).toBe('rgb(255,255,255)');
+    expect(noColorTheme.error).toBe('rgb(255,255,255)');
+    expect(noColorTheme.permission).toBe('rgb(255,255,255)');
+    expect(noColorTheme.userBg).toBe('default');
+    expect(noColorTheme.diffAddBg).toBe('default');
+    expect(noColorTheme.diffDelBg).toBe('default');
+    expect(noColorTheme.syntax.keyword).toBe('rgb(255,255,255)');
+    expect(noColorTheme.syntax.string).toBe('rgb(255,255,255)');
   });
 
   it('aligns draculaTheme with official Dracula specification', () => {
@@ -73,12 +89,12 @@ describe('Theme Subsystem Tests', () => {
     expect(getTheme()).toBe(darkTheme);
   });
 
-  it('ensures all 5 registered themes populate every semantic UITheme key', () => {
+  it('ensures all 6 registered themes populate every semantic UITheme key', () => {
     const requiredKeys = Object.keys(darkTheme) as (keyof typeof darkTheme)[];
     expect(requiredKeys.length).toBeGreaterThanOrEqual(18);
 
     const themes = listThemes();
-    expect(themes.length).toBe(5);
+    expect(themes.length).toBe(6);
 
     for (const themeMeta of themes) {
       for (const key of requiredKeys) {
@@ -122,6 +138,9 @@ describe('Theme Subsystem Tests', () => {
     expect(findTheme('Dark (Default)')?.name).toBe('dark');
     expect(findTheme('dark-ansi')?.name).toBe('dark-ansi');
     expect(findTheme('light-ansi')?.name).toBe('light-ansi');
+    expect(findTheme('no-color')?.name).toBe('no-color');
+    expect(findTheme('no color')?.name).toBe('no-color');
+    expect(findTheme('No Color')?.name).toBe('no-color');
     expect(findTheme('drac')?.name).toBe('dracula');
     expect(findTheme('nonexistent')).toBeUndefined();
     expect(findTheme('')).toBeUndefined();

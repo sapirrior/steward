@@ -54,7 +54,7 @@ This package implements a state-driven, flicker-free, mouse-free terminal render
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `theme/colors.ts` | `THEMES` | Export | 5 built-in theme definitions (`dark`, `light`, `dracula`, `dark-ansi`, `light-ansi`). | RGB & ANSI color palettes. |
+| `theme/colors.ts` | `THEMES` | Export | 6 built-in theme definitions (`dark`, `light`, `dracula`, `dark-ansi`, `light-ansi`, `no-color`). | RGB & ANSI color palettes. |
 | `theme/style.ts` | `c`, `bold`, `dim`, `italic` | Export | Semantic chalk wrappers for text, borders, accents, and status badges. | Safe for terminal output. |
 | `theme/figures.ts` | `figures` | Export | Unicode and ASCII terminal glyphs (`pointerBold`, `bullet`, `tick`, `cross`, `horizontalLine`). | Unicode with graceful fallback. |
 | `format/markdown.ts` | `applyMarkdown` | Function | Terminal markdown formatter for headings, lists, inline code, and blockquotes. | ANSI-rendered markdown. |
