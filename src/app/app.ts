@@ -24,7 +24,6 @@ import {
 } from './ui/utils/message-formatter.js';
 import { renderTranscript } from './ui/utils/transcript.js';
 import { classifyError, logError } from '@steward/services/errors/index.js';
-import { UpdateCheckerService } from '@steward/services/updater/index.js';
 import { cycleMode, setActiveMode } from '@steward/agents/policy/modes.js';
 import { getSavedMode, saveModeSelection } from '@steward/services/config/settings.js';
 import { ModalController } from './ui/modal-controller.js';
@@ -55,7 +54,6 @@ export class TUIApp {
   private ctrlCTimer: NodeJS.Timeout | null = null;
   private isBusy = false;
   private isScrollViewMode = false;
-  private updateChecker: UpdateCheckerService;
   private permissionQueue: PermissionQueue;
   private directBashAbortController: AbortController | null = null;
 
@@ -118,39 +116,6 @@ export class TUIApp {
       header: this.header,
       streamingView: this.streamingView,
       cwd: this.cwd,
-    });
-
-    this.updateChecker = new UpdateCheckerService({
-      currentVersion: options.version,
-      onStatusChange: (state, info) => {
-        if (state === 'idle') {
-          this.statusBar.setUpdateStatus(undefined);
-        } else if (state === 'available') {
-          this.statusBar.setUpdateStatus(
-            {
-              state,
-              version: info?.version,
-              message: info?.message,
-            },
-            8000,
-          );
-        } else if (state === 'error') {
-          this.statusBar.setUpdateStatus(
-            {
-              state,
-              version: info?.version,
-              message: info?.message,
-            },
-            4000,
-          );
-        } else {
-          this.statusBar.setUpdateStatus({
-            state,
-            version: info?.version,
-            message: info?.message,
-          });
-        }
-      },
     });
 
     this.permissionQueue = new PermissionQueue({
@@ -230,9 +195,6 @@ export class TUIApp {
     this.engine.mount(this.streamingView, { kind: 'custom' });
     this.engine.mount(this.promptInput, { keepCursorVisible: true, kind: 'input' });
     this.engine.mount(this.statusBar, { kind: 'custom' });
-
-    // Start background update check
-    this.updateChecker.startBackgroundCheck(3000);
 
     // Handle global keybindings
     this.engine.addInputListener((chunk) => {
@@ -526,7 +488,6 @@ export class TUIApp {
   private exit(): void {
     this.permissionQueue.clear();
     this.session.shutdown().catch(() => {});
-    this.updateChecker.dispose();
     this.engine.cleanupSync();
     if (this.onExitCallback) {
       this.onExitCallback();

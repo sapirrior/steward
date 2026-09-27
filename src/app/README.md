@@ -27,7 +27,7 @@ The application layer serves as the composition root and orchestrator for Stewar
 | `modal-controller.ts` | Class | Coordinates modal docks (Pickers, Permission Docks, Help, Menus) and focus transitions. | Centralizes modal open/close lifecycle. |
 | `agent-event-router.ts` | Class | Dispatches streaming agent events (`text-delta`, `tool-call`, `error`) to UI views. | Routes streaming updates to components. |
 | `StreamingView.tsx` | Component | Live streaming response view rendering incremental text, thinking indicator, and active tool execution status. | Real-time ANSI-rendered markdown output. |
-| `StatusBar.tsx` | Component | Sticky bottom bar displaying active model, reasoning effort, token usage counters, mode badge, and update notifications. | Subline status bar. |
+| `StatusBar.tsx` | Component | Sticky bottom bar displaying active model, reasoning effort, token usage counters, and mode badge. | Subline status bar. |
 | `docks/FilePermissionDock.tsx` | Component | Interactive modal reviewing file creations, edits, and overwrites with line diffs before applying changes. | Yes / No / Review (F) mode. |
 | `docks/BashPermissionDock.tsx` | Component | Interactive modal prompting for approval before executing bash commands. | Yes / No selection with command preview. |
 | `docks/ModelPicker.tsx` | Component | Interactive dock for switching LLM models across all configured providers. | Searchable provider list with capability badges. |

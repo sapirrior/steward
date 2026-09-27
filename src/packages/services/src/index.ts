@@ -11,9 +11,6 @@ export * from './checkpoint/index.js';
 // Background shell tasks subsystem
 export * from './tasks/index.js';
 
-// Read-only update checker
-export * from './updater/index.js';
-
 // Settings & Env configuration
 export * from './config/index.js';
 

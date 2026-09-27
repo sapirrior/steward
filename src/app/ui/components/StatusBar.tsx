@@ -4,12 +4,6 @@ import { figures } from '@steward/tui/theme/index.js';
 import { c, bold } from '@steward/tui/theme/style.js';
 import { Box, Text } from '@steward/tui/primitives/index.js';
 
-export interface StatusBarUpdateStatus {
-  state: 'idle' | 'checking' | 'available' | 'no-updates' | 'error';
-  version?: string;
-  message?: string;
-}
-
 export interface StatusBarProps {
   chatMode?: ChatMode;
   model: {
@@ -21,7 +15,6 @@ export interface StatusBarProps {
   exitPending?: boolean;
   isBashMode?: boolean;
   warning?: string;
-  updateStatus?: StatusBarUpdateStatus;
 }
 
 export interface StatusBarState {
@@ -35,7 +28,6 @@ export interface StatusBarState {
   exitPending?: boolean;
   isBashMode?: boolean;
   warning?: string;
-  updateStatus?: StatusBarUpdateStatus;
 }
 
 export default class StatusBar extends Component<StatusBarProps, StatusBarState> {
@@ -43,7 +35,6 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
   override clip = true;
 
   private warningTimer: NodeJS.Timeout | null = null;
-  private updateTimer: NodeJS.Timeout | null = null;
 
   constructor(props: StatusBarProps) {
     super(props);
@@ -54,7 +45,6 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
       exitPending: props.exitPending,
       isBashMode: props.isBashMode,
       warning: props.warning,
-      updateStatus: props.updateStatus,
     };
   }
 
@@ -70,27 +60,6 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
 
   update(partial: Partial<StatusBarState>): void {
     this.setState(partial);
-  }
-
-  /**
-   * Updates the background updater status shown on the status bar, optionally clearing after durationMs.
-   */
-  setUpdateStatus(updateStatus?: StatusBarUpdateStatus, durationMs?: number): void {
-    if (this.updateTimer) {
-      clearTimeout(this.updateTimer);
-      this.updateTimer = null;
-    }
-
-    this.setState({ updateStatus });
-
-    if (updateStatus && durationMs && durationMs > 0) {
-      this.updateTimer = setTimeout(() => {
-        this.updateTimer = null;
-        if (this.state.updateStatus === updateStatus) {
-          this.setState({ updateStatus: undefined });
-        }
-      }, durationMs);
-    }
   }
 
   /**
@@ -117,16 +86,12 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
       clearTimeout(this.warningTimer);
       this.warningTimer = null;
     }
-    if (this.updateTimer) {
-      clearTimeout(this.updateTimer);
-      this.updateTimer = null;
-    }
   }
 
   override render(width?: number): string[] {
     const termWidth = width ?? process.stdout.columns ?? 80;
     const maxCols = Math.max(1, termWidth);
-    const { model, isBusy, exitPending, isBashMode, warning, updateStatus, chatMode } = this.state;
+    const { model, isBusy, exitPending, isBashMode, warning, chatMode } = this.state;
 
     let left = '';
     if (warning) {
@@ -137,18 +102,6 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
       left = c.muted('esc to interrupt');
     } else if (isBashMode) {
       left = c.permission('! for bash mode');
-    } else if (updateStatus && updateStatus.state !== 'idle') {
-      if (updateStatus.state === 'checking') {
-        left = c.text(updateStatus.message ?? 'Checking for updates...');
-      } else if (updateStatus.state === 'available') {
-        left = c.text(updateStatus.message ?? `Update v${updateStatus.version ?? ''} is available`);
-      } else if (updateStatus.state === 'no-updates') {
-        left = c.text(updateStatus.message ?? 'Steward is up to date');
-      } else if (updateStatus.state === 'error' && updateStatus.message) {
-        left = c.error(updateStatus.message);
-      } else {
-        left = c.muted('? for shortcuts');
-      }
     } else {
       left = c.muted('? for shortcuts');
     }

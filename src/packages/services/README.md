@@ -45,7 +45,7 @@ This package encapsulates persistent infrastructure subsystems, file mutation sa
 
 ---
 
-### Configuration, Errors & Updates (`config/`, `errors/`, `updater/`, `paths.ts`)
+### Configuration, Errors & Diagnostics (`config/`, `errors/`, `paths.ts`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
@@ -58,7 +58,6 @@ This package encapsulates persistent infrastructure subsystems, file mutation sa
 | `errors/classifier.ts` | `classifyError` | Function | Maps `@steward/ai` `AIError` instances, network drops, auth issues, and empty output into actionable StructuredError objects. | Structured classification with retryability. |
 | `errors/logger.ts` | `logError` | Function | Logs structured error diagnostics with stack traces to `~/.steward/logs/errors-<date>.log`. | Prevents unhandled crash loss. |
 | `errors/global-handler.ts` | `setupGlobalErrorHandlers` | Function | Attaches `uncaughtException` and `unhandledRejection` handlers to process. | Ensures graceful terminal restore and formatted error display. |
-| `updater/service.ts` | `UpdateCheckerService` | Class | Read-only background checker for newer Steward CLI versions via GitHub repo releases. | Non-blocking, mutation-free update check. |
 
 ---
 
