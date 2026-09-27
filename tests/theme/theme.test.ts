@@ -3,6 +3,8 @@ import {
   darkTheme,
   lightTheme,
   draculaTheme,
+  darkDaltonizedTheme,
+  lightDaltonizedTheme,
   darkAnsiTheme,
   lightAnsiTheme,
   noColorTheme,
@@ -27,7 +29,23 @@ describe('Theme Subsystem Tests', () => {
     expect(darkTheme.warning).toBe('rgb(255,193,7)');
     expect(darkTheme.text).toBe('rgb(255,255,255)');
     expect(darkTheme.subtle).toBe('rgb(80,80,80)');
-    expect(darkTheme.muted).toBe('rgb(110,110,110)');
+  });
+
+  it('aligns darkDaltonizedTheme and lightDaltonizedTheme with 1:1 color-blind specifications', () => {
+    expect(darkDaltonizedTheme.brand).toBe('rgb(255,153,51)');
+    expect(darkDaltonizedTheme.permission).toBe('rgb(153,204,255)');
+    expect(darkDaltonizedTheme.success).toBe('rgb(51,153,255)');
+    expect(darkDaltonizedTheme.error).toBe('rgb(255,102,102)');
+    expect(darkDaltonizedTheme.warning).toBe('rgb(255,204,0)');
+    expect(darkDaltonizedTheme.diffAddBg).toBe('rgb(0,68,102)');
+    expect(darkDaltonizedTheme.diffDelBg).toBe('rgb(102,0,0)');
+
+    expect(lightDaltonizedTheme.brand).toBe('rgb(255,153,51)');
+    expect(lightDaltonizedTheme.permission).toBe('rgb(51,102,255)');
+    expect(lightDaltonizedTheme.success).toBe('rgb(0,102,153)');
+    expect(lightDaltonizedTheme.error).toBe('rgb(204,0,0)');
+    expect(lightDaltonizedTheme.diffAddBg).toBe('rgb(153,204,255)');
+    expect(lightDaltonizedTheme.diffDelBg).toBe('rgb(255,204,204)');
   });
 
   it('aligns noColorTheme with monochrome pure white specification', () => {
@@ -55,16 +73,16 @@ describe('Theme Subsystem Tests', () => {
   });
 
   it('aligns dark-ansi and light-ansi with 16-color ANSI grammar', () => {
-    expect(darkAnsiTheme.brand).toBe('ansi(yellow)');
-    expect(darkAnsiTheme.success).toBe('ansi(green)');
-    expect(darkAnsiTheme.error).toBe('ansi(red)');
+    expect(darkAnsiTheme.brand).toBe('ansi(redBright)');
+    expect(darkAnsiTheme.success).toBe('ansi(greenBright)');
+    expect(darkAnsiTheme.error).toBe('ansi(redBright)');
     expect(darkAnsiTheme.diffAddBg).toBe('default');
     expect(darkAnsiTheme.diffDelBg).toBe('default');
 
-    expect(lightAnsiTheme.brand).toBe('ansi(yellow)');
+    expect(lightAnsiTheme.brand).toBe('ansi(redBright)');
     expect(lightAnsiTheme.success).toBe('ansi(green)');
     expect(lightAnsiTheme.error).toBe('ansi(red)');
-    expect(lightAnsiTheme.text).toBe('default');
+    expect(lightAnsiTheme.text).toBe('ansi(black)');
   });
 
   it('returns active theme from getTheme and switches dynamically', () => {
@@ -75,6 +93,10 @@ describe('Theme Subsystem Tests', () => {
     setActiveTheme('dracula');
     expect(getActiveThemeName()).toBe('dracula');
     expect(getTheme().brand).toBe(draculaTheme.brand);
+
+    setActiveTheme('dark-daltonized');
+    expect(getActiveThemeName()).toBe('dark-daltonized');
+    expect(getTheme().brand).toBe(darkDaltonizedTheme.brand);
 
     // Reset back to dark
     setActiveTheme('dark');
@@ -89,12 +111,12 @@ describe('Theme Subsystem Tests', () => {
     expect(getTheme()).toBe(darkTheme);
   });
 
-  it('ensures all 6 registered themes populate every semantic UITheme key', () => {
+  it('ensures all 8 registered themes populate every semantic UITheme key', () => {
     const requiredKeys = Object.keys(darkTheme) as (keyof typeof darkTheme)[];
     expect(requiredKeys.length).toBeGreaterThanOrEqual(18);
 
     const themes = listThemes();
-    expect(themes.length).toBe(6);
+    expect(themes.length).toBe(8);
 
     for (const themeMeta of themes) {
       for (const key of requiredKeys) {
@@ -138,6 +160,9 @@ describe('Theme Subsystem Tests', () => {
     expect(findTheme('Dark (Default)')?.name).toBe('dark');
     expect(findTheme('dark-ansi')?.name).toBe('dark-ansi');
     expect(findTheme('light-ansi')?.name).toBe('light-ansi');
+    expect(findTheme('dark-daltonized')?.name).toBe('dark-daltonized');
+    expect(findTheme('Dark Daltonized')?.name).toBe('dark-daltonized');
+    expect(findTheme('light-daltonized')?.name).toBe('light-daltonized');
     expect(findTheme('no-color')?.name).toBe('no-color');
     expect(findTheme('no color')?.name).toBe('no-color');
     expect(findTheme('No Color')?.name).toBe('no-color');
