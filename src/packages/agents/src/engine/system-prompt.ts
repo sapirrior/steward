@@ -3,12 +3,9 @@ import type { ToolSpec } from '@steward/ai';
 
 export interface SystemPromptOptions {
   cwd?: string;
-  userRules?: string[];
   extraInstructions?: string;
   chatMode?: ChatMode;
   tools?: readonly (ToolSpec | string)[];
-  customPrompt?: string;
-  sections?: Record<string, string>;
 }
 
 export type SystemPromptSections = Record<string, string>;
@@ -73,7 +70,7 @@ export function buildSystemPromptSections(options: SystemPromptOptions = {}): Sy
 
   const sections: SystemPromptSections = {};
 
-  sections.preamble = options.customPrompt ?? DEFAULT_PREAMBLE;
+  sections.preamble = DEFAULT_PREAMBLE;
   sections.rules = `# Operating Principles\n${buildRules(options)}`;
 
   if (mode !== 'chat') {
@@ -85,10 +82,6 @@ export function buildSystemPromptSections(options: SystemPromptOptions = {}): Sy
   }
 
   sections.env = `<env>\nWorking directory: ${cwd}\nPlatform: ${platform}\nToday's date: ${dateUTC}\n</env>`;
-
-  if (options.userRules && options.userRules.length > 0) {
-    sections.user_defined_rules = `<user_defined_rules>\nThe following rules are configured by the user and must be followed:\n${options.userRules.map((r) => `- ${r}`).join('\n')}\n</user_defined_rules>`;
-  }
 
   if (options.extraInstructions) {
     sections.additional_instructions = `<additional_instructions>\n${options.extraInstructions}\n</additional_instructions>`;
@@ -104,12 +97,6 @@ export function buildSystemPromptSections(options: SystemPromptOptions = {}): Sy
       } else if (mode === 'build') {
         sections.mode = `<operating_mode>\nMode: BUILD — You have full tool access. File writes and edits are automatically approved without user confirmation — act decisively and make changes directly. Bash commands still require user approval.\n</operating_mode>`;
       }
-    }
-  }
-
-  if (options.sections) {
-    for (const [key, val] of Object.entries(options.sections)) {
-      if (val) sections[key] = val;
     }
   }
 

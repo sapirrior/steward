@@ -60,17 +60,6 @@ describe('System Prompt Structure & Invariants', () => {
     expect(prompt).toContain("Today's date:");
   });
 
-  it('should append user_defined_rules when configured', () => {
-    const prompt = buildSystemPrompt({
-      cwd: '/workspace/steward',
-      userRules: ['Always format with prettier', 'Never use console.log in prod'],
-    });
-
-    expect(prompt).toContain('<user_defined_rules>');
-    expect(prompt).toContain('- Always format with prettier');
-    expect(prompt).toContain('- Never use console.log in prod');
-  });
-
   it('should append additional_instructions when provided', () => {
     const prompt = buildSystemPrompt({
       cwd: '/workspace/steward',
