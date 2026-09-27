@@ -25,10 +25,7 @@ export function resolveThemeColor(color: string, isBg = false): (s: string) => s
     return isBg ? (s: string) => s : (s: string) => chalk.dim(s);
   }
 
-  if (
-    (color.startsWith('ansi(') && color.endsWith(')')) ||
-    color.startsWith('ansi:')
-  ) {
+  if ((color.startsWith('ansi(') && color.endsWith(')')) || color.startsWith('ansi:')) {
     const name = color.startsWith('ansi:') ? color.slice(5).trim() : color.slice(5, -1).trim();
     if (name === 'reset' || name === 'none' || name === 'transparent' || name === 'default') {
       return (s: string) => s;

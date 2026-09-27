@@ -6,11 +6,11 @@
   ● ● ● ● ● ●  Default dark theme with terracotta and purple accents
   Light
   ● ● ● ● ● ●  Clean light palette optimized for light backgrounds
-  Dracula
-  ● ● ● ● ● ●  Official gothic-inspired vampire color scheme
-  Dark ANSI
-  ● ● ● ● ● ●  16-color ANSI palette respecting your terminal theme
-↑/↓ navigate · Enter select · Esc cancel  (5 available)
+  Dark Daltonized
+  ● ● ● ● ● ●  Color-blind friendly dark theme adjusted for deuteranopia
+  Light Daltonized
+  ● ● ● ● ● ●  Color-blind friendly light theme adjusted for deuteranopia
+↑/↓ navigate · Enter select · Esc cancel  (8 available)
 
 
 
