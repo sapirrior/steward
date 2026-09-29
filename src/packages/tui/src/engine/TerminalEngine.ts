@@ -334,6 +334,9 @@ export class TerminalEngine {
       try {
         if (this.io.isTTY) this.io.input.setRaw(false);
       } catch {}
+      try {
+        this.io.input.pause();
+      } catch {}
     }
 
     if (this.exitHookFn && typeof process !== 'undefined' && process.off) {
@@ -387,6 +390,9 @@ export class TerminalEngine {
       this.cleanupInputListener();
       this.cleanupInputListener = null;
     }
+    try {
+      this.io.input.pause();
+    } catch {}
     if (this.cleanupResizeListener) {
       this.cleanupResizeListener();
       this.cleanupResizeListener = null;

@@ -77,7 +77,14 @@ export function nodeIO(opts?: {
         stdin.resume();
       },
       pause(): void {
-        stdin.pause();
+        try {
+          stdin.pause();
+        } catch {}
+        if ('unref' in stdin && typeof (stdin as any).unref === 'function') {
+          try {
+            (stdin as any).unref();
+          } catch {}
+        }
       },
       onData(cb: (chunk: string) => void): () => void {
         const handler = (chunk: Buffer | string) => {

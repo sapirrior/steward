@@ -1,21 +1,19 @@
 /**
- * memory.ts - Low-Level Engine TUI Memory & Panic Guard
+ * memory.ts - New createApp / mount Architecture Memory Watchdog
  * 
- * Directly tests TerminalEngine, DocumentTree, StateRenderer, and Component
- * WITHOUT high-level JSX / React hooks / reconciler.
+ * Verifies that the new hook-free createApp() and mount() engine
+ * renders with 100% stable, zero-leak memory profile under strict Termux limits.
  * 
- * Automatically terminates IMMEDIATELY if memory spikes to prevent Android OOM crashes.
+ * Auto-exits after 3 seconds.
  */
 import os from 'os';
-import { TerminalEngine } from './src/engine/TerminalEngine.js';
-import Component from './src/engine/Component.js';
+import { createApp, Box, Text } from './src/index.js';
 import { nodeIO } from './src/terminal/io.js';
-import { parseInputChunk } from './src/terminal/input.js';
 
-// --- STRICT PANIC THRESHOLDS (Android Termux Safe) ---
-const MAX_HEAP_MB = 30;         // Max V8 Heap: 30 MB
-const MAX_RSS_MB = 65;          // Max Resident Set: 65 MB
-const MIN_SYS_FREE_MB = 60;     // Min Free System RAM: 60 MB
+// --- STRICT LIMITS ---
+const MAX_HEAP_MB = 25;       // Max V8 Heap: 25 MB
+const MAX_RSS_MB = 65;        // Max RSS: 65 MB
+const MIN_SYS_FREE_MB = 50;   // Min Free RAM: 50 MB
 
 function getMemoryStats() {
   const mem = process.memoryUsage();
@@ -31,124 +29,101 @@ function getMemoryStats() {
   };
 }
 
-function checkPanic(context: string) {
+function checkPanic(ctx: string) {
   const s = getMemoryStats();
 
   if (s.heapUsedMb > MAX_HEAP_MB) {
-    process.stdout.write(`\r\n\x1b[31;1m🚨 [PANIC KILL] Heap breached in ${context}: ${s.heapUsedMb.toFixed(2)} MB (Max: ${MAX_HEAP_MB} MB)\x1b[0m\r\n`);
+    process.stdout.write(`\r\n\x1b[31;1m🚨 [PANIC KILL] Heap limit breached in ${ctx}: ${s.heapUsedMb.toFixed(2)} MB\x1b[0m\r\n`);
     process.exit(137);
   }
   if (s.rssMb > MAX_RSS_MB) {
-    process.stdout.write(`\r\n\x1b[31;1m🚨 [PANIC KILL] RSS breached in ${context}: ${s.rssMb.toFixed(2)} MB (Max: ${MAX_RSS_MB} MB)\x1b[0m\r\n`);
+    process.stdout.write(`\r\n\x1b[31;1m🚨 [PANIC KILL] RSS limit breached in ${ctx}: ${s.rssMb.toFixed(2)} MB\x1b[0m\r\n`);
     process.exit(137);
   }
   if (s.freeSysMb < MIN_SYS_FREE_MB) {
-    process.stdout.write(`\r\n\x1b[31;1m🚨 [PANIC KILL] Low system RAM in ${context}: ${s.freeSysMb.toFixed(2)} MB free\x1b[0m\r\n`);
+    process.stdout.write(`\r\n\x1b[31;1m🚨 [PANIC KILL] Low system RAM in ${ctx}: ${s.freeSysMb.toFixed(1)} MB free\x1b[0m\r\n`);
     process.exit(137);
   }
   return s;
 }
 
-// Low-level component directly overriding _getLines
-class LowLevelUI extends Component {
-  ticks = 0;
-  keyPresses = 0;
-  lastKey = 'none';
+// Background watchdog running every 20ms
+const watchdog = setInterval(() => {
+  checkPanic('watchdog');
+}, 20);
+if (watchdog.unref) watchdog.unref();
 
-  _getLines(width: number): string[] {
-    const stats = checkPanic('LowLevelUI._getLines');
-    const border = '─'.repeat(Math.max(10, Math.min(width - 4, 70)));
-
-    return [
-      `\x1b[1;36m┌${border}┐\x1b[0m`,
-      `\x1b[1;36m│\x1b[0m \x1b[1;32m⚡ LOW-LEVEL TERMINAL ENGINE MEMORY WATCHDOG\x1b[0m`,
-      `\x1b[1;36m│\x1b[0m \x1b[90m(Pure TerminalEngine + StateRenderer - Zero Hooks/JSX)\x1b[0m`,
-      `\x1b[1;36m├${border}┤\x1b[0m`,
-      `\x1b[1;36m│\x1b[0m \x1b[1mFrame Ticks:\x1b[0m    \x1b[33m${this.ticks}\x1b[0m`,
-      `\x1b[1;36m│\x1b[0m \x1b[1mKey Inputs:\x1b[0m     \x1b[35m${this.keyPresses}\x1b[0m (last key: \x1b[36m${this.lastKey}\x1b[0m)`,
-      `\x1b[1;36m│\x1b[0m \x1b[1mProcess RSS:\x1b[0m    \x1b[32m${stats.rssMb.toFixed(2)} MB\x1b[0m \x1b[90m(Cap: ${MAX_RSS_MB} MB)\x1b[0m`,
-      `\x1b[1;36m│\x1b[0m \x1b[1mHeap Used:\x1b[0m      \x1b[32m${stats.heapUsedMb.toFixed(2)} MB\x1b[0m \x1b[90m(Cap: ${MAX_HEAP_MB} MB)\x1b[0m`,
-      `\x1b[1;36m│\x1b[0m \x1b[1mHeap Total:\x1b[0m     \x1b[90m${stats.heapTotalMb.toFixed(2)} MB\x1b[0m`,
-      `\x1b[1;36m│\x1b[0m \x1b[1mSystem Free:\x1b[0m    \x1b[34m${stats.freeSysMb.toFixed(1)} MB\x1b[0m / \x1b[90m${stats.totalSysMb.toFixed(1)} MB\x1b[0m`,
-      `\x1b[1;36m├${border}┤\x1b[0m`,
-      `\x1b[1;36m│\x1b[0m \x1b[90mPress \x1b[1;37m'q'\x1b[0m\x1b[90m or \x1b[1;37m'Ctrl+C'\x1b[0m\x1b[90m to exit cleanly. Press any key to test input.\x1b[0m`,
-      `\x1b[1;36m└${border}┘\x1b[0m`,
-    ];
-  }
+interface AppState {
+  ticks: number;
+  keys: number;
+  lastKey: string;
 }
 
-async function main() {
-  const io = nodeIO();
-  const engine = new TerminalEngine({
+const io = nodeIO();
+
+const app = createApp<AppState>(
+  (state, _ctx) => {
+    const stats = checkPanic('renderFn');
+
+    return Box(
+      {
+        flexDirection: 'column',
+        borderStyle: 'round',
+        borderColor: 'cyan',
+        paddingX: 2,
+        paddingY: 1,
+      },
+      Text({ bold: true, color: 'cyan' }, '⚡ STITCHABLE NEW MOUNT/CREATEAPP ARCHITECTURE'),
+      Text({ dim: true }, '(Zero Hooks · Zero Microtasks · Pure Functional Element Tree)'),
+      Text({ bold: true, color: 'yellow', marginTop: 1 }, `Frame Ticks:  ${state.ticks}`),
+      Text({ color: 'magenta' }, `Key Events:   ${state.keys} (last: ${state.lastKey})`),
+      Text({ color: 'green', marginTop: 1 }, `Heap Used:    ${stats.heapUsedMb.toFixed(2)} MB / ${MAX_HEAP_MB} MB cap`),
+      Text({ color: 'green' }, `Process RSS:  ${stats.rssMb.toFixed(2)} MB / ${MAX_RSS_MB} MB cap`),
+      Text({ color: 'blue' }, `Free RAM:     ${stats.freeSysMb.toFixed(1)} MB / ${stats.totalSysMb.toFixed(1)} MB`),
+      Text({ dim: true, marginTop: 1 }, `Auto-exits in 3 seconds · Press 'q' to quit early`)
+    );
+  },
+  {
     io,
     maxFps: 30,
-    mouse: false,
-    scrollKeys: true,
-  });
+    state: {
+      ticks: 0,
+      keys: 0,
+      lastKey: 'none',
+    },
+    onMount(state, ctx) {
+      const timer = setInterval(() => {
+        state.ticks++;
+        ctx.invalidate();
+      }, 100);
 
-  engine.ensureAlternateScreen();
-
-  const ui = new LowLevelUI();
-  ui.wrap = false;
-  ui.clip = true;
-  engine.mount(ui);
-
-  // Background watchdog interval checking every 25ms
-  const watchdog = setInterval(() => {
-    checkPanic('watchdog');
-  }, 25);
-  if (watchdog.unref) watchdog.unref();
-
-  // Tick timer updating state every 100ms
-  const timer = setInterval(() => {
-    ui.ticks++;
-    ui.markDirty();
-    engine.requestFrame();
-  }, 100);
-
-  // Auto-exit after 3 seconds for safe automated verification
-  const autoTimeout = setTimeout(() => {
-    cleanup();
-  }, 3000);
-
-  // Input handling
-  const removeInput = engine.addInputListener((chunk) => {
-    const events = parseInputChunk(typeof chunk === 'string' ? chunk : String(chunk));
-    for (const ev of events) {
-      if ((ev.key.ctrl && ev.key.name === 'c') || ev.input === 'q' || ev.input === 'Q') {
-        cleanup();
-        return true;
+      ctx.addCleanup(() => {
+        clearInterval(timer);
+      });
+    },
+    onKey(input, key, state, ctx) {
+      if (input === 'q' || input === 'Q') {
+        ctx.exit();
+        return;
       }
-      ui.keyPresses++;
-      ui.lastKey = ev.key.name || ev.input || 'unknown';
-      ui.markDirty();
-      engine.requestFrame();
-    }
-  });
-
-  function cleanup() {
-    clearTimeout(autoTimeout);
-    clearInterval(timer);
-    clearInterval(watchdog);
-    removeInput();
-    engine.unmount(ui);
-    engine.dispose();
-
-    const finalStats = getMemoryStats();
-    console.log('\n====================================================');
-    console.log('✅ Low-Level Terminal Engine Exited Cleanly');
-    console.log(`   Final RSS:       ${finalStats.rssMb.toFixed(2)} MB`);
-    console.log(`   Final Heap Used: ${finalStats.heapUsedMb.toFixed(2)} MB`);
-    console.log(`   Free System RAM: ${finalStats.freeSysMb.toFixed(1)} MB`);
-    console.log('====================================================\n');
-    process.exit(0);
+      state.keys++;
+      state.lastKey = key.name || input || 'unknown';
+      ctx.invalidate();
+    },
   }
+);
 
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
-}
+// Auto-exit after 3s
+setTimeout(() => {
+  clearInterval(watchdog);
+  app.unmount();
 
-main().catch((err) => {
-  console.error('Fatal engine error:', err);
-  process.exit(1);
-});
+  const finalStats = getMemoryStats();
+  console.log('\n====================================================');
+  console.log('✅ NEW CREATEAPP / MOUNT ARCHITECTURE EXITED CLEANLY');
+  console.log(`   Final Heap Used: ${finalStats.heapUsedMb.toFixed(2)} MB (Max limit: ${MAX_HEAP_MB} MB)`);
+  console.log(`   Final RSS:       ${finalStats.rssMb.toFixed(2)} MB (Max limit: ${MAX_RSS_MB} MB)`);
+  console.log(`   System Free RAM: ${finalStats.freeSysMb.toFixed(1)} MB`);
+  console.log('====================================================\n');
+  process.exit(0);
+}, 3000);

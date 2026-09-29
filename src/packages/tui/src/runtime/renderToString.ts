@@ -1,19 +1,29 @@
 import { renderElement } from '../elements/index.js';
-import { beginFrame, endFrame, runPendingEffects } from './hooks.js';
+import type { ColorLevel } from '../terminal/color.js';
 
+export interface RenderToStringOptions {
+  columns?: number;
+  rows?: number;
+  colorLevel?: ColorLevel;
+}
+
+/**
+ * Renders an element tree directly to an ANSI string.
+ */
 export function renderToString(
-  tree: any,
-  options?: { columns?: number; rows?: number },
+  element: any,
+  options: RenderToStringOptions = {},
 ): string {
-  const width = options?.columns ?? 80;
-  beginFrame();
-  let lines: string[] = [];
-  try {
-    lines = renderElement(tree, { width, colorLevel: 3 });
-  } finally {
-    endFrame();
-    runPendingEffects();
+  const width = options.columns ?? 80;
+  const lines = renderElement(element, {
+    width,
+    colorLevel: options.colorLevel ?? 3,
+  });
+
+  if (options.rows && lines.length > options.rows) {
+    return lines.slice(0, options.rows).join('\n');
   }
+
   return lines.join('\n');
 }
 
