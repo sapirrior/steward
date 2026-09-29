@@ -5,3 +5,12 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 == STEP 0.1 | 78bb79d | workspace baseline ==
 [ADDED] package.json, tsconfig.json
 [CONSUMER-ACTION] resolve the tui package under its new name/path if the repo relied on a root alias
+
+== STEP 0.2 | 16b0e39 | characterization tests ==
+[ADDED] tests/char/*.test.ts, tests/goldens/*.txt
+[INFO] 17 characterization tests capturing current wrapping, screen buffer, and byte stream behaviors
+
+== STEP 0.3 | 16b0e39 | baseline bench ==
+[ADDED] bench/frame.bench.ts
+[INFO] Baseline benchmark (200x50, 10000 history rows, 1000 frames): ~3.45 ms/frame
+
