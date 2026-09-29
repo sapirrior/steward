@@ -1,10 +1,8 @@
 import { measureNode, type PhysicalRow } from './cell-layout.js';
-import { formatUserMessage } from './user-message.js';
 import { HistoryLayoutCache } from './HistoryLayoutCache.js';
 
 export interface ComponentNode {
   id: string;
-  kind: 'text' | 'spinner' | 'input' | 'select' | 'dock' | 'custom';
   wrap: boolean;
   clip: boolean;
   ellipsis?: boolean;
@@ -23,15 +21,12 @@ export interface ComponentNode {
 
 export class TextNode implements ComponentNode {
   id: string;
-  kind: 'text' = 'text';
   lines: string[];
   wrap: boolean;
   clip: boolean;
   ellipsis?: boolean;
   hangingIndent?: number;
   maxReadableWidth?: number;
-  private _cachedWidth = -1;
-  private _cachedWrapped: string[] = [];
 
   constructor(
     id: string,
@@ -62,7 +57,6 @@ export class TextNode implements ComponentNode {
 
 export class ResponsiveHistoryNode implements ComponentNode {
   id: string;
-  kind: 'custom' = 'custom';
   renderFn: (width: number) => string[];
   wrap: boolean;
   clip: boolean;
@@ -100,47 +94,8 @@ export class ResponsiveHistoryNode implements ComponentNode {
   }
 }
 
-export class UserMessageNode implements ComponentNode {
-  id: string;
-  kind: 'custom' = 'custom';
-  content: string;
-  wrap = false;
-  clip = true;
-  ellipsis = false;
-  private _cachedWidth = -1;
-  private _cachedColumns = -1;
-  private _cachedLines: string[] = [];
-
-  constructor(id: string, content: string) {
-    this.id = id;
-    this.content = content;
-  }
-
-  invalidateCache(): void {
-    this._cachedWidth = -1;
-    this._cachedColumns = -1;
-    this._cachedLines = [];
-  }
-
-  getLines(width: number, forceAll = false): string[] {
-    const termCols = width;
-    if (
-      !forceAll &&
-      width === this._cachedWidth &&
-      termCols === this._cachedColumns &&
-      this._cachedLines.length > 0
-    ) {
-      return this._cachedLines;
-    }
-    this._cachedWidth = width;
-    this._cachedColumns = termCols;
-    this._cachedLines = formatUserMessage(this.content, width);
-    return this._cachedLines;
-  }
-}
-
 export class DocumentTree {
-  private historyNodes: (TextNode | UserMessageNode | ComponentNode)[] = [];
+  private historyNodes: (TextNode | ResponsiveHistoryNode | ComponentNode)[] = [];
   private liveNodes: ComponentNode[] = [];
   private idCounter = 0;
   private cachedHistoryRows: PhysicalRow[] = [];
@@ -164,21 +119,6 @@ export class DocumentTree {
       clip,
       ellipsis,
     );
-    this.historyNodes.push(node);
-    if (this.lastHistoryWidth > 0) {
-      const cached = this.layoutCache.getOrCompute(node.id, this.lastHistoryWidth, () => {
-        const { rows } = measureNode(node, this.lastHistoryWidth);
-        return rows;
-      });
-      for (const r of cached.physicalRows) {
-        this.cachedHistoryRows.push(r);
-      }
-    }
-    return node;
-  }
-
-  addUserMessage(content: string): UserMessageNode {
-    const node = new UserMessageNode(`user-node-${this.idCounter++}`, content);
     this.historyNodes.push(node);
     if (this.lastHistoryWidth > 0) {
       const cached = this.layoutCache.getOrCompute(node.id, this.lastHistoryWidth, () => {
@@ -298,3 +238,5 @@ export class DocumentTree {
     this.lastHistoryWidth = -1;
   }
 }
+
+export default DocumentTree;

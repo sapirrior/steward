@@ -1,7 +1,7 @@
 import stringWidth from 'string-width';
 import stripAnsi from 'strip-ansi';
 import { truncateToWidth } from '../format/truncate.js';
-import { figures } from '../theme/index.js';
+import { styleText, type ColorValue } from '../terminal/color.js';
 import { TextElement } from './Text.js';
 
 export type BorderStyle = 'none' | 'single' | 'dashed' | 'double' | 'rounded' | 'top-bottom';
@@ -15,7 +15,8 @@ export interface BoxProps {
   align?: 'start' | 'center' | 'end';
 
   border?: BorderStyle;
-  borderColor?: string | ((str: string) => string);
+  borderColor?: ColorValue;
+  backgroundColor?: ColorValue;
   padding?: number | [number, number];
   paddingLeft?: number;
   paddingRight?: number;
@@ -39,7 +40,7 @@ export class BoxElement {
     const termWidth =
       typeof this.props.width === 'number'
         ? this.props.width
-        : availableWidth || process.stdout.columns || 80;
+        : availableWidth || 80;
 
     const maxCols = Math.max(1, termWidth);
     const border = this.props.border ?? 'none';
@@ -204,15 +205,14 @@ export class BoxElement {
   private applyBorders(lines: string[], totalWidth: number, border: BorderStyle): string[] {
     if (border === 'none') return lines;
 
-    const colorFn =
-      typeof this.props.borderColor === 'function'
-        ? this.props.borderColor
-        : this.props.borderColor
-          ? themeColor(this.props.borderColor)
-          : (s: string) => s;
+    const colorFn = (str: string) => {
+      if (!this.props.borderColor) return str;
+      if (typeof this.props.borderColor === 'function') return this.props.borderColor(str);
+      return styleText(str, { color: this.props.borderColor });
+    };
 
     if (border === 'top-bottom') {
-      const rule = colorFn(figures.horizontalLine.repeat(totalWidth));
+      const rule = colorFn('─'.repeat(totalWidth));
       return [rule, ...lines, rule];
     }
 
@@ -226,7 +226,7 @@ export class BoxElement {
           ? '┌'
           : border === 'double'
             ? '╔'
-            : figures.boxTopLeft;
+            : '┌';
     const topRight =
       border === 'rounded'
         ? '╮'
@@ -234,7 +234,7 @@ export class BoxElement {
           ? '┐'
           : border === 'double'
             ? '╗'
-            : figures.boxTopRight;
+            : '┐';
     const bottomLeft =
       border === 'rounded'
         ? '╰'
@@ -242,7 +242,7 @@ export class BoxElement {
           ? '└'
           : border === 'double'
             ? '╚'
-            : figures.boxBottomLeft;
+            : '└';
     const bottomRight =
       border === 'rounded'
         ? '╯'
@@ -250,7 +250,7 @@ export class BoxElement {
           ? '┘'
           : border === 'double'
             ? '╝'
-            : figures.boxBottomRight;
+            : '┘';
 
     const innerSpan = Math.max(0, totalWidth - 2);
     const topBar = colorFn(`${topLeft}${horizChar.repeat(innerSpan)}${topRight}`);
@@ -272,3 +272,5 @@ export function Box(
 ): BoxElement {
   return new BoxElement(props, children ?? []);
 }
+
+export default Box;

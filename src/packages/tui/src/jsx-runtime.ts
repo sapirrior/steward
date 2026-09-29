@@ -2,7 +2,7 @@ import { Box, BoxElement, type BoxProps, type BoxChild } from './primitives/Box.
 import { Text, TextElement, type TextProps } from './primitives/Text.js';
 import Component from './engine/Component.js';
 
-export const Fragment = Symbol.for('steward.fragment');
+export const Fragment = Symbol.for('stitchable.fragment');
 
 function flattenChildren(children: any): BoxChild[] {
   if (children === null || children === undefined || children === false) {

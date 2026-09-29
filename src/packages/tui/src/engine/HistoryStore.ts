@@ -1,15 +1,6 @@
 export interface HistoryEntry {
   id: string;
-  kind:
-    | 'log'
-    | 'header'
-    | 'footer'
-    | 'tool-result'
-    | 'assistant-message'
-    | 'raw'
-    | 'logo'
-    | 'prompt'
-    | 'system';
+  tag?: string;
   lines: string[];
   createdAt: number;
 }
@@ -19,13 +10,13 @@ export class HistoryStore {
   private idCounter = 0;
 
   /**
-   * Commit a new block of static content. Immutable once pushed.
+   * Commit a new block of static content.
    */
-  push(kind: HistoryEntry['kind'], lines: string[]): HistoryEntry {
+  push(lines: string[], tag?: string): HistoryEntry {
     const entry: HistoryEntry = {
       id: `entry-${this.idCounter++}`,
-      kind,
-      lines: [...lines],
+      tag,
+      lines,
       createdAt: Date.now(),
     };
     this.entries.push(entry);
@@ -49,8 +40,9 @@ export class HistoryStore {
   /**
    * Returns lines for primary screen flush on exit if needed.
    */
-  getPrimaryScreenLines(): string[] {
-    return this.entries.filter((e) => e.kind !== 'logo').flatMap((e) => e.lines);
+  getPrimaryScreenLines(filter?: (e: HistoryEntry) => boolean): string[] {
+    const entries = filter ? this.entries.filter(filter) : this.entries;
+    return entries.flatMap((e) => e.lines);
   }
 
   clearAll(): void {

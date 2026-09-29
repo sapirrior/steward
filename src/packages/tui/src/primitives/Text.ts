@@ -1,26 +1,19 @@
 import stringWidth from 'string-width';
 import stripAnsi from 'strip-ansi';
-import {
-  c,
-  bg,
-  bold,
-  italic,
-  underline,
-  strikethrough,
-  type ColorToken,
-  type BgToken,
-} from '../theme/style.js';
+import { styleText, type ColorValue } from '../terminal/color.js';
 import { truncateToWidth } from '../format/truncate.js';
 import { wrapVisualLine } from '../engine/cell-layout.js';
 
 export interface TextProps {
   // Styling
-  color?: ColorToken | ((str: string) => string);
-  bgColor?: BgToken | ((str: string) => string);
+  color?: ColorValue;
+  backgroundColor?: ColorValue;
   bold?: boolean;
+  dim?: boolean;
   italic?: boolean;
   underline?: boolean;
   strikethrough?: boolean;
+  inverse?: boolean;
 
   // Layout & Alignment
   align?: 'left' | 'center' | 'right';
@@ -44,28 +37,17 @@ export class TextElement {
       : availableWidth;
     const effWidth = Math.max(1, maxW);
 
-    // Apply text styling
-    let styled = rawContent;
-    if (this.props.bold) styled = bold(styled);
-    if (this.props.italic) styled = italic(styled);
-    if (this.props.underline) styled = underline(styled);
-    if (this.props.strikethrough) styled = strikethrough(styled);
-
-    if (this.props.color) {
-      if (typeof this.props.color === 'function') {
-        styled = this.props.color(styled);
-      } else if (this.props.color in c) {
-        styled = c[this.props.color](styled);
-      }
-    }
-
-    if (this.props.bgColor) {
-      if (typeof this.props.bgColor === 'function') {
-        styled = this.props.bgColor(styled);
-      } else if (this.props.bgColor in bg) {
-        styled = bg[this.props.bgColor](styled);
-      }
-    }
+    // Apply text styling using terminal/color
+    const styled = styleText(rawContent, {
+      color: this.props.color,
+      backgroundColor: this.props.backgroundColor,
+      bold: this.props.bold,
+      dim: this.props.dim,
+      italic: this.props.italic,
+      underline: this.props.underline,
+      strikethrough: this.props.strikethrough,
+      inverse: this.props.inverse,
+    });
 
     const isWrappable = this.props.wrap ?? true;
     const isClipped = this.props.clip ?? false;
@@ -111,3 +93,5 @@ export class TextElement {
 export function Text(content: string, props?: TextProps): TextElement {
   return new TextElement(content, props);
 }
+
+export default Text;

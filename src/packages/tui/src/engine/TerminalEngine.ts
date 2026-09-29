@@ -19,13 +19,11 @@ import {
 
 class ComponentNodeAdapter implements ComponentNode {
   id: string;
-  kind: ComponentNode['kind'] = 'custom';
   comp: Component;
 
-  constructor(id: string, comp: Component, kind: ComponentNode['kind'] = 'custom') {
+  constructor(id: string, comp: Component) {
     this.id = id;
     this.comp = comp;
-    this.kind = kind;
   }
 
   get wrap(): boolean {
@@ -390,47 +388,32 @@ export class TerminalEngine {
     }
   }
 
-  commitPrompt(text: string): void {
-    this.ensureAlternateScreen();
-    this.tree.addUserMessage(text);
-    this.requestFrame();
-  }
-
   commit(
-    kind:
-      | 'log'
-      | 'header'
-      | 'footer'
-      | 'tool-result'
-      | 'assistant-message'
-      | 'raw'
-      | 'logo'
-      | 'prompt'
-      | 'system',
     linesOrFn: string[] | ((width: number) => string[]),
-    opts?: { wrap?: boolean; clip?: boolean; maxReadableWidth?: number; hangingIndent?: number },
+    opts?: { wrap?: boolean; clip?: boolean; hangingIndent?: number; tag?: string },
   ): void {
     this.ensureAlternateScreen();
-    const isWrappable = opts?.wrap ?? (kind !== 'logo' && kind !== 'header' && kind !== 'footer');
+    const isWrappable = opts?.wrap ?? true;
+    const isClipped = opts?.clip ?? !isWrappable;
     if (typeof linesOrFn === 'function') {
       const initialLines = linesOrFn(this.io.columns);
-      this.history.push(kind, initialLines);
+      this.history.push(initialLines, opts?.tag);
       this.tree.addResponsive(
         linesOrFn,
         isWrappable,
-        opts?.clip ?? !isWrappable,
+        isClipped,
         opts?.hangingIndent,
       );
     } else {
-      this.history.push(kind, linesOrFn);
-      this.tree.addText(linesOrFn, isWrappable, opts?.maxReadableWidth, opts?.hangingIndent);
+      this.history.push(linesOrFn, opts?.tag);
+      this.tree.addText(linesOrFn, isWrappable, undefined, opts?.hangingIndent, isClipped);
     }
     this.requestFrame();
   }
 
   mount(
     component: Component,
-    options: { keepCursorVisible?: boolean; kind?: ComponentNode['kind'] } = {},
+    options: { keepCursorVisible?: boolean } = {},
   ): void {
     this.ensureAlternateScreen();
     // If component is already mounted, unmount previous adapter first to avoid duplicate nodes
@@ -444,7 +427,6 @@ export class TerminalEngine {
     const adapter = new ComponentNodeAdapter(
       `comp-${this.idCounter++}`,
       component,
-      options.kind ?? 'custom',
     );
     this.adapters.set(component, adapter);
     this.tree.mountNode(adapter);

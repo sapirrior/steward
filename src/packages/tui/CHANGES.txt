@@ -38,6 +38,20 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [ADDED] src/terminal/sequences.ts
 [INFO] Replaced raw terminal escape sequences across engine with named constants and helper functions
 
+== STEP 2.1 - 2.5 | 05480fe | strip product-specific features and drop external deps ==
+[REMOVED] UserMessageNode, DocumentTree.addUserMessage, TerminalEngine.commitPrompt, formatUserMessage
+[CONSUMER-ACTION] Re-implement prompt banners in application layer using engine.commit(lines, { tag: 'prompt' })
+[CHANGED] TerminalEngine.commit(kind, linesOrFn, opts) -> commit(linesOrFn, { wrap?, clip?, hangingIndent?, tag? })
+[CONSUMER-ACTION] Pass { wrap: false, tag: '<old-kind>' } where header/footer/logo kinds were previously passed
+[CHANGED] TerminalEngine.mount(component, { kind? }) -> mount(component, { keepCursorVisible? })
+[CONSUMER-ACTION] Remove kind option from mount calls
+[CHANGED] HistoryStore.push(kind, lines) -> push(lines, tag?), getPrimaryScreenLines(filter?)
+[CONSUMER-ACTION] Use tag filtering for primary screen flush
+[REMOVED] dependencies chalk, marked, cli-highlight from package.json
+[ADDED] src/terminal/color.ts zero-dependency SGR color resolver and text styler
+[CHANGED] Text and Box primitives updated to use terminal/color; fixed D1 borderColor string error
+
+
 
 
 
