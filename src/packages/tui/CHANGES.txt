@@ -14,3 +14,8 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [ADDED] bench/frame.bench.ts
 [INFO] Baseline benchmark (200x50, 10000 history rows, 1000 frames): ~3.45 ms/frame
 
+== STEP 1.1 | 4b2f4b7 | terminal io abstraction ==
+[ADDED] src/terminal/io.ts (TerminalIO, nodeIO, memoryIO)
+[INFO] Introduced TerminalIO interface decoupling stream and tty operations from process globals
+
+

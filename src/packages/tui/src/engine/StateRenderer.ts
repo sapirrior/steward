@@ -24,9 +24,10 @@ export default class StateRenderer {
     scrollOffset = 0,
     forceFull = false,
     lineWidthCache: Map<string, number> = new Map(),
+    io?: { columns: number; rows: number; write: (data: string) => void },
   ): DocumentFrame {
-    const termWidth = process.stdout.columns || 80;
-    const termHeight = process.stdout.rows || 24;
+    const termWidth = io ? io.columns : (process.stdout.columns || 80);
+    const termHeight = io ? io.rows : (process.stdout.rows || 24);
 
     const nextFrame = computeDocumentFrame(
       tree,
@@ -78,7 +79,11 @@ export default class StateRenderer {
     output += this.endSync();
 
     if (output.length > 0) {
-      process.stdout.write(output);
+      if (io) {
+        io.write(output);
+      } else {
+        process.stdout.write(output);
+      }
     }
 
     this.previousBuffer = currentBuffer;
