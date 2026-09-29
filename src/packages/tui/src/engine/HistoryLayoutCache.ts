@@ -48,4 +48,4 @@ export class HistoryLayoutCache {
   }
 }
 
-export const historyLayoutCache = new HistoryLayoutCache();
+export default HistoryLayoutCache;

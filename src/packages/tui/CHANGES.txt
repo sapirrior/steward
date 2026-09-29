@@ -25,5 +25,10 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [BEHAVIOR] mouse tracking is now OFF by default
 [CONSUMER-ACTION] pass { mouse: true, onError: logError } if the app relied on wheel scrolling and error logging
 
+== STEP 1.3 | a76abcf | per-tree layout cache ==
+[REMOVED] historyLayoutCache (export)
+[CONSUMER-ACTION] DocumentTree instances now manage their own isolated layout caches
+
+
 
 
