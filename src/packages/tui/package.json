@@ -14,8 +14,7 @@
     "bench": "bun run bench/frame.bench.ts"
   },
   "dependencies": {
-    "string-width": "8.2.2",
-    "strip-ansi": "7.2.0"
+    "string-width": "8.2.2"
   },
   "devDependencies": {
     "@types/bun": "1.4.2"

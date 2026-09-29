@@ -1,6 +1,6 @@
 import stringWidth from 'string-width';
-import stripAnsi from 'strip-ansi';
-import { truncateToWidth } from '../format/truncate.js';
+import { stripAnsi } from '../text/ansi.js';
+import { truncate } from '../text/truncate.js';
 import { styleText, type ColorValue } from '../terminal/color.js';
 import { TextElement } from './Text.js';
 

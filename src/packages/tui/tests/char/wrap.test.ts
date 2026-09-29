@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { wrapVisualLine, wrapVisualLineWithCursor } from '../../src/engine/cell-layout.js';
+import { wrapVisualLine, wrapVisualLineWithCursor } from '../../src/text/wrap.js';
 
 describe('Characterization: wrapVisualLine', () => {
   test('ASCII text wrapping at word boundaries', () => {

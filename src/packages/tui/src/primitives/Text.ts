@@ -1,8 +1,8 @@
 import stringWidth from 'string-width';
-import stripAnsi from 'strip-ansi';
+import { stripAnsi } from '../text/ansi.js';
 import { styleText, type ColorValue } from '../terminal/color.js';
-import { truncateToWidth } from '../format/truncate.js';
-import { wrapVisualLine } from '../engine/cell-layout.js';
+import { truncate } from '../text/truncate.js';
+import { wrapVisualLine } from '../text/wrap.js';
 
 export interface TextProps {
   // Styling

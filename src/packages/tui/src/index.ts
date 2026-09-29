@@ -2,9 +2,12 @@ export { TerminalEngine, default as TerminalEngineDefault } from './engine/Termi
 export { Component, default as ComponentDefault } from './engine/Component.js';
 export { DocumentTree, TextNode, ResponsiveHistoryNode } from './engine/DocumentTree.js';
 export { HistoryStore } from './engine/HistoryStore.js';
-export * from './engine/cell-layout.js';
+export * from './engine/layout.js';
+export * from './text/wrap.js';
+export * from './text/truncate.js';
+export * from './text/width.js';
+export * from './text/sanitize.js';
 export * from './terminal/io.js';
 export * from './terminal/sequences.js';
 export * from './terminal/color.js';
 export * from './primitives/index.js';
-export { truncateToWidth } from './format/truncate.js';

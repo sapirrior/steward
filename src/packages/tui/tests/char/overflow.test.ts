@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import stringWidth from 'string-width';
 import stripAnsi from 'strip-ansi';
-import { assertRowWidth } from '../../src/engine/cell-layout.js';
+import { assertRowWidth } from '../../src/engine/layout.js';
 import TerminalEngine from '../../src/engine/TerminalEngine.js';
 import Component from '../../src/engine/Component.js';
 import { memoryIO } from '../../src/terminal/io.js';
@@ -44,7 +44,7 @@ describe('Step 1.4: onOverflow callback and no file-writing debug', () => {
     await new Promise((r) => setTimeout(r, 20));
 
     expect(overflows.length).toBeGreaterThan(0);
-    expect(overflows[0].maxCols).toBe(20); // safeWidth min is 20 in frameBuffer for now
+    expect(overflows[0].maxCols).toBe(10); // accurate width from terminal IO (D11 fixed)
     engine.dispose();
   });
 });

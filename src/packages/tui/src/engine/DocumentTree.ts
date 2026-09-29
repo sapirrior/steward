@@ -1,4 +1,4 @@
-import { measureNode, type PhysicalRow } from './cell-layout.js';
+import { measureNode, type PhysicalRow } from './layout.js';
 import { HistoryLayoutCache } from './HistoryLayoutCache.js';
 
 export interface ComponentNode {

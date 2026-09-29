@@ -1,5 +1,5 @@
 import { DocumentTree } from './DocumentTree.js';
-import { layoutDocument, type CellLayoutResult } from './cell-layout.js';
+import { layoutDocument, type CellLayoutResult } from './layout.js';
 
 export interface DocumentFrame {
   lines: string[];
@@ -18,7 +18,7 @@ export function computeDocumentFrame(
   lineWidthCache: Map<string, number> = new Map(),
   onOverflow?: (info: { width: number; maxCols: number; row: string }) => void,
 ): DocumentFrame {
-  const safeWidth = Math.max(20, termWidth);
+  const safeWidth = Math.max(1, termWidth);
   const layout: CellLayoutResult = layoutDocument(tree, safeWidth, forceAll, lineWidthCache, onOverflow);
   const physicalRows = layout.physicalRows;
   const totalPhysicalRows = layout.totalPhysicalRows;

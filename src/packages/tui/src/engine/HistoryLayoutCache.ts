@@ -1,4 +1,4 @@
-import type { PhysicalRow } from './cell-layout.js';
+import type { PhysicalRow } from './layout.js';
 
 export interface CachedEntryLayout {
   entryId: string;

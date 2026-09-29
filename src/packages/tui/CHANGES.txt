@@ -51,6 +51,17 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [ADDED] src/terminal/color.ts zero-dependency SGR color resolver and text styler
 [CHANGED] Text and Box primitives updated to use terminal/color; fixed D1 borderColor string error
 
+== STEP 3.1 - 3.5 | c8c2e1d | text cell-math hardening and layout modularization ==
+[MOVED] cell-layout.ts exports -> src/text/* (ansi, width, wrap, truncate, sanitize) and src/engine/layout.ts
+[REMOVED] strip-ansi dependency (replaced by zero-dependency parser in text/ansi.ts)
+[REMOVED] MAX_READABLE_WIDTH, maxReadableWidth, wrapByVisualWidth (dead APIs)
+[BEHAVIOR] Intl.Segmenter grapheme clusters and emoji widths now accurately measured
+[BEHAVIOR] Tabs expanded to 4-space tab stops before layout
+[BEHAVIOR] Ellipsis support now active across truncation and ComponentNode
+[BEHAVIOR] FrameBuffer width clamp reduced to Math.max(1, width)
+[ADDED] src/text/sanitize.ts for stripping non-printable escape injections
+
+
 
 
 
