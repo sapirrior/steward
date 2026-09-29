@@ -2,6 +2,16 @@ import type { DocumentTree } from './DocumentTree.js';
 import { computeDocumentFrame, type DocumentFrame } from './FrameBuffer.js';
 import { ScreenBuffer } from '../layout/ScreenBuffer.js';
 import { nodeIO, type TerminalIO } from '../terminal/io.js';
+import {
+  START_SYNC_OUTPUT,
+  END_SYNC_OUTPUT,
+  CLEAR_SCREEN,
+  CLEAR_LINE,
+  SHOW_CURSOR,
+  HIDE_CURSOR,
+  RESET_SGR,
+  cursorTo,
+} from '../terminal/sequences.js';
 
 export default class StateRenderer {
   private syncActive = false;
@@ -12,13 +22,13 @@ export default class StateRenderer {
   private beginSync(): string {
     if (this.syncActive) return '';
     this.syncActive = true;
-    return '\x1b[?2026h';
+    return START_SYNC_OUTPUT;
   }
 
   private endSync(): string {
     if (!this.syncActive) return '';
     this.syncActive = false;
-    return '\x1b[?2026l';
+    return END_SYNC_OUTPUT;
   }
 
   render(
@@ -57,10 +67,10 @@ export default class StateRenderer {
 
     if (forceFull || !this.previousBuffer) {
       // Full repaint: clear screen then write all lines top-to-bottom
-      output += '\x1b[H\x1b[J';
+      output += CLEAR_SCREEN;
       for (let i = 0; i < termHeight; i++) {
         const line = currentBuffer.getRow(i);
-        const resetSuffix = line.includes('\x1b') && !line.endsWith('\x1b[0m') ? '\x1b[0m' : '';
+        const resetSuffix = line.includes('\x1b') && !line.endsWith(RESET_SGR) ? RESET_SGR : '';
         output +=
           i === termHeight - 1 ? '\r' + line + resetSuffix : '\r' + line + resetSuffix + '\n';
       }
@@ -69,19 +79,19 @@ export default class StateRenderer {
       const diffs = currentBuffer.diff(this.previousBuffer);
       for (const { row, text } of diffs) {
         if (text.length > 0) {
-          const resetSuffix = text.includes('\x1b') && !text.endsWith('\x1b[0m') ? '\x1b[0m' : '';
-          output += `\x1b[${row + 1};1H\x1b[2K${text}${resetSuffix}`;
+          const resetSuffix = text.includes('\x1b') && !text.endsWith(RESET_SGR) ? RESET_SGR : '';
+          output += `${cursorTo(row + 1, 1)}${CLEAR_LINE}${text}${resetSuffix}`;
         } else {
-          output += `\x1b[${row + 1};1H\x1b[2K\x1b[0m`;
+          output += `${cursorTo(row + 1, 1)}${CLEAR_LINE}${RESET_SGR}`;
         }
       }
     }
 
     // Place cursor
     if (nextFrame.cursor) {
-      output += `\x1b[?25h\x1b[${nextFrame.cursor.line + 1};${nextFrame.cursor.column}H`;
+      output += `${SHOW_CURSOR}${cursorTo(nextFrame.cursor.line + 1, nextFrame.cursor.column)}`;
     } else {
-      output += '\x1b[?25l';
+      output += HIDE_CURSOR;
     }
 
     output += this.endSync();

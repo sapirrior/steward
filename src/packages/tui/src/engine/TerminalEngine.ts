@@ -3,6 +3,19 @@ import HistoryStore from './HistoryStore.js';
 import StateRenderer from './StateRenderer.js';
 import { DocumentTree, type ComponentNode } from './DocumentTree.js';
 import { nodeIO, type TerminalIO } from '../terminal/io.js';
+import {
+  ENTER_ALTERNATE_SCREEN,
+  EXIT_ALTERNATE_SCREEN,
+  ENABLE_FOCUS_REPORTING,
+  DISABLE_FOCUS_REPORTING,
+  ENABLE_MOUSE_ALL,
+  DISABLE_MOUSE_ALL,
+  ENABLE_AUTOWRAP,
+  DISABLE_AUTOWRAP,
+  CURSOR_HOME,
+  HIDE_CURSOR,
+  SHOW_CURSOR,
+} from '../terminal/sequences.js';
 
 class ComponentNodeAdapter implements ComponentNode {
   id: string;
@@ -256,10 +269,10 @@ export class TerminalEngine {
 
   ensureAlternateScreen(): void {
     if (!this.inAlternateScreen && !this.disposed) {
-      let enterSeq = '\x1b[?1049h';
-      if (this.focusReporting) enterSeq += '\x1b[?1004h';
-      if (this.mouse) enterSeq += '\x1b[?1000h\x1b[?1002h\x1b[?1006h';
-      enterSeq += '\x1b[?7l\x1b[H';
+      let enterSeq = ENTER_ALTERNATE_SCREEN;
+      if (this.focusReporting) enterSeq += ENABLE_FOCUS_REPORTING;
+      if (this.mouse) enterSeq += ENABLE_MOUSE_ALL;
+      enterSeq += `${DISABLE_AUTOWRAP}${CURSOR_HOME}`;
 
       this.io.write(enterSeq);
       this.inAlternateScreen = true;
@@ -281,10 +294,10 @@ export class TerminalEngine {
   cleanupSync(): void {
     this.showCursor();
     if (this.inAlternateScreen) {
-      let exitSeq = '\x1b[?7h';
-      if (this.mouse) exitSeq += '\x1b[?1006l\x1b[?1002l\x1b[?1000l';
-      if (this.focusReporting) exitSeq += '\x1b[?1004l';
-      exitSeq += '\x1b[?1049l';
+      let exitSeq = ENABLE_AUTOWRAP;
+      if (this.mouse) exitSeq += DISABLE_MOUSE_ALL;
+      if (this.focusReporting) exitSeq += DISABLE_FOCUS_REPORTING;
+      exitSeq += EXIT_ALTERNATE_SCREEN;
 
       this.io.write(exitSeq);
       this.inAlternateScreen = false;
@@ -302,10 +315,10 @@ export class TerminalEngine {
   async exitAlternateScreen(): Promise<void> {
     this.showCursor();
     if (this.inAlternateScreen) {
-      let exitSeq = '\x1b[?7h';
-      if (this.mouse) exitSeq += '\x1b[?1006l\x1b[?1002l\x1b[?1000l';
-      if (this.focusReporting) exitSeq += '\x1b[?1004l';
-      exitSeq += '\x1b[?1049l';
+      let exitSeq = ENABLE_AUTOWRAP;
+      if (this.mouse) exitSeq += DISABLE_MOUSE_ALL;
+      if (this.focusReporting) exitSeq += DISABLE_FOCUS_REPORTING;
+      exitSeq += EXIT_ALTERNATE_SCREEN;
 
       this.io.write(exitSeq);
       this.inAlternateScreen = false;
@@ -365,14 +378,14 @@ export class TerminalEngine {
 
   hideCursor(): void {
     if (!this.cursorHidden) {
-      this.io.write('\x1b[?25l');
+      this.io.write(HIDE_CURSOR);
       this.cursorHidden = true;
     }
   }
 
   showCursor(): void {
     if (this.cursorHidden) {
-      this.io.write('\x1b[?25h');
+      this.io.write(SHOW_CURSOR);
       this.cursorHidden = false;
     }
   }

@@ -34,6 +34,11 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [ADDED] TerminalEngine option onOverflow, assertRowWidth onOverflow callback
 [CONSUMER-ACTION] pass onOverflow handler to TerminalEngine options if overflow monitoring is needed
 
+== STEP 1.5 | 04052bb | terminal sequences constants ==
+[ADDED] src/terminal/sequences.ts
+[INFO] Replaced raw terminal escape sequences across engine with named constants and helper functions
+
+
 
 
 
