@@ -27,6 +27,7 @@ export default class StateRenderer {
     forceFull = false,
     lineWidthCache: Map<string, number> = new Map(),
     io?: { columns: number; rows: number; write: (data: string) => void },
+    onOverflow?: (info: { width: number; maxCols: number; row: string }) => void,
   ): DocumentFrame {
     if (!io && !this.defaultIO) {
       this.defaultIO = nodeIO();
@@ -42,6 +43,7 @@ export default class StateRenderer {
       scrollOffset,
       forceFull,
       lineWidthCache,
+      onOverflow,
     );
 
     const nextLines = nextFrame.lines;

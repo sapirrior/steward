@@ -1,26 +1,20 @@
 import stringWidth from 'string-width';
 import stripAnsi from 'strip-ansi';
-import { appendFileSync } from 'node:fs';
 import { truncateToWidth } from '../format/truncate.js';
 import type { ComponentNode, DocumentTree } from './DocumentTree.js';
 
 export const MAX_READABLE_WIDTH = 100;
 
-export function assertRowWidth(row: string, maxCols: number): string {
+export function assertRowWidth(
+  row: string,
+  maxCols: number,
+  onOverflow?: (info: { width: number; maxCols: number; row: string }) => void,
+): string {
   if (maxCols <= 0) return '';
   const visWidth = stringWidth(stripAnsi(row));
   if (visWidth > maxCols) {
-    if (process.env.DEBUG_TUI_OVERFLOW) {
-      try {
-        const logPath =
-          process.env.DEBUG_TUI_OVERFLOW === '1'
-            ? 'tui-overflow.log'
-            : process.env.DEBUG_TUI_OVERFLOW;
-        appendFileSync(
-          logPath,
-          `[TUI OVERFLOW] width=${visWidth} maxCols=${maxCols} row=${JSON.stringify(row)}\n`,
-        );
-      } catch {}
+    if (onOverflow) {
+      onOverflow({ width: visWidth, maxCols, row });
     }
     return truncateToWidth(row, maxCols);
   }
@@ -492,6 +486,7 @@ export function measureNode(
   node: ComponentNode,
   contentWidth: number,
   forceAll = false,
+  onOverflow?: (info: { width: number; maxCols: number; row: string }) => void,
 ): { rows: PhysicalRow[]; cursorWithinNode: { row: number; column: number } | null } {
   const logicalLines = node.getLines(contentWidth, forceAll);
   const rows: PhysicalRow[] = [];
@@ -528,7 +523,7 @@ export function measureNode(
     const lineStartRow = rows.length;
     for (let sIdx = 0; sIdx < segments.length; sIdx++) {
       rows.push({
-        text: assertRowWidth(segments[sIdx] ?? '', contentWidth),
+        text: assertRowWidth(segments[sIdx] ?? '', contentWidth, onOverflow),
         sourceLineIndex: lIdx,
         wrapSegmentIndex: sIdx,
       });
@@ -554,6 +549,7 @@ export function layoutDocument(
   contentWidth: number,
   forceAll = false,
   _lineWidthCache: Map<string, number> = new Map(),
+  onOverflow?: (info: { width: number; maxCols: number; row: string }) => void,
 ): CellLayoutResult {
   const hasHistoryCache =
     typeof tree.getHistoryRows === 'function' && typeof tree.getLiveNodes === 'function';
@@ -574,7 +570,7 @@ export function layoutDocument(
 
   for (const node of nodesToMeasure) {
     const nodeStartRow = physicalRows.length;
-    const { rows, cursorWithinNode } = measureNode(node, contentWidth, forceAll);
+    const { rows, cursorWithinNode } = measureNode(node, contentWidth, forceAll, onOverflow);
 
     for (const r of rows) {
       physicalRows.push(r);

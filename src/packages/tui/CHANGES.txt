@@ -29,6 +29,12 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [REMOVED] historyLayoutCache (export)
 [CONSUMER-ACTION] DocumentTree instances now manage their own isolated layout caches
 
+== STEP 1.4 | 5915236 | remove file-writing debug ==
+[REMOVED] DEBUG_TUI_OVERFLOW env var
+[ADDED] TerminalEngine option onOverflow, assertRowWidth onOverflow callback
+[CONSUMER-ACTION] pass onOverflow handler to TerminalEngine options if overflow monitoring is needed
+
+
 
 
 

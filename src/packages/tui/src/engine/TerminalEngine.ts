@@ -486,6 +486,7 @@ export class TerminalEngine {
               shouldForceFull,
               this.lineWidthCache,
               this.io,
+              this.onOverflow,
             );
             this.scrollOffset = frame.currentScrollOffset;
             // Reset failure counter on any successful render.
