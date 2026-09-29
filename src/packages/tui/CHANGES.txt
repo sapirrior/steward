@@ -72,3 +72,14 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [BEHAVIOR] TerminalEngine now throttles paint frames when maxFps is specified
 [CONSUMER-ACTION] Use await engine.flush() to ensure pending frames have finished painting
 [CONSUMER-ACTION] Use engine.getScrollState() and scrollTo / scrollBy for scrolling instead of direct offset mutation
+
+== STEP 5.1 - 5.5 | phase 5 | declarative element layer ==
+[REMOVED] src/primitives/ directory (BoxElement, TextElement classes deleted)
+[ADDED] src/elements/ (types.ts, Text.ts, Box.ts, flex.ts, border.ts, style.ts, Newline.ts, Spacer.ts, Transform.ts, index.ts)
+[CHANGED] Box and Text are now pure functional elements and JSX components returning Plain Element objects with .render(width)
+[CHANGED] Box layout engine rebuilt with deterministic integer flexbox subset (flexGrow, flexShrink, flexBasis, largest remainder allocation, 6 justifyContent modes, alignItems, alignSelf, gaps)
+[ADDED] Box borderStyle supporting 'single', 'double', 'round', 'bold', 'singleDouble', 'doubleSingle', 'classic' and custom glyph maps with per-side colors/dimming
+[ADDED] Text wrap modes: 'wrap', 'hard', 'truncate', 'truncate-start', 'truncate-middle', 'truncate-end', and nested style stack restoration
+[ADDED] Top-level renderElement(element, options) helper
+[CONSUMER-ACTION] Rename Box prop 'border' to 'borderStyle', 'justify' to 'justifyContent', 'align' to 'alignItems', 'direction' to 'flexDirection'
+[CONSUMER-ACTION] Import Box, Text, Newline, Spacer, Transform from stitchable (or @steward/tui) instead of primitives

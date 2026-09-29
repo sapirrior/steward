@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { Box } from '../../src/primitives/Box.js';
-import { Text } from '../../src/primitives/Text.js';
+import { Box, Text } from '../../src/elements/index.js';
 
-describe('Step 2.5: Pure Text and Box Primitives', () => {
+describe('Step 2.5 / Phase 5: Elements', () => {
   test('Text styling with color and formatting', () => {
     const el = Text('Styled Hello', {
       color: 'red',
@@ -19,7 +18,7 @@ describe('Step 2.5: Pure Text and Box Primitives', () => {
   test('Box with string borderColor does not throw ReferenceError (D1 fix)', () => {
     const box = Box(
       {
-        border: 'rounded',
+        borderStyle: 'round',
         borderColor: 'green',
         padding: 1,
       },
@@ -36,7 +35,7 @@ describe('Step 2.5: Pure Text and Box Primitives', () => {
   test('Box with function borderColor applies custom styling', () => {
     const box = Box(
       {
-        border: 'single',
+        borderStyle: 'single',
         borderColor: (s) => `[${s}]`,
       },
       [Text('Content')],

@@ -10,4 +10,4 @@ export * from './text/sanitize.js';
 export * from './terminal/io.js';
 export * from './terminal/sequences.js';
 export * from './terminal/color.js';
-export * from './primitives/index.js';
+export * from './elements/index.js';

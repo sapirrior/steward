@@ -1,10 +1,11 @@
-import { Box, BoxElement, type BoxProps, type BoxChild } from './primitives/Box.js';
-import { Text, TextElement, type TextProps } from './primitives/Text.js';
+import { Box } from './elements/Box.js';
+import { Text } from './elements/Text.js';
+import { Fragment, type BoxProps, type TextProps, type StitchableElement } from './elements/types.js';
 import Component from './engine/Component.js';
 
-export const Fragment = Symbol.for('stitchable.fragment');
+export { Fragment };
 
-function flattenChildren(children: any): BoxChild[] {
+function flattenChildren(children: any): any[] {
   if (children === null || children === undefined || children === false) {
     return [];
   }
@@ -20,18 +21,14 @@ export function jsx(type: any, props: any = {}, _key?: any): any {
   }
 
   const { children, ...rest } = props || {};
+  const flatChildren = flattenChildren(children);
 
-  if (type === 'box' || type === Box) {
-    const flatChildren = flattenChildren(children);
-    return Box(rest as BoxProps, flatChildren);
+  if (type === 'box' || type === 'Box' || type === Box) {
+    return Box(rest as BoxProps, ...flatChildren);
   }
 
-  if (type === 'text' || type === Text) {
-    const flatChildren = flattenChildren(children);
-    const content = flatChildren
-      .map((c) => (typeof c === 'string' ? c : c instanceof TextElement ? c.content : ''))
-      .join('');
-    return Text(content, rest as TextProps);
+  if (type === 'text' || type === 'Text' || type === Text) {
+    return Text({ ...(rest as TextProps), children: flatChildren });
   }
 
   if (typeof type === 'function') {
@@ -40,7 +37,7 @@ export function jsx(type: any, props: any = {}, _key?: any): any {
       return new type(props);
     }
     // Function component
-    return type(props);
+    return type({ ...rest, children: flatChildren });
   }
 
   return null;
@@ -50,10 +47,11 @@ export const jsxs = jsx;
 export const jsxDEV = jsx;
 
 export namespace JSX {
-  export type Element = BoxElement | TextElement | Component<any, any> | any;
+  export type Element = StitchableElement | Component<any, any> | any;
   export interface ElementClass extends Component<any, any> {}
   export interface IntrinsicElements {
     box: BoxProps & { children?: any };
     text: TextProps & { children?: any };
   }
 }
+
