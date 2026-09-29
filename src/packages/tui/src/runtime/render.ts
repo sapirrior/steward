@@ -260,6 +260,12 @@ export function render(initialTree: any, options: RenderOptions = {}): Instance 
     _getLines(width: number): string[] {
       beginFrame();
 
+      // Push all context values before resolving tree
+      const prevApp = activeContextValues.get(AppContext.id);
+      const prevOut = activeContextValues.get(StdoutContext.id);
+      const prevIn = activeContextValues.get(StdinContext.id);
+      const prevFocus = activeContextValues.get(FocusContext.id);
+
       pushContextValue(AppContext.id, { exit: exitApp });
       pushContextValue(StdoutContext.id, { write: (d: string) => io.write(d) });
       pushContextValue(StdinContext.id, {
@@ -274,6 +280,11 @@ export function render(initialTree: any, options: RenderOptions = {}): Instance 
         resolved = resolveTree(currentTree, 'root', 0, engine, staticSeenCounts);
       } finally {
         endFrame();
+        // Pop context values to prevent accumulation in activeContextValues map
+        popContextValue(AppContext.id, prevApp);
+        popContextValue(StdoutContext.id, prevOut);
+        popContextValue(StdinContext.id, prevIn);
+        popContextValue(FocusContext.id, prevFocus);
       }
 
       const lines = renderElement(resolved, {
@@ -285,9 +296,11 @@ export function render(initialTree: any, options: RenderOptions = {}): Instance 
         options.onRender(lines);
       }
 
-      // Schedule effects after paint
+      // Schedule effects after paint — guarded: never run after unmount
       queueMicrotask(() => {
-        runPendingEffects();
+        if (!isUnmounted) {
+          runPendingEffects();
+        }
       });
 
       return lines;

@@ -1,4 +1,4 @@
-import type { Context } from './context.js';
+import type { Context, FocusContextValue } from './context.js';
 import { AppContext, StdoutContext, StdinContext, FocusContext } from './context.js';
 import type { Key } from '../terminal/input.js';
 
@@ -39,6 +39,13 @@ export function resetRuntime(): void {
   currentPath = '';
   currentEngineRef = null;
   requestFrameCallback = null;
+  inputHandlers.clear();
+  pasteHandlers.clear();
+  if (animationTimer) {
+    clearInterval(animationTimer);
+    animationTimer = null;
+  }
+  animationSubscribers.clear();
 }
 
 export function beginFrame(): void {
@@ -129,19 +136,19 @@ export function useState<T>(initialValue: T | (() => T)): [T, (next: T | ((prev:
   const { slot, isNew } = getNextSlot('state');
   if (isNew) {
     slot.value = typeof initialValue === 'function' ? (initialValue as any)() : initialValue;
+    // Cache the setter once — never reallocate per render
+    slot.cleanup = ((next: T | ((prev: T) => T)) => {
+      const nextVal = typeof next === 'function' ? (next as any)(slot.value) : next;
+      if (!Object.is(slot.value, nextVal)) {
+        slot.value = nextVal;
+        if (requestFrameCallback) {
+          requestFrameCallback();
+        }
+      }
+    }) as any;
   }
 
-  const setState = (next: T | ((prev: T) => T)) => {
-    const nextVal = typeof next === 'function' ? (next as any)(slot.value) : next;
-    if (!Object.is(slot.value, nextVal)) {
-      slot.value = nextVal;
-      if (requestFrameCallback) {
-        requestFrameCallback();
-      }
-    }
-  };
-
-  return [slot.value, setState];
+  return [slot.value, slot.cleanup as any];
 }
 
 export function useReducer<R extends (state: any, action: any) => any, I>(
@@ -152,19 +159,19 @@ export function useReducer<R extends (state: any, action: any) => any, I>(
   const { slot, isNew } = getNextSlot('reducer');
   if (isNew) {
     slot.value = init ? init(initialArg) : initialArg;
+    // Cache the dispatch once — never reallocate per render
+    slot.cleanup = ((action: any) => {
+      const nextVal = reducer(slot.value, action);
+      if (!Object.is(slot.value, nextVal)) {
+        slot.value = nextVal;
+        if (requestFrameCallback) {
+          requestFrameCallback();
+        }
+      }
+    }) as any;
   }
 
-  const dispatch = (action: any) => {
-    const nextVal = reducer(slot.value, action);
-    if (!Object.is(slot.value, nextVal)) {
-      slot.value = nextVal;
-      if (requestFrameCallback) {
-        requestFrameCallback();
-      }
-    }
-  };
-
-  return [slot.value, dispatch];
+  return [slot.value, slot.cleanup as any];
 }
 
 export function useRef<T>(initialValue: T): { current: T } {
@@ -254,22 +261,32 @@ export function useInput(
   handler: (input: string, key: Key) => void,
   options: { isActive?: boolean } = {},
 ): void {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
   const isActive = options.isActive ?? true;
+
   useEffect(() => {
     if (!isActive) return;
-    return registerInputHandler(handler);
-  }, [isActive, handler]);
+    return registerInputHandler((input, key) => {
+      handlerRef.current(input, key);
+    });
+  }, [isActive]);
 }
 
 export function usePaste(
   handler: (text: string) => void,
   options: { isActive?: boolean } = {},
 ): void {
+  const handlerRef = useRef(handler);
+  handlerRef.current = handler;
   const isActive = options.isActive ?? true;
+
   useEffect(() => {
     if (!isActive) return;
-    return registerPasteHandler(handler);
-  }, [isActive, handler]);
+    return registerPasteHandler((text) => {
+      handlerRef.current(text);
+    });
+  }, [isActive]);
 }
 
 export function useApp(): { exit: (errOrVal?: any) => void; waitUntilRenderFlush: () => Promise<void> } {
@@ -312,9 +329,11 @@ export function useWindowSize(): { columns: number; rows: number } {
   useEffect(() => {
     if (!currentEngineRef?.io?.onResize) return;
     return currentEngineRef.io.onResize(() => {
-      setSize({
-        columns: currentEngineRef.io.columns,
-        rows: currentEngineRef.io.rows,
+      const newCols = currentEngineRef.io.columns;
+      const newRows = currentEngineRef.io.rows;
+      setSize((prev) => {
+        if (prev.columns === newCols && prev.rows === newRows) return prev;
+        return { columns: newCols, rows: newRows };
       });
     });
   }, []);
