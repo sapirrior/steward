@@ -123,7 +123,7 @@ export class UserMessageNode implements ComponentNode {
   }
 
   getLines(width: number, forceAll = false): string[] {
-    const termCols = process.stdout.columns || 80;
+    const termCols = width;
     if (
       !forceAll &&
       width === this._cachedWidth &&

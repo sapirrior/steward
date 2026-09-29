@@ -18,4 +18,12 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [ADDED] src/terminal/io.ts (TerminalIO, nodeIO, memoryIO)
 [INFO] Introduced TerminalIO interface decoupling stream and tty operations from process globals
 
+== STEP 1.2 | 009572e | inject io into terminal engine ==
+[CHANGED] new TerminalEngine() -> new TerminalEngine({ io?, onError?, mouse?, scrollKeys?, exitHook?, focusReporting?, onOverflow? })
+[REMOVED] import '@steward/services/errors'
+[ADDED] TerminalEngine.dispose()
+[BEHAVIOR] mouse tracking is now OFF by default
+[CONSUMER-ACTION] pass { mouse: true, onError: logError } if the app relied on wheel scrolling and error logging
+
+
 

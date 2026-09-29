@@ -1,11 +1,13 @@
 import type { DocumentTree } from './DocumentTree.js';
 import { computeDocumentFrame, type DocumentFrame } from './FrameBuffer.js';
 import { ScreenBuffer } from '../layout/ScreenBuffer.js';
+import { nodeIO, type TerminalIO } from '../terminal/io.js';
 
 export default class StateRenderer {
   private syncActive = false;
   /** Last painted ScreenBuffer — used for diffing on the next frame. */
   private previousBuffer: ScreenBuffer | null = null;
+  private defaultIO?: TerminalIO;
 
   private beginSync(): string {
     if (this.syncActive) return '';
@@ -26,8 +28,12 @@ export default class StateRenderer {
     lineWidthCache: Map<string, number> = new Map(),
     io?: { columns: number; rows: number; write: (data: string) => void },
   ): DocumentFrame {
-    const termWidth = io ? io.columns : (process.stdout.columns || 80);
-    const termHeight = io ? io.rows : (process.stdout.rows || 24);
+    if (!io && !this.defaultIO) {
+      this.defaultIO = nodeIO();
+    }
+    const targetIO = io ?? this.defaultIO!;
+    const termWidth = targetIO.columns;
+    const termHeight = targetIO.rows;
 
     const nextFrame = computeDocumentFrame(
       tree,
@@ -79,11 +85,7 @@ export default class StateRenderer {
     output += this.endSync();
 
     if (output.length > 0) {
-      if (io) {
-        io.write(output);
-      } else {
-        process.stdout.write(output);
-      }
+      targetIO.write(output);
     }
 
     this.previousBuffer = currentBuffer;
