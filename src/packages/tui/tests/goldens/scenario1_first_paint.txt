@@ -1,0 +1,5 @@
+[?2026h[H[JFirst line
+Second line
+Third line
+
+[?25l[?2026l
