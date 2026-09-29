@@ -1,0 +1,7 @@
+STITCHABLE CHANGES — consumers of src/packages/tui read this file
+baseline-commit: 78bb79dc708ea7dedb50ead647e815acf08ec172   branch: main   date: 2026-09-29
+tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION] [BLOCKER] [API-GAP] [INFO]
+
+== STEP 0.1 | 78bb79d | workspace baseline ==
+[ADDED] package.json, tsconfig.json
+[CONSUMER-ACTION] resolve the tui package under its new name/path if the repo relied on a root alias
