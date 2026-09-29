@@ -15,8 +15,10 @@ import {
 
 export default class StateRenderer {
   private syncActive = false;
-  /** Last painted ScreenBuffer — used for diffing on the next frame. */
-  private previousBuffer: ScreenBuffer | null = null;
+  private frontBuffer: ScreenBuffer | null = null;
+  private backBuffer: ScreenBuffer | null = null;
+  private lastWidth = 0;
+  private lastHeight = 0;
   private defaultIO?: TerminalIO;
 
   private beginSync(): string {
@@ -29,6 +31,18 @@ export default class StateRenderer {
     if (!this.syncActive) return '';
     this.syncActive = false;
     return END_SYNC_OUTPUT;
+  }
+
+  private ensureBuffers(width: number, height: number): { front: ScreenBuffer | null; back: ScreenBuffer } {
+    if (width !== this.lastWidth || height !== this.lastHeight || !this.backBuffer) {
+      this.frontBuffer = null;
+      this.backBuffer = new ScreenBuffer(width, height);
+      this.lastWidth = width;
+      this.lastHeight = height;
+    } else {
+      this.backBuffer.clear();
+    }
+    return { front: this.frontBuffer, back: this.backBuffer };
   }
 
   render(
@@ -56,27 +70,28 @@ export default class StateRenderer {
       onOverflow,
     );
 
+    const { front, back } = this.ensureBuffers(termWidth, termHeight);
     const nextLines = nextFrame.lines;
-    const currentBuffer = new ScreenBuffer(termWidth, termHeight);
+
     for (let y = 0; y < nextLines.length && y < termHeight; y++) {
       const line = nextLines[y] ?? '';
-      currentBuffer.blitText(0, y, termWidth, line);
+      back.blitText(0, y, termWidth, line);
     }
 
     let output = this.beginSync();
 
-    if (forceFull || !this.previousBuffer) {
-      // Full repaint: clear screen then write all lines top-to-bottom
+    if (forceFull || !front) {
+      // Full repaint
       output += CLEAR_SCREEN;
       for (let i = 0; i < termHeight; i++) {
-        const line = currentBuffer.getRow(i);
+        const line = back.getRow(i);
         const resetSuffix = line.includes('\x1b') && !line.endsWith(RESET_SGR) ? RESET_SGR : '';
         output +=
           i === termHeight - 1 ? '\r' + line + resetSuffix : '\r' + line + resetSuffix + '\n';
       }
     } else {
-      // ScreenBuffer-based diff: only rewrite rows that changed
-      const diffs = currentBuffer.diff(this.previousBuffer);
+      // Delta diff
+      const diffs = back.diff(front);
       for (const { row, text } of diffs) {
         if (text.length > 0) {
           const resetSuffix = text.includes('\x1b') && !text.endsWith(RESET_SGR) ? RESET_SGR : '';
@@ -100,7 +115,16 @@ export default class StateRenderer {
       targetIO.write(output);
     }
 
-    this.previousBuffer = currentBuffer;
+    // Swap buffers: back becomes front, front will become back on next frame
+    if (!this.frontBuffer) {
+      this.frontBuffer = back;
+      this.backBuffer = new ScreenBuffer(termWidth, termHeight);
+    } else {
+      const temp = this.frontBuffer;
+      this.frontBuffer = back;
+      this.backBuffer = temp;
+    }
+
     return nextFrame;
   }
 
@@ -109,6 +133,8 @@ export default class StateRenderer {
    * Called when the alternate screen is re-entered or history is flushed.
    */
   clearPreviousFrameRecord(): void {
-    this.previousBuffer = null;
+    this.frontBuffer = null;
   }
 }
+
+export { StateRenderer };

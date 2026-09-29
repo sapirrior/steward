@@ -1,32 +1,53 @@
-import stringWidth from 'string-width';
-
-export interface ScreenCell {
-  char: string;
-  style: string;
-  width: number;
-}
+import { SgrState } from '../text/ansi.js';
+import { graphemeWidth, segmentGraphemes } from '../text/width.js';
+import { sanitize } from '../text/sanitize.js';
+import { RESET_SGR } from '../terminal/sequences.js';
 
 export class ScreenBuffer {
   readonly width: number;
   readonly height: number;
-  private grid: ScreenCell[][];
+
+  private chars: string[];
+  private styleIds: Uint32Array;
+  private widths: Uint8Array;
+  private rowCache: (string | null)[];
+
+  private styleTable: string[];
+  private styleMap: Map<string, number>;
 
   constructor(width: number, height: number) {
     this.width = Math.max(1, width);
     this.height = Math.max(1, height);
-    this.grid = [];
+
+    const totalCells = this.width * this.height;
+    this.chars = new Array(totalCells);
+    this.styleIds = new Uint32Array(totalCells);
+    this.widths = new Uint8Array(totalCells);
+    this.rowCache = new Array(this.height).fill(null);
+
+    this.styleTable = [''];
+    this.styleMap = new Map([['', 0]]);
+
     this.clear();
   }
 
+  private internStyle(style: string): number {
+    if (!style) return 0;
+    const existing = this.styleMap.get(style);
+    if (existing !== undefined) return existing;
+
+    const id = this.styleTable.length;
+    this.styleTable.push(style);
+    this.styleMap.set(style, id);
+    return id;
+  }
+
   clear(): void {
-    this.grid = [];
-    for (let y = 0; y < this.height; y++) {
-      const row: ScreenCell[] = [];
-      for (let x = 0; x < this.width; x++) {
-        row.push({ char: ' ', style: '', width: 1 });
-      }
-      this.grid.push(row);
-    }
+    const totalCells = this.width * this.height;
+    this.chars.fill(' ');
+    this.styleIds.fill(0);
+    this.widths.fill(1);
+    this.rowCache.fill('');
   }
 
   blitText(x: number, y: number, maxWidth: number, styledText: string): void {
@@ -34,171 +55,116 @@ export class ScreenBuffer {
       return;
     }
 
-    const row = this.grid[y];
-    if (!row) return;
-
     const availableCols = Math.min(maxWidth, this.width - x);
     if (availableCols <= 0) return;
 
-    // Tokenize ANSI sequences and characters while tracking style state
-    const ansiRegex = /\x1b\[[0-9;]*[a-zA-Z]/g;
-    let activeFg: string | null = null;
-    let activeBg: string | null = null;
-    const activeModifiers = new Set<string>();
+    // Sanitize input to enforce terminal security invariant
+    const safeText = sanitize(styledText);
+    this.rowCache[y] = null;
 
-    function updateStyles(seq: string) {
-      const match = seq.match(/^\x1b\[([0-9;]*)m$/);
-      if (!match) return;
-      const rawParams = match[1] || '0';
-      const params = rawParams.split(';').map((p) => parseInt(p, 10) || 0);
-
-      let i = 0;
-      while (i < params.length) {
-        const code = params[i] ?? 0;
-        if (code === 0) {
-          activeFg = null;
-          activeBg = null;
-          activeModifiers.clear();
-        } else if (
-          code === 1 ||
-          code === 2 ||
-          code === 3 ||
-          code === 4 ||
-          code === 7 ||
-          code === 8 ||
-          code === 9
-        ) {
-          activeModifiers.add(`\x1b[${code}m`);
-        } else if (code === 22) {
-          activeModifiers.delete('\x1b[1m');
-          activeModifiers.delete('\x1b[2m');
-        } else if (code === 23) {
-          activeModifiers.delete('\x1b[3m');
-        } else if (code === 24) {
-          activeModifiers.delete('\x1b[4m');
-        } else if (code === 27) {
-          activeModifiers.delete('\x1b[7m');
-        } else if (code === 28) {
-          activeModifiers.delete('\x1b[8m');
-        } else if (code === 29) {
-          activeModifiers.delete('\x1b[9m');
-        } else if ((code >= 30 && code <= 37) || (code >= 90 && code <= 97)) {
-          activeFg = `\x1b[${code}m`;
-        } else if (code === 38) {
-          if (params[i + 1] === 5 && i + 2 < params.length) {
-            activeFg = `\x1b[38;5;${params[i + 2]}m`;
-            i += 2;
-          } else if (params[i + 1] === 2 && i + 4 < params.length) {
-            activeFg = `\x1b[38;2;${params[i + 2]};${params[i + 3]};${params[i + 4]}m`;
-            i += 4;
-          }
-        } else if (code === 39) {
-          activeFg = null;
-        } else if ((code >= 40 && code <= 47) || (code >= 100 && code <= 107)) {
-          activeBg = `\x1b[${code}m`;
-        } else if (code === 48) {
-          if (params[i + 1] === 5 && i + 2 < params.length) {
-            activeBg = `\x1b[48;5;${params[i + 2]}m`;
-            i += 2;
-          } else if (params[i + 1] === 2 && i + 4 < params.length) {
-            activeBg = `\x1b[48;2;${params[i + 2]};${params[i + 3]};${params[i + 4]}m`;
-            i += 4;
-          }
-        } else if (code === 49) {
-          activeBg = null;
-        }
-        i++;
-      }
-    }
-
-    function getActiveStyleString(): string {
-      let s = '';
-      if (activeFg) s += activeFg;
-      if (activeBg) s += activeBg;
-      for (const mod of activeModifiers) {
-        s += mod;
-      }
-      return s;
-    }
+    const rowOffset = y * this.width;
+    const ansiRegex = /\x1b\[[0-9;]*m/g;
+    const sgrState = new SgrState();
 
     let col = 0;
     let lastIndex = 0;
     let match: RegExpExecArray | null;
 
     const processPlain = (plain: string) => {
-      for (const char of plain) {
+      for (const g of segmentGraphemes(plain)) {
         if (col >= availableCols) return;
-        const w = stringWidth(char);
+        const w = graphemeWidth(g);
         if (w === 0) continue;
         if (col + w > availableCols) return;
 
-        const curStyle = getActiveStyleString();
-        const targetX = x + col;
-        row[targetX] = { char, style: curStyle, width: w };
-        if (w === 2 && targetX + 1 < this.width) {
-          row[targetX + 1] = { char: '', style: curStyle, width: 0 };
+        const currentStyleStr = sgrState.toString();
+        const styleId = this.internStyle(currentStyleStr);
+        const cellIdx = rowOffset + x + col;
+
+        this.chars[cellIdx] = g;
+        this.styleIds[cellIdx] = styleId;
+        this.widths[cellIdx] = w;
+
+        if (w === 2 && x + col + 1 < this.width) {
+          const nextIdx = cellIdx + 1;
+          this.chars[nextIdx] = '';
+          this.styleIds[nextIdx] = styleId;
+          this.widths[nextIdx] = 0;
         }
+
         col += w;
       }
     };
 
-    while ((match = ansiRegex.exec(styledText)) !== null) {
+    while ((match = ansiRegex.exec(safeText)) !== null) {
       if (match.index > lastIndex) {
-        processPlain(styledText.slice(lastIndex, match.index));
+        processPlain(safeText.slice(lastIndex, match.index));
         if (col >= availableCols) break;
       }
-      updateStyles(match[0]);
+      sgrState.apply(match[0]);
       lastIndex = ansiRegex.lastIndex;
     }
 
-    if (lastIndex < styledText.length && col < availableCols) {
-      processPlain(styledText.slice(lastIndex));
+    if (lastIndex < safeText.length && col < availableCols) {
+      processPlain(safeText.slice(lastIndex));
     }
   }
 
   getRow(y: number): string {
     if (y < 0 || y >= this.height) return '';
-    const row = this.grid[y];
-    if (!row) return '';
+    const cached = this.rowCache[y];
+    if (cached !== null && cached !== undefined) return cached;
 
-    // Find the last non-space cell (or styled space) to avoid drawing unnecessary trailing spaces
-    let lastUsedIndex = row.length - 1;
-    while (lastUsedIndex >= 0) {
-      const cell = row[lastUsedIndex]!;
-      if (cell.char !== ' ' || cell.style !== '') {
+    const rowOffset = y * this.width;
+
+    // Find the last non-space cell
+    let lastUsedCol = this.width - 1;
+    while (lastUsedCol >= 0) {
+      const idx = rowOffset + lastUsedCol;
+      const char = this.chars[idx];
+      const styleId = this.styleIds[idx];
+      if (char !== ' ' || styleId !== 0) {
         break;
       }
-      lastUsedIndex--;
+      lastUsedCol--;
     }
 
-    if (lastUsedIndex < 0) return '';
+    if (lastUsedCol < 0) {
+      this.rowCache[y] = '';
+      return '';
+    }
 
     let out = '';
-    let currentStyle = '';
+    let currentStyleId = 0;
 
-    for (let x = 0; x <= lastUsedIndex; x++) {
-      const cell = row[x]!;
-      if (cell.width === 0) continue; // continuation of wide character
+    for (let x = 0; x <= lastUsedCol; x++) {
+      const idx = rowOffset + x;
+      const w = this.widths[idx];
+      if (w === 0) continue; // Wide character second cell
 
-      if (cell.style !== currentStyle) {
-        if (currentStyle && !cell.style) {
-          out += '\x1b[0m';
-        } else if (cell.style) {
-          if (currentStyle) {
-            out += '\x1b[0m' + cell.style;
+      const cellStyleId = this.styleIds[idx]!;
+      if (cellStyleId !== currentStyleId) {
+        if (currentStyleId !== 0 && cellStyleId === 0) {
+          out += RESET_SGR;
+        } else if (cellStyleId !== 0) {
+          const styleStr = this.styleTable[cellStyleId] || '';
+          if (currentStyleId !== 0) {
+            out += RESET_SGR + styleStr;
           } else {
-            out += cell.style;
+            out += styleStr;
           }
         }
-        currentStyle = cell.style;
+        currentStyleId = cellStyleId;
       }
-      out += cell.char;
+
+      out += this.chars[idx];
     }
 
-    if (currentStyle) {
-      out += '\x1b[0m';
+    if (currentStyleId !== 0) {
+      out += RESET_SGR;
     }
 
+    this.rowCache[y] = out;
     return out;
   }
 
@@ -217,4 +183,18 @@ export class ScreenBuffer {
 
     return changes;
   }
+
+  toLines(): string[] {
+    const lines: string[] = [];
+    for (let y = 0; y < this.height; y++) {
+      lines.push(this.getRow(y));
+    }
+    return lines;
+  }
+
+  toString(): string {
+    return this.toLines().join('\n');
+  }
 }
+
+export default ScreenBuffer;

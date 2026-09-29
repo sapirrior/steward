@@ -1,5 +1,5 @@
 import { DocumentTree } from './DocumentTree.js';
-import { layoutDocument, type CellLayoutResult } from './layout.js';
+import { measureNode, layoutDocument, type CellLayoutResult } from './layout.js';
 
 export interface DocumentFrame {
   lines: string[];
@@ -19,11 +19,30 @@ export function computeDocumentFrame(
   onOverflow?: (info: { width: number; maxCols: number; row: string }) => void,
 ): DocumentFrame {
   const safeWidth = Math.max(1, termWidth);
-  const layout: CellLayoutResult = layoutDocument(tree, safeWidth, forceAll, lineWidthCache, onOverflow);
-  const physicalRows = layout.physicalRows;
-  const totalPhysicalRows = layout.totalPhysicalRows;
-
   const maxRows = Math.max(1, termHeight);
+
+  // Fast path with zero full-history array copying
+  const histCount = tree.getHistoryRowCount(safeWidth, forceAll);
+  const liveNodes = tree.getLiveNodes();
+
+  const liveRows: { text: string }[] = [];
+  let liveCursor: { row: number; column: number } | null = null;
+
+  for (const node of liveNodes) {
+    const nodeStartRow = liveRows.length;
+    const { rows, cursorWithinNode } = measureNode(node, safeWidth, forceAll, onOverflow);
+    for (const r of rows) {
+      liveRows.push(r);
+    }
+    if (cursorWithinNode && liveCursor === null) {
+      liveCursor = {
+        row: nodeStartRow + cursorWithinNode.row,
+        column: cursorWithinNode.column,
+      };
+    }
+  }
+
+  const totalPhysicalRows = histCount + liveRows.length;
   const maxScrollOffset = Math.max(0, totalPhysicalRows - maxRows);
   const clampedScroll = Math.max(0, Math.min(scrollOffset, maxScrollOffset));
 
@@ -31,13 +50,32 @@ export function computeDocumentFrame(
   const endIndex = Math.max(0, totalPhysicalRows - clampedScroll);
   const startIndex = Math.max(0, endIndex - maxRows);
 
-  const viewportRows = physicalRows.slice(startIndex, endIndex);
-  const viewportLines = viewportRows.map((r) => r.text);
+  const viewportLines: string[] = [];
+
+  // 1. History rows portion within [startIndex, endIndex)
+  if (startIndex < histCount) {
+    const histStart = startIndex;
+    const histEnd = Math.min(endIndex, histCount);
+    const histSlice = tree.sliceHistory(histStart, histEnd, safeWidth);
+    for (const r of histSlice) {
+      viewportLines.push(r.text);
+    }
+  }
+
+  // 2. Live rows portion within [startIndex, endIndex)
+  if (endIndex > histCount) {
+    const liveStart = Math.max(0, startIndex - histCount);
+    const liveEnd = endIndex - histCount;
+    for (let i = liveStart; i < liveEnd && i < liveRows.length; i++) {
+      viewportLines.push(liveRows[i]?.text ?? '');
+    }
+  }
 
   // Translate physical cursor into viewport-relative screen row
   let adjustedCursor: { line: number; column: number } | null = null;
-  if (layout.cursor) {
-    const cursorViewportRow = layout.cursor.row - startIndex;
+  if (liveCursor) {
+    const absoluteCursorRow = histCount + liveCursor.row;
+    const cursorViewportRow = absoluteCursorRow - startIndex;
     if (
       cursorViewportRow >= 0 &&
       cursorViewportRow < viewportLines.length &&
@@ -45,7 +83,7 @@ export function computeDocumentFrame(
     ) {
       adjustedCursor = {
         line: cursorViewportRow,
-        column: layout.cursor.column,
+        column: liveCursor.column,
       };
     }
   }

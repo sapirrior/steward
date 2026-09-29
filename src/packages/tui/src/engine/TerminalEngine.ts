@@ -76,6 +76,8 @@ export interface TerminalEngineOptions {
   scrollKeys?: boolean;
   focusReporting?: boolean;
   onOverflow?: (info: { width: number; maxCols: number; row: string }) => void;
+  maxFps?: number;
+  historyLimit?: number;
 }
 
 export class TerminalEngine {
@@ -96,10 +98,17 @@ export class TerminalEngine {
   private scrollKeys: boolean;
   private focusReporting: boolean;
   private onOverflow?: (info: { width: number; maxCols: number; row: string }) => void;
+  private maxFps?: number;
+  private historyLimit?: number;
 
   private resizeHandler: () => void;
   private inputHandler: (str: string) => void;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
+  private renderTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastRenderTime = 0;
+  private pendingFlushResolvers: Array<() => void> = [];
+  private lastMaxScrollOffset = 0;
+  private lastTotalRows = 0;
   private cleanupResizeListener: (() => void) | null = null;
   private cleanupInputListener: (() => void) | null = null;
   private exitHookFn: (() => void) | null = null;
@@ -119,8 +128,10 @@ export class TerminalEngine {
     this.scrollKeys = options.scrollKeys ?? true;
     this.focusReporting = options.focusReporting ?? false;
     this.onOverflow = options.onOverflow;
+    this.maxFps = options.maxFps;
+    this.historyLimit = options.historyLimit;
 
-    this.tree = new DocumentTree();
+    this.tree = new DocumentTree({ historyLimit: this.historyLimit });
     this.history = new HistoryStore();
     this.components = [];
     this.adapters = new Map();
@@ -250,19 +261,40 @@ export class TerminalEngine {
     };
   }
 
-  scrollUp(amount = 3): void {
-    this.scrollOffset += amount;
+  scrollBy(amount: number): void {
+    this.scrollOffset = Math.max(0, this.scrollOffset + amount);
     this.requestFrame();
   }
 
-  scrollDown(amount = 3): void {
-    this.scrollOffset = Math.max(0, this.scrollOffset - amount);
+  scrollTo(offset: number): void {
+    this.scrollOffset = Math.max(0, offset);
     this.requestFrame();
+  }
+
+  scrollUp(amount = 3): void {
+    this.scrollBy(amount);
+  }
+
+  scrollDown(amount = 3): void {
+    this.scrollBy(-amount);
   }
 
   scrollToBottom(): void {
     this.scrollOffset = 0;
     this.requestFrame();
+  }
+
+  scrollToTop(): void {
+    this.scrollOffset = this.lastMaxScrollOffset;
+    this.requestFrame();
+  }
+
+  getScrollState(): { offset: number; max: number; totalRows: number } {
+    return {
+      offset: this.scrollOffset,
+      max: this.lastMaxScrollOffset,
+      totalRows: this.lastTotalRows,
+    };
   }
 
   ensureAlternateScreen(): void {
@@ -363,6 +395,11 @@ export class TerminalEngine {
       clearTimeout(this.resizeTimer);
       this.resizeTimer = null;
     }
+    if (this.renderTimer) {
+      clearTimeout(this.renderTimer);
+      this.renderTimer = null;
+    }
+    this.resolveFlushPromises();
 
     for (const comp of this.components) {
       if (typeof comp.onUnmount === 'function') {
@@ -463,45 +500,111 @@ export class TerminalEngine {
     this.requestFrame(true);
   }
 
+  private resolveFlushPromises(): void {
+    if (this.pendingFlushResolvers.length > 0) {
+      const resolvers = this.pendingFlushResolvers;
+      this.pendingFlushResolvers = [];
+      for (const res of resolvers) {
+        res();
+      }
+    }
+  }
+
+  private performRender(): void {
+    this.dirty = false;
+    this.lastRenderTime = Date.now();
+    if (this.disposed || !this.inAlternateScreen) {
+      this.resolveFlushPromises();
+      return;
+    }
+
+    const shouldForceFull = this.pendingForceFull;
+    this.pendingForceFull = false;
+
+    try {
+      const frame = this.renderer.render(
+        this.tree,
+        this.scrollOffset,
+        shouldForceFull,
+        this.lineWidthCache,
+        this.io,
+        this.onOverflow,
+      );
+      this.scrollOffset = frame.currentScrollOffset;
+      this.lastMaxScrollOffset = frame.maxScrollOffset;
+      this.lastTotalRows = frame.totalVisualRows;
+      this.consecutiveRenderFailures = 0;
+    } catch (err) {
+      this.consecutiveRenderFailures += 1;
+      if (this.onError) {
+        this.onError(err, { source: 'render-frame', forcedFull: shouldForceFull });
+      }
+
+      if (this.consecutiveRenderFailures >= 3) {
+        this.resolveFlushPromises();
+        throw err;
+      }
+
+      this.pendingForceFull = true;
+      this.requestFrame(true);
+      return;
+    }
+
+    this.resolveFlushPromises();
+  }
+
   requestFrame(forceFull = false): void {
     this.pendingForceFull = this.pendingForceFull || forceFull;
-    if (this.dirty || this.disposed) return;
+    if (this.disposed) return;
+
+    if (this.maxFps && this.maxFps > 0) {
+      const minInterval = 1000 / this.maxFps;
+      const now = Date.now();
+      const elapsed = now - this.lastRenderTime;
+
+      if (elapsed >= minInterval && !this.dirty && !this.renderTimer) {
+        // Leading edge: schedule via microtask
+        this.dirty = true;
+        queueMicrotask(() => {
+          if (this.dirty && !this.disposed) {
+            this.performRender();
+          }
+        });
+      } else if (!this.renderTimer) {
+        // Trailing edge: schedule timer
+        const wait = Math.max(1, minInterval - elapsed);
+        this.renderTimer = setTimeout(() => {
+          this.renderTimer = null;
+          if (!this.disposed) {
+            this.performRender();
+          }
+        }, wait);
+      }
+      return;
+    }
+
+    if (this.dirty) return;
     this.dirty = true;
 
     queueMicrotask(() => {
       if (this.dirty && !this.disposed) {
-        this.dirty = false;
-        const shouldForceFull = this.pendingForceFull;
-        this.pendingForceFull = false;
-        if (this.inAlternateScreen) {
-          try {
-            const frame = this.renderer.render(
-              this.tree,
-              this.scrollOffset,
-              shouldForceFull,
-              this.lineWidthCache,
-              this.io,
-              this.onOverflow,
-            );
-            this.scrollOffset = frame.currentScrollOffset;
-            // Reset failure counter on any successful render.
-            this.consecutiveRenderFailures = 0;
-          } catch (err) {
-            this.consecutiveRenderFailures += 1;
-            if (this.onError) {
-              this.onError(err, { source: 'render-frame', forcedFull: shouldForceFull });
-            }
+        this.performRender();
+      }
+    });
+  }
 
-            if (this.consecutiveRenderFailures >= 3) {
-              // Three consecutive failures: real corruption, not a transient glitch.
-              throw err;
-            }
-
-            // Transient failure: force a full repaint on the next tick
-            this.pendingForceFull = true;
-            this.requestFrame(true);
-          }
-        }
+  flush(): Promise<void> {
+    if (this.disposed) return Promise.resolve();
+    if (!this.dirty && !this.renderTimer && !this.pendingForceFull) {
+      return Promise.resolve();
+    }
+    return new Promise<void>((resolve) => {
+      this.pendingFlushResolvers.push(resolve);
+      if (this.renderTimer) {
+        // Expedite trailing timer
+        clearTimeout(this.renderTimer);
+        this.renderTimer = null;
+        this.performRender();
       }
     });
   }

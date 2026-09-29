@@ -95,12 +95,32 @@ export class ResponsiveHistoryNode implements ComponentNode {
 }
 
 export class DocumentTree {
+  historyLimit?: number;
   private historyNodes: (TextNode | ResponsiveHistoryNode | ComponentNode)[] = [];
   private liveNodes: ComponentNode[] = [];
   private idCounter = 0;
   private cachedHistoryRows: PhysicalRow[] = [];
   private lastHistoryWidth = -1;
   private layoutCache = new HistoryLayoutCache();
+
+  constructor(options?: { historyLimit?: number }) {
+    this.historyLimit = options?.historyLimit;
+  }
+
+  get historyRowCount(): number {
+    return this.cachedHistoryRows.length;
+  }
+
+  private pruneHistoryIfNeeded(): void {
+    if (this.historyLimit && this.historyLimit > 0 && this.cachedHistoryRows.length > this.historyLimit) {
+      const dropCount = this.cachedHistoryRows.length - this.historyLimit;
+      this.cachedHistoryRows = this.cachedHistoryRows.slice(dropCount);
+      // If historyNodes array grows excessively, keep it bounded
+      if (this.historyNodes.length > this.historyLimit * 2) {
+        this.historyNodes = this.historyNodes.slice(this.historyNodes.length - this.historyLimit);
+      }
+    }
+  }
 
   addText(
     lines: string[],
@@ -128,6 +148,7 @@ export class DocumentTree {
       for (const r of cached.physicalRows) {
         this.cachedHistoryRows.push(r);
       }
+      this.pruneHistoryIfNeeded();
     }
     return node;
   }
@@ -154,6 +175,7 @@ export class DocumentTree {
       for (const r of cached.physicalRows) {
         this.cachedHistoryRows.push(r);
       }
+      this.pruneHistoryIfNeeded();
     }
     return node;
   }
@@ -186,9 +208,9 @@ export class DocumentTree {
     return [...this.historyNodes, ...this.liveNodes];
   }
 
-  getHistoryRows(contentWidth: number, forceAll = false): PhysicalRow[] {
+  ensureHistory(contentWidth: number, forceAll = false): void {
     if (!forceAll && contentWidth === this.lastHistoryWidth && this.cachedHistoryRows.length > 0) {
-      return this.cachedHistoryRows;
+      return;
     }
 
     this.lastHistoryWidth = contentWidth;
@@ -202,6 +224,23 @@ export class DocumentTree {
         this.cachedHistoryRows.push(r);
       }
     }
+    this.pruneHistoryIfNeeded();
+  }
+
+  getHistoryRowCount(contentWidth: number, forceAll = false): number {
+    this.ensureHistory(contentWidth, forceAll);
+    return this.cachedHistoryRows.length;
+  }
+
+  sliceHistory(start: number, end: number, contentWidth?: number): PhysicalRow[] {
+    if (contentWidth !== undefined && contentWidth > 0) {
+      this.ensureHistory(contentWidth);
+    }
+    return this.cachedHistoryRows.slice(start, end);
+  }
+
+  getHistoryRows(contentWidth: number, forceAll = false): PhysicalRow[] {
+    this.ensureHistory(contentWidth, forceAll);
     return this.cachedHistoryRows;
   }
 

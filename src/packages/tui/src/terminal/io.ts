@@ -94,9 +94,11 @@ export function nodeIO(opts?: {
 
 export interface MemoryIO extends TerminalIO {
   output: string[];
+  readonly written: string;
   feed(chunk: string): void;
   resize(cols: number, rows: number): void;
   clearOutput(): void;
+  clear(): void;
 }
 
 export function memoryIO(opts: {
@@ -121,6 +123,9 @@ export function memoryIO(opts: {
     isTTY: true,
     colorLevel,
     output,
+    get written(): string {
+      return output.join('');
+    },
     write(data: string): void {
       output.push(data);
     },
@@ -154,6 +159,9 @@ export function memoryIO(opts: {
       }
     },
     clearOutput(): void {
+      output.length = 0;
+    },
+    clear(): void {
       output.length = 0;
     },
   };

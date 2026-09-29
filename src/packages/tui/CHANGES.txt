@@ -61,10 +61,14 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [BEHAVIOR] FrameBuffer width clamp reduced to Math.max(1, width)
 [ADDED] src/text/sanitize.ts for stripping non-printable escape injections
 
-
-
-
-
-
-
-
+== STEP 4.1 - 4.6 | phase 4 | renderer optimization, double buffering, history viewport and scrolling ==
+[CHANGED] ScreenBuffer internals redesigned with flat typed storage (chars, styleIds: Uint32Array, widths: Uint8Array) and style interning table
+[CHANGED] StateRenderer now owns frontBuffer and backBuffer with zero-allocation buffer swapping per frame
+[CHANGED] computeDocumentFrame / FrameBuffer now uses DocumentTree.sliceHistory for zero-copy O(1) viewport layout independent of history size
+[ADDED] DocumentTree.historyRowCount, DocumentTree.ensureHistory, DocumentTree.sliceHistory, DocumentTree option historyLimit
+[ADDED] TerminalEngine options: maxFps (leading + trailing edge frame throttling), historyLimit (row cap)
+[ADDED] TerminalEngine methods: flush(): Promise<void>, scrollTo(offset), scrollBy(delta), scrollToTop(), scrollToBottom(), getScrollState()
+[ADDED] MemoryIO written property and clear() convenience alias
+[BEHAVIOR] TerminalEngine now throttles paint frames when maxFps is specified
+[CONSUMER-ACTION] Use await engine.flush() to ensure pending frames have finished painting
+[CONSUMER-ACTION] Use engine.getScrollState() and scrollTo / scrollBy for scrolling instead of direct offset mutation
