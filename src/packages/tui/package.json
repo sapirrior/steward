@@ -7,6 +7,12 @@
   "engines": {
     "node": ">=18"
   },
+  "exports": {
+    ".": "./src/index.ts",
+    "./engine": "./src/engine.ts",
+    "./jsx-runtime": "./src/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/jsx-dev-runtime.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
     "test": "bun test tests",

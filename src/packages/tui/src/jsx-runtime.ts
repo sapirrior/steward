@@ -36,8 +36,8 @@ export function jsx(type: any, props: any = {}, _key?: any): any {
     if (type.prototype && (type.prototype instanceof Component || 'render' in type.prototype)) {
       return new type(props);
     }
-    // Function component
-    return type({ ...rest, children: flatChildren });
+    // Function component element descriptor
+    return { type, props: { ...rest, children: flatChildren }, children: flatChildren };
   }
 
   return null;

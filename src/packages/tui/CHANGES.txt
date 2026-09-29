@@ -83,3 +83,19 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [ADDED] Top-level renderElement(element, options) helper
 [CONSUMER-ACTION] Rename Box prop 'border' to 'borderStyle', 'justify' to 'justifyContent', 'align' to 'alignItems', 'direction' to 'flexDirection'
 [CONSUMER-ACTION] Import Box, Text, Newline, Spacer, Transform from stitchable (or @steward/tui) instead of primitives
+
+== STEP 6.1 - 6.8 | phase 6 | runtime, hooks, input and static items ==
+[ADDED] src/runtime/ (render.ts, renderToString.ts, hooks.ts, context.ts, static.ts, instance.ts, console.ts)
+[ADDED] src/terminal/input.ts (parseInputChunk, Key, InputEvent)
+[ADDED] Hooks: useState, useReducer, useRef, useMemo, useCallback, useEffect, useContext
+[ADDED] Specialized Hooks: useInput, usePaste, useApp, useStdin, useStdout, useWindowSize, useCursor, useAnimation, useScroll, useFocus, useFocusManager
+[ADDED] Built-in Contexts: AppContext, StdoutContext, StdinContext, FocusContext, and createContext helper
+[ADDED] <Static items={...}> component for scrollback history commits
+[ADDED] Top-level render() and renderToString() APIs
+[ADDED] patchConsole() and restoreConsole()
+[BEHAVIOR] console.log/info/warn/error/debug are intercepted and committed into history scrollback during render()
+[CONSUMER-ACTION] Use render(Component, options) to launch declarative TUI apps
+
+== STEP 7.1 - 7.3 | phase 7 | public entrypoints and exports ==
+[ADDED] src/engine.ts for low-level imperative API exports (stitchable/engine)
+[ADDED] package.json exports mapping for '.', './engine', './jsx-runtime', './jsx-dev-runtime'
