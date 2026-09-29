@@ -4,8 +4,8 @@ import type { ModelDescriptor } from '@steward/agents/models/index.js';
 import type { SessionData } from '@steward/services/session/types.js';
 import { listSessions, loadSession } from '@steward/services/session/index.js';
 import { saveSettings, saveThemeSelection } from '@steward/services/config/index.js';
-import { setActiveTheme, getActiveThemeName, listThemes } from '@steward/tui/theme/index.js';
-import type { ThemeMeta } from '@steward/tui/theme/colors.js';
+import { setActiveTheme, getActiveThemeName, listThemes } from '@steward/app/theme/index.js';
+import type { ThemeMeta } from '@steward/app/theme/colors.js';
 import type { DiscoveredModel, ProviderId, AuthManager } from '@steward/ai';
 import { createAuthManager } from '@steward/ai';
 import LoginDock from './components/docks/LoginDock.js';
@@ -122,10 +122,10 @@ export class ModalController {
       targetProvider,
       onSuccess: (provider) => {
         engine.commit(
-          'system',
           formatSystemMessage(
             `Authenticated with ${provider}. Stored credentials in ~/.steward/auth.json`,
           ),
+          { tag: 'system' },
         );
         this.closeModal();
       },
@@ -164,8 +164,8 @@ export class ModalController {
         header.props.model = updated;
         this.deps.statusBar.update({ model: updated });
         engine.commit(
-          'system',
           formatSystemMessage(`Active model switched to ${selected.provider}/${selected.modelId}`),
+          { tag: 'system' },
         );
         this.closeModal();
       },
@@ -196,7 +196,7 @@ export class ModalController {
         engine.mount(promptInput, { keepCursorVisible: true, kind: 'input' });
         engine.mount(statusBar);
         engine.requestFrame(true);
-        engine.commit('system', formatSystemMessage(`Theme switched to ${selected.label}.`));
+        engine.commit(formatSystemMessage(`Theme switched to ${selected.label}.`), { tag: 'system' });
         this.closeModal();
       },
       onCancel: () => this.closeModal(),
@@ -262,8 +262,8 @@ export class ModalController {
         statusBar.update({ model: updatedModel });
         const scope = persist ? 'saved globally to settings' : 'for this session only';
         engine.commit(
-          'system',
           formatSystemMessage(`Reasoning effort set to "${selected}" (${scope})`),
+          { tag: 'system' },
         );
         this.closeModal();
       },
@@ -297,13 +297,13 @@ export class ModalController {
         if (res.success) {
           this.switchToSession(res.rewoundSession);
           engine.commit(
-            'system',
             formatSystemMessage(
               `Rewound to before turn ${item.turnIndex + 1} (${res.restoredFilesCount} file(s) restored, ${res.discardedTurnsCount} turn(s) discarded).`,
             ),
+            { tag: 'system' },
           );
         } else {
-          engine.commit('system', formatSystemMessage(`Rewind failed: ${res.error}`));
+          engine.commit(formatSystemMessage(`Rewind failed: ${res.error}`), { tag: 'system' });
         }
       },
       onCancel: () => this.closeModal(),

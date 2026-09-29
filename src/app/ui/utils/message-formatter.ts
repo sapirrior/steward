@@ -1,5 +1,5 @@
-import { figures } from '@steward/tui/theme/index.js';
-import { c, bg, bold } from '@steward/tui/theme/style.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c, bg, bold } from '@steward/app/theme/style.js';
 import {
   formatMarkdown,
   getStatusBullet,
@@ -7,16 +7,46 @@ import {
   extractPrimaryToolParam,
   visibleWidth,
 } from './format.js';
-import { wrapVisualLine } from '@steward/tui/engine/cell-layout.js';
+import { wrapVisualLine } from '@steward/tui';
 import type { ToolExecutionStatus } from '../types.js';
 import type { StructuredError } from '@steward/services/errors/index.js';
 import type { ToolSummary } from '@steward/agents/tools/types.js';
 import { renderToolDetail } from './tool-detail.js';
 import { chooseTurnStatusVerb, STATUS_VERBS } from '@steward/services/session/logs/store.js';
 
-import { formatUserMessage } from '@steward/tui/engine/user-message.js';
+export function formatUserMessage(content: string, targetWidth?: number): string[] {
+  const termCols =
+    typeof targetWidth === 'number' && targetWidth > 0 ? targetWidth : process.stdout.columns || 80;
+  const pointer = `${figures.pointerBold} `;
+  const prefix = pointer;
 
-export { chooseTurnStatusVerb, STATUS_VERBS, formatUserMessage };
+  const availableTextWidth = Math.max(10, termCols - 2);
+  const vLines = content.split('\n');
+  const lines: string[] = [];
+
+  let isFirstRow = true;
+  for (let i = 0; i < vLines.length; i++) {
+    const rawLine = vLines[i] ?? '';
+    const wrappedSegments = rawLine ? wrapVisualLine(rawLine, availableTextWidth) : [''];
+
+    for (const segment of wrappedSegments) {
+      const p = isFirstRow ? prefix : '  ';
+      isFirstRow = false;
+      const visibleLen = visibleWidth(p) + visibleWidth(segment);
+      const padLen = Math.max(0, termCols - visibleLen);
+      const pStyled = c.userChevron(p);
+      const textStyled = c.text(segment);
+      const fullRow = bg.userBg(`${pStyled}${textStyled}${' '.repeat(padLen)}`);
+      lines.push(fullRow);
+    }
+  }
+
+  return lines;
+}
+
+export const formatUserPrompt = formatUserMessage;
+
+export { chooseTurnStatusVerb, STATUS_VERBS };
 
 export function formatSlashCommandOutput(content: string): string[] {
   const rawLines = content.split('\n');

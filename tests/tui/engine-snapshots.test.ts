@@ -13,10 +13,11 @@ import RewindMenu from '../../src/app/ui/components/docks/RewindMenu.js';
 import BashPermissionDock from '../../src/app/ui/components/docks/BashPermissionDock.js';
 import FilePermissionDock from '../../src/app/ui/components/docks/FilePermissionDock.js';
 import TrustGate from '../../src/app/ui/components/TrustGate.js';
-import { listThemes } from '../../src/packages/tui/src/theme/index.js';
+import { listThemes } from '../../src/app/theme/index.js';
 import {
   formatAssistantMessage,
   formatToolStatus,
+  formatUserMessage,
 } from '../../src/app/ui/utils/message-formatter.js';
 import { editFileTool } from '../../src/packages/agents/src/tools/edit-file/index.js';
 import { captureHeadlessRender, assertGoldenMatch } from './harness.js';
@@ -263,24 +264,27 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       cwd: '/workspace/steward',
       model: dummyModel,
     });
-    engine.commit('header', header.render(80));
+    engine.commit(header.render(80), { wrap: false, tag: 'header' });
 
     for (let i = 1; i <= 10; i++) {
-      engine.commitPrompt(`User prompt ${i}: Refactor component ${i} to use Layer 1 primitives.`);
+      engine.commit(formatUserMessage(`User prompt ${i}: Refactor component ${i} to use Layer 1 primitives.`), {
+        tag: 'prompt',
+        wrap: true,
+      });
       engine.commit(
-        'assistant-message',
         formatAssistantMessage(
           `Assistant response ${i}:\n- Item A for step ${i}\n- Item B with longer explanation text that wraps across multiple lines cleanly.`,
         ),
+        { tag: 'assistant-message' },
       );
       engine.commit(
-        'tool-result',
         formatToolStatus({
           toolName: `tool_${i}`,
           status: 'completed',
           durationMs: 120,
           argsSummary: 'path: src/tui/app.ts',
         }),
+        { tag: 'tool-result' },
       );
     }
 
@@ -302,24 +306,27 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       cwd: '/workspace/steward',
       model: dummyModel,
     });
-    engine.commit('header', header.render(120));
+    engine.commit(header.render(120), { wrap: false, tag: 'header' });
 
     for (let i = 1; i <= 10; i++) {
-      engine.commitPrompt(`User prompt ${i}: Refactor component ${i} to use Layer 1 primitives.`);
+      engine.commit(formatUserMessage(`User prompt ${i}: Refactor component ${i} to use Layer 1 primitives.`), {
+        tag: 'prompt',
+        wrap: true,
+      });
       engine.commit(
-        'assistant-message',
         formatAssistantMessage(
           `Assistant response ${i}:\n- Item A for step ${i}\n- Item B with longer explanation text that wraps across multiple lines cleanly.`,
         ),
+        { tag: 'assistant-message' },
       );
       engine.commit(
-        'tool-result',
         formatToolStatus({
           toolName: `tool_${i}`,
           status: 'completed',
           durationMs: 120,
           argsSummary: 'path: src/tui/app.ts',
         }),
+        { tag: 'tool-result' },
       );
     }
 
@@ -347,7 +354,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
     prompt.setState({ value: 'Testing resize reflow behavior' });
 
     engine.mount(header, { kind: 'custom' });
-    engine.commitPrompt('Initial prompt before resize');
+    engine.commit(formatUserMessage('Initial prompt before resize'), { tag: 'prompt', wrap: true });
     engine.mount(prompt, { kind: 'input', keepCursorVisible: true });
 
     const sharedRenderer = new StateRenderer();
@@ -899,7 +906,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       cwd: '/workspace/steward',
       model: dummyModel,
     });
-    engine80.commit('header', header.render(80));
+    engine80.commit(header.render(80), { wrap: false, tag: 'header' });
 
     const oldStr =
       'export async function processDataStream(stream: ReadableStream<Uint8Array>, bufferSize: number = 4096, options?: StreamOptions): Promise<ProcessedResult>';
@@ -922,7 +929,6 @@ describe('TUI Engine Headless Golden Snapshots', () => {
     );
 
     engine80.commit(
-      'tool-result',
       (w) =>
         formatToolStatus({
           toolName: 'edit_file',
@@ -933,7 +939,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
           toolOutput: diffOutput,
           targetWidth: w,
         }),
-      { hangingIndent: 2 },
+      { hangingIndent: 2, tag: 'tool-result' },
     );
 
     const result80 = captureHeadlessRender((renderer) => renderer.render(engine80.tree, 0, true), {

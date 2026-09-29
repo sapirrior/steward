@@ -1,8 +1,9 @@
+/** @jsxImportSource @steward/tui */
 import Component from '@steward/tui/engine/Component.js';
 import { type ChatMode, MODES, getActiveMode } from '@steward/agents/policy/modes.js';
-import { figures } from '@steward/tui/theme/index.js';
-import { c, bold } from '@steward/tui/theme/style.js';
-import { Box, Text } from '@steward/tui/primitives/index.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c, bold } from '@steward/app/theme/style.js';
+import { Box, Text, Spacer, renderElement } from '@steward/tui';
 
 export interface StatusBarProps {
   chatMode?: ChatMode;
@@ -15,6 +16,11 @@ export interface StatusBarProps {
   exitPending?: boolean;
   isBashMode?: boolean;
   warning?: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 export interface StatusBarState {
@@ -28,6 +34,53 @@ export interface StatusBarState {
   exitPending?: boolean;
   isBashMode?: boolean;
   warning?: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
+
+export function renderStatusBar(state: StatusBarState, width: number = 80): string[] {
+  const maxCols = Math.max(1, width);
+  const { model, isBusy, exitPending, isBashMode, warning, chatMode } = state;
+
+  let left = '';
+  if (warning) {
+    left = c.warning(warning);
+  } else if (exitPending) {
+    left = `${c.error('▸ ')}${c.muted('Press ')}${c.error('Ctrl+C')}${c.muted(' again to exit')}`;
+  } else if (isBusy) {
+    left = c.muted('esc to interrupt');
+  } else if (isBashMode) {
+    left = c.permission('! for bash mode');
+  } else {
+    left = c.muted('? for shortcuts');
+  }
+
+  const mode = chatMode ?? 'normal';
+  const modeMeta = MODES[mode];
+  const modeColorKey = modeMeta?.color ?? 'text';
+  const modeLabel = modeMeta?.label ?? mode;
+
+  const parts: string[] = [];
+  parts.push(c[modeColorKey](modeLabel));
+
+  const effort = model?.effort ?? 'provider-default';
+  const effortDisplay = effort === 'provider-default' ? 'default' : effort;
+  parts.push(c.muted(effortDisplay));
+
+  const right = parts.length > 0 ? parts.join(c.muted(` ${figures.bullet} `)) : '';
+
+  const element = (
+    <Box flexDirection="row" justifyContent="space-between" width={maxCols}>
+      <Text wrap="truncate">{left}</Text>
+      <Spacer />
+      <Text wrap="truncate">{right}</Text>
+    </Box>
+  );
+
+  return renderElement(element, { width: maxCols });
 }
 
 export default class StatusBar extends Component<StatusBarProps, StatusBarState> {
@@ -45,6 +98,7 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
       exitPending: props.exitPending,
       isBashMode: props.isBashMode,
       warning: props.warning,
+      usage: props.usage,
     };
   }
 
@@ -62,9 +116,6 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
     this.setState(partial);
   }
 
-  /**
-   * Displays a transient warning message in yellow that clears automatically after durationMs.
-   */
   showWarning(warningText: string, durationMs = 4000): void {
     if (this.warningTimer) {
       clearTimeout(this.warningTimer);
@@ -89,44 +140,6 @@ export default class StatusBar extends Component<StatusBarProps, StatusBarState>
   }
 
   override render(width?: number): string[] {
-    const termWidth = width ?? process.stdout.columns ?? 80;
-    const maxCols = Math.max(1, termWidth);
-    const { model, isBusy, exitPending, isBashMode, warning, chatMode } = this.state;
-
-    let left = '';
-    if (warning) {
-      left = c.warning(warning);
-    } else if (exitPending) {
-      left = `${c.error('▸ ')}${c.muted('Press ')}${c.error('Ctrl+C')}${c.muted(' again to exit')}`;
-    } else if (isBusy) {
-      left = c.muted('esc to interrupt');
-    } else if (isBashMode) {
-      left = c.permission('! for bash mode');
-    } else {
-      left = c.muted('? for shortcuts');
-    }
-
-    const mode = chatMode ?? 'normal';
-    const modeMeta = MODES[mode];
-    const modeColorKey = modeMeta?.color ?? 'text';
-    const modeLabel = modeMeta?.label ?? mode;
-
-    const parts: string[] = [];
-    parts.push(c[modeColorKey](modeLabel));
-
-    const effort = model?.effort ?? 'provider-default';
-    const effortDisplay = effort === 'provider-default' ? 'default' : effort;
-    parts.push(c.muted(effortDisplay));
-
-    const right = parts.length > 0 ? parts.join(c.muted(` ${figures.bullet} `)) : '';
-
-    const element = (
-      <Box direction="row" justify="space-between" width={maxCols} clip={true}>
-        <Text clip={true}>{left}</Text>
-        <Text clip={true}>{right}</Text>
-      </Box>
-    );
-
-    return element.render(maxCols);
+    return renderStatusBar(this.state, width ?? process.stdout.columns ?? 80);
   }
 }

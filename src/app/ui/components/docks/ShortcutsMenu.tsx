@@ -1,6 +1,8 @@
+/** @jsxImportSource @steward/tui */
 import Component from '@steward/tui/engine/Component.js';
-import { Box, Text, renderModalBox } from '@steward/tui/primitives/index.js';
-import { c } from '@steward/tui/theme/style.js';
+import { renderModalBox } from '../../utils/modal-box.js';
+import { c } from '@steward/app/theme/style.js';
+import { Box, Text } from '@steward/tui';
 
 export interface ShortcutsMenuProps {
   onClose: () => void;
@@ -57,9 +59,9 @@ export default class ShortcutsMenu extends Component<ShortcutsMenuProps> {
       const rightFormatted = right ? `${c.text(right.key.padEnd(13))} ${c.muted(right.desc)}` : '';
 
       return (
-        <Box direction="row" justify="start" width={maxCols}>
-          <Text>{leftFormatted}</Text>
-          <Text>{rightFormatted}</Text>
+        <Box flexDirection="row" justifyContent="flex-start" width={maxCols}>
+          <Text wrap="truncate">{leftFormatted}</Text>
+          <Text wrap="truncate">{rightFormatted}</Text>
         </Box>
       );
     });

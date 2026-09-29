@@ -1,11 +1,12 @@
-import { SelectList } from '@steward/tui/primitives/index.js';
+/** @jsxImportSource @steward/tui */
+import { SelectList } from '../../utils/select-list.js';
 import type { SessionData, SessionTurn } from '@steward/services/session/types.js';
 import { loadCheckpointManifest } from '@steward/services/checkpoint/store.js';
 import { readCasBlob } from '@steward/services/checkpoint/cas.js';
 import { computeWorkspaceHash } from '@steward/services/checkpoint/path.js';
-import { figures } from '@steward/tui/theme/index.js';
-import { c } from '@steward/tui/theme/style.js';
-import { Box, Text } from '@steward/tui/primitives/index.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c } from '@steward/app/theme/style.js';
+import { Box, Text } from '@steward/tui';
 
 export interface RewindItem {
   turnId: string;
@@ -185,13 +186,9 @@ export default class RewindMenu extends SelectList<RewindItem> {
         }
 
         return (
-          <Box direction="column" width={maxCols}>
-            <Text wrap={false} clip={true} ellipsis={true}>
-              {`${pointer}${title}`}
-            </Text>
-            <Text wrap={false} clip={true} ellipsis={true}>
-              {summaryText}
-            </Text>
+          <Box flexDirection="column" width={maxCols}>
+            <Text wrap="truncate">{`${pointer}${title}`}</Text>
+            <Text wrap="truncate">{summaryText}</Text>
           </Box>
         );
       },

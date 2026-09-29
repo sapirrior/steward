@@ -13,9 +13,10 @@ import {
   formatErrorBadge,
   formatToolStatus,
   formatAssistantMessage,
+  formatUserMessage,
 } from './message-formatter.js';
 import { classifyError } from '@steward/services/errors/index.js';
-import { c } from '@steward/tui/theme/style.js';
+import { c } from '@steward/app/theme/style.js';
 
 export function formatTurnFooter(
   engine: TerminalEngine,
@@ -24,18 +25,18 @@ export function formatTurnFooter(
   if (!turnPresentationEnd) return;
 
   if (turnPresentationEnd.status === 'complete') {
-    engine.commit('system', [
+    engine.commit([
       '',
       formatTurnStatus(
         turnPresentationEnd.durationMs,
         new Date(turnPresentationEnd.finishedAt),
         turnPresentationEnd.statusVerb,
       ),
-    ]);
+    ], { tag: 'system' });
     if (turnPresentationEnd.stopReason === 'step-limit') {
       engine.commit(
-        'system',
         formatSystemMessage('Step budget reached. Generation stopped early.'),
+        { tag: 'system' },
       );
     }
   } else if (
@@ -43,7 +44,7 @@ export function formatTurnFooter(
     turnPresentationEnd.errorMessage
   ) {
     const structured = classifyError(new Error(turnPresentationEnd.errorMessage));
-    engine.commit('system', formatErrorBadge(structured));
+    engine.commit(formatErrorBadge(structured), { tag: 'system' });
   }
 }
 
@@ -60,7 +61,7 @@ export function renderTranscript(
   options?: { expanded?: boolean },
 ): void {
   engine.clearAll();
-  engine.commit('header', header.render());
+  engine.commit(header.render(), { wrap: false, tag: 'header' });
 
   const log = loadSessionLog(sessionData.date, sessionData.id);
   const projection = log ? buildSessionPresentationProjection(log.events) : null;
@@ -78,9 +79,9 @@ export function renderTranscript(
     }
 
     if (item.type === 'user') {
-      engine.commitPrompt(item.content);
+      engine.commit((w) => formatUserMessage(item.content, w), { tag: 'prompt', wrap: false });
     } else if (item.type === 'system') {
-      engine.commit('system', formatSystemMessage(item.content));
+      engine.commit(formatSystemMessage(item.content), { tag: 'system' });
     } else if (item.type === 'tool' && item.toolData) {
       const toolData = item.toolData;
       if (toolData.toolName === 'direct-bash') {
@@ -104,7 +105,7 @@ export function renderTranscript(
             lines.push(`     ${c.error(errLines[i] ?? '')}`);
           }
         }
-        engine.commit('raw', lines);
+        engine.commit(lines, { tag: 'raw' });
         continue;
       }
 
@@ -125,7 +126,6 @@ export function renderTranscript(
         ) ?? toolData.toolOutput;
 
       engine.commit(
-        'tool-result',
         (w) =>
           formatToolStatus({
             toolName: toolData.toolName,
@@ -139,10 +139,11 @@ export function renderTranscript(
             targetWidth: w,
             expanded: options?.expanded,
           }),
-        { hangingIndent: 2 },
+        { hangingIndent: 2, tag: 'tool-result' },
       );
     } else if (item.type === 'assistant') {
-      engine.commit('assistant-message', formatAssistantMessage(item.content), {
+      engine.commit(formatAssistantMessage(item.content), {
+        tag: 'assistant-message',
         hangingIndent: 2,
       });
     }

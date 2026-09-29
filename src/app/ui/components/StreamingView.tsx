@@ -1,13 +1,13 @@
 import Component from '@steward/tui/engine/Component.js';
-import { figures } from '@steward/tui/theme/index.js';
-import { c, bold } from '@steward/tui/theme/style.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c, bold } from '@steward/app/theme/style.js';
 import {
   formatMarkdown,
   getStatusBullet,
   truncateMiddle,
   extractPrimaryToolParam,
 } from '../utils/format.js';
-import { wrapVisualLine } from '@steward/tui/engine/cell-layout.js';
+import { wrapVisualLine } from '@steward/tui';
 
 export interface ActiveToolCall {
   id: string;

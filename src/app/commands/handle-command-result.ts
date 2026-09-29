@@ -1,22 +1,17 @@
 import type { CommandResult } from './types.js';
 import { listSessions, loadSession } from '@steward/services/session/index.js';
-import { listThemes } from '@steward/tui/theme/index.js';
-import { formatSlashCommandOutput } from '../ui/utils/message-formatter.js';
+import { formatSlashCommandOutput, formatUserMessage } from '../ui/utils/message-formatter.js';
+import { c } from '@steward/app/theme/style.js';
 
-/**
- * Minimal interface of TUIApp methods that applyCommandResult needs to call.
- * Using a narrow interface instead of importing TUIApp avoids a circular reference
- * between handle-command-result.ts and app.ts.
- */
-export interface CommandResultCtx {
+export interface SlashCommandHandlerCtx {
   engine: {
     clearAll(): void;
-    commit(slot: string, content: any, opts?: any): void;
+    commit(lines: string[] | ((w: number) => string[]), opts?: { tag?: string; wrap?: boolean; clip?: boolean; hangingIndent?: number }): void;
     mount(comp: any, opts?: any): void;
     components: any[];
     requestFrame(force?: boolean): void;
   };
-  header: { render(): any };
+  header: { render(w?: number): string[] };
   streamingView: any;
   promptInput: any;
   statusBar: {
@@ -36,28 +31,21 @@ export interface CommandResultCtx {
     openSessionMenu(sessions: any[]): void;
   };
   exit(): void;
-  commitPrompt(text: string): void;
 }
 
 /**
- * Processes the result of a slash-command execution and performs the
- * appropriate side effects on the TUI (opening modals, committing messages,
- * switching sessions, etc.).
- *
- * Extracted verbatim from the first ~70 lines of TUIApp.handleSubmit.
- * Returns true if the caller should return early (i.e. the command fully
- * consumed the submit), false if normal model execution should follow.
+ * Handles all slash-command execution outcomes and applies the appropriate UI state mutations.
  */
-export async function applyCommandResult(
+export async function handleSlashCommandResult(
   text: string,
   cmdResult: CommandResult,
-  ctx: CommandResultCtx,
+  ctx: SlashCommandHandlerCtx,
 ): Promise<boolean> {
   if (cmdResult.data?.clearHistory) {
     ctx.engine.clearAll();
-    ctx.engine.commit('header', ctx.header.render());
+    ctx.engine.commit(ctx.header.render(), { tag: 'header' });
     ctx.engine.mount(ctx.streamingView);
-    ctx.engine.mount(ctx.promptInput, { keepCursorVisible: true, kind: 'input' });
+    ctx.engine.mount(ctx.promptInput, { keepCursorVisible: true });
     ctx.engine.mount(ctx.statusBar);
     return true;
   }
@@ -67,7 +55,8 @@ export async function applyCommandResult(
     return true;
   }
 
-  ctx.commitPrompt(text);
+  // Commit the user's prompt to history
+  ctx.engine.commit((w) => formatUserMessage(text, w), { tag: 'prompt', wrap: false });
 
   if (cmdResult.data?.showLoginDock) {
     ctx.modals.openLoginDock(cmdResult.data.targetProvider);
@@ -90,7 +79,7 @@ export async function applyCommandResult(
   }
 
   if (cmdResult.data?.themeSwitched) {
-    for (const comp of ctx.engine.components) comp.markDirty();
+    for (const comp of ctx.engine.components) comp.markDirty?.();
     ctx.engine.requestFrame(true);
   }
 
@@ -118,7 +107,7 @@ export async function applyCommandResult(
   }
 
   if (cmdResult.message) {
-    ctx.engine.commit('system', formatSlashCommandOutput(cmdResult.message));
+    ctx.engine.commit(formatSlashCommandOutput(cmdResult.message), { tag: 'system' });
   }
 
   const updatedModel = ctx.session.getModel();
@@ -126,3 +115,6 @@ export async function applyCommandResult(
   ctx.statusBar.update({ model: updatedModel });
   return true;
 }
+
+export const applyCommandResult = handleSlashCommandResult;
+export type CommandResultCtx = SlashCommandHandlerCtx;

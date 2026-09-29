@@ -17,7 +17,9 @@
       "@steward/services": ["./src/packages/services/src/index.ts"],
       "@steward/services/*": ["./src/packages/services/src/*"],
       "@steward/plugins": ["./src/packages/plugins/src/index.ts"],
-      "@steward/plugins/*": ["./src/packages/plugins/src/*"]
+      "@steward/plugins/*": ["./src/packages/plugins/src/*"],
+      "@steward/app": ["./src/app/index.ts"],
+      "@steward/app/*": ["./src/app/*"]
     },
     "jsx": "react-jsx",
     "jsxImportSource": "steward/tui",

@@ -1,8 +1,9 @@
-import { SelectList } from '@steward/tui/primitives/index.js';
+/** @jsxImportSource @steward/tui */
+import { SelectList } from '../../utils/select-list.js';
 import type { SessionData } from '@steward/services/session/types.js';
-import { figures } from '@steward/tui/theme/index.js';
-import { c } from '@steward/tui/theme/style.js';
-import { Box, Text } from '@steward/tui/primitives/index.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c } from '@steward/app/theme/style.js';
+import { Box, Text } from '@steward/tui';
 
 export interface SessionMenuProps {
   sessions: SessionData[];
@@ -47,13 +48,9 @@ export default class SessionMenu extends SelectList<SessionData> {
         const meta = metaParts.join(' • ');
 
         return (
-          <Box direction="column" width={maxCols}>
-            <Text wrap={false} clip={true} ellipsis={true}>
-              {`${pointer}${title}`}
-            </Text>
-            <Text color="muted" wrap={false} clip={true} ellipsis={true}>
-              {`  ${meta}`}
-            </Text>
+          <Box flexDirection="column" width={maxCols}>
+            <Text wrap="truncate">{`${pointer}${title}`}</Text>
+            <Text wrap="truncate">{`  ${c.muted(meta)}`}</Text>
           </Box>
         );
       },

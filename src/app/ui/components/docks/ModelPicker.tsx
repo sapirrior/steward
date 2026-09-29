@@ -1,34 +1,38 @@
-import { SelectList } from '@steward/tui/primitives/index.js';
+/** @jsxImportSource @steward/tui */
+import { SelectList } from '../../utils/select-list.js';
 import type { DiscoveredModel } from '@steward/ai';
-import { figures } from '@steward/tui/theme/index.js';
-import { c, bold } from '@steward/tui/theme/style.js';
-import { Box, Text } from '@steward/tui/primitives/index.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c, bold } from '@steward/app/theme/style.js';
+import { Box, Text } from '@steward/tui';
 
 export interface ModelPickerProps {
-  models: DiscoveredModel[];
-  currentModel: { provider: string; modelId: string };
+  models: DiscoveredModel[] | any[];
+  currentModel: { provider: string; modelId?: string; model_id?: string };
   onSelect: (model: DiscoveredModel) => void;
   onCancel: () => void;
 }
 
-export default class ModelPicker extends SelectList<DiscoveredModel> {
+export default class ModelPicker extends SelectList<any> {
   override wrap = false;
   override clip = true;
   override ellipsis = false;
 
   constructor(props: ModelPickerProps) {
+    const curSub = props.currentModel.modelId ?? (props.currentModel as any).model ?? props.currentModel.model_id ?? '';
     super({
       items: props.models,
       title: 'Select Model',
-      subtitle: `Current: ${props.currentModel.provider}/${props.currentModel.modelId}`,
+      subtitle: `Current: ${props.currentModel.provider}/${curSub}`,
       placeholder: 'Type to filter models…',
       emptyMessage: '  No models matching query.',
       maxVisible: 4,
-      searchFilter: (m, q) =>
-        m.modelId.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q),
+      searchFilter: (m: any, q: string) => {
+        const id = m.modelId || '';
+        return id.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q);
+      },
       onSelect: props.onSelect,
       onCancel: props.onCancel,
-      renderItem: (m, isSelected, maxCols) => {
+      renderItem: (m: any, isSelected: boolean, maxCols: number) => {
         const isCurrent =
           m.provider === props.currentModel.provider && m.modelId === props.currentModel.modelId;
 
@@ -44,13 +48,9 @@ export default class ModelPicker extends SelectList<DiscoveredModel> {
         const meta = `${providerName} • ${caps}`;
 
         return (
-          <Box direction="column" width={maxCols}>
-            <Text wrap={false} clip={true} ellipsis={true}>
-              {`${pointer}${title}${activeBadge}`}
-            </Text>
-            <Text color="muted" wrap={false} clip={true} ellipsis={true}>
-              {`  ${meta}`}
-            </Text>
+          <Box flexDirection="column" width={maxCols}>
+            <Text wrap="truncate">{`${pointer}${title}${activeBadge}`}</Text>
+            <Text wrap="truncate">{`  ${c.muted(meta)}`}</Text>
           </Box>
         );
       },

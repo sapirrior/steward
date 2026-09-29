@@ -1,8 +1,10 @@
+/** @jsxImportSource @steward/tui */
 import Component from '@steward/tui/engine/Component.js';
 import type { ReasoningEffort } from '@steward/ai';
-import { figures } from '@steward/tui/theme/index.js';
-import { c, bold } from '@steward/tui/theme/style.js';
-import { Box, Text, renderModalBox, parseKeyInput } from '@steward/tui/primitives/index.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c, bold } from '@steward/app/theme/style.js';
+import { renderModalBox } from '../../utils/modal-box.js';
+import { Box, Text, parseInputChunk } from '@steward/tui';
 
 export interface EffortOption {
   id: ReasoningEffort;
@@ -47,42 +49,44 @@ export default class EffortPicker extends Component<EffortPickerProps, EffortPic
     if (!this.engine) return;
 
     this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const action = parseKeyInput(chunk);
-      const rawStr = chunk.toString();
+      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
+      const events = parseInputChunk(rawStr);
 
-      if (action.type === 'cursor-left') {
-        this.setState({
-          selectedIndex: Math.max(0, this.state.selectedIndex - 1),
-        });
-        return true;
-      }
-
-      if (action.type === 'cursor-right') {
-        this.setState({
-          selectedIndex: Math.min(EFFORT_OPTIONS.length - 1, this.state.selectedIndex + 1),
-        });
-        return true;
-      }
-
-      if (action.type === 'submit') {
-        const chosen = EFFORT_OPTIONS[this.state.selectedIndex];
-        if (chosen) {
-          this.props.onSelect(chosen.id, true);
+      for (const ev of events) {
+        if (ev.key.leftArrow) {
+          this.setState({
+            selectedIndex: Math.max(0, this.state.selectedIndex - 1),
+          });
+          return true;
         }
-        return true;
-      }
 
-      if (rawStr === 's' || rawStr === 'S') {
-        const chosen = EFFORT_OPTIONS[this.state.selectedIndex];
-        if (chosen) {
-          this.props.onSelect(chosen.id, false);
+        if (ev.key.rightArrow) {
+          this.setState({
+            selectedIndex: Math.min(EFFORT_OPTIONS.length - 1, this.state.selectedIndex + 1),
+          });
+          return true;
         }
-        return true;
-      }
 
-      if (action.type === 'escape') {
-        this.props.onCancel();
-        return true;
+        if (ev.key.return) {
+          const chosen = EFFORT_OPTIONS[this.state.selectedIndex];
+          if (chosen) {
+            this.props.onSelect(chosen.id, true);
+          }
+          return true;
+        }
+
+        if (ev.input === 's' || ev.input === 'S') {
+          const chosen = EFFORT_OPTIONS[this.state.selectedIndex];
+          if (chosen) {
+            this.props.onSelect(chosen.id, false);
+          }
+          return true;
+        }
+
+        if (ev.key.escape) {
+          this.props.onCancel();
+          return true;
+        }
       }
 
       return false;
@@ -161,11 +165,11 @@ export default class EffortPicker extends Component<EffortPickerProps, EffortPic
     const descText = `    ${bold(c.text(activeOption.description))}`;
 
     const contentElements = [
-      <Box direction="column" width={maxCols} clip={true}>
-        <Text clip={true}>{spectrumRow}</Text>
-        <Text clip={true}>{trackRow}</Text>
-        <Text clip={true}>{labelsRow}</Text>
-        <Text clip={true}>{descText}</Text>
+      <Box flexDirection="column" width={maxCols}>
+        <Text wrap="truncate">{spectrumRow}</Text>
+        <Text wrap="truncate">{trackRow}</Text>
+        <Text wrap="truncate">{labelsRow}</Text>
+        <Text wrap="truncate">{descText}</Text>
       </Box>,
     ];
 

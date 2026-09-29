@@ -1,8 +1,9 @@
-import { SelectList } from '@steward/tui/primitives/index.js';
-import type { ThemeMeta } from '@steward/tui/theme/colors.js';
-import { figures, resolveThemeColor } from '@steward/tui/theme/index.js';
-import { c, bold } from '@steward/tui/theme/style.js';
-import { Box, Text } from '@steward/tui/primitives/index.js';
+/** @jsxImportSource @steward/tui */
+import { SelectList } from '../../utils/select-list.js';
+import type { ThemeMeta } from '@steward/app/theme/colors.js';
+import { figures, resolveThemeColor } from '@steward/app/theme/index.js';
+import { c, bold } from '@steward/app/theme/style.js';
+import { Box, Text } from '@steward/tui';
 
 export interface ThemePickerProps {
   themes: ThemeMeta[];
@@ -56,13 +57,9 @@ export default class ThemePicker extends SelectList<ThemeMeta> {
         const swatches = `  ${tBrand} ${tSuccess} ${tWarning} ${tError} ${tInfo} ${tPerm}  ${t.description}`;
 
         return (
-          <Box direction="column" width={maxCols}>
-            <Text wrap={false} clip={true} ellipsis={true}>
-              {`${pointer}${title}${activeBadge}`}
-            </Text>
-            <Text color="muted" wrap={false} clip={true} ellipsis={true}>
-              {swatches}
-            </Text>
+          <Box flexDirection="column" width={maxCols}>
+            <Text wrap="truncate">{`${pointer}${title}${activeBadge}`}</Text>
+            <Text wrap="truncate">{swatches}</Text>
           </Box>
         );
       },

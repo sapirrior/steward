@@ -1,6 +1,6 @@
 import type { ToolDetail } from '@steward/agents/tools/types.js';
-import { c, bg, bold } from '@steward/tui/theme/style.js';
-import { highlightCode } from '@steward/tui/format/highlight.js';
+import { c, bg, bold } from '@steward/app/theme/style.js';
+import { highlightCode } from '../format/highlight.js';
 import stripAnsi from 'strip-ansi';
 
 export function renderToolDetail(

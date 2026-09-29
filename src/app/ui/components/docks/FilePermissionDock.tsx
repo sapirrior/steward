@@ -1,10 +1,11 @@
+/** @jsxImportSource @steward/tui */
 import Component from '@steward/tui/engine/Component.js';
-import { figures } from '@steward/tui/theme/index.js';
-import { c, bg, bold, italic } from '@steward/tui/theme/style.js';
-import { Box, Text, parseKeyInput, prefixedBlock } from '@steward/tui/primitives/index.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c, bg, bold, italic } from '@steward/app/theme/style.js';
 import type { FilePermissionRequest } from '@steward/agents/tools/types.js';
 import { buildUnifiedDiff, type UnifiedDiff } from '@steward/services/diff/diff.js';
-import { highlightCode } from '@steward/tui/format/highlight.js';
+import { highlightCode } from '../../format/highlight.js';
+import { Box, Text, renderElement, wrapVisualLine, parseInputChunk } from '@steward/tui';
 
 export interface FilePermissionDockProps {
   request: FilePermissionRequest;
@@ -17,6 +18,33 @@ export interface FilePermissionDockState {
   mode: FilePermissionDockMode;
   selectedIndex: number; // 0 = Yes, 1 = No
   scrollOffset: number;
+}
+
+export function prefixedBlock(
+  firstPrefix: string,
+  content: string,
+  options: {
+    continuationPrefix?: string;
+    width?: number;
+    bg?: (s: string) => string;
+  } = {},
+): string[] {
+  const width = options.width ?? 80;
+  const contPrefix = options.continuationPrefix ?? ' '.repeat(firstPrefix.length);
+  const rawLines = content.split(/\r?\n/);
+  const rows: string[] = [];
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const p = i === 0 ? firstPrefix : contPrefix;
+    const lineContent = rawLines[i] ?? '';
+    const fullLine = `${p}${lineContent}`;
+    const wrapped = wrapVisualLine(fullLine, width);
+    for (const wl of wrapped) {
+      rows.push(options.bg ? options.bg(wl) : wl);
+    }
+  }
+
+  return rows;
 }
 
 export default class FilePermissionDock extends Component<
@@ -35,76 +63,94 @@ export default class FilePermissionDock extends Component<
       selectedIndex: 0, // Default to Option 1: Yes
       scrollOffset: 0,
     };
+    this.attachInput();
   }
 
-  override componentDidMount(): void {
-    if (!this.engine) return;
+  private attachInput(): void {
+    if (this.removeInputListener) return;
 
-    this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const action = parseKeyInput(chunk);
-      const rawStr = chunk.toString();
+    const handleChunk = (chunk: string | Buffer): boolean | void => {
+      const rawStr = Buffer.isBuffer(chunk) ? chunk.toString('utf-8') : typeof chunk === 'string' ? chunk : String(chunk);
+      const normalized = rawStr.replace(/\x1bO([A-D])/g, '\x1b[$1');
+      const events = parseInputChunk(normalized);
 
-      if (this.state.mode === 'NORMAL') {
-        // 'f' enters review mode
-        if (rawStr === 'f' || rawStr === 'F') {
-          this.setState({ mode: 'REVIEW', scrollOffset: 0 });
-          return true;
-        }
+      for (const ev of events) {
+        if (this.state.mode === 'NORMAL') {
+          // 'f' enters review mode
+          if (ev.input === 'f' || ev.input === 'F') {
+            this.setState({ mode: 'REVIEW', scrollOffset: 0 });
+            return true;
+          }
 
-        // Up / Down toggles selection
-        if (action.type === 'cursor-up' || action.type === 'cursor-down') {
-          this.setState({
-            selectedIndex: this.state.selectedIndex === 0 ? 1 : 0,
-          });
-          return true;
-        }
+          // Up / Down toggles selection
+          if (ev.key.upArrow || ev.key.downArrow) {
+            this.setState({
+              selectedIndex: this.state.selectedIndex === 0 ? 1 : 0,
+            });
+            return true;
+          }
 
-        // Numeric direct selection
-        if (rawStr === '1') {
-          this.setState({ selectedIndex: 0 });
-          return true;
-        }
-        if (rawStr === '2') {
-          this.setState({ selectedIndex: 1 });
-          return true;
-        }
+          // Numeric direct selection
+          if (ev.input === '1') {
+            this.setState({ selectedIndex: 0 });
+            return true;
+          }
+          if (ev.input === '2') {
+            this.setState({ selectedIndex: 1 });
+            return true;
+          }
 
-        // Submit
-        if (action.type === 'submit') {
-          this.props.onDecision(this.state.selectedIndex === 0);
-          return true;
-        }
+          // Submit
+          if (ev.key.return) {
+            this.props.onDecision(this.state.selectedIndex === 0);
+            return true;
+          }
 
-        // Esc cancels (denies)
-        if (action.type === 'escape') {
-          this.props.onDecision(false);
-          return true;
-        }
-      } else if (this.state.mode === 'REVIEW') {
-        // 'f' or Esc returns to normal permission mode
-        if (rawStr === 'f' || rawStr === 'F' || action.type === 'escape') {
-          this.setState({ mode: 'NORMAL', scrollOffset: 0 });
-          return true;
-        }
+          // Esc cancels (denies)
+          if (ev.key.escape) {
+            this.props.onDecision(false);
+            return true;
+          }
+        } else if (this.state.mode === 'REVIEW') {
+          // 'f' or Esc returns to normal permission mode
+          if (ev.input === 'f' || ev.input === 'F' || ev.key.escape) {
+            this.setState({ mode: 'NORMAL', scrollOffset: 0 });
+            return true;
+          }
 
-        // Up / Down scrolls review output
-        if (action.type === 'cursor-up') {
-          this.setState({
-            scrollOffset: Math.max(0, this.state.scrollOffset - 1),
-          });
-          return true;
-        }
-        if (action.type === 'cursor-down') {
-          const maxScroll = this.getMaxScroll();
-          this.setState({
-            scrollOffset: Math.min(maxScroll, this.state.scrollOffset + 1),
-          });
-          return true;
+          // Up / Down scrolls review output
+          if (ev.key.upArrow) {
+            this.setState({
+              scrollOffset: Math.max(0, this.state.scrollOffset - 1),
+            });
+            return true;
+          }
+          if (ev.key.downArrow) {
+            const maxScroll = this.getMaxScroll();
+            this.setState({
+              scrollOffset: Math.min(maxScroll, this.state.scrollOffset + 1),
+            });
+            return true;
+          }
         }
       }
 
       return false;
-    });
+    };
+
+    if (this.engine) {
+      this.removeInputListener = this.engine.addInputListener(handleChunk);
+    } else if (typeof process !== 'undefined' && process.stdin && !process.stdin.isTTY) {
+      const stdinListener = (data: Buffer) => handleChunk(data);
+      process.stdin.on('data', stdinListener);
+      this.removeInputListener = () => {
+        process.stdin.off('data', stdinListener);
+      };
+    }
+  }
+
+  override componentDidMount(): void {
+    this.attachInput();
   }
 
   override componentWillUnmount(): void {
@@ -126,9 +172,7 @@ export default class FilePermissionDock extends Component<
     const { kind, before, after } = request;
 
     if (kind === 'create' || kind === 'overwrite') {
-      const highlighted = highlightCode(after, { filePath: request.filePath });
-      const rawLines = highlighted.split(/\r?\n/);
-      // Handle trailing newline splitting edge case
+      const rawLines = after.split(/\r?\n/);
       const lines = after === '' ? [] : rawLines;
       const maxLineNum = Math.max(1, lines.length);
       const gutterWidth = Math.max(2, String(maxLineNum).length);
@@ -152,7 +196,6 @@ export default class FilePermissionDock extends Component<
     const diff: UnifiedDiff = buildUnifiedDiff(before ?? '', after, 3);
     const renderedRows: string[] = [];
 
-    // Calculate maximum line number for uniform gutter
     let maxLineNum = 1;
     for (const hunk of diff.hunks) {
       for (const line of hunk.lines) {
@@ -205,8 +248,7 @@ export default class FilePermissionDock extends Component<
           const numStr = String(lineNum).padStart(gutterWidth, ' ');
           const firstPrefix = ` ${c.muted(numStr)}  `;
           const contPrefix = ` ${' '.repeat(gutterWidth)}  `;
-          const highlightedLine = highlightCode(line.text, { filePath: request.filePath });
-          const wrapped = prefixedBlock(firstPrefix, highlightedLine, {
+          const wrapped = prefixedBlock(firstPrefix, line.text, {
             continuationPrefix: contPrefix,
             width: maxCols,
           });
@@ -230,7 +272,6 @@ export default class FilePermissionDock extends Component<
     const isYesSelected = selectedIndex === 0;
     const isNoSelected = selectedIndex === 1;
 
-    // Divider line
     const divider = c.rule(figures.horizontalLine.repeat(maxCols));
 
     let title = 'Edit file';
@@ -258,37 +299,21 @@ export default class FilePermissionDock extends Component<
       );
 
       const element = (
-        <Box direction="column" width={maxCols} wrap={true} clip={false}>
-          <Text wrap={false} clip={true}>
-            {divider}
-          </Text>
-          <Text wrap={false} clip={false}>
-            {''}
-          </Text>
-          <Text wrap={false} clip={false}>
-            {bold(c.text(`${title} (review)`))}
-          </Text>
-          <Text wrap={false} clip={false}>
-            {`    ${c.muted(filePath)}`}
-          </Text>
-          <Text wrap={false} clip={false}>
-            {''}
-          </Text>
+        <Box flexDirection="column" width={maxCols}>
+          <Text wrap="truncate">{divider}</Text>
+          <Text>{''}</Text>
+          <Text>{bold(c.text(`${title} (review)`))}</Text>
+          <Text>{`    ${c.muted(filePath)}`}</Text>
+          <Text>{''}</Text>
           {visibleRows.map((line) => (
-            <Text wrap={false} clip={false}>
-              {line}
-            </Text>
+            <Text wrap="truncate">{line}</Text>
           ))}
-          <Text wrap={false} clip={false}>
-            {''}
-          </Text>
-          <Text wrap={false} clip={false}>
-            {italic(c.muted('↑/↓ scroll · Esc / f to return'))}
-          </Text>
+          <Text>{''}</Text>
+          <Text>{italic(c.muted('↑/↓ scroll · Esc / f to return'))}</Text>
         </Box>
       );
 
-      return element.render(maxCols);
+      return renderElement(element, { width: maxCols });
     }
 
     // Normal mode: Preview first 10 lines
@@ -304,56 +329,28 @@ export default class FilePermissionDock extends Component<
       : `  ${c.text('2. No')}`;
 
     const element = (
-      <Box direction="column" width={maxCols} wrap={true} clip={false}>
-        <Text wrap={false} clip={true}>
-          {divider}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {bold(c.text(title))}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {`    ${c.muted(filePath)}`}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
+      <Box flexDirection="column" width={maxCols}>
+        <Text wrap="truncate">{divider}</Text>
+        <Text>{''}</Text>
+        <Text>{bold(c.text(title))}</Text>
+        <Text>{`    ${c.muted(filePath)}`}</Text>
+        <Text>{''}</Text>
         {previewRows.map((line) => (
-          <Text wrap={false} clip={false}>
-            {line}
-          </Text>
+          <Text wrap="truncate">{line}</Text>
         ))}
         {hiddenCount > 0 && (
-          <Text wrap={false} clip={false}>
-            {`    ${c.muted(`(+${hiddenCount} hidden)`)}`}
-          </Text>
+          <Text wrap="truncate">{`    ${c.muted(`(+${hiddenCount} hidden)`)}`}</Text>
         )}
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {c.text(question)}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {yesOptionText}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {noOptionText}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {italic(c.muted('Esc to cancel · f to review'))}
-        </Text>
+        <Text>{''}</Text>
+        <Text>{c.text(question)}</Text>
+        <Text>{''}</Text>
+        <Text wrap="truncate">{yesOptionText}</Text>
+        <Text wrap="truncate">{noOptionText}</Text>
+        <Text>{''}</Text>
+        <Text>{italic(c.muted('Esc to cancel · f to review'))}</Text>
       </Box>
     );
 
-    return element.render(maxCols);
+    return renderElement(element, { width: maxCols });
   }
 }

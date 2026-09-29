@@ -1,7 +1,8 @@
+/** @jsxImportSource @steward/tui */
 import Component from '@steward/tui/engine/Component.js';
-import { figures } from '@steward/tui/theme/index.js';
-import { c, bold, italic } from '@steward/tui/theme/style.js';
-import { Box, Text, parseKeyInput } from '@steward/tui/primitives/index.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c, bold, italic } from '@steward/app/theme/style.js';
+import { Box, Text, renderElement, wrapVisualLine, parseInputChunk } from '@steward/tui';
 
 export interface BashPermissionDockProps {
   command: string;
@@ -39,65 +40,67 @@ export default class BashPermissionDock extends Component<
     if (!this.engine) return;
 
     this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const action = parseKeyInput(chunk);
-      const rawStr = chunk.toString();
+      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
+      const events = parseInputChunk(rawStr);
 
-      if (this.state.mode === 'NORMAL') {
-        // 'f' enters review mode
-        if (rawStr === 'f' || rawStr === 'F') {
-          this.setState({ mode: 'REVIEW', scrollOffset: 0 });
-          return true;
-        }
+      for (const ev of events) {
+        if (this.state.mode === 'NORMAL') {
+          // 'f' enters review mode
+          if (ev.input === 'f' || ev.input === 'F') {
+            this.setState({ mode: 'REVIEW', scrollOffset: 0 });
+            return true;
+          }
 
-        // Up / Down toggles selection
-        if (action.type === 'cursor-up' || action.type === 'cursor-down') {
-          this.setState({
-            selectedIndex: this.state.selectedIndex === 0 ? 1 : 0,
-          });
-          return true;
-        }
+          // Up / Down toggles selection
+          if (ev.key.upArrow || ev.key.downArrow) {
+            this.setState({
+              selectedIndex: this.state.selectedIndex === 0 ? 1 : 0,
+            });
+            return true;
+          }
 
-        // Numeric direct selection
-        if (rawStr === '1') {
-          this.setState({ selectedIndex: 0 });
-          return true;
-        }
-        if (rawStr === '2') {
-          this.setState({ selectedIndex: 1 });
-          return true;
-        }
+          // Numeric direct selection
+          if (ev.input === '1') {
+            this.setState({ selectedIndex: 0 });
+            return true;
+          }
+          if (ev.input === '2') {
+            this.setState({ selectedIndex: 1 });
+            return true;
+          }
 
-        // Submit
-        if (action.type === 'submit') {
-          this.props.onDecision(this.state.selectedIndex === 0);
-          return true;
-        }
+          // Submit
+          if (ev.key.return) {
+            this.props.onDecision(this.state.selectedIndex === 0);
+            return true;
+          }
 
-        // Esc cancels (denies)
-        if (action.type === 'escape') {
-          this.props.onDecision(false);
-          return true;
-        }
-      } else if (this.state.mode === 'REVIEW') {
-        // 'f' or Esc returns to normal permission mode
-        if (rawStr === 'f' || rawStr === 'F' || action.type === 'escape') {
-          this.setState({ mode: 'NORMAL', scrollOffset: 0 });
-          return true;
-        }
+          // Esc cancels (denies)
+          if (ev.key.escape) {
+            this.props.onDecision(false);
+            return true;
+          }
+        } else if (this.state.mode === 'REVIEW') {
+          // 'f' or Esc returns to normal permission mode
+          if (ev.input === 'f' || ev.input === 'F' || ev.key.escape) {
+            this.setState({ mode: 'NORMAL', scrollOffset: 0 });
+            return true;
+          }
 
-        // Up / Down scrolls review output
-        if (action.type === 'cursor-up') {
-          this.setState({
-            scrollOffset: Math.max(0, this.state.scrollOffset - 1),
-          });
-          return true;
-        }
-        if (action.type === 'cursor-down') {
-          const maxScroll = this.getMaxScroll();
-          this.setState({
-            scrollOffset: Math.min(maxScroll, this.state.scrollOffset + 1),
-          });
-          return true;
+          // Up / Down scrolls review output
+          if (ev.key.upArrow) {
+            this.setState({
+              scrollOffset: Math.max(0, this.state.scrollOffset - 1),
+            });
+            return true;
+          }
+          if (ev.key.downArrow) {
+            const maxScroll = this.getMaxScroll();
+            this.setState({
+              scrollOffset: Math.min(maxScroll, this.state.scrollOffset + 1),
+            });
+            return true;
+          }
         }
       }
 
@@ -114,8 +117,7 @@ export default class BashPermissionDock extends Component<
 
   private getMaxScroll(): number {
     const termWidth = process.stdout.columns || 80;
-    const cmdText = new Text(this.props.command, { wrap: true, clip: false });
-    const renderedCmdLines = cmdText.render(termWidth);
+    const renderedCmdLines = wrapVisualLine(this.props.command, termWidth);
     const maxVisibleReviewLines = 15;
     return Math.max(0, renderedCmdLines.length - maxVisibleReviewLines);
   }
@@ -136,8 +138,7 @@ export default class BashPermissionDock extends Component<
 
     if (mode === 'REVIEW') {
       // Review mode: displays up to 15 visible scrollable lines of the full command
-      const cmdText = new Text(command, { wrap: true, clip: false });
-      const renderedCmdLines = cmdText.render(maxCols);
+      const renderedCmdLines = wrapVisualLine(command, maxCols);
 
       const maxVisibleReviewLines = 15;
       const totalCmdLines = renderedCmdLines.length;
@@ -150,39 +151,24 @@ export default class BashPermissionDock extends Component<
       );
 
       const element = (
-        <Box direction="column" width={maxCols} wrap={true} clip={false}>
-          <Text wrap={false} clip={true}>
-            {divider}
-          </Text>
-          <Text wrap={false} clip={false}>
-            {''}
-          </Text>
-          <Text wrap={false} clip={false}>
-            {bold(c.text('Bash command (review)'))}
-          </Text>
-          <Text wrap={false} clip={false}>
-            {''}
-          </Text>
+        <Box flexDirection="column" width={maxCols}>
+          <Text wrap="truncate">{divider}</Text>
+          <Text>{''}</Text>
+          <Text>{bold(c.text('Bash command (review)'))}</Text>
+          <Text>{''}</Text>
           {visibleCmdLines.map((line) => (
-            <Text wrap={false} clip={false}>
-              {`    ${c.text(line)}`}
-            </Text>
+            <Text wrap="truncate">{`    ${c.text(line)}`}</Text>
           ))}
-          <Text wrap={false} clip={false}>
-            {''}
-          </Text>
-          <Text wrap={false} clip={false}>
-            {italic(c.muted('↑/↓ scroll · Esc / f to return'))}
-          </Text>
+          <Text>{''}</Text>
+          <Text>{italic(c.muted('↑/↓ scroll · Esc / f to return'))}</Text>
         </Box>
       );
 
-      return element.render(maxCols);
+      return renderElement(element, { width: maxCols });
     }
 
     // Normal mode
-    const cmdText = new Text(command, { wrap: true, clip: false });
-    const renderedCmdLines = cmdText.render(Math.max(10, maxCols - 4));
+    const renderedCmdLines = wrapVisualLine(command, Math.max(10, maxCols - 4));
     const previewLines = renderedCmdLines.slice(0, 3);
     const hiddenCount = Math.max(0, renderedCmdLines.length - 3);
 
@@ -195,57 +181,29 @@ export default class BashPermissionDock extends Component<
       : `  ${c.text('2. No')}`;
 
     const element = (
-      <Box direction="column" width={maxCols} wrap={true} clip={false}>
-        <Text wrap={false} clip={true}>
-          {divider}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {bold(c.text('Bash command'))}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
+      <Box flexDirection="column" width={maxCols}>
+        <Text wrap="truncate">{divider}</Text>
+        <Text>{''}</Text>
+        <Text>{bold(c.text('Bash command'))}</Text>
+        <Text>{''}</Text>
         {previewLines.map((line) => (
-          <Text wrap={false} clip={false}>
-            {`    ${c.text(line)}`}
-          </Text>
+          <Text wrap="truncate">{`    ${c.text(line)}`}</Text>
         ))}
         {hiddenCount > 0 && (
-          <Text wrap={false} clip={false}>
-            {`    ${c.muted(`(+${hiddenCount} hidden)`)}`}
-          </Text>
+          <Text wrap="truncate">{`    ${c.muted(`(+${hiddenCount} hidden)`)}`}</Text>
         )}
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={true}>{`    ${c.muted(explanation)}`}</Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {c.text('Do you want to proceed?')}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {yesOptionText}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {noOptionText}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {italic(c.muted('Esc to cancel · f to review'))}
-        </Text>
+        <Text>{''}</Text>
+        <Text wrap="wrap">{`    ${c.muted(explanation)}`}</Text>
+        <Text>{''}</Text>
+        <Text>{c.text('Do you want to proceed?')}</Text>
+        <Text>{''}</Text>
+        <Text wrap="truncate">{yesOptionText}</Text>
+        <Text wrap="truncate">{noOptionText}</Text>
+        <Text>{''}</Text>
+        <Text>{italic(c.muted('Esc to cancel · f to review'))}</Text>
       </Box>
     );
 
-    return element.render(maxCols);
+    return renderElement(element, { width: maxCols });
   }
 }

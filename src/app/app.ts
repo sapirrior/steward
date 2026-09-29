@@ -6,8 +6,8 @@ import { defaultToolCatalog } from '@steward/agents/tools/index.js';
 import type { SessionData } from '@steward/services/session/types.js';
 import { SessionLogWriter, getSessionLogPath } from '@steward/services/session/index.js';
 import { isFolderTrusted, trustFolder } from '@steward/services/config/index.js';
-import { listThemes } from '@steward/tui/theme/index.js';
-import { c } from '@steward/tui/theme/style.js';
+import { listThemes } from '@steward/app/theme/index.js';
+import { c } from '@steward/app/theme/style.js';
 import Header from './ui/components/Header.js';
 import StatusBar from './ui/components/StatusBar.js';
 import StreamingView from './ui/components/StreamingView.js';
@@ -16,11 +16,12 @@ import TrustGate from './ui/components/TrustGate.js';
 import BashPermissionDock from './ui/components/docks/BashPermissionDock.js';
 import FilePermissionDock from './ui/components/docks/FilePermissionDock.js';
 import { PermissionQueue } from './ui/utils/permission-queue.js';
-import { parseKeyInput } from '@steward/tui/primitives/index.js';
+import { parseInputChunk } from '@steward/tui';
 import {
   formatSystemMessage,
   formatAssistantMessage,
   formatErrorBadge,
+  formatUserMessage,
 } from './ui/utils/message-formatter.js';
 import { renderTranscript } from './ui/utils/transcript.js';
 import { classifyError, logError } from '@steward/services/errors/index.js';
@@ -61,7 +62,11 @@ export class TUIApp {
     this.cwd = options.cwd ?? process.cwd();
     this.session = options.initialSession ?? new AgentSession();
     this.onExitCallback = options.onExit;
-    this.engine = new TerminalEngine();
+    this.engine = new TerminalEngine({
+      mouse: true,
+      scrollKeys: true,
+      onError: (err) => logError(err),
+    });
 
     const savedMode = getSavedMode();
     if (savedMode) {
@@ -188,7 +193,7 @@ export class TUIApp {
     if (this.session.session.turns.length > 0 || existsSync(logPath)) {
       renderTranscript(this.engine, this.session.session, this.header);
     } else {
-      this.engine.commit('header', this.header.render());
+      this.engine.commit(this.header.render(), { wrap: false, tag: 'header' });
     }
 
     // Mount live interactive components at the bottom
@@ -198,71 +203,76 @@ export class TUIApp {
 
     // Handle global keybindings
     this.engine.addInputListener((chunk) => {
-      const action = parseKeyInput(chunk);
+      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
+      const events = parseInputChunk(rawStr);
 
-      // Ctrl+C double-tap handling
-      if (action.type === 'ctrl-c') {
-        if (this.ctrlCPending) {
-          if (this.ctrlCTimer) clearTimeout(this.ctrlCTimer);
-          this.ctrlCPending = false;
-          this.exit();
+      for (const ev of events) {
+        const { key, input } = ev;
+
+        // Ctrl+C double-tap handling
+        if (key.ctrl && input === 'c') {
+          if (this.ctrlCPending) {
+            if (this.ctrlCTimer) clearTimeout(this.ctrlCTimer);
+            this.ctrlCPending = false;
+            this.exit();
+            return true;
+          }
+
+          this.ctrlCPending = true;
+          this.statusBar.update({ exitPending: true });
+          this.ctrlCTimer = setTimeout(() => {
+            this.ctrlCPending = false;
+            this.statusBar.update({ exitPending: false });
+          }, 1500);
           return true;
         }
 
-        this.ctrlCPending = true;
-        this.statusBar.update({ exitPending: true });
-        this.ctrlCTimer = setTimeout(() => {
-          this.ctrlCPending = false;
-          this.statusBar.update({ exitPending: false });
-        }, 1500);
-        return true;
-      }
-
-      // Ctrl+B: cycle through modes when idle
-      if (action.type === 'ctrl-b') {
-        if (this.isScrollViewMode) return true;
-        if (this.modals.getActiveModal()) return true;
-        if (this.session.isBusy || this.isBusy) {
-          this.statusBar.showWarning('Cannot change mode while Steward is generating');
+        // Ctrl+B: cycle through modes when idle
+        if (key.ctrl && input === 'b') {
+          if (this.isScrollViewMode) return true;
+          if (this.modals.getActiveModal()) return true;
+          if (this.session.isBusy || this.isBusy) {
+            this.statusBar.showWarning('Cannot change mode while Steward is generating');
+            return true;
+          }
+          const newMode = cycleMode();
+          saveModeSelection(newMode);
+          this.statusBar.setMode(newMode);
           return true;
         }
-        const newMode = cycleMode();
-        saveModeSelection(newMode);
-        this.statusBar.setMode(newMode);
-        return true;
-      }
 
-      // Ctrl+O: toggle scroll view mode when idle
-      if (action.type === 'ctrl-o') {
-        if (this.modals.getActiveModal()) return true;
-        if (this.session.isBusy || this.isBusy) return true;
-        this.toggleScrollViewMode();
-        return true;
-      }
-
-      // In scroll view mode:
-      if (this.isScrollViewMode) {
-        if (action.type === 'escape' || action.type === 'submit') {
+        // Ctrl+O: toggle scroll view mode when idle
+        if (key.ctrl && input === 'o') {
+          if (this.modals.getActiveModal()) return true;
+          if (this.session.isBusy || this.isBusy) return true;
           this.toggleScrollViewMode();
           return true;
         }
-        if (action.type === 'cursor-up') {
-          this.engine.scrollUp(1);
-          return true;
-        }
-        if (action.type === 'cursor-down') {
-          this.engine.scrollDown(1);
-          return true;
-        }
-        if (action.type === 'page-up') {
-          const halfPage = Math.max(1, Math.floor(((process.stdout.rows || 24) - 1) / 2));
-          this.engine.scrollUp(halfPage);
-          return true;
-        }
-        if (action.type === 'page-down') {
-          const halfPage = Math.max(1, Math.floor(((process.stdout.rows || 24) - 1) / 2));
-          this.engine.scrollDown(halfPage);
-          return true;
+
+        // In scroll view mode:
+        if (this.isScrollViewMode) {
+          if (key.escape || key.return) {
+            this.toggleScrollViewMode();
+            return true;
+          }
+          if (key.upArrow) {
+            this.engine.scrollUp(1);
+            return true;
+          }
+          if (key.downArrow) {
+            this.engine.scrollDown(1);
+            return true;
+          }
+          if (key.pageUp) {
+            const halfPage = Math.max(1, Math.floor(((process.stdout.rows || 24) - 1) / 2));
+            this.engine.scrollUp(halfPage);
+            return true;
+          }
+          if (key.pageDown) {
+            const halfPage = Math.max(1, Math.floor(((process.stdout.rows || 24) - 1) / 2));
+            this.engine.scrollDown(halfPage);
+            return true;
+          }
         }
       }
 
@@ -322,7 +332,7 @@ export class TUIApp {
         session: this.session,
         modals: this.modals,
         exit: () => this.exit(),
-        commitPrompt: (t) => this.engine.commitPrompt(t),
+        commitPrompt: (t) => this.engine.commit((w) => formatUserMessage(t, w), { tag: 'prompt', wrap: false }),
       });
       return;
     }
@@ -401,7 +411,7 @@ export class TUIApp {
             lines.push(`     ${c.error(errLines[i] ?? '')}`);
           }
         }
-        this.engine.commit('raw', lines);
+        this.engine.commit(lines, { tag: 'raw' });
       } catch (err: any) {
         this.streamingView.setActiveCommand(null);
         this.streamingView.reset();
@@ -421,10 +431,13 @@ export class TUIApp {
           errorMessage: msg,
         });
 
-        this.engine.commit('raw', [
-          `${c.permission('!')} ${c.text(command)}`,
-          `  ${c.muted('└ ')}${c.error(msg)}`,
-        ]);
+        this.engine.commit(
+          [
+            `${c.permission('!')} ${c.text(command)}`,
+            `  ${c.muted('└ ')}${c.error(msg)}`,
+          ],
+          { tag: 'raw' },
+        );
       } finally {
         this.directBashAbortController = null;
         this.setBusy(false);
@@ -433,7 +446,7 @@ export class TUIApp {
     }
 
     // 3. Submit user prompt to AgentSession
-    this.engine.commitPrompt(text);
+    this.engine.commit((w) => formatUserMessage(text, w), { tag: 'prompt', wrap: false });
     this.setBusy(true);
     this.streamingView.setThinking(true);
 
@@ -463,14 +476,14 @@ export class TUIApp {
       const structured = classifyError(err);
       if (eventState.accumulatedText.trim()) {
         this.engine.commit(
-          'assistant-message',
           formatAssistantMessage(eventState.accumulatedText),
           {
+            tag: 'assistant-message',
             hangingIndent: 2,
           },
         );
       }
-      this.engine.commit('system', formatErrorBadge(structured));
+      this.engine.commit(formatErrorBadge(structured), { tag: 'system' });
     } finally {
       if (this.modals.getActiveModal()) {
         this.modals.closeModal();

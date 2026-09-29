@@ -1,8 +1,10 @@
+/** @jsxImportSource @steward/tui */
 import Component from '@steward/tui/engine/Component.js';
 import type { AuthEvent, AuthManager, AuthPrompt, ProviderId } from '@steward/ai';
-import { figures } from '@steward/tui/theme/index.js';
-import { c, bold } from '@steward/tui/theme/style.js';
-import { Box, Text, renderModalBox, parseKeyInput } from '@steward/tui/primitives/index.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c, bold } from '@steward/app/theme/style.js';
+import { renderModalBox } from '../../utils/modal-box.js';
+import { Box, Text, parseInputChunk } from '@steward/tui';
 import { openUrl } from '../../../utils/open-url.js';
 
 export interface OAuthProviderOption {
@@ -92,61 +94,63 @@ export default class LoginDock extends Component<LoginDockProps, LoginDockState>
     }
 
     this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const action = parseKeyInput(chunk);
-      const rawStr = chunk.toString();
+      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
+      const events = parseInputChunk(rawStr);
 
-      if (action.type === 'escape') {
-        this.abortController.abort();
-        this.props.onCancel();
-        return true;
-      }
-
-      if (this.state.step === 'select-provider') {
-        if (action.type === 'cursor-up') {
-          this.setState({
-            selectedIndex: Math.max(0, this.state.selectedIndex - 1),
-          });
+      for (const ev of events) {
+        if (ev.key.escape) {
+          this.abortController.abort();
+          this.props.onCancel();
           return true;
         }
 
-        if (action.type === 'cursor-down') {
-          this.setState({
-            selectedIndex: Math.min(OAUTH_PROVIDERS.length - 1, this.state.selectedIndex + 1),
-          });
-          return true;
-        }
-
-        if (action.type === 'submit') {
-          const chosen = OAUTH_PROVIDERS[this.state.selectedIndex];
-          if (chosen) {
-            void this.startLogin(chosen.id);
+        if (this.state.step === 'select-provider') {
+          if (ev.key.upArrow) {
+            this.setState({
+              selectedIndex: Math.max(0, this.state.selectedIndex - 1),
+            });
+            return true;
           }
-          return true;
-        }
-      }
 
-      if (this.state.isManualPrompt) {
-        if (action.type === 'submit') {
-          if (this.state.manualCodeInput.trim() && this.manualPromptResolver) {
-            this.manualPromptResolver(this.state.manualCodeInput.trim());
-            this.manualPromptResolver = null;
-            this.setState({ isManualPrompt: false });
+          if (ev.key.downArrow) {
+            this.setState({
+              selectedIndex: Math.min(OAUTH_PROVIDERS.length - 1, this.state.selectedIndex + 1),
+            });
+            return true;
           }
-          return true;
+
+          if (ev.key.return) {
+            const chosen = OAUTH_PROVIDERS[this.state.selectedIndex];
+            if (chosen) {
+              void this.startLogin(chosen.id);
+            }
+            return true;
+          }
         }
 
-        if (action.type === 'backspace') {
-          this.setState({
-            manualCodeInput: this.state.manualCodeInput.slice(0, -1),
-          });
-          return true;
-        }
+        if (this.state.isManualPrompt) {
+          if (ev.key.return) {
+            if (this.state.manualCodeInput.trim() && this.manualPromptResolver) {
+              this.manualPromptResolver(this.state.manualCodeInput.trim());
+              this.manualPromptResolver = null;
+              this.setState({ isManualPrompt: false });
+            }
+            return true;
+          }
 
-        if (rawStr.length === 1 && rawStr.charCodeAt(0) >= 32) {
-          this.setState({
-            manualCodeInput: this.state.manualCodeInput + rawStr,
-          });
-          return true;
+          if (ev.key.backspace) {
+            this.setState({
+              manualCodeInput: this.state.manualCodeInput.slice(0, -1),
+            });
+            return true;
+          }
+
+          if (ev.input && ev.input.length === 1 && ev.input >= ' ') {
+            this.setState({
+              manualCodeInput: this.state.manualCodeInput + ev.input,
+            });
+            return true;
+          }
         }
       }
 
@@ -241,54 +245,52 @@ export default class LoginDock extends Component<LoginDockProps, LoginDockState>
         const pointer = isSelected ? c.info(`${figures.pointer} `) : '  ';
         const name = isSelected ? c.info(bold(p.name)) : c.text(bold(p.name));
         return (
-          <Box direction="column" width={maxCols} key={p.id}>
-            <Text>{`${pointer}${name}`}</Text>
-            <Text color="muted">{`    ${p.description}`}</Text>
+          <Box flexDirection="column" width={maxCols} key={p.id}>
+            <Text wrap="truncate">{`${pointer}${name}`}</Text>
+            <Text wrap="truncate">{`    ${c.muted(p.description)}`}</Text>
           </Box>
         );
       });
 
       contentElements.push(
-        <Box direction="column" width={maxCols}>
+        <Box flexDirection="column" width={maxCols}>
           {items}
         </Box>,
       );
     } else if (step === 'waiting-for-browser' || step === 'starting' || step === 'exchanging') {
       contentElements.push(
-        <Box direction="column" width={maxCols}>
-          <Text color="info">{`${figures.pointer} ${progressMessage || 'Waiting for browser authorization...'}`}</Text>
+        <Box flexDirection="column" width={maxCols}>
+          <Text wrap="truncate">{`${c.info(figures.pointer)} ${c.info(progressMessage || 'Waiting for browser authorization...')}`}</Text>
           {userCode ? (
-            <Box direction="column" width={maxCols}>
-              <Text color="warning">{`One-time code: ${bold(userCode)}`}</Text>
+            <Box flexDirection="column" width={maxCols}>
+              <Text wrap="truncate">{c.warning(`One-time code: ${bold(userCode)}`)}</Text>
             </Box>
           ) : null}
           {authUrl ? (
-            <Box direction="column" width={maxCols}>
-              <Text color="muted">If browser did not open, navigate to:</Text>
-              <Text color="permission" ellipsis={true} wrap={false}>
-                {authUrl}
-              </Text>
+            <Box flexDirection="column" width={maxCols}>
+              <Text wrap="truncate">{c.muted('If browser did not open, navigate to:')}</Text>
+              <Text wrap="truncate">{c.permission(authUrl)}</Text>
             </Box>
           ) : null}
           {isManualPrompt ? (
-            <Box direction="column" width={maxCols}>
-              <Text color="warning">Paste authorization code / URL below and press Enter:</Text>
-              <Text color="selected">{`> ${manualCodeInput}_`}</Text>
+            <Box flexDirection="column" width={maxCols}>
+              <Text wrap="truncate">{c.warning('Paste authorization code / URL below and press Enter:')}</Text>
+              <Text wrap="truncate">{`${c.selected('> ')}${c.selected(manualCodeInput)}_`}</Text>
             </Box>
           ) : null}
         </Box>,
       );
     } else if (step === 'success') {
       contentElements.push(
-        <Box direction="column" width={maxCols}>
-          <Text color="success">{`${figures.tick} Successfully authenticated!`}</Text>
+        <Box flexDirection="column" width={maxCols}>
+          <Text wrap="truncate">{c.success(`${figures.tick} Successfully authenticated!`)}</Text>
         </Box>,
       );
     } else if (step === 'error') {
       contentElements.push(
-        <Box direction="column" width={maxCols}>
-          <Text color="error">{`${figures.cross} Authentication failed:`}</Text>
-          <Text color="text">{`  ${errorMessage || 'Unknown error'}`}</Text>
+        <Box flexDirection="column" width={maxCols}>
+          <Text wrap="truncate">{c.error(`${figures.cross} Authentication failed:`)}</Text>
+          <Text wrap="truncate">{`  ${c.text(errorMessage || 'Unknown error')}`}</Text>
         </Box>,
       );
     }

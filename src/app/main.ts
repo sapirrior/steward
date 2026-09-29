@@ -11,7 +11,7 @@ import {
   saveThemeSelection,
   saveModeSelection,
 } from '@steward/services/index.js';
-import { setActiveTheme, listThemes, findTheme, getActiveThemeName } from '@steward/tui/index.js';
+import { setActiveTheme, listThemes, findTheme, getActiveThemeName } from '@steward/app/theme/index.js';
 import { type ChatMode, MODE_NAMES } from '@steward/agents/index.js';
 import pkg from '../../package.json' with { type: 'json' };
 

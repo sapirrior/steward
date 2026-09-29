@@ -1,7 +1,8 @@
+/** @jsxImportSource @steward/tui */
 import Component from '@steward/tui/engine/Component.js';
-import { figures } from '@steward/tui/theme/index.js';
-import { c, bold, italic } from '@steward/tui/theme/style.js';
-import { Box, Text, parseKeyInput } from '@steward/tui/primitives/index.js';
+import { figures } from '@steward/app/theme/index.js';
+import { c, bold, italic } from '@steward/app/theme/style.js';
+import { Box, Text, renderElement, parseInputChunk } from '@steward/tui';
 
 export interface TrustGateProps {
   cwd: string;
@@ -29,34 +30,36 @@ export default class TrustGate extends Component<TrustGateProps, TrustGateState>
     if (!this.engine) return;
 
     this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const action = parseKeyInput(chunk);
-      const rawStr = chunk.toString();
+      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
+      const events = parseInputChunk(rawStr);
 
-      if (action.type === 'cursor-up' || action.type === 'cursor-down') {
-        this.setState({
-          selectedIndex: this.state.selectedIndex === 0 ? 1 : 0,
-        });
-        return true;
-      }
+      for (const ev of events) {
+        if (ev.key.upArrow || ev.key.downArrow) {
+          this.setState({
+            selectedIndex: this.state.selectedIndex === 0 ? 1 : 0,
+          });
+          return true;
+        }
 
-      if (rawStr === '1') {
-        this.setState({ selectedIndex: 0 });
-        return true;
-      }
+        if (ev.input === '1') {
+          this.setState({ selectedIndex: 0 });
+          return true;
+        }
 
-      if (rawStr === '2') {
-        this.setState({ selectedIndex: 1 });
-        return true;
-      }
+        if (ev.input === '2') {
+          this.setState({ selectedIndex: 1 });
+          return true;
+        }
 
-      if (action.type === 'submit') {
-        this.props.onDecision(this.state.selectedIndex === 0);
-        return true;
-      }
+        if (ev.key.return) {
+          this.props.onDecision(this.state.selectedIndex === 0);
+          return true;
+        }
 
-      if (action.type === 'escape') {
-        this.props.onDecision(false);
-        return true;
+        if (ev.key.escape) {
+          this.props.onDecision(false);
+          return true;
+        }
       }
 
       return false;
@@ -95,48 +98,24 @@ export default class TrustGate extends Component<TrustGateProps, TrustGateState>
       'Steward can read files and execute commands to investigate, build, and debug with your explicit permission. Pre-mutation checkpoints ensure every edit is reversible via /rewind.';
 
     const element = (
-      <Box direction="column" width={maxCols} wrap={true} clip={false}>
-        <Text wrap={false} clip={false}>
-          {bold(c.warning('Accessing workspace:'))}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {bold(c.text(this.props.cwd))}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={true}>{c.text(safetyCheckText)}</Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={true}>{c.text(capabilityText)}</Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {c.muted('Security guide')}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {yesOptionText}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {noOptionText}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {''}
-        </Text>
-        <Text wrap={false} clip={false}>
-          {italic(c.muted('Enter to confirm · Esc to cancel'))}
-        </Text>
+      <Box flexDirection="column" width={maxCols}>
+        <Text>{bold(c.warning('Accessing workspace:'))}</Text>
+        <Text>{''}</Text>
+        <Text>{bold(c.text(this.props.cwd))}</Text>
+        <Text>{''}</Text>
+        <Text wrap="wrap">{c.text(safetyCheckText)}</Text>
+        <Text>{''}</Text>
+        <Text wrap="wrap">{c.text(capabilityText)}</Text>
+        <Text>{''}</Text>
+        <Text>{c.muted('Security guide')}</Text>
+        <Text>{''}</Text>
+        <Text wrap="truncate">{yesOptionText}</Text>
+        <Text wrap="truncate">{noOptionText}</Text>
+        <Text>{''}</Text>
+        <Text>{italic(c.muted('Enter to confirm · Esc to cancel'))}</Text>
       </Box>
     );
 
-    return element.render(maxCols);
+    return renderElement(element, { width: maxCols });
   }
 }

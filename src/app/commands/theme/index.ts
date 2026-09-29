@@ -3,7 +3,7 @@ import {
   getActiveThemeName,
   setActiveTheme,
   findTheme,
-} from '@steward/tui/theme/index.js';
+} from '@steward/app/theme/index.js';
 import { saveThemeSelection } from '@steward/services/config/index.js';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 

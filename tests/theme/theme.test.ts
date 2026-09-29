@@ -14,9 +14,9 @@ import {
   listThemes,
   findTheme,
   type ThemeName,
-} from '../../src/packages/tui/src/theme/colors.js';
-import { resolveThemeColor } from '../../src/packages/tui/src/theme/apply.js';
-import { c, bg, bold, italic } from '../../src/packages/tui/src/theme/style.js';
+} from '../../src/app/theme/colors.js';
+import { resolveThemeColor } from '../../src/app/theme/apply.js';
+import { c, bg, bold, italic } from '../../src/app/theme/style.js';
 
 describe('Theme Subsystem Tests', () => {
   it('aligns darkTheme semantic tokens with default palette', () => {

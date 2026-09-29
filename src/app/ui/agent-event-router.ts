@@ -15,20 +15,12 @@ import {
 } from './utils/message-formatter.js';
 import type StreamingView from './components/StreamingView.js';
 
-/**
- * Mutable state tracked per-turn by the event handler.
- * Passed as a ref so the router can read/write it across events
- * without holding closures over stale values.
- */
 export interface AgentEventState {
   accumulatedText: string;
   activeToolStartTimes: Map<string, number>;
   turnStartTime: number;
 }
 
-/**
- * Dependencies required by the agent event router.
- */
 export interface AgentEventRouterDeps {
   engine: TerminalEngine;
   streamingView: StreamingView;
@@ -37,21 +29,12 @@ export interface AgentEventRouterDeps {
   state: AgentEventState;
 }
 
-/**
- * Creates an AgentEventListener that handles all 7 AgentEvent types and
- * drives the TUI presentation layer accordingly.
- *
- * Extracted verbatim from TUIApp.handleSubmit's onEvent switch (~130 lines)
- * so the switch logic is independently testable without instantiating TUIApp.
- * Task 3 §3.1's logError call lives here (in the 'error' case).
- */
 export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventListener {
   const { engine, streamingView, state } = deps;
 
   return (event) => {
     switch (event.type) {
       case 'reasoning-delta': {
-        // Internal model reasoning is saved to session messages but not rendered to the TUI
         break;
       }
       case 'text-delta': {
@@ -60,9 +43,9 @@ export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventL
         break;
       }
       case 'tool-call': {
-        // Flush any prior accumulated assistant text before tool execution log
         if (state.accumulatedText.trim()) {
-          engine.commit('assistant-message', formatAssistantMessage(state.accumulatedText), {
+          engine.commit(formatAssistantMessage(state.accumulatedText), {
+            tag: 'assistant-message',
             hangingIndent: 2,
           });
           state.accumulatedText = '';
@@ -108,7 +91,6 @@ export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventL
         );
 
         engine.commit(
-          'tool-result',
           (w) =>
             formatToolStatus({
               toolName,
@@ -121,7 +103,7 @@ export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventL
               summary,
               targetWidth: w,
             }),
-          { hangingIndent: 2 },
+          { tag: 'tool-result', hangingIndent: 2 },
         );
         streamingView.setThinking(true);
         break;
@@ -130,42 +112,44 @@ export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventL
         streamingView.setActiveTool(null);
         const finalText = (state.accumulatedText || event.summary.text || '').trim();
         if (finalText) {
-          engine.commit('assistant-message', formatAssistantMessage(finalText), {
+          engine.commit(formatAssistantMessage(finalText), {
+            tag: 'assistant-message',
             hangingIndent: 2,
           });
         }
         state.accumulatedText = '';
         streamingView.reset();
 
-        // Commit turn finished badge with leading empty line using authoritative duration and verb
         const totalDurationMs =
           event.summary.durationMs ?? Math.round(performance.now() - state.turnStartTime);
         const finishedAt = event.summary.finishedAt
           ? new Date(event.summary.finishedAt)
           : new Date();
-        engine.commit('system', [
-          '',
-          formatTurnStatus(totalDurationMs, finishedAt, event.summary.statusVerb),
-        ]);
+        engine.commit(
+          [
+            '',
+            formatTurnStatus(totalDurationMs, finishedAt, event.summary.statusVerb),
+          ],
+          { tag: 'system' },
+        );
 
         if (event.summary.stopReason === 'step-limit') {
           engine.commit(
-            'system',
             formatSystemMessage('Step budget reached. Generation stopped early.'),
+            { tag: 'system' },
           );
         }
         break;
       }
       case 'error': {
         streamingView.reset();
-        // Task 3 §3.1: log non-fatal stream errors to disk (previously missing)
         deps.logError(event.error, {
           sessionId: deps.getSessionId(),
           source: 'stream-error-event',
           isFatal: event.isFatal,
         });
         const structured = classifyError(event.error);
-        engine.commit('system', formatErrorBadge(structured));
+        engine.commit(formatErrorBadge(structured), { tag: 'system' });
         break;
       }
     }
