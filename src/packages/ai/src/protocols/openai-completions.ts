@@ -293,6 +293,11 @@ export async function openAICompletionsProtocol(
         const u = eventData.usage as Record<string, unknown>;
         if (typeof u.prompt_tokens === 'number') usage.input = u.prompt_tokens;
         if (typeof u.completion_tokens === 'number') usage.output = u.completion_tokens;
+        if (typeof u.total_tokens === 'number') {
+          usage.total = u.total_tokens;
+        } else {
+          usage.total = (usage.input ?? 0) + (usage.output ?? 0);
+        }
         const details = u.completion_tokens_details as Record<string, unknown> | undefined;
         if (typeof details?.reasoning_tokens === 'number') {
           usage.reasoning = details.reasoning_tokens;

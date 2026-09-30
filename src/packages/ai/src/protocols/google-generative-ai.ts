@@ -323,6 +323,11 @@ export async function googleGenerativeAIProtocol(
         const u = eventData.usageMetadata as Record<string, unknown>;
         if (typeof u.promptTokenCount === 'number') usage.input = u.promptTokenCount;
         if (typeof u.candidatesTokenCount === 'number') usage.output = u.candidatesTokenCount;
+        if (typeof u.totalTokenCount === 'number') {
+          usage.total = u.totalTokenCount;
+        } else {
+          usage.total = (usage.input ?? 0) + (usage.output ?? 0);
+        }
       }
 
       const candidates = eventData.candidates as unknown[];

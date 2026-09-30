@@ -177,6 +177,9 @@ export class AssistantMessageStream implements InferenceStream {
     } else if (event.type === 'tool-call-delta') {
       this.acc.appendToolDelta(this.toolBlockIndex, event.delta);
     } else if (event.type === 'done') {
+      if (event.usage.total === undefined) {
+        event.usage.total = (event.usage.input ?? 0) + (event.usage.output ?? 0);
+      }
       // Calculate USD cost
       if (this.model) {
         event.usage.cost = calculateCost(this.model, event.usage);

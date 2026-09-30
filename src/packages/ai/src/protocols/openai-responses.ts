@@ -328,6 +328,11 @@ export async function openAIResponsesProtocol(
           const u = resp.usage as Record<string, unknown>;
           if (typeof u.input_tokens === 'number') usage.input = u.input_tokens;
           if (typeof u.output_tokens === 'number') usage.output = u.output_tokens;
+          if (typeof u.total_tokens === 'number') {
+            usage.total = u.total_tokens;
+          } else {
+            usage.total = (usage.input ?? 0) + (usage.output ?? 0);
+          }
         }
         if (typeof resp?.status === 'string') {
           if (resp.status === 'completed') {

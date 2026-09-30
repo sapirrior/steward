@@ -146,6 +146,7 @@ export interface TokenUsage {
   cacheRead?: number;
   cacheWrite?: number;
   reasoning?: number;
+  total?: number;
   /** USD cost breakdown, present when model has pricing data. */
   cost?: TokenCost;
 }

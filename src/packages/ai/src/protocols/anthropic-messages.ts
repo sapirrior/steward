@@ -417,6 +417,7 @@ export async function anthropicMessagesProtocol(
           const u = eventData.usage as Record<string, unknown> | undefined;
           if (typeof u?.output_tokens === 'number') {
             usage.output = u.output_tokens;
+            usage.total = (usage.input ?? 0) + usage.output;
           }
           break;
         }
