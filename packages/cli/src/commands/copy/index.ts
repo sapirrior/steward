@@ -8,11 +8,11 @@ import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
  */
 function extractAssistantText(msg: Message): string {
   if (msg.role !== 'assistant') return '';
-  if (typeof msg.content === 'string') return msg.content.trim();
+  if (typeof (msg as any).content === 'string') return (msg as any).content.trim();
   if (!Array.isArray(msg.content)) return '';
   return msg.content
     .filter(
-      (b): b is { type: 'text'; text: string } => b?.type === 'text' && typeof b.text === 'string',
+      (b: any): b is { type: 'text'; text: string } => b?.type === 'text' && typeof b.text === 'string',
     )
     .map((b) => b.text.trim())
     .filter(Boolean)

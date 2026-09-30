@@ -1,11 +1,11 @@
 import { getActiveMode, listModes, findMode, setActiveMode, saveModeSelection } from '@steward/agent';
-import type { CommandDefinition } from '../types.js';
+import type { SlashCommand, CommandContext } from '../types.js';
 
-export const modeCommand: CommandDefinition = {
+export const modeCommand: SlashCommand = {
   name: 'mode',
-  aliases: [],
   description: 'Switch or view the current chat mode',
-  execute: async (args) => {
+  usage: '/mode [name]',
+  execute: async (args: string[], _context?: CommandContext) => {
     if (args.length === 0) {
       const current = getActiveMode();
       const currentMeta = listModes().find((m) => m.name === current);

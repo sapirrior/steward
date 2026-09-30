@@ -32,6 +32,7 @@ export interface SlashCommandHandlerCtx {
     switchToSession(s: any): void;
     openSessionMenu(sessions: any[]): void;
   };
+  commitPrompt?: (t: string) => void;
   exit(): void;
 }
 

@@ -325,7 +325,7 @@ export class TUIApp {
         getScreenLines: () =>
           this.engine.history
             .getEntries()
-            .filter((e) => e.kind !== 'logo')
+            .filter((e) => e.tag !== 'logo')
             .flatMap((e) => e.lines),
       });
 
@@ -338,7 +338,7 @@ export class TUIApp {
         session: this.session,
         modals: this.modals,
         exit: () => this.exit(),
-        commitPrompt: (t) => this.engine.commit((w) => formatUserMessage(t, w), { tag: 'prompt', wrap: false }),
+        commitPrompt: (t: string) => this.engine.commit((w) => formatUserMessage(t, w), { tag: 'prompt', wrap: false }),
       });
       return;
     }
@@ -473,8 +473,8 @@ export class TUIApp {
     try {
       await this.session.submitPrompt(text, {
         cwd: this.cwd,
-        requestBashPermission: (req) => this.permissionQueue.enqueueBash(req),
-        requestFilePermission: (req) => this.permissionQueue.enqueueFile(req),
+        requestBashPermission: (req: any) => this.permissionQueue.enqueueBash(req),
+        requestFilePermission: (req: any) => this.permissionQueue.enqueueFile(req),
         onEvent,
       });
     } catch (err: any) {
