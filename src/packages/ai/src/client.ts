@@ -6,6 +6,7 @@
  */
 
 import type { AuthContext, AuthInteraction, AuthStatus, Credential, CredentialStore, ProviderAuth, ResolvedAuth } from './auth/types.js';
+import { resolveAuth } from './auth/resolve.js';
 import { AssistantMessageStream } from './event-stream.js';
 import { AIError } from './errors.js';
 import type {
@@ -232,43 +233,12 @@ export function createAI(opts: CreateAIOptions): AI {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function resolveProviderAuth(
+function resolveProviderAuth(
   provider: Provider,
   store: CredentialStore,
   context: AuthContext | undefined,
 ): Promise<ResolvedAuth> {
-  // 1. Try stored credential
-  const stored = await store.read(provider.id);
-  if (stored) {
-    if (stored.type === 'api-key' && provider.auth.apiKey) {
-      const resolved = provider.auth.apiKey.resolve(stored);
-      if (resolved) return resolved;
-    }
-    if (stored.type === 'oauth' && provider.auth.oauth) {
-      return provider.auth.oauth.toAuth(stored as import('./auth/types.js').OAuthCredential);
-    }
-  }
-
-  // 2. Try ambient env vars (via injected AuthContext)
-  if (context && provider.auth.apiKey) {
-    for (const envVar of provider.auth.apiKey.envVars) {
-      const val = context.env(envVar);
-      if (val) {
-        return { apiKey: val, source: `env:${envVar}` };
-      }
-    }
-  }
-
-  // 3. Keyless fallback — try resolve with no credential (e.g. local servers, faux provider)
-  if (provider.auth.apiKey) {
-    const keyless = provider.auth.apiKey.resolve({ type: 'api-key', key: '' });
-    if (keyless) return keyless;
-  }
-
-  throw new AIError(
-    `No credentials configured for provider ${provider.id}`,
-    { code: 'auth', provider: provider.id },
-  );
+  return resolveAuth(provider, store, context);
 }
 
 /** Synthetic fallback Model for unknown model ids (new models before catalog). */
