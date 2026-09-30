@@ -233,38 +233,25 @@ async function handleCommand(
 
       const interaction: AuthInteraction = {
         async prompt(req: AuthPrompt): Promise<string> {
-          if (req.type === 'url' || req.type === 'manual-code') {
-            const targetUrl = req.url || (req as any).placeholder || '';
-            console.log(`\nOpening browser for authorization...`);
-            if (targetUrl) {
-              console.log(`Authorize URL:\n  ${targetUrl}\n`);
-              openBrowser(targetUrl);
-            }
-
+          if (req.type === 'manual-code' || req.type === 'url') {
+            // Browser OAuth is active; wait for callback server completion or signal abort
             return new Promise((resolve) => {
-              const onAbort = () => resolve('');
               if (req.signal?.aborted) return resolve('');
-              req.signal?.addEventListener('abort', onAbort, { once: true });
-
-              rl.question('Waiting for browser authorization... (or paste code/URL here if on another device): ')
-                .then((ans) => {
-                  req.signal?.removeEventListener('abort', onAbort);
-                  resolve(ans.trim());
-                })
-                .catch(() => resolve(''));
+              req.signal?.addEventListener('abort', () => resolve(''), { once: true });
             });
           }
-          return rl.question(`${req.message} `);
+          // Direct secret / text prompts (e.g. entering API key)
+          return (await rl.question(`${req.message} `)).trim();
         },
         notify(event: AuthEvent) {
           if (event.type === 'auth-url') {
             console.log(`\nOpening browser for authorization...`);
-            console.log(`Authorize URL:\n  ${event.url}\n`);
+            console.log(`If your browser does not open automatically, visit:\n  ${event.url}\n`);
             openBrowser(event.url);
           } else if (event.type === 'browser-opened') {
             console.log(`[Browser opened for authorization]`);
           } else if (event.type === 'code-received') {
-            console.log(`\n✔ Authorization code received from browser! Finalizing token...`);
+            console.log(`[Authorization code received! Finalizing token...]`);
           } else if (event.type === 'progress') {
             console.log(`[${event.message}]`);
           } else if (event.type === 'slow-down') {
