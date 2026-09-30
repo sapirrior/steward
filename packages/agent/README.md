@@ -1,16 +1,16 @@
-# A sub package named agents for Steward for orchestrating LLM interactions, tool executions, and system loops
+# @steward/agent
 
-This package is responsible for agent loops, tool definition and execution, chat modes and policy, skill discovery, and session orchestration using `@steward/ai`.
+The `@steward/agent` package provides the agent loop, tool definition and execution, chat modes and policy, skill discovery, lifecycle hooks runtime, and core session and infrastructure services for Steward using `@steward/ai`.
 
 ---
 
 ## File & Function Breakdown
 
-### Engine Modules (`engine/` Sub-directory)
+### Engine Modules (`src/engine/`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, turn execution, and lifecycle hook orchestration. | Injected with `@steward/ai` `AIEngine` and `@steward/plugins` `HookRuntime`. |
+| `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, turn execution, and lifecycle hook orchestration. | Injected with `@steward/ai` `createAI()` instance and `HookRuntime`. |
 | `turn-context.ts` | `prepareTurn` | Function | Prepares execution environment, checkpoint tracker, and event logging for a turn. | Builds canonical `Message` and plain `ToolSpec` array. |
 | `agent-runner.ts` | `runAgentTurn` | Function | Executes multi-step agent turn, dispatching tools sequentially, invoking lifecycle callbacks (`beforeToolUse`, `afterToolUse`, `toolUseFailure`, `agentStop`), and emitting lifecycle events. | Pure loop over `@steward/ai` stream with callback seams. |
 | `system-prompt.ts` | `buildSystemPrompt` / `buildSystemPromptSections` / `diffSystemPromptSections` | Function | Assembles dynamic, modular system instructions, sections, and diff patches including workspace context, mode policy, and skills. | Injects mode rules and deduplicated guidelines. |
@@ -18,13 +18,13 @@ This package is responsible for agent loops, tool definition and execution, chat
 
 ---
 
-### Tools (`tools/` Sub-directory)
+### Tools (`src/tools/`)
 
-Every tool has an implementation file in `tools/` and a corresponding schema definition registered in `ToolCatalog`.
+Every tool has an implementation file in `src/tools/` and a corresponding schema definition registered in `ToolCatalog`.
 
 | File | Tool Name | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- |
-| `catalog.ts` | `ToolCatalog` | Central tool registry converting Zod schemas to JSON schema `ToolSpec` and dispatching execution. | Validates access permissions before execution. |
+| `catalog.ts` | `ToolCatalog` / `defaultToolCatalog` | Central tool registry converting Zod schemas to JSON schema `ToolSpec` and dispatching execution. | Validates access permissions before execution. |
 | `read-file/` | `read_file` | Reads the full content of a workspace file with line numbers. | Bounded path resolution; returns line count and content. |
 | `write-file/` | `write_file` | Creates a new file or completely overwrites an existing file. | Requires user permission for new files or destructive overwrites; records CAS checkpoint pre-image. |
 | `edit-file/` | `edit_file` | Performs exact string replacements in an existing file. | Requires user permission; shows diff preview; records CAS checkpoint pre-image. |
@@ -43,7 +43,7 @@ Every tool has an implementation file in `tools/` and a corresponding schema def
 
 ---
 
-### Policy & Modes (`policy/` Sub-directory)
+### Policy & Modes (`src/policy/`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
@@ -52,7 +52,32 @@ Every tool has an implementation file in `tools/` and a corresponding schema def
 | | `cycleMode` | Function | Cycles to the next available chat mode (`normal -> chat -> review -> build`). | Invoked by keyboard shortcut `Ctrl+B`. |
 | | `listModes` / `findMode` | Function | Lists metadata for all modes or searches mode by query. | Used by `/mode` slash command palette. |
 | | `isAllowed` | Function | Evaluates if a tool access level is permitted in the given mode. | Enforces tool permission boundaries. |
-| `mode.ts` (engine) | Re-exports | Module | Re-exports canonical policy modes for engine backwards compatibility. | Avoids duplicate state. |
+
+---
+
+### Lifecycle Hooks Runtime (`src/hooks/`)
+
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `runtime.ts` | `HookRuntime` | Class | Executes lifecycle hooks sequentially across events (`SessionStart`, `UserPromptSubmit`, `BeforeToolUse`, `AfterToolUse`, `ToolUseFailure`, `AgentStop`). | Handles process spawns, timeouts, matchers, and aggregation. |
+| `config.ts` | `loadHooksConfig` / `compileHooksConfig` | Function | Discovers and compiles `.steward/hooks.json` (project) and `~/.steward/hooks.json` (user). | Validates schema and pre-compiles regex matchers. |
+| `matcher.ts` | `compileMatcher` / `matchesEvent` | Function | Compiles glob / pipe pattern matchers (`bash\|write_file`, `*`) against hook trigger events. | Pre-compiled regex matching. |
+| `types.ts` | `HookEvent` / `HookResult` | Type | Type definitions for hook declarations, triggers, and execution outputs. | Ephemeral context protocol. |
+
+---
+
+### Services Subsystems (`src/services/`)
+
+| File / Subsystem | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `session/store.ts` | `listSessions` / `loadSession` / `saveSession` | Function | Manages Session Schema v1 persistence in `~/.steward/sessions/`. | Validates schema with Zod; supports atomic JSON writes. |
+| `session/logs/store.ts` | `SessionLogWriter` / `loadSessionLog` | Class / Fn | Writes and loads structured JSONL presentation logs (`~/.steward/session-logs/<date>/<id>.jsonl`). | Appends streaming presentation events per turn. |
+| `checkpoint/cas.ts` | `ContentAddressedStore` | Class | Content-addressed storage for file pre-images and content hashes. | SHA-256 keyed blob storage in `~/.steward/checkpoints/cas/`. |
+| `checkpoint/rewind.ts` | `executeRewind` | Function | Performs atomic workspace rollback to previous turns. | Restores pre-images and truncates session turns atomically. |
+| `tasks/manager.ts` | `TaskManager` | Class | Manages background shell tasks, streaming tail buffers, and process lifecycle. | Bounded ring buffer for task output streaming. |
+| `config/settings.ts` | `loadSettings` / `saveSettings` | Function | Reads and writes user preferences in `~/.steward/settings.json`. | Stores default model, theme, effort, and mode. |
+| `config/trust.ts` | `isFolderTrusted` / `trustFolder` | Function | Manages trusted workspace folder list in `~/.steward/trusted-folders.json`. | Prevents arbitrary hook execution in untrusted paths. |
+| `logging/error-logger.ts` | `logError` / `classifyError` | Function | Classifies runtime errors and appends structured error logs to `~/.steward/errors.jsonl`. | Categorizes errors into system, permission, model, and network. |
 
 ---
 
