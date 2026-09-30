@@ -175,4 +175,56 @@ describe('transform/messages — Cross-Model Handoff', () => {
     expect(normalizedTcId).not.toContain('@');
     expect(toolMsg.content[0].toolCallId).toBe(normalizedTcId);
   });
+
+  it('preserves image content when target model supports images', () => {
+    const visionModel: Model = {
+      ...claudeModel,
+      input: ['text', 'image'],
+    };
+
+    const messages: Message[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Analyze this image:' },
+          { type: 'image', mimeType: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' },
+        ],
+      },
+    ];
+
+    const res = transformMessages(messages, visionModel);
+    const userMsg = res[0] as UserMessage;
+    expect(Array.isArray(userMsg.content)).toBe(true);
+    const parts = userMsg.content as Array<{ type: string; text?: string; data?: string }>;
+    expect(parts).toHaveLength(2);
+    expect(parts[0].type).toBe('text');
+    expect(parts[1].type).toBe('image');
+    expect(parts[1].data).toBeDefined();
+  });
+
+  it('downgrades image content to text placeholder when model lacks vision support', () => {
+    const textOnlyModel: Model = {
+      ...claudeModel,
+      input: ['text'],
+    };
+
+    const messages: Message[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Here is a screenshot:' },
+          { type: 'image', mimeType: 'image/jpeg', data: 'dGVzdA==' },
+        ],
+      },
+    ];
+
+    const res = transformMessages(messages, textOnlyModel);
+    const userMsg = res[0] as UserMessage;
+    expect(Array.isArray(userMsg.content)).toBe(true);
+    const parts = userMsg.content as Array<{ type: string; text?: string }>;
+    expect(parts).toHaveLength(2);
+    expect(parts[0].text).toBe('Here is a screenshot:');
+    expect(parts[1].type).toBe('text');
+    expect(parts[1].text).toBe('[image omitted: model does not support images]');
+  });
 });

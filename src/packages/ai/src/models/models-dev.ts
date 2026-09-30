@@ -205,10 +205,10 @@ export function parseModelsDevModel(
 
 /** Check if model supports image inputs */
 export function supportsImages(model: Model): boolean {
-  return model.input.includes('image');
+  return Array.isArray(model?.input) ? model.input.includes('image') : false;
 }
 
 /** Check if model supports reasoning */
 export function supportsReasoning(model: Model): boolean {
-  return model.reasoning;
+  return Boolean(model?.reasoning);
 }

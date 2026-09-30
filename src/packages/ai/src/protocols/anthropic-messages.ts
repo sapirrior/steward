@@ -50,11 +50,32 @@ export async function anthropicMessagesProtocol(
     }
 
     if (msg.role === 'user') {
-      const text = typeof msg.content === 'string' ? msg.content : msg.content.map((c) => c.text).join('\n');
-      apiMessages.push({
-        role: 'user',
-        content: [{ type: 'text', text: sanitizeSurrogates(text) }],
-      });
+      if (typeof msg.content === 'string') {
+        apiMessages.push({
+          role: 'user',
+          content: [{ type: 'text', text: sanitizeSurrogates(msg.content) }],
+        });
+      } else {
+        const blocks: unknown[] = [];
+        for (const b of msg.content) {
+          if (b.type === 'text') {
+            blocks.push({ type: 'text', text: sanitizeSurrogates(b.text) });
+          } else if (b.type === 'image') {
+            if (!b.data || !b.mimeType) {
+              throw new AIError('Invalid image content: missing base64 data or mimeType', { code: 'invalid-request' });
+            }
+            blocks.push({
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: b.mimeType,
+                data: b.data,
+              },
+            });
+          }
+        }
+        apiMessages.push({ role: 'user', content: blocks });
+      }
       continue;
     }
 
@@ -86,10 +107,28 @@ export async function anthropicMessagesProtocol(
       const toolResults: unknown[] = [];
       for (const res of msg.content) {
         const outStr = typeof res.output === 'string' ? res.output : JSON.stringify(res.output);
+        const resultContents: unknown[] = [
+          { type: 'text', text: sanitizeSurrogates(outStr) },
+        ];
+        if (res.images && res.images.length > 0) {
+          for (const img of res.images) {
+            if (!img.data || !img.mimeType) {
+              throw new AIError('Invalid image content: missing base64 data or mimeType', { code: 'invalid-request' });
+            }
+            resultContents.push({
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: img.mimeType,
+                data: img.data,
+              },
+            });
+          }
+        }
         toolResults.push({
           type: 'tool_result',
           tool_use_id: res.toolCallId,
-          content: sanitizeSurrogates(outStr),
+          content: resultContents.length === 1 ? sanitizeSurrogates(outStr) : resultContents,
           is_error: res.isError,
         });
       }

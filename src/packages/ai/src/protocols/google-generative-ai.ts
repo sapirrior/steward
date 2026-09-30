@@ -77,11 +77,27 @@ export async function googleGenerativeAIProtocol(
     }
 
     if (msg.role === 'user') {
-      const text =
-        typeof msg.content === 'string'
-          ? sanitizeSurrogates(msg.content)
-          : msg.content.map((c) => sanitizeSurrogates(c.text)).join('\n');
-      contents.push({ role: 'user', parts: [{ text }] });
+      if (typeof msg.content === 'string') {
+        contents.push({ role: 'user', parts: [{ text: sanitizeSurrogates(msg.content) }] });
+      } else {
+        const parts: unknown[] = [];
+        for (const b of msg.content) {
+          if (b.type === 'text') {
+            parts.push({ text: sanitizeSurrogates(b.text) });
+          } else if (b.type === 'image') {
+            if (!b.data || !b.mimeType) {
+              throw new AIError('Invalid image content: missing base64 data or mimeType', { code: 'invalid-request' });
+            }
+            parts.push({
+              inlineData: {
+                mimeType: b.mimeType,
+                data: b.data,
+              },
+            });
+          }
+        }
+        contents.push({ role: 'user', parts });
+      }
       continue;
     }
 
@@ -119,6 +135,7 @@ export async function googleGenerativeAIProtocol(
 
     if (msg.role === 'tool') {
       const parts: unknown[] = [];
+      const imageParts: unknown[] = [];
       for (const res of msg.content) {
         const outStr = typeof res.output === 'string' ? res.output : JSON.stringify(res.output);
         parts.push({
@@ -127,8 +144,27 @@ export async function googleGenerativeAIProtocol(
             response: { result: sanitizeSurrogates(outStr) },
           },
         });
+        if (res.images && res.images.length > 0) {
+          for (const img of res.images) {
+            if (!img.data || !img.mimeType) {
+              throw new AIError('Invalid image content: missing base64 data or mimeType', { code: 'invalid-request' });
+            }
+            imageParts.push({
+              inlineData: {
+                mimeType: img.mimeType,
+                data: img.data,
+              },
+            });
+          }
+        }
       }
       contents.push({ role: 'user', parts });
+      if (imageParts.length > 0) {
+        contents.push({
+          role: 'user',
+          parts: [{ text: 'Images from tool result:' }, ...imageParts],
+        });
+      }
     }
   }
 

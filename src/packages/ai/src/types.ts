@@ -45,6 +45,16 @@ export interface TextContent {
   textSignature?: string;
 }
 
+export type ImageMimeType = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp';
+
+export interface ImageContent {
+  type: 'image';
+  data: string;
+  mimeType: ImageMimeType;
+}
+
+export type UserContent = TextContent | ImageContent;
+
 export interface ThinkingContent {
   type: 'thinking';
   thinking: string;
@@ -71,7 +81,7 @@ export interface SystemMessage {
 
 export interface UserMessage {
   role: 'user';
-  content: string | readonly TextContent[];
+  content: string | readonly (TextContent | ImageContent)[];
 }
 
 export interface ToolResultContent {
@@ -79,6 +89,7 @@ export interface ToolResultContent {
   toolCallId: string;
   toolName: string;
   output: JsonValue;
+  images?: readonly ImageContent[];
   isError?: boolean;
 }
 

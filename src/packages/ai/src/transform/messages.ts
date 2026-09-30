@@ -23,9 +23,11 @@
  *    - Flatten/guarantee valid string or TextContent in messages.
  */
 
+import { supportsImages } from '../models/catalog.js';
 import type {
   AssistantContent,
   AssistantMessage,
+  ImageContent,
   Message,
   Model,
   TextContent,
@@ -33,6 +35,8 @@ import type {
   ToolCallContent,
   ToolMessage,
   ToolResultContent,
+  UserContent,
+  UserMessage,
 } from '../types.js';
 
 /**
@@ -60,10 +64,27 @@ export function transformMessages(
   normalizeToolId: (id: string) => string = defaultNormalizeToolCallId,
 ): Message[] {
   const toolCallIdMap = new Map<string, string>();
+  const hasVision = supportsImages(targetModel);
 
   // Pass 1: Content normalization and ID mapping
   const transformedPass1: Message[] = messages.map((msg) => {
-    if (msg.role === 'system' || msg.role === 'user') {
+    if (msg.role === 'system') {
+      return msg;
+    }
+
+    if (msg.role === 'user') {
+      const userMsg = msg as UserMessage;
+      if (typeof userMsg.content === 'string') return msg;
+
+      if (!hasVision) {
+        const textOnlyContent: TextContent[] = userMsg.content.map((b) => {
+          if (b.type === 'image') {
+            return { type: 'text', text: '[image omitted: model does not support images]' };
+          }
+          return b;
+        });
+        return { ...userMsg, content: textOnlyContent };
+      }
       return msg;
     }
 
@@ -71,10 +92,19 @@ export function transformMessages(
       const toolMsg = msg as ToolMessage;
       const updatedContent: ToolResultContent[] = toolMsg.content.map((res) => {
         const mappedId = toolCallIdMap.get(res.toolCallId);
+        let currentRes = res;
         if (mappedId && mappedId !== res.toolCallId) {
-          return { ...res, toolCallId: mappedId };
+          currentRes = { ...res, toolCallId: mappedId };
         }
-        return res;
+        if (!hasVision && currentRes.images && currentRes.images.length > 0) {
+          const outStr = typeof currentRes.output === 'string' ? currentRes.output : JSON.stringify(currentRes.output);
+          return {
+            ...currentRes,
+            images: undefined,
+            output: `${outStr}\n[image omitted: model does not support images]`,
+          };
+        }
+        return currentRes;
       });
       return { ...toolMsg, content: updatedContent };
     }
