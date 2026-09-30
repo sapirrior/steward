@@ -327,7 +327,11 @@ export async function openAIResponsesProtocol(
         if (resp?.usage && typeof resp.usage === 'object') {
           const u = resp.usage as Record<string, unknown>;
           if (typeof u.input_tokens === 'number') usage.input = u.input_tokens;
+          else if (typeof u.prompt_tokens === 'number') usage.input = u.prompt_tokens;
+
           if (typeof u.output_tokens === 'number') usage.output = u.output_tokens;
+          else if (typeof u.completion_tokens === 'number') usage.output = u.completion_tokens;
+
           if (typeof u.total_tokens === 'number') {
             usage.total = u.total_tokens;
           } else {

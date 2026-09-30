@@ -306,6 +306,25 @@ export async function anthropicMessagesProtocol(
         continue;
       }
 
+      // Check for usage on any chunk (message_start, message_delta, or top-level usage)
+      const rawUsage =
+        (eventData.message as Record<string, unknown> | undefined)?.usage ??
+        (eventData.delta as Record<string, unknown> | undefined)?.usage ??
+        eventData.usage;
+
+      if (rawUsage && typeof rawUsage === 'object') {
+        const u = rawUsage as Record<string, unknown>;
+        if (typeof u.input_tokens === 'number') usage.input = u.input_tokens;
+        else if (typeof u.prompt_tokens === 'number') usage.input = u.prompt_tokens;
+
+        if (typeof u.output_tokens === 'number') usage.output = u.output_tokens;
+        else if (typeof u.completion_tokens === 'number') usage.output = u.completion_tokens;
+
+        if (typeof u.total_tokens === 'number') usage.total = u.total_tokens;
+        if (typeof u.cache_read_input_tokens === 'number') usage.cacheRead = u.cache_read_input_tokens;
+        if (typeof u.cache_creation_input_tokens === 'number') usage.cacheWrite = u.cache_creation_input_tokens;
+      }
+
       const eventType =
         (typeof sse.event === 'string' && sse.event) ||
         (typeof eventData.type === 'string' && eventData.type) ||
@@ -313,13 +332,6 @@ export async function anthropicMessagesProtocol(
 
       switch (eventType) {
         case 'message_start': {
-          const msg = eventData.message as Record<string, unknown> | undefined;
-          if (msg?.usage && typeof msg.usage === 'object') {
-            const u = msg.usage as Record<string, unknown>;
-            if (typeof u.input_tokens === 'number') usage.input = u.input_tokens;
-            if (typeof u.cache_read_input_tokens === 'number') usage.cacheRead = u.cache_read_input_tokens;
-            if (typeof u.cache_creation_input_tokens === 'number') usage.cacheWrite = u.cache_creation_input_tokens;
-          }
           break;
         }
 

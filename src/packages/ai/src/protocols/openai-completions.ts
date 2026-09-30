@@ -292,15 +292,25 @@ export async function openAICompletionsProtocol(
       if (eventData.usage && typeof eventData.usage === 'object') {
         const u = eventData.usage as Record<string, unknown>;
         if (typeof u.prompt_tokens === 'number') usage.input = u.prompt_tokens;
+        else if (typeof u.input_tokens === 'number') usage.input = u.input_tokens;
+
         if (typeof u.completion_tokens === 'number') usage.output = u.completion_tokens;
+        else if (typeof u.output_tokens === 'number') usage.output = u.output_tokens;
+
         if (typeof u.total_tokens === 'number') {
           usage.total = u.total_tokens;
         } else {
           usage.total = (usage.input ?? 0) + (usage.output ?? 0);
         }
-        const details = u.completion_tokens_details as Record<string, unknown> | undefined;
+
+        const details = (u.completion_tokens_details ?? u.output_tokens_details) as Record<string, unknown> | undefined;
         if (typeof details?.reasoning_tokens === 'number') {
           usage.reasoning = details.reasoning_tokens;
+        }
+
+        const promptDetails = (u.prompt_tokens_details ?? u.input_tokens_details) as Record<string, unknown> | undefined;
+        if (typeof promptDetails?.cached_tokens === 'number') {
+          usage.cacheRead = promptDetails.cached_tokens;
         }
       }
 
