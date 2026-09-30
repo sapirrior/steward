@@ -12,7 +12,6 @@ const TOKEN_URL = 'https://openrouter.ai/api/v1/auth/keys';
 const CALLBACK_HOST = '127.0.0.1';
 const CALLBACK_PORT = 8085;
 const CALLBACK_PATH = '/oauth/callback';
-const REDIRECT_URI = `http://${CALLBACK_HOST}:${CALLBACK_PORT}${CALLBACK_PATH}`;
 
 function parseAuthorizationInput(input: string): string | undefined {
   const value = input.trim();
@@ -69,14 +68,14 @@ async function exchangeAuthorizationCode(
   return {
     type: 'oauth',
     accessToken: body.key,
-    expiresAt: Number.POSITIVE_INFINITY,
+    // OpenRouter keys do not expire
   };
 }
 
 export async function loginOpenRouter(interaction: AuthInteraction): Promise<OAuthCredential> {
   const { verifier, challenge } = await generatePKCE();
   const server = await startOAuthCallbackServer({
-    host: '127.0.0.1',
+    host: CALLBACK_HOST,
     port: CALLBACK_PORT,
     path: CALLBACK_PATH,
     signal: interaction.signal,
@@ -156,12 +155,11 @@ export async function refreshOpenRouter(
 
 export function toOpenRouterAuth(credential: OAuthCredential): ResolvedAuth {
   return {
-    type: 'oauth',
-    token: credential.accessToken,
+    apiKey: credential.accessToken,
+    source: 'oauth',
     headers: {
       'HTTP-Referer': 'https://github.com/sapirrior/steward',
       'X-Title': 'steward',
     },
-    source: 'oauth',
   };
 }

@@ -1,5 +1,5 @@
 /**
- * @steward/ai - Normalized Inference Entry Point & AIEngine
+ * @steward/ai - Normalized Inference Entry Point & AIEngine (Shim for monorepo consumers)
  */
 
 import type {
@@ -12,10 +12,9 @@ import type {
 import { AuthManager, createAuthManager } from './auth/manager.js';
 import { ModelSelectionRequest, resolveModelSelection } from './models/selection.js';
 import { getProviderDescriptor } from './models/registry.js';
-import { streamOpenAI } from './providers/openai.js';
-import { streamAnthropic } from './providers/anthropic.js';
-import { streamGemini } from './providers/gemini.js';
-import { streamOpenAICompatible } from './providers/openai-compatible.js';
+import { createAI } from './client.js';
+import { builtinProviders } from './providers/index.js';
+import { InMemoryCredentialStore } from './auth/memory-store.js';
 import { AIError } from './errors.js';
 
 export interface AIEngineOptions {
@@ -33,77 +32,15 @@ export interface AIEngine {
 export function streamInference(
   request: InferenceRequest,
   authManager: AuthManager = createAuthManager(),
-  customBaseUrl?: string,
+  _customBaseUrl?: string,
 ): InferenceStream {
-  const provider = request.model.provider;
+  const store = new InMemoryCredentialStore();
+  const ai = createAI({
+    credentials: store,
+    providers: builtinProviders(),
+  });
 
-  const getStream = async (): Promise<InferenceStream> => {
-    let descriptor;
-    try {
-      descriptor = getProviderDescriptor(provider);
-    } catch {
-      throw new AIError(`Unsupported provider: "${provider}"`, {
-        code: 'invalid-request',
-        provider,
-      });
-    }
-
-    const resolvedAuth = await authManager.resolve(provider, request.abortSignal);
-    if (!resolvedAuth && provider !== 'custom' && provider !== 'ollama') {
-      throw new AIError(`No credentials configured for provider: ${provider}`, {
-        code: 'auth',
-        provider,
-      });
-    }
-
-    const auth = resolvedAuth ?? {
-      type: 'api-key',
-      token: 'none',
-      source: 'custom',
-    };
-
-    switch (descriptor.protocol) {
-      case 'anthropic-messages':
-        return streamAnthropic({ request, auth });
-      case 'gemini':
-        return streamGemini({ request, auth });
-      case 'openai-chat':
-        return streamOpenAI({ request, auth });
-      case 'openai-compatible':
-        return streamOpenAICompatible({ request, auth, customBaseUrl });
-      case 'openai-responses':
-        throw new AIError(
-          `Protocol "openai-responses" is not yet implemented for provider "${provider}"`,
-          {
-            code: 'invalid-request',
-            provider,
-          },
-        );
-      default:
-        throw new AIError(
-          `Unsupported protocol "${descriptor.protocol}" for provider "${provider}"`,
-          {
-            code: 'invalid-request',
-            provider,
-          },
-        );
-    }
-  };
-
-  const streamPromise = getStream();
-
-  return {
-    async *[Symbol.asyncIterator]() {
-      const activeStream = await streamPromise;
-      for await (const event of activeStream) {
-        yield event;
-      }
-    },
-    async result() {
-      const activeStream = await streamPromise;
-      return await activeStream.result();
-    },
-  };
+  return ai.stream(request);
 }
 
 export class DefaultAIEngine implements AIEngine {
@@ -115,19 +52,34 @@ export class DefaultAIEngine implements AIEngine {
     this.customBaseUrl = options?.customBaseUrl;
   }
 
-  public stream(request: InferenceRequest): InferenceStream {
+  stream(request: InferenceRequest): InferenceStream {
     return streamInference(request, this.auth, this.customBaseUrl);
   }
 
-  public async resolveModel(request?: ModelSelectionRequest): Promise<ModelSelection> {
+  async resolveModel(request?: ModelSelectionRequest): Promise<ModelSelection> {
     return await resolveModelSelection(request, {
-      isConfigured: async (p) => {
-        const status = await this.auth.getStatus(p);
-        return status.configured;
+      isConfigured: async (provider: ProviderId) => {
+        const resolved = await this.auth.resolve(provider);
+        return Boolean(resolved);
       },
       getSavedSelection: () => undefined,
-      getCustomModelName: () => process.env.CUSTOM_API_MODEL_NAME,
+      getCustomModelName: () => undefined,
     });
+  }
+
+  listModels(provider?: ProviderId): readonly ModelDescriptor[] {
+    if (!provider) {
+      return [];
+    }
+    const desc = getProviderDescriptor(provider);
+    return [
+      {
+        id: desc.defaultModel,
+        name: desc.defaultModel,
+        provider,
+        reasoning: desc.reasoning,
+      },
+    ];
   }
 }
 

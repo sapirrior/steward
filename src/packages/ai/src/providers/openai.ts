@@ -1,28 +1,35 @@
 /**
- * @steward/ai - OpenAI Provider Adapter (Chat Completions)
+ * @steward/ai - OpenAI Provider Definition
  */
 
-import { streamOpenAICompatible } from './openai-compatible.js';
-import type { InferenceRequest, InferenceStream } from '../types.js';
-import type { ResolvedAuth } from '../auth/types.js';
+import type { Provider } from '../client.js';
+import { envApiKeyAuth } from '../auth/api-key.js';
+import { openAIResponsesProtocol } from '../protocols/openai-responses.js';
+import { openAICompletionsProtocol } from '../protocols/openai-completions.js';
+import { fetchModelsDevCatalog } from '../models/catalog.js';
+import type { Model } from '../types.js';
 
-export interface OpenAIStreamOptions {
-  request: InferenceRequest;
-  auth: ResolvedAuth;
-}
+let cachedModels: Model[] = [];
 
-export function streamOpenAI(options: OpenAIStreamOptions): InferenceStream {
-  const { request, auth } = options;
-  return streamOpenAICompatible({
-    request,
-    auth,
-    profile: {
-      provider: 'openai',
-      baseUrl: 'https://api.openai.com/v1',
-      supportsReasoning: true,
-      reasoningFormat: 'openai',
-      apiPath: '/chat/completions',
-      requiresApiKey: true,
+export function openAIProvider(): Provider {
+  return {
+    id: 'openai',
+    name: 'OpenAI',
+    baseUrl: 'https://api.openai.com/v1',
+    defaultModelId: 'gpt-5.4',
+    auth: {
+      apiKey: envApiKeyAuth(['OPENAI_API_KEY']),
     },
-  });
+    models: () => cachedModels,
+    async fetchModels(_auth, fetchFn) {
+      const catalog = await fetchModelsDevCatalog({ fetch: fetchFn });
+      const filtered = catalog.filter((m) => m.provider === 'openai');
+      if (filtered.length > 0) cachedModels = [...filtered];
+      return cachedModels;
+    },
+    streams: {
+      'openai-responses': openAIResponsesProtocol,
+      'openai-completions': openAICompletionsProtocol,
+    },
+  };
 }

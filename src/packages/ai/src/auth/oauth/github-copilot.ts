@@ -6,7 +6,6 @@ import { pollOAuthDeviceCodeFlow } from '../device-code.js';
 import type { AuthInteraction, OAuthCredential, ResolvedAuth } from '../types.js';
 import { AIError } from '../../errors.js';
 
-// Decoded GitHub Copilot Client ID: "Iv1.b507a08c87ecfe98"
 const CLIENT_ID = 'Iv1.b507a08c87ecfe98';
 
 export const COPILOT_HEADERS = {
@@ -29,12 +28,9 @@ interface DeviceCodeResponse {
 interface CopilotTokenResponse {
   token: string;
   expires_at: number;
-  endpoints?: {
-    api?: string;
-  };
 }
 
-function getBaseUrlFromToken(token: string): string {
+export function getBaseUrlFromToken(token: string): string {
   const match = token.match(/proxy-ep=([^;]+)/);
   if (!match) return 'https://api.individual.githubcopilot.com';
   const proxyHost = match[1];
@@ -45,7 +41,6 @@ function getBaseUrlFromToken(token: string): string {
 export async function loginGitHubCopilot(interaction: AuthInteraction): Promise<OAuthCredential> {
   const signal = interaction.signal;
 
-  // 1. Request device code
   let deviceRes: Response;
   try {
     deviceRes = await fetch('https://github.com/login/device/code', {
@@ -82,7 +77,6 @@ export async function loginGitHubCopilot(interaction: AuthInteraction): Promise<
   const deviceData = (await deviceRes.json()) as DeviceCodeResponse;
   const { device_code, user_code, verification_uri, interval, expires_in } = deviceData;
 
-  // 2. Notify user with the verification URL and user code
   interaction.notify({
     type: 'device-code',
     userCode: user_code,
@@ -90,7 +84,6 @@ export async function loginGitHubCopilot(interaction: AuthInteraction): Promise<
     expiresInSeconds: expires_in,
   });
 
-  // 3. Poll for the GitHub access token
   const githubAccessToken = await pollOAuthDeviceCodeFlow<string>({
     intervalSeconds: interval,
     expiresInSeconds: expires_in,
@@ -140,10 +133,7 @@ export async function loginGitHubCopilot(interaction: AuthInteraction): Promise<
     },
   });
 
-  // 4. Exchange GitHub access token for Copilot session token
-  const copilotCreds = await refreshGitHubCopilotToken(githubAccessToken, signal);
-
-  return copilotCreds;
+  return await refreshGitHubCopilotToken(githubAccessToken, signal);
 }
 
 export async function refreshGitHubCopilot(
@@ -203,17 +193,14 @@ async function refreshGitHubCopilotToken(
 export function toGitHubCopilotAuth(credential: OAuthCredential): ResolvedAuth {
   const baseUrl = getBaseUrlFromToken(credential.accessToken);
   return {
-    type: 'oauth',
-    token: credential.accessToken,
+    apiKey: credential.accessToken,
     source: 'oauth',
+    baseUrl,
     headers: {
       ...COPILOT_HEADERS,
       'X-GitHub-Api-Version': COPILOT_API_VERSION,
       'Openai-Intent': 'conversation-edits',
       'X-Initiator': 'agent',
-    },
-    extra: {
-      baseUrl,
     },
   };
 }
