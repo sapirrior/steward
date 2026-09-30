@@ -52,6 +52,11 @@ export interface Provider {
    */
   fetchModels?(auth: ResolvedAuth, fetchFn: typeof fetch, signal?: AbortSignal): Promise<readonly Model[]>;
   /**
+   * Optional provider policy for credential-specific model availability
+   * (e.g. GitHub Copilot subscription-specific enabled models).
+   */
+  filterModels?(models: readonly Model[], credential?: Credential): readonly Model[];
+  /**
    * Map of protocol id → stream function.
    * A provider may support multiple protocols (e.g. Copilot: 3 protocols).
    */
@@ -72,6 +77,8 @@ export interface AI {
 
   models(providerId?: ProviderId): readonly Model[];
   model(providerId: ProviderId, modelId: string): Model | undefined;
+  /** Returns models only for configured providers, applying credential filters. */
+  availableModels(providerId?: ProviderId): Promise<readonly Model[]>;
 
   authStatus(providerId: ProviderId): Promise<AuthStatus>;
   login(providerId: ProviderId, method: 'api-key' | 'oauth', interaction: AuthInteraction): Promise<Credential>;
@@ -133,6 +140,29 @@ export function createAI(opts: CreateAIOptions): AI {
 
     model(providerId: ProviderId, modelId: string): Model | undefined {
       return registry.get(providerId)?.models().find((m) => m.id === modelId);
+    },
+
+    async availableModels(providerId?: ProviderId): Promise<readonly Model[]> {
+      const targetProviders = providerId
+        ? [registry.get(providerId)].filter(Boolean)
+        : [...registry.values()];
+
+      const available: Model[] = [];
+      for (const provider of targetProviders) {
+        if (!provider) continue;
+        try {
+          await resolveAuth(provider);
+          let providerModels = provider.models();
+          if (provider.filterModels) {
+            const stored = await opts.credentials.read(provider.id);
+            providerModels = provider.filterModels(providerModels, stored);
+          }
+          available.push(...providerModels);
+        } catch {
+          // Provider unconfigured or expired without auto-refresh -> skip
+        }
+      }
+      return available;
     },
 
     async authStatus(providerId: ProviderId): Promise<AuthStatus> {
