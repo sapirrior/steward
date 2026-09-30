@@ -55,6 +55,7 @@ describe('protocols/anthropic-messages', () => {
     expect(res.finishReason).toBe('stop');
     expect(res.usage.input).toBe(10);
     expect(res.usage.output).toBe(5);
+    expect(res.usage.total).toBe(15);
     expect(res.message.content[0]).toEqual({ type: 'text', text: 'Hi from Claude!' });
   });
 });
@@ -91,6 +92,7 @@ describe('protocols/openai-completions', () => {
     expect(res.finishReason).toBe('stop');
     expect(res.usage.input).toBe(12);
     expect(res.usage.output).toBe(8);
+    expect(res.usage.total).toBe(20);
     expect(res.message.content).toHaveLength(2);
     expect(res.message.content[0]).toEqual({ type: 'thinking', thinking: 'Thinking deeply...' });
     expect(res.message.content[1]).toEqual({ type: 'text', text: 'Hello world!' });
@@ -128,6 +130,7 @@ describe('protocols/google-generative-ai', () => {
     expect(res.finishReason).toBe('tool-use');
     expect(res.usage.input).toBe(15);
     expect(res.usage.output).toBe(10);
+    expect(res.usage.total).toBe(25);
     expect(res.message.content[0]).toEqual({ type: 'thinking', thinking: 'Analyzing code...' });
     expect(res.message.content[1]).toEqual({
       type: 'tool-call',
@@ -173,6 +176,7 @@ describe('protocols/openai-responses', () => {
     expect(res.finishReason).toBe('tool-use');
     expect(res.usage.input).toBe(20);
     expect(res.usage.output).toBe(15);
+    expect(res.usage.total).toBe(35);
     expect(res.message.content[0]).toEqual({ type: 'thinking', thinking: 'Let us solve this' });
     expect(res.message.content[1]).toEqual({ type: 'text', text: 'Here is the solution' });
     expect(res.message.content[2]).toEqual({
