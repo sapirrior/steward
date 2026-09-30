@@ -25,7 +25,7 @@ export type ProtocolId =
   | 'openai-responses'
   | 'google-generative-ai';
 
-export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';
+export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 
 // ─── JSON primitives ─────────────────────────────────────────────────────────
 
