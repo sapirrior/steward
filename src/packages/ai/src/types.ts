@@ -14,7 +14,6 @@ export type BuiltinProviderId =
   | 'anthropic'
   | 'openai'
   | 'google'
-  | 'github-copilot'
   | 'openrouter';
 
 export type ProviderId = BuiltinProviderId | (string & {});
@@ -122,6 +121,14 @@ export interface ToolSpec {
 
 // ─── Token usage & cost ───────────────────────────────────────────────────────
 
+export interface TokenCost {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  total: number;
+}
+
 export interface TokenUsage {
   input?: number;
   output?: number;
@@ -129,13 +136,7 @@ export interface TokenUsage {
   cacheWrite?: number;
   reasoning?: number;
   /** USD cost breakdown, present when model has pricing data. */
-  cost?: {
-    input: number;
-    output: number;
-    cacheRead: number;
-    cacheWrite: number;
-    total: number;
-  };
+  cost?: TokenCost;
 }
 
 export type FinishReason = 'stop' | 'length' | 'tool-use' | 'error' | 'aborted';
@@ -169,8 +170,22 @@ export interface Model {
    * Values are strings (e.g. effort strings) or numbers (budget tokens).
    */
   thinkingLevelMap?: Partial<Record<ReasoningEffort, string | number | null>>;
-  contextWindow?: number;
+  /** Input modalities supported by this model. */
+  input: readonly ('text' | 'image')[];
+  /** Context window in tokens. */
+  contextWindow: number;
+  /** Max input tokens when different from context window. */
+  maxInputTokens?: number;
+  /** Max output tokens. */
   maxOutputTokens: number;
+  /** Whether the model supports temperature adjustment. */
+  temperature: boolean;
+  /** Field name used for replaying reasoning content. */
+  interleavedReasoningField?: 'reasoning_content' | 'reasoning_details';
+  /** Model status if non-standard. */
+  status?: 'alpha' | 'beta' | 'deprecated';
+  /** Release date ISO string. */
+  releaseDate?: string;
   /** Per-million-token USD pricing. */
   cost?: {
     input: number;
@@ -193,25 +208,18 @@ export interface ModelSelection {
   effort: ReasoningEffort;
 }
 
-export interface ModelDescriptor {
-  id: string;
-  name: string;
-  provider: ProviderId;
-  reasoning?: boolean;
-  contextWindow?: number;
-  maxOutputTokens?: number;
-}
+export type ModelRef = { provider: ProviderId; modelId: string };
 
 // ─── Inference request / stream / result ──────────────────────────────────────
 
 export interface InferenceRequest {
-  model: ModelSelection;
+  model: Model | ModelSelection | ModelRef;
+  effort?: ReasoningEffort;
+  apiKey?: string;
   messages: readonly Message[];
   tools?: readonly ToolSpec[];
   temperature?: number;
   maxTokens?: number;
-  sessionId?: string;
-  cacheRetention?: 'none' | 'short' | 'long';
   /** Extra headers forwarded to the provider. */
   headers?: Record<string, string>;
   abortSignal?: AbortSignal;

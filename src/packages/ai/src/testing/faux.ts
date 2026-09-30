@@ -6,16 +6,15 @@
  *     { type: 'text', text: 'Hello world' },
  *     { type: 'error', message: 'Something went wrong' },
  *   ]);
- *   const ai = createAI({ credentials: new InMemoryCredentialStore(), providers: [faux] });
+ *   const ai = createAI({ providers: [faux] });
  *   const stream = ai.stream({ model: { provider: 'faux', modelId: 'faux-1', effort: 'none' }, messages: [] });
  */
 
 import { AssistantMessageStream } from '../event-stream.js';
 import { AIError } from '../errors.js';
-import type { InMemoryCredentialStore } from '../auth/memory-store.js';
 import type { Provider, ProtocolStream } from '../client.js';
 import type { InferenceRequest, Model } from '../types.js';
-import type { ResolvedAuth } from '../auth/types.js';
+import type { ResolvedAuth } from '../auth.js';
 
 export const FAUX_PROVIDER_ID = 'faux' as const;
 export const FAUX_MODEL_ID = 'faux-1' as const;
@@ -106,14 +105,17 @@ function runScript(
 
 // ─── Faux model ───────────────────────────────────────────────────────────────
 
-const FAUX_MODEL: Model = {
+export const FAUX_MODEL: Model = {
   id: FAUX_MODEL_ID,
   name: 'Faux Model',
   provider: FAUX_PROVIDER_ID,
   protocol: 'openai-completions',
   baseUrl: 'http://localhost:0',
   reasoning: true,
+  input: ['text', 'image'],
+  contextWindow: 128000,
   maxOutputTokens: 4096,
+  temperature: true,
   default: true,
 };
 
@@ -139,18 +141,10 @@ export function createFauxProvider(
   return {
     id: FAUX_PROVIDER_ID,
     name: 'Faux Provider',
-    auth: {
-      apiKey: {
-        envVars: [],
-        resolve: () => ({ source: 'faux', apiKey: 'faux-key' }),
-      },
-    },
+    keyless: true,
     models: () => [FAUX_MODEL],
     streams: {
       'openai-completions': fauxStream,
     },
   };
 }
-
-/** Convenience: a no-op InMemoryCredentialStore for use in tests. */
-export { InMemoryCredentialStore } from '../auth/memory-store.js';

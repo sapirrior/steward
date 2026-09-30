@@ -6,7 +6,6 @@ import type { ProviderId } from './types.js';
 
 export type AIErrorCode =
   | 'auth'
-  | 'oauth'
   | 'network'
   | 'rate-limit'
   | 'invalid-request'

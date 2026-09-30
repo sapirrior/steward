@@ -25,7 +25,7 @@ import type {
   TokenUsage,
   ToolCallContent,
 } from '../types.js';
-import type { ResolvedAuth } from '../auth/types.js';
+import type { ResolvedAuth } from '../auth.js';
 import type { AssistantMessageStream } from '../event-stream.js';
 
 const DISALLOWED_SCHEMA_KEYS = new Set([
@@ -185,10 +185,10 @@ export async function googleGenerativeAIProtocol(
   };
 
   if (auth.apiKey) {
-    if (auth.apiKey.startsWith('AIza') || !auth.headers?.Authorization) {
-      headers['x-goog-api-key'] = auth.apiKey;
-    } else {
+    if (auth.scheme === 'bearer') {
       headers['Authorization'] = `Bearer ${auth.apiKey}`;
+    } else {
+      headers['x-goog-api-key'] = auth.apiKey;
     }
   }
 
@@ -226,7 +226,7 @@ export async function googleGenerativeAIProtocol(
             : 'network';
 
     const message = status === 401 || status === 403
-      ? `Authentication failed (HTTP ${status}): Invalid or missing Google API key/OAuth token. Use /login google to authenticate.`
+      ? `Authentication failed (HTTP ${status}): Invalid or missing Google API key.`
       : isAbort
         ? 'Inference request aborted.'
         : `Google request failed: ${err instanceof Error ? err.message : String(err)}`;

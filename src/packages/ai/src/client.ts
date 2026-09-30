@@ -5,100 +5,109 @@
  * ai.stream() never throws, result() never rejects (§4.4 contract).
  */
 
-import type { AuthContext, AuthInteraction, AuthStatus, Credential, CredentialStore, ProviderAuth, ResolvedAuth } from './auth/types.js';
-import { InMemoryCredentialStore } from './auth/memory-store.js';
-import { resolveAuth } from './auth/resolve.js';
+import {
+  resolveApiKey,
+  type AuthEnvGetter,
+  type AuthOptions,
+  type AuthScheme,
+  type AuthSource,
+  type ResolvedAuth,
+} from './auth.js';
 import { AssistantMessageStream } from './event-stream.js';
 import { AIError } from './errors.js';
-import { inferProtocolForModel } from './models/catalog.js';
+import {
+  MODELS,
+  filterModels,
+  parseModelsDevModel,
+  inferProtocolForModel,
+  type ModelFilter,
+  type ModelsDevApiResponse,
+} from './models/catalog.js';
+import {
+  resolveModelSelection,
+  type ModelSelectionRequest,
+} from './models/selection.js';
+import { builtinProviders } from './providers/index.js';
 import type {
-  BuiltinProviderId,
   InferenceRequest,
+  InferenceResult,
   InferenceStream,
   Model,
+  ModelSelection,
   ProviderId,
   ProtocolId,
 } from './types.js';
 
 // ─── Provider interface ───────────────────────────────────────────────────────
 
-/**
- * Wire protocol stream function — raw fetch, drives the provided stream directly.
- * Returns a Promise that resolves once done/error has been pushed.
- * Must not throw — all failures go through stream.push({ type: 'error', ... }).
- */
 export type ProtocolStream = (
   model: Model,
   request: InferenceRequest,
   auth: ResolvedAuth,
   fetchFn: typeof fetch,
-  stream: import('./event-stream.js').AssistantMessageStream,
+  stream: AssistantMessageStream,
 ) => Promise<void>;
 
-/**
- * A provider definition. Each built-in provider is a small object (~60 lines)
- * that declares its models, auth, and protocol dispatch.
- */
 export interface Provider {
   readonly id: ProviderId;
   readonly name: string;
   readonly baseUrl?: string;
-  readonly auth: ProviderAuth;
-  /** Sync catalog of known models (may be empty before first refreshModels). */
-  models(): readonly Model[];
-  /** Optional: the default model id for this provider. */
-  defaultModelId?: string;
-  /**
-   * Fetch fresh model list from the provider API.
-   * Returns the updated list. Auth is already resolved.
-   */
-  fetchModels?(auth: ResolvedAuth, fetchFn: typeof fetch, signal?: AbortSignal): Promise<readonly Model[]>;
-  /**
-   * Optional provider policy for credential-specific model availability
-   * (e.g. GitHub Copilot subscription-specific enabled models).
-   */
-  filterModels?(models: readonly Model[], credential?: Credential): readonly Model[];
-  /**
-   * Map of protocol id → stream function.
-   * A provider may support multiple protocols (e.g. Copilot: 3 protocols).
-   */
+  readonly envVars?: readonly string[];
+  readonly authScheme?: AuthScheme;
+  readonly keyless?: boolean;
+  readonly defaultModelId?: string;
   streams: Partial<Record<ProtocolId, ProtocolStream>>;
-  /**
-   * Optional: compute extra headers or baseUrl overrides per-request
-   * (e.g. Copilot's X-Initiator header inferred from last message role).
-   */
   prepare?(model: Model, request: InferenceRequest, auth: ResolvedAuth): { headers?: Record<string, string>; baseUrl?: string };
+}
+
+// ─── Provider & Auth Status ───────────────────────────────────────────────────
+
+export interface ProviderAuthStatus {
+  provider: ProviderId;
+  configured: boolean;
+  source?: AuthSource;
+  envVars: readonly string[];
+}
+
+export interface RefreshCatalogOptions {
+  force?: boolean;
+  signal?: AbortSignal;
 }
 
 // ─── AI interface ─────────────────────────────────────────────────────────────
 
 export interface AI {
   providers(): readonly Provider[];
+  provider(id: ProviderId): Provider | undefined;
   registerProvider(p: Provider): void;
   unregisterProvider(id: ProviderId): void;
 
-  models(providerId?: ProviderId): readonly Model[];
+  models(filter?: ModelFilter | ProviderId): readonly Model[];
   model(providerId: ProviderId, modelId: string): Model | undefined;
-  /** Returns models only for configured providers, applying credential filters. */
-  availableModels(providerId?: ProviderId): Promise<readonly Model[]>;
+  registerModel(model: Model): void;
+  refreshCatalog(opts?: RefreshCatalogOptions): Promise<{ updated: number }>;
 
-  authStatus(providerId: ProviderId): Promise<AuthStatus>;
-  login(providerId: ProviderId, method: 'api-key' | 'oauth', interaction: AuthInteraction): Promise<Credential>;
-  logout(providerId: ProviderId): Promise<void>;
+  /** Returns models only for configured providers. */
+  availableModels(filter?: ModelFilter | ProviderId): Promise<readonly Model[]>;
+
+  isConfigured(providerId: ProviderId): Promise<boolean>;
+  authStatus(providerId: ProviderId): Promise<ProviderAuthStatus>;
+  resolveModel(request?: ModelSelectionRequest): Promise<ModelSelection>;
 
   /**
    * Start a streaming inference. NEVER throws synchronously.
-   * Unknown provider, missing credentials, setup errors → single terminal error event.
+   * Unknown provider, missing credentials, setup errors -> single terminal error event.
    */
   stream(request: InferenceRequest): InferenceStream;
-  complete(request: InferenceRequest): Promise<import('./types.js').InferenceResult>;
+  complete(request: InferenceRequest): Promise<InferenceResult>;
 }
 
 export interface CreateAIOptions {
-  credentials?: CredentialStore;
-  credentialStore?: CredentialStore;
-  authContext?: AuthContext;
+  apiKeys?: Record<string, string | undefined>;
+  getApiKey?: (providerId: string) => string | Promise<string | undefined> | undefined;
+  env?: AuthEnvGetter;
   providers?: readonly Provider[];
+  models?: readonly Model[];
   /** Injectable fetch — defaults to globalThis.fetch. Used for tests and proxies. */
   fetch?: typeof globalThis.fetch;
 }
@@ -106,132 +115,197 @@ export interface CreateAIOptions {
 // ─── Implementation ───────────────────────────────────────────────────────────
 
 export function createAI(opts: CreateAIOptions = {}): AI {
-  const store = opts.credentials ?? opts.credentialStore ?? new InMemoryCredentialStore();
-  const registry = new Map<ProviderId, Provider>();
+  const providersMap = new Map<ProviderId, Provider>();
+  const modelsMap = new Map<string, Model>();
   const fetchFn = opts.fetch ?? globalThis.fetch;
 
-  for (const p of opts.providers ?? []) {
-    registry.set(p.id, p);
+  let catalogEtag: string | undefined;
+  let catalogFetchedAt = 0;
+  const CATALOG_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+  // Seed providers
+  const initialProviders = opts.providers ?? builtinProviders();
+  for (const p of initialProviders) {
+    providersMap.set(p.id, p);
   }
 
-  function resolveAuth(provider: Provider): Promise<ResolvedAuth> {
-    return resolveProviderAuth(provider, store, opts.authContext);
+  // Seed models from static catalog
+  for (const m of MODELS) {
+    modelsMap.set(`${m.provider}/${m.id}`, m);
   }
 
-  return {
+  // Override/add user-provided models
+  for (const m of opts.models ?? []) {
+    modelsMap.set(`${m.provider}/${m.id}`, m);
+  }
+
+  const authOptions: AuthOptions = {
+    apiKeys: opts.apiKeys,
+    getApiKey: opts.getApiKey,
+    env: opts.env,
+  };
+
+  function resolveAuth(provider: Provider, requestApiKey?: string): Promise<ResolvedAuth> {
+    return resolveApiKey(provider, authOptions, requestApiKey);
+  }
+
+  function normalizeFilter(filter?: ModelFilter | ProviderId): ModelFilter | undefined {
+    if (typeof filter === 'string') return { provider: filter };
+    return filter;
+  }
+
+  const ai: AI = {
     providers(): readonly Provider[] {
-      return [...registry.values()];
+      return [...providersMap.values()];
+    },
+
+    provider(id: ProviderId): Provider | undefined {
+      return providersMap.get(id);
     },
 
     registerProvider(p: Provider): void {
-      registry.set(p.id, p);
+      providersMap.set(p.id, p);
     },
 
     unregisterProvider(id: ProviderId): void {
-      registry.delete(id);
+      providersMap.delete(id);
     },
 
-    models(providerId?: ProviderId): readonly Model[] {
-      if (providerId) {
-        return registry.get(providerId)?.models() ?? [];
-      }
-      return [...registry.values()].flatMap((p) => {
-        try { return p.models() as Model[]; } catch { return []; }
-      });
+    models(filter?: ModelFilter | ProviderId): readonly Model[] {
+      const all = [...modelsMap.values()];
+      return filterModels(all, normalizeFilter(filter));
     },
 
     model(providerId: ProviderId, modelId: string): Model | undefined {
-      return registry.get(providerId)?.models().find((m) => m.id === modelId);
+      return modelsMap.get(`${providerId}/${modelId}`);
     },
 
-    async availableModels(providerId?: ProviderId): Promise<readonly Model[]> {
-      const targetProviders = providerId
-        ? [registry.get(providerId)].filter(Boolean)
-        : [...registry.values()];
-
-      const available: Model[] = [];
-      for (const provider of targetProviders) {
-        if (!provider) continue;
-        try {
-          const auth = await resolveAuth(provider);
-          let providerModels = provider.models();
-          if (providerModels.length === 0 && provider.fetchModels) {
-            providerModels = await provider.fetchModels(auth, fetchFn);
-          }
-          if (provider.filterModels) {
-            const stored = await store.read(provider.id);
-            providerModels = provider.filterModels(providerModels, stored);
-          }
-          available.push(...providerModels);
-        } catch {
-          // Provider unconfigured or expired without auto-refresh -> skip
-        }
-      }
-      return available;
+    registerModel(model: Model): void {
+      modelsMap.set(`${model.provider}/${model.id}`, model);
     },
 
-    async authStatus(providerId: ProviderId): Promise<AuthStatus> {
-      const provider = registry.get(providerId);
-      if (!provider) {
-        return { provider: providerId, configured: false };
+    async refreshCatalog(refreshOpts?: RefreshCatalogOptions): Promise<{ updated: number }> {
+      const now = Date.now();
+      if (!refreshOpts?.force && catalogFetchedAt && now - catalogFetchedAt < CATALOG_TTL_MS) {
+        return { updated: 0 };
       }
+
+      const headers: Record<string, string> = { Accept: 'application/json' };
+      if (catalogEtag) headers['If-None-Match'] = catalogEtag;
+
       try {
-        const auth = await resolveAuth(provider);
+        const res = await fetchFn('https://models.dev/api.json', {
+          method: 'GET',
+          headers,
+          signal: refreshOpts?.signal,
+        });
+
+        if (res.status === 304) {
+          catalogFetchedAt = now;
+          return { updated: 0 };
+        }
+
+        if (!res.ok) {
+          return { updated: 0 };
+        }
+
+        const etag = res.headers.get('etag') ?? undefined;
+        if (etag) catalogEtag = etag;
+        catalogFetchedAt = now;
+
+        const data = (await res.json()) as ModelsDevApiResponse;
+        let count = 0;
+
+        for (const [providerKey, providerData] of Object.entries(data)) {
+          if (!providerData.models) continue;
+          const providerId = providerKey as ProviderId;
+
+          for (const rawModel of Object.values(providerData.models)) {
+            const parsed = parseModelsDevModel(providerId, rawModel, {
+              baseUrl: providerData.api,
+              api: providerData.api,
+            });
+            if (parsed) {
+              modelsMap.set(`${providerId}/${parsed.id}`, parsed);
+              count++;
+            }
+          }
+        }
+        return { updated: count };
+      } catch {
+        return { updated: 0 };
+      }
+    },
+
+    async isConfigured(providerId: ProviderId): Promise<boolean> {
+      const p = providersMap.get(providerId);
+      if (!p) return false;
+      try {
+        await resolveAuth(p);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
+    async authStatus(providerId: ProviderId): Promise<ProviderAuthStatus> {
+      const p = providersMap.get(providerId);
+      if (!p) {
+        return { provider: providerId, configured: false, envVars: [] };
+      }
+      const envVars = p.envVars ?? [];
+      try {
+        const auth = await resolveAuth(p);
         return {
           provider: providerId,
           configured: true,
-          source: auth.source as AuthStatus['source'],
+          source: auth.source,
+          envVars,
         };
       } catch {
-        return { provider: providerId, configured: false };
+        return { provider: providerId, configured: false, envVars };
       }
     },
 
-    async login(providerId: ProviderId, method: 'api-key' | 'oauth', interaction: AuthInteraction): Promise<Credential> {
-      const provider = registry.get(providerId);
-      if (!provider) throw new AIError(`Unknown provider: ${providerId}`, { code: 'invalid-request' });
-      if (method === 'oauth') {
-        if (!provider.auth.oauth) throw new AIError(`Provider ${providerId} does not support OAuth`, { code: 'auth' });
-        const cred = await provider.auth.oauth.login(interaction);
-        await store.modify(providerId, async () => cred);
-        return cred;
+    async availableModels(filter?: ModelFilter | ProviderId): Promise<readonly Model[]> {
+      const available: Model[] = [];
+      for (const p of providersMap.values()) {
+        if (await ai.isConfigured(p.id)) {
+          const providerModels = ai.models(p.id);
+          available.push(...providerModels);
+        }
       }
-      // api-key: prompt the user for the key via interaction
-      const key = await interaction.prompt({ type: 'secret', message: `Enter API key for ${provider.name}:` });
-      const cred: Credential = { type: 'api-key', key };
-      await store.modify(providerId, async () => cred);
-      return cred;
+      return filterModels(available, normalizeFilter(filter));
     },
 
-    async logout(providerId: ProviderId): Promise<void> {
-      await store.delete(providerId);
+    async resolveModel(request?: ModelSelectionRequest): Promise<ModelSelection> {
+      return resolveModelSelection(request, {
+        isConfigured: (id) => ai.isConfigured(id),
+      });
     },
 
     stream(request: InferenceRequest): InferenceStream {
       const stream = new AssistantMessageStream();
 
-      // Setup runs async — errors are pushed as terminal error events
       (async () => {
         try {
           const providerId = request.model.provider;
-          const modelId = 'modelId' in request.model ? request.model.modelId : request.model.id;
+          const modelId = 'modelId' in request.model ? request.model.modelId : (request.model as Model).id;
 
-          const provider = registry.get(providerId);
-          if (!provider) {
+          const p = providersMap.get(providerId);
+          if (!p) {
             throw new AIError(`Unknown provider: ${providerId}`, { code: 'invalid-request', provider: providerId });
           }
 
-          // If a full Model with protocol was passed, use it directly
           let model: Model;
-          if ('protocol' in request.model && request.model.protocol) {
+          if ('protocol' in request.model && (request.model as Model).protocol) {
             model = request.model as Model;
           } else {
-            // Find model — allow unknown model ids (new models before catalog update)
-            const found = provider.models().find((m) => m.id === modelId);
-            model = found ?? syntheticModel(providerId, modelId, provider);
+            const found = modelsMap.get(`${providerId}/${modelId}`);
+            model = found ?? syntheticModel(providerId, modelId, p);
           }
 
-          const protocolFn = provider.streams[model.protocol];
+          const protocolFn = p.streams[model.protocol];
           if (!protocolFn) {
             throw new AIError(
               `Provider ${providerId} does not implement protocol ${model.protocol}`,
@@ -239,17 +313,15 @@ export function createAI(opts: CreateAIOptions = {}): AI {
             );
           }
 
-          const auth = await resolveAuth(provider);
+          const auth = await resolveAuth(p, request.apiKey);
 
-          // Merge provider.prepare() overrides into auth
-          const prepared = provider.prepare?.(model, request, auth);
+          const prepared = p.prepare?.(model, request, auth);
           const effectiveAuth: ResolvedAuth = {
             ...auth,
             headers: { ...auth.headers, ...prepared?.headers },
             baseUrl: prepared?.baseUrl ?? auth.baseUrl,
           };
 
-          // Delegate to the protocol — it drives the stream via push()
           await protocolFn(model, request, effectiveAuth, fetchFn, stream);
         } catch (err) {
           stream.push({
@@ -264,36 +336,32 @@ export function createAI(opts: CreateAIOptions = {}): AI {
       return stream;
     },
 
-    async complete(request: InferenceRequest) {
+    async complete(request: InferenceRequest): Promise<InferenceResult> {
       return this.stream(request).result();
     },
   };
+
+  return ai;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function resolveProviderAuth(
-  provider: Provider,
-  store: CredentialStore,
-  context: AuthContext | undefined,
-): Promise<ResolvedAuth> {
-  return resolveAuth(provider, store, context);
-}
-
-/** Synthetic fallback Model for unknown model ids (new models before catalog). */
+/** Synthetic fallback Model for unknown model ids. */
 function syntheticModel(providerId: ProviderId, modelId: string, provider: Provider): Model {
-  const hint = provider.models()[0];
   const inferred = inferProtocolForModel(providerId, modelId);
   const streamKey = Object.keys(provider.streams)[0] as ProtocolId | undefined;
-  const protocol = hint?.protocol ?? (provider.streams[inferred] ? inferred : (streamKey ?? 'openai-completions'));
+  const protocol = provider.streams[inferred] ? inferred : (streamKey ?? 'openai-completions');
 
   return {
     id: modelId,
     name: modelId,
     provider: providerId,
     protocol,
-    baseUrl: hint?.baseUrl ?? provider.baseUrl ?? '',
+    baseUrl: provider.baseUrl ?? 'https://api.openai.com/v1',
     reasoning: false,
+    input: ['text'],
+    contextWindow: 128000,
     maxOutputTokens: 4096,
+    temperature: true,
   };
 }

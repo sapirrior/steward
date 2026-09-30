@@ -5,15 +5,9 @@
  * Prices are per-million tokens. Returns undefined when model has no cost data.
  */
 
-import type { Model, TokenUsage } from '../types.js';
+import type { Model, TokenCost, TokenUsage } from '../types.js';
 
-export interface TokenCost {
-  input: number;
-  output: number;
-  cacheRead: number;
-  cacheWrite: number;
-  total: number;
-}
+export type { TokenCost };
 
 /**
  * Calculates the USD cost for a completed inference.

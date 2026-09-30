@@ -3,22 +3,21 @@ import {
   anthropicProvider,
   openAIProvider,
   googleProvider,
-  githubCopilotProvider,
   openRouterProvider,
   openAICompatibleProvider,
   builtinProviders,
 } from '../src/providers/index.ts';
+import { resolveApiKey } from '../src/auth.ts';
 
 describe('providers/index — builtinProviders', () => {
-  it('instantiates all 5 built-in providers with valid IDs', () => {
+  it('instantiates all 4 built-in providers with valid IDs', () => {
     const providers = builtinProviders();
-    expect(providers).toHaveLength(5);
+    expect(providers).toHaveLength(4);
 
     const ids = providers.map((p) => p.id);
     expect(ids).toContain('anthropic');
     expect(ids).toContain('openai');
     expect(ids).toContain('google');
-    expect(ids).toContain('github-copilot');
     expect(ids).toContain('openrouter');
   });
 
@@ -33,13 +32,7 @@ describe('providers/index — builtinProviders', () => {
     const google = googleProvider();
     expect(google.streams['google-generative-ai']).toBeDefined();
 
-    const copilot = githubCopilotProvider();
-    expect(copilot.streams['anthropic-messages']).toBeDefined();
-    expect(copilot.streams['openai-responses']).toBeDefined();
-    expect(copilot.streams['openai-completions']).toBeDefined();
-
     const openrouter = openRouterProvider();
-    expect(openrouter.streams['openai-completions']).toBeDefined();
     expect(openrouter.streams['anthropic-messages']).toBeDefined();
   });
 
@@ -51,10 +44,10 @@ describe('providers/index — builtinProviders', () => {
       keyless: true,
     });
 
-    const resolved = local.auth.apiKey?.resolve({ type: 'api-key', key: '' });
+    const resolved = await resolveApiKey(local);
     expect(resolved).toBeDefined();
-    expect(resolved?.apiKey).toBe('');
-    expect(resolved?.source).toBe('keyless');
-    expect(resolved?.baseUrl).toBe('http://localhost:11434/v1');
+    expect(resolved.apiKey).toBe('');
+    expect(resolved.source).toBe('keyless');
+    expect(resolved.baseUrl).toBe('http://localhost:11434/v1');
   });
 });

@@ -3,12 +3,7 @@
  */
 
 import type { Provider } from '../client.js';
-import { envApiKeyAuth } from '../auth/api-key.js';
 import { anthropicMessagesProtocol } from '../protocols/anthropic-messages.js';
-import { fetchModelsDevCatalog } from '../models/catalog.js';
-import type { Model } from '../types.js';
-
-let cachedModels: Model[] = [];
 
 export function anthropicProvider(): Provider {
   return {
@@ -16,16 +11,8 @@ export function anthropicProvider(): Provider {
     name: 'Anthropic',
     baseUrl: 'https://api.anthropic.com',
     defaultModelId: 'claude-sonnet-4-5',
-    auth: {
-      apiKey: envApiKeyAuth(['ANTHROPIC_API_KEY']),
-    },
-    models: () => cachedModels,
-    async fetchModels(_auth, fetchFn) {
-      const catalog = await fetchModelsDevCatalog({ fetch: fetchFn });
-      const filtered = catalog.filter((m) => m.provider === 'anthropic');
-      if (filtered.length > 0) cachedModels = [...filtered];
-      return cachedModels;
-    },
+    envVars: ['ANTHROPIC_API_KEY'],
+    authScheme: 'x-api-key',
     streams: {
       'anthropic-messages': anthropicMessagesProtocol,
     },

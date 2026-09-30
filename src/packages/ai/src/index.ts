@@ -26,53 +26,27 @@ export type {
   Message,
   ToolSpec,
   TokenUsage,
-  TokenCost,
   FinishReason,
   AssistantMeta,
   Model,
-  OpenAICompletionsCompat,
-  OpenAIResponsesCompat,
-  AnthropicMessagesCompat,
-  GoogleGenerativeAICompat,
   ProtocolCompat,
   ModelSelection,
-  ModelDescriptor,
   InferenceRequest,
-  TextDeltaEvent,
-  ReasoningDeltaEvent,
-  ToolCallStartEvent,
-  ToolCallDeltaEvent,
-  ToolCallEndEvent,
-  DoneEvent,
-  ErrorEvent,
   InferenceEvent,
   InferenceResult,
   InferenceStream,
 } from './types.js';
 
-// ─── Auth Types & Resolver ───────────────────────────────────────────────────
-export type {
-  ApiKeyCredential,
-  OAuthCredential,
-  Credential,
-  CredentialInfo,
-  CredentialStore,
-  AuthContext,
-  ResolvedAuth,
-  ApiKeyAuth,
-  OAuthAuth,
-  ProviderAuth,
-  AuthPrompt,
-  AuthEvent,
-  AuthInteraction,
-  AuthStatus,
-} from './auth/types.js';
-
-export { InMemoryCredentialStore } from './auth/memory-store.js';
-export { resolveAuth, type ResolveAuthOptions } from './auth/resolve.js';
-export { envApiKeyAuth } from './auth/api-key.js';
-export { generatePKCE } from './auth/pkce.js';
-export { pollOAuthDeviceCodeFlow, type DeviceCodePollOptions } from './auth/device-code.js';
+// ─── Auth ────────────────────────────────────────────────────────────────────
+export {
+  resolveApiKey,
+  defaultEnvGetter,
+  type AuthSource,
+  type AuthScheme,
+  type ResolvedAuth,
+  type AuthEnvGetter,
+  type AuthOptions,
+} from './auth.js';
 
 // ─── Core Runtime ─────────────────────────────────────────────────────────────
 export {
@@ -81,6 +55,7 @@ export {
   type CreateAIOptions,
   type Provider,
   type ProtocolStream,
+  type ProviderAuthStatus,
 } from './client.js';
 
 export { AssistantMessageStream } from './event-stream.js';
@@ -88,12 +63,17 @@ export { AIError, type AIErrorCode, type AIErrorOptions } from './errors.js';
 
 // ─── Models & Catalog ─────────────────────────────────────────────────────────
 export {
-  fetchModelsDevCatalog,
-  parseModelsDevItem,
+  MODELS,
+  PROVIDER_PRESETS,
+  parseModelsDevModel,
   inferProtocolForModel,
-  clearModelsDevCache,
-  type ModelsDevModel,
-  type ModelsDevResponse,
+  supportsImages,
+  supportsReasoning,
+  filterModels,
+  type ProviderPreset,
+  type ModelFilter,
+  type ModelsDevApiResponse,
+  type ModelsDevRawModel,
 } from './models/catalog.js';
 
 export {
@@ -132,7 +112,6 @@ export {
   anthropicProvider,
   openAIProvider,
   googleProvider,
-  githubCopilotProvider,
   openRouterProvider,
   openAICompatibleProvider,
   builtinProviders,
@@ -147,14 +126,3 @@ export { readErrorBody } from './util/error-body.js';
 export { isContextOverflow } from './util/overflow.js';
 export { withRetry, type RetryOptions, type HttpError } from './util/retry.js';
 export { calculateCost } from './util/cost.js';
-
-// ─── Legacy Shims (Preserved for Monorepo Migration in Phase 11) ───────────────
-export {
-  createAIEngine,
-  streamInference,
-  DefaultAIEngine,
-  type AIEngine,
-  type AIEngineOptions,
-} from './inference.js';
-export { fetchAvailableModels, type DiscoveredModel, type ModelDiscoveryResult, type ProviderDiscoveryStatus } from './models/discovery.js';
-export { createAuthManager, DefaultAuthManager, type AuthManager } from './auth/manager.js';

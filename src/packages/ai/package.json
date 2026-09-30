@@ -7,16 +7,23 @@
   "types": "./src/index.ts",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts",
-    "./node": "./src/node/index.ts",
-    "./testing": "./src/testing/faux.ts"
+    ".": {
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./src/index.ts"
+    },
+    "./testing": {
+      "bun": "./src/testing/faux.ts",
+      "import": "./dist/testing/faux.js",
+      "types": "./src/testing/faux.ts"
+    }
   },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "src", "README.md"],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "build": "bun build ./src/index.ts ./src/testing/faux.ts --outdir ./dist --target node",
     "typecheck": "tsc --noEmit",
     "test": "bun test ./tests",
-    "check:invariants": "bun run ./scripts/check-invariants.mjs"
+    "catalog:update": "bun run scripts/generate-catalog.ts"
   },
   "engines": {
     "node": ">=22.19.0"

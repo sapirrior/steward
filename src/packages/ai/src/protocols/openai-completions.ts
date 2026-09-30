@@ -29,7 +29,7 @@ import type {
   TokenUsage,
   ToolCallContent,
 } from '../types.js';
-import type { ResolvedAuth } from '../auth/types.js';
+import type { ResolvedAuth } from '../auth.js';
 import type { AssistantMessageStream } from '../event-stream.js';
 
 interface ToolCallBufferEntry {
@@ -146,8 +146,8 @@ export async function openAICompletionsProtocol(
   }
 
   // 5. Construct URL & Headers
-  const baseUrl = auth.baseUrl || model.baseUrl || 'https://api.openai.com/v1';
-  const url = `${baseUrl.replace(/\/+$/, '')}/chat/completions`;
+  const rawBase = (auth.baseUrl || model.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
+  const url = rawBase.endsWith('/v1') ? `${rawBase}/chat/completions` : `${rawBase}/v1/chat/completions`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -195,7 +195,7 @@ export async function openAICompletionsProtocol(
             : 'network';
 
     const message = status === 401
-      ? `Authentication failed (HTTP 401): Invalid or missing API key for ${model.provider}. Use /login ${model.provider} to authenticate.`
+      ? `Authentication failed (HTTP 401): Invalid or missing API key for ${model.provider}.`
       : isAbort
         ? 'Inference request aborted.'
         : `${model.provider} request failed: ${err instanceof Error ? err.message : String(err)}`;

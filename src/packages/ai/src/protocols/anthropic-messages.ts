@@ -27,7 +27,7 @@ import type {
   ToolCallContent,
   ToolSpec,
 } from '../types.js';
-import type { ResolvedAuth } from '../auth/types.js';
+import type { ResolvedAuth } from '../auth.js';
 import type { AssistantMessageStream } from '../event-stream.js';
 
 export async function anthropicMessagesProtocol(
@@ -153,8 +153,8 @@ export async function anthropicMessagesProtocol(
   }
 
   // 6. Build headers
-  const baseUrl = auth.baseUrl || model.baseUrl || 'https://api.anthropic.com';
-  const url = `${baseUrl.replace(/\/+$/, '')}/v1/messages`;
+  const rawBase = (auth.baseUrl || model.baseUrl || 'https://api.anthropic.com').replace(/\/+$/, '');
+  const url = rawBase.endsWith('/v1') ? `${rawBase}/messages` : `${rawBase}/v1/messages`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -166,10 +166,10 @@ export async function anthropicMessagesProtocol(
   };
 
   if (auth.apiKey) {
-    if (auth.apiKey.startsWith('sk-ant-') || !auth.headers?.Authorization) {
-      headers['x-api-key'] = auth.apiKey;
-    } else {
+    if (auth.scheme === 'bearer') {
       headers['Authorization'] = `Bearer ${auth.apiKey}`;
+    } else {
+      headers['x-api-key'] = auth.apiKey;
     }
   }
 

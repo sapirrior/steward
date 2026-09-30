@@ -25,7 +25,7 @@ import type {
   TokenUsage,
   ToolCallContent,
 } from '../types.js';
-import type { ResolvedAuth } from '../auth/types.js';
+import type { ResolvedAuth } from '../auth.js';
 import type { AssistantMessageStream } from '../event-stream.js';
 
 export async function openAIResponsesProtocol(

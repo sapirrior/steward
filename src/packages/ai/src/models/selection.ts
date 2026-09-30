@@ -16,7 +16,6 @@ export const PROVIDER_SELECTION_PRIORITY: readonly ProviderId[] = [
   'anthropic',
   'openai',
   'google',
-  'github-copilot',
   'openrouter',
 ] as const;
 
@@ -24,7 +23,6 @@ export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
   anthropic: 'claude-sonnet-4-5',
   openai: 'gpt-5.4',
   google: 'gemini-3.5-flash',
-  'github-copilot': 'claude-sonnet-4-5',
   openrouter: 'anthropic/claude-sonnet-4.5',
 };
 
@@ -32,9 +30,6 @@ export function inferProviderFromModelId(modelId: string): ProviderId | null {
   const lower = modelId.trim().toLowerCase();
   if (!lower) return null;
 
-  if (lower.startsWith('copilot/') || lower.startsWith('github-copilot/')) {
-    return 'github-copilot';
-  }
   if (lower.startsWith('gemini-') || lower.startsWith('gemma-')) {
     return 'google';
   }

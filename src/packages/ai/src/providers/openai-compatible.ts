@@ -8,7 +8,7 @@
  */
 
 import type { Provider } from '../client.js';
-import type { Model, OpenAICompletionsCompat } from '../types.js';
+import type { Model, ProtocolCompat } from '../types.js';
 import { openAICompletionsProtocol } from '../protocols/openai-completions.js';
 
 export interface OpenAICompatibleProviderOptions {
@@ -19,12 +19,12 @@ export interface OpenAICompatibleProviderOptions {
   envVars?: readonly string[];
   keyless?: boolean;
   models?: readonly Model[];
-  compat?: OpenAICompletionsCompat;
+  compat?: ProtocolCompat;
   defaultModelId?: string;
 }
 
 export function openAICompatibleProvider(options: OpenAICompatibleProviderOptions): Provider {
-  const { id, name, baseUrl, apiKey, envVars = [], keyless = false, compat, defaultModelId } = options;
+  const { id, name, baseUrl, envVars = [], keyless = false, compat, defaultModelId } = options;
 
   let localModels = [...(options.models ?? [])];
 
@@ -33,23 +33,9 @@ export function openAICompatibleProvider(options: OpenAICompatibleProviderOption
     name,
     baseUrl,
     defaultModelId,
-    auth: {
-      apiKey: {
-        envVars,
-        resolve: (credential) => {
-          if (credential.type === 'api-key' && credential.key) {
-            return { apiKey: credential.key, source: 'stored-credential', baseUrl };
-          }
-          if (apiKey) {
-            return { apiKey, source: 'options', baseUrl };
-          }
-          if (keyless) {
-            return { apiKey: '', source: 'keyless', baseUrl };
-          }
-          return undefined;
-        },
-      },
-    },
+    envVars,
+    keyless,
+    authScheme: 'bearer',
     models: () => localModels,
     async fetchModels(auth, fetchFn, signal) {
       try {
