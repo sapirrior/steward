@@ -22,6 +22,7 @@ import {
   type InferenceEvent,
   supportsImages,
   supportsReasoning,
+  inferProviderFromModelId,
   REASONING_EFFORTS,
 } from '../src/index.js';
 
@@ -311,38 +312,39 @@ async function handleCommand(
         return 'continue';
       }
 
-      let targetProvider = currentSelection.provider;
-      let targetModelId = modelArg;
+      // 1. Direct match by exact model ID in catalog
+      const exactMatch = ai.models().find(
+        m => m.id === modelArg || m.id.toLowerCase() === modelArg.toLowerCase()
+      );
+      if (exactMatch) {
+        setSelection({
+          provider: exactMatch.provider,
+          modelId: exactMatch.id,
+          effort: currentSelection.effort,
+        });
+        console.log(`${ANSI.green}✓ Switched model to:${ANSI.reset} ${exactMatch.provider}:${exactMatch.id}\n`);
+        return 'continue';
+      }
 
+      // 2. Explicit provider:modelId syntax (e.g. openrouter:openrouter/free or openai:gpt-4o)
       if (modelArg.includes(':')) {
         const [prov, ...rest] = modelArg.split(':');
-        targetProvider = prov as any;
-        targetModelId = rest.join(':');
-      } else if (modelArg.includes('/') && !ai.model(targetProvider, modelArg)) {
-        // e.g. openrouter/anthropic/claude-3.5-sonnet
-        const [prov, ...rest] = modelArg.split('/');
+        const candidateModelId = rest.join(':');
         if (ai.provider(prov as any)) {
-          targetProvider = prov as any;
-          targetModelId = rest.join('/');
-        }
-      }
-
-      const foundModel = ai.model(targetProvider, targetModelId);
-      if (!foundModel) {
-        // Also try searching matching model across all providers
-        const matching = ai.models().find(m => m.id === targetModelId || m.id.toLowerCase() === targetModelId.toLowerCase());
-        if (matching) {
           setSelection({
-            provider: matching.provider,
-            modelId: matching.id,
+            provider: prov as any,
+            modelId: candidateModelId,
             effort: currentSelection.effort,
           });
-          console.log(`${ANSI.green}✓ Switched model to:${ANSI.reset} ${matching.provider}:${matching.id}\n`);
+          console.log(`${ANSI.green}✓ Switched model to:${ANSI.reset} ${prov}:${candidateModelId}\n`);
           return 'continue';
         }
-
-        console.log(`${ANSI.yellow}⚠️  Model not found in catalog: ${targetProvider}:${targetModelId}. Switching anyway.${ANSI.reset}`);
       }
+
+      // 3. Fallback: infer provider or retain current provider
+      const inferred = inferProviderFromModelId(modelArg);
+      const targetProvider = inferred ?? currentSelection.provider;
+      const targetModelId = modelArg;
 
       setSelection({
         provider: targetProvider,
