@@ -73,6 +73,7 @@ export { resolveAuth, type ResolveAuthOptions } from './auth/resolve.js';
 export { envApiKeyAuth } from './auth/api-key.js';
 export { generatePKCE } from './auth/pkce.js';
 export { pollOAuthDeviceCodeFlow, type DeviceCodePollOptions } from './auth/device-code.js';
+export { loginGoogle, refreshGoogle, toGoogleAuth } from './auth/oauth/google.js';
 
 // ─── Core Runtime ─────────────────────────────────────────────────────────────
 export {

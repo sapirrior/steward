@@ -15,6 +15,7 @@ import { sanitizeSurrogates } from '../util/sanitize.js';
 import { withRetry, type HttpError } from '../util/retry.js';
 import { clampThinkingEffort } from '../models/thinking.js';
 import { transformMessages } from '../transform/messages.js';
+import { readErrorBody } from '../util/error-body.js';
 import { AIError } from '../errors.js';
 import type {
   AssistantContent,
@@ -203,7 +204,8 @@ export async function googleGenerativeAIProtocol(
       });
 
       if (!res.ok) {
-        const error = new Error(`HTTP ${res.status}`) as HttpError;
+        const errorText = await readErrorBody(res).catch(() => undefined);
+        const error = new Error(`HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`) as HttpError;
         error.status = res.status;
         error.headers = res.headers;
         throw error;
@@ -212,16 +214,31 @@ export async function googleGenerativeAIProtocol(
     }, { signal: request.abortSignal });
   } catch (err) {
     const isAbort = request.abortSignal?.aborted;
+    const status = (err as HttpError)?.status;
+    const code = isAbort
+      ? 'aborted'
+      : status === 401 || status === 403
+        ? 'auth'
+        : status === 429
+          ? 'rate-limit'
+          : status === 400
+            ? 'invalid-request'
+            : 'network';
+
+    const message = status === 401 || status === 403
+      ? `Authentication failed (HTTP ${status}): Invalid or missing Google API key/OAuth token. Use /login google to authenticate.`
+      : isAbort
+        ? 'Inference request aborted.'
+        : `Google request failed: ${err instanceof Error ? err.message : String(err)}`;
+
     stream.push({
       type: 'error',
-      error: new AIError(
-        isAbort ? 'Inference request aborted.' : `Google request failed: ${err instanceof Error ? err.message : String(err)}`,
-        {
-          code: isAbort ? 'aborted' : 'network',
-          provider: model.provider,
-          cause: err,
-        },
-      ),
+      error: new AIError(message, {
+        code,
+        provider: model.provider,
+        status,
+        cause: err,
+      }),
     });
     return;
   }

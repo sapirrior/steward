@@ -6,9 +6,11 @@
  */
 
 import type { AuthContext, AuthInteraction, AuthStatus, Credential, CredentialStore, ProviderAuth, ResolvedAuth } from './auth/types.js';
+import { InMemoryCredentialStore } from './auth/memory-store.js';
 import { resolveAuth } from './auth/resolve.js';
 import { AssistantMessageStream } from './event-stream.js';
 import { AIError } from './errors.js';
+import { inferProtocolForModel } from './models/catalog.js';
 import type {
   BuiltinProviderId,
   InferenceRequest,
@@ -92,10 +94,9 @@ export interface AI {
   complete(request: InferenceRequest): Promise<import('./types.js').InferenceResult>;
 }
 
-// ─── createAI options ─────────────────────────────────────────────────────────
-
 export interface CreateAIOptions {
-  credentials: CredentialStore;
+  credentials?: CredentialStore;
+  credentialStore?: CredentialStore;
   authContext?: AuthContext;
   providers?: readonly Provider[];
   /** Injectable fetch — defaults to globalThis.fetch. Used for tests and proxies. */
@@ -104,7 +105,8 @@ export interface CreateAIOptions {
 
 // ─── Implementation ───────────────────────────────────────────────────────────
 
-export function createAI(opts: CreateAIOptions): AI {
+export function createAI(opts: CreateAIOptions = {}): AI {
+  const store = opts.credentials ?? opts.credentialStore ?? new InMemoryCredentialStore();
   const registry = new Map<ProviderId, Provider>();
   const fetchFn = opts.fetch ?? globalThis.fetch;
 
@@ -113,7 +115,7 @@ export function createAI(opts: CreateAIOptions): AI {
   }
 
   function resolveAuth(provider: Provider): Promise<ResolvedAuth> {
-    return resolveProviderAuth(provider, opts.credentials, opts.authContext);
+    return resolveProviderAuth(provider, store, opts.authContext);
   }
 
   return {
@@ -151,10 +153,13 @@ export function createAI(opts: CreateAIOptions): AI {
       for (const provider of targetProviders) {
         if (!provider) continue;
         try {
-          await resolveAuth(provider);
+          const auth = await resolveAuth(provider);
           let providerModels = provider.models();
+          if (providerModels.length === 0 && provider.fetchModels) {
+            providerModels = await provider.fetchModels(auth, fetchFn);
+          }
           if (provider.filterModels) {
-            const stored = await opts.credentials.read(provider.id);
+            const stored = await store.read(provider.id);
             providerModels = provider.filterModels(providerModels, stored);
           }
           available.push(...providerModels);
@@ -188,18 +193,18 @@ export function createAI(opts: CreateAIOptions): AI {
       if (method === 'oauth') {
         if (!provider.auth.oauth) throw new AIError(`Provider ${providerId} does not support OAuth`, { code: 'auth' });
         const cred = await provider.auth.oauth.login(interaction);
-        await opts.credentials.modify(providerId, async () => cred);
+        await store.modify(providerId, async () => cred);
         return cred;
       }
       // api-key: prompt the user for the key via interaction
       const key = await interaction.prompt({ type: 'secret', message: `Enter API key for ${provider.name}:` });
       const cred: Credential = { type: 'api-key', key };
-      await opts.credentials.modify(providerId, async () => cred);
+      await store.modify(providerId, async () => cred);
       return cred;
     },
 
     async logout(providerId: ProviderId): Promise<void> {
-      await opts.credentials.delete(providerId);
+      await store.delete(providerId);
     },
 
     stream(request: InferenceRequest): InferenceStream {
@@ -208,18 +213,22 @@ export function createAI(opts: CreateAIOptions): AI {
       // Setup runs async — errors are pushed as terminal error events
       (async () => {
         try {
-          const { provider: providerId, modelId } = request.model;
+          const providerId = request.model.provider;
+          const modelId = 'modelId' in request.model ? request.model.modelId : request.model.id;
 
           const provider = registry.get(providerId);
           if (!provider) {
             throw new AIError(`Unknown provider: ${providerId}`, { code: 'invalid-request', provider: providerId });
           }
 
-          // Find model — allow unknown model ids (new models before catalog update)
-          let model = provider.models().find((m) => m.id === modelId);
-          if (!model) {
-            // Synthetic fallback model using provider defaults
-            model = syntheticModel(providerId, modelId, provider);
+          // If a full Model with protocol was passed, use it directly
+          let model: Model;
+          if ('protocol' in request.model && request.model.protocol) {
+            model = request.model as Model;
+          } else {
+            // Find model — allow unknown model ids (new models before catalog update)
+            const found = provider.models().find((m) => m.id === modelId);
+            model = found ?? syntheticModel(providerId, modelId, provider);
           }
 
           const protocolFn = provider.streams[model.protocol];
@@ -273,13 +282,16 @@ function resolveProviderAuth(
 
 /** Synthetic fallback Model for unknown model ids (new models before catalog). */
 function syntheticModel(providerId: ProviderId, modelId: string, provider: Provider): Model {
-  // Use the first known model's protocol as a hint, default to openai-completions
   const hint = provider.models()[0];
+  const inferred = inferProtocolForModel(providerId, modelId);
+  const streamKey = Object.keys(provider.streams)[0] as ProtocolId | undefined;
+  const protocol = hint?.protocol ?? (provider.streams[inferred] ? inferred : (streamKey ?? 'openai-completions'));
+
   return {
     id: modelId,
     name: modelId,
     provider: providerId,
-    protocol: hint?.protocol ?? 'openai-completions',
+    protocol,
     baseUrl: hint?.baseUrl ?? provider.baseUrl ?? '',
     reasoning: false,
     maxOutputTokens: 4096,
