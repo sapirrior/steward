@@ -1,6 +1,317 @@
-# A sub package named ai for Steward for first-party AI runtime, inference streaming, and authentication
+# @steward/ai
 
-This package is responsible for provider protocol adapters (`openai`, `anthropic`, `gemini`, `deepseek`, `openrouter`, `github-copilot`, `groq`, `xai`, `mistral`, `ollama`, `custom`), message normalization, streaming inference, credential management, PKCE, device code flow, OAuth callback server, and dynamic model discovery. It is self-contained and does not import from `@steward/agents`, `@steward/services`, `@steward/tui`, or external AI SDKs (`ai`, `@ai-sdk/*`).
+A zero-dependency, pure Web Standards AI engine and model orchestrator for terminal engineering assistants and agent runtimes.
+
+`@steward/ai` connects directly to frontier LLM APIs over raw `fetch` and Server-Sent Events (SSE) with zero runtime dependencies. It supports native streaming, tool execution, thinking/reasoning budgets, cross-model message transformation, live `models.dev` catalog discovery, and resilient authentication.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Supported Providers](#supported-providers)
+- [Quick Start](#quick-start)
+- [Streaming & Event Handling](#streaming--event-handling)
+- [Tool Calling](#tool-calling)
+- [Thinking & Reasoning](#thinking--reasoning)
+- [Cross-Model Message Transformations](#cross-model-message-transformations)
+- [Dynamic `models.dev` Catalog](#dynamic-modelsdev-catalog)
+- [Custom Providers](#custom-providers)
+- [Authentication & Credential Management](#authentication--credential-management)
+- [Error Handling](#error-handling)
+- [File & Function Breakdown](#file--function-breakdown)
+- [Architectural Invariants](#architectural-invariants)
+
+---
+
+## Features
+
+- **Zero External AI SDKs:** No `@ai-sdk/*`, `openai`, `@anthropic-ai/sdk`, or `langchain`. Direct, high-performance streaming over standard `fetch` and `ReadableStream`.
+- **Pure Web Standards Core:** Built entirely on Web Platform APIs (`fetch`, `Headers`, `ReadableStream`, `TransformStream`, Web Crypto `crypto.subtle`). Runs seamlessly in Node.js 22+, Bun, Deno, or edge workers.
+- **In-Memory & Pure Library Design:** No hardcoded filesystem persistence or hidden state. Authentication stores and contexts are strictly injected.
+- **Dynamic Live Catalog:** Queries `models.dev` with live ETag caching, filtering for tool-capable, non-deprecated text models.
+- **Canonical Reasoning Scale:** 5-tier reasoning effort scale (`'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`) with automatic fallback clamping and Anthropic token budget math.
+- **Cross-Model Message Normalization:** Seamlessly passes conversation history across OpenAI, Anthropic, and Google models—automatically cleaning orphan tool calls, sanitizing tool IDs (`^[a-zA-Z0-9_-]{1,64}$`), pruning incomplete turns, and pairing tool results.
+- **Multi-Protocol Architecture:** Modular wire adapters for `anthropic-messages`, `openai-completions`, `openai-responses`, and `google-generative-ai`.
+
+---
+
+## Supported Providers
+
+| Provider ID | Protocol | Auth Type | Thinking / Reasoning | Tool Calling |
+| :--- | :--- | :--- | :--- | :--- |
+| `anthropic` | `anthropic-messages` | API Key | `thinking.budget_tokens` | Native |
+| `openai` | `openai-completions` / `responses` | API Key | `reasoning_effort` | Native |
+| `google` | `google-generative-ai` | API Key (`x-goog-api-key`) | `thinkingConfig.thinkingBudget` | Function Declarations |
+| `github-copilot` | `openai-completions` | OAuth Device Flow (token exchange) | `reasoning_effort` | Native |
+| `openrouter` | `openai-completions` | API Key / OAuth PKCE | `reasoning.effort` / `extra_body` | Native |
+| *Custom* | `openai-completions` / *any* | API Key / Bearer | Provider-dependent | Supported |
+
+---
+
+## Quick Start
+
+```typescript
+import { createAI, builtinProviders, InMemoryCredentialStore } from '@steward/ai';
+
+// 1. Initialize store and credentials
+const store = new InMemoryCredentialStore();
+await store.set('anthropic', {
+  type: 'api-key',
+  key: process.env.ANTHROPIC_API_KEY!,
+});
+
+// 2. Instantiate AI client
+const ai = createAI({
+  providers: builtinProviders(),
+  credentialStore: store,
+});
+
+// 3. Stream a completion
+const stream = ai.stream({
+  model: {
+    id: 'claude-3-7-sonnet-latest',
+    provider: 'anthropic',
+    name: 'Claude 3.7 Sonnet',
+    contextWindow: 200000,
+    maxTokens: 8192,
+    reasoning: true,
+    inputPrice: 3,
+    outputPrice: 15,
+  },
+  messages: [
+    { role: 'user', content: 'Explain quantum computing in three sentences.' },
+  ],
+  effort: 'medium',
+});
+
+// 4. Consume events as they arrive
+for await (const event of stream) {
+  if (event.type === 'reasoning-delta') {
+    process.stdout.write(`[Thinking] ${event.delta}`);
+  } else if (event.type === 'text-delta') {
+    process.stdout.write(event.delta);
+  }
+}
+
+// 5. Retrieve final canonical assistant message and usage
+const result = await stream.result();
+console.log('\nTotal Tokens:', result.usage?.totalTokens);
+console.log('Estimated Cost:', result.cost?.totalCost);
+```
+
+---
+
+## Streaming & Event Handling
+
+The inference stream is an async iterable that yields normalized `InferenceEvent` items:
+
+```typescript
+type InferenceEvent =
+  | { type: 'text-delta'; delta: string }
+  | { type: 'reasoning-delta'; delta: string }
+  | { type: 'tool-call-start'; id: string; name: string }
+  | { type: 'tool-call-delta'; id: string; delta: string }
+  | { type: 'tool-call-end'; id: string }
+  | { type: 'done'; message: AssistantMessage; usage?: TokenUsage; cost?: TokenCost; finishReason?: FinishReason }
+  | { type: 'error'; error: AIError };
+```
+
+### Self-Draining Contract (`stream.result()`)
+
+`stream.result()` never rejects. Even if the consumer aborts, encounters an error, or stops iterating early, `.result()` returns an `InferenceResult`:
+
+```typescript
+const result = await stream.result();
+if (result.error) {
+  console.error('Inference failed:', result.error.message, result.error.code);
+} else {
+  console.log('Final Assistant Message:', result.message);
+}
+```
+
+---
+
+## Tool Calling
+
+Tools are defined using standard JSON Schema declarations:
+
+```typescript
+import type { ToolSpec } from '@steward/ai';
+
+const tools: ToolSpec[] = [
+  {
+    name: 'get_weather',
+    description: 'Get current weather conditions for a location',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        location: { type: 'string', description: 'City and state/country' },
+        unit: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+      },
+      required: ['location'],
+    },
+  },
+];
+
+const stream = ai.stream({
+  model,
+  messages: [{ role: 'user', content: "What's the weather in Tokyo?" }],
+  tools,
+});
+
+const result = await stream.result();
+
+// If the assistant requested tools:
+for (const block of result.message.content) {
+  if (block.type === 'tool_call') {
+    console.log(`Tool requested: ${block.name}(${JSON.stringify(block.input)})`);
+  }
+}
+```
+
+---
+
+## Thinking & Reasoning
+
+Reasoning efforts are strictly standardized into 5 levels:
+
+```typescript
+export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
+```
+
+- **Clamping:** Providers with limited reasoning options are automatically clamped using `clampThinkingEffort(supportedEfforts, requestedEffort)`.
+- **Budget Math:** Anthropic token budgets are computed via `calculateAnthropicBudgetTokens(effort, maxTokens)`:
+  - `low`: $\min(2048, \lfloor\text{maxTokens} \times 0.25\rfloor)$ (min 1024)
+  - `medium`: $\min(8192, \lfloor\text{maxTokens} \times 0.50\rfloor)$ (min 1024)
+  - `high` / `xhigh`: $\min(32000, \lfloor\text{maxTokens} \times 0.80\rfloor)$ (min 1024)
+
+---
+
+## Cross-Model Message Transformations
+
+When switching between providers (e.g. OpenAI $\to$ Claude $\to$ Gemini), differences in wire format can cause API errors. `transformMessages()` normalizes the message stream:
+
+```typescript
+import { transformMessages } from '@steward/ai';
+
+const sanitized = transformMessages(rawMessages, {
+  model: targetModel,
+  protocol: 'anthropic-messages',
+  normalizeToolCallId: (id) => id.replace(/[^a-zA-Z0-9_-]/g, '_'),
+  preserveSystemMessages: false, // Extract system messages to top-level prompt
+});
+```
+
+### Transformation Invariants:
+1. **Tool ID Sanitization:** Rewrites tool call IDs to alphanumeric + `_` + `-` (max 64 chars) and synchronizes corresponding `tool` result messages.
+2. **Orphan Tool Call Pruning / Synthesizing:** Any tool call lacking a corresponding result generates a synthetic cancellation result so the turn is valid.
+3. **Incomplete Turn Pruning:** Strips trailing unfinished assistant/tool turns at conversation boundaries.
+4. **Canonical Block Ordering:** Preserves exact encounter order (`thinking` $\to$ `text` $\to$ `tool_call` $\to$ `text`).
+
+---
+
+## Dynamic `models.dev` Catalog
+
+`@steward/ai` dynamically discovers models from `models.dev` without hardcoded static lists:
+
+```typescript
+import { fetchModelsDevCatalog } from '@steward/ai';
+
+const models = await fetchModelsDevCatalog({
+  fetch: globalThis.fetch,
+  apiUrl: 'https://models.dev/api.json',
+  // Includes caching with 1-hour TTL and If-None-Match ETag support
+});
+
+// Returns Model[] filtered for active, tool_call-enabled, text-input models
+```
+
+---
+
+## Custom Providers
+
+Create custom OpenAI-compatible providers (Ollama, vLLM, DeepSeek, Groq, Mistral, xAI, LocalAI) using the `openAICompatibleProvider` factory:
+
+```typescript
+import { openAICompatibleProvider, createAI } from '@steward/ai';
+
+const localProvider = openAICompatibleProvider({
+  id: 'custom',
+  name: 'Local Ollama',
+  defaultBaseUrl: 'http://localhost:11434/v1',
+  envKey: 'OLLAMA_API_KEY',
+});
+
+const ai = createAI({
+  providers: [localProvider],
+});
+```
+
+---
+
+## Authentication & Credential Management
+
+Authentication is stateless and non-blocking. Store credentials in any custom `CredentialStore` implementation:
+
+```typescript
+import type { CredentialStore, Credential } from '@steward/ai';
+
+class CustomDatabaseStore implements CredentialStore {
+  async get(providerId: string): Promise<Credential | undefined> {
+    // Read from DB / Secret Vault
+  }
+  async set(providerId: string, credential: Credential): Promise<void> {
+    // Write to DB
+  }
+  async delete(providerId: string): Promise<void> {
+    // Remove from DB
+  }
+  async list(): Promise<Array<{ providerId: string; credential: Credential }>> {
+    // List credentials
+  }
+}
+```
+
+---
+
+## Error Handling
+
+All runtime errors are categorized under a single `AIError` class with structured error codes:
+
+```typescript
+import { AIError, type AIErrorCode } from '@steward/ai';
+
+try {
+  const stream = ai.stream({ ... });
+  for await (const event of stream) { /* ... */ }
+} catch (err) {
+  if (err instanceof AIError) {
+    switch (err.code) {
+      case 'rate-limit':
+        console.warn(`Rate limited. Retry after: ${err.retryAfter}s`);
+        break;
+      case 'context-overflow':
+        console.error('Prompt exceeds context window limit.');
+        break;
+      case 'auth':
+        console.error('Invalid or expired credentials.');
+        break;
+    }
+  }
+}
+```
+
+### Error Code Summary:
+- `auth`: Missing, malformed, or invalid API key / token.
+- `oauth`: OAuth exchange, device flow timeout, or refresh failure.
+- `rate-limit`: HTTP 429 rate limit exceeded.
+- `context-overflow`: Model context window exceeded.
+- `invalid-request`: HTTP 400 bad request / validation error.
+- `provider`: Downstream upstream 5xx server error.
+- `network`: DNS resolution or connection failure.
+- `parse`: Failed to decode SSE or parse JSON response.
+- `aborted`: Request aborted via `AbortSignal`.
 
 ---
 
@@ -10,76 +321,72 @@ This package is responsible for provider protocol adapters (`openai`, `anthropic
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `index.ts` | `*` | Entry Point | Re-exports all public domain types, runtime factories, models, auth, and error classes. | Clean frozen public boundary; does not expose internal wire parsers. |
-| `types.ts` | `ProviderId` | Type | Canonical 11-provider identifier union (`openai`, `anthropic`, `gemini`, `deepseek`, `openrouter`, `github-copilot`, `groq`, `xai`, `mistral`, `ollama`, `custom`). | Fixed set; no unused legacy providers. |
-| | `ReasoningEffort` | Type | Canonical 4-tier effort (`none`, `low`, `medium`, `high`). | No `provider-default`, `minimal`, or `xhigh`. |
-| | `ModelSelection` | Interface | Normalized model choice tuple `{ provider, modelId, effort }`. | `effort` is mandatory in new contracts. |
-| | `Message` | Type | Provider-neutral message union (`SystemMessage`, `UserMessage`, `AssistantMessage`, `ToolMessage`). | Plain JSON serializable; independent of any external SDK. Preserves canonical block ordering. |
-| | `ToolSpec` | Interface | Serializable tool declaration `{ name, description, inputSchema }`. | Contains plain JSON Schema without Zod dependencies. |
-| | `TokenUsage` | Interface | Canonical token metrics `{ inputTokens, outputTokens, totalTokens, ... }`. | Normalized across all frontier providers. |
-| | `InferenceEvent` | Type | Streaming event union (`text-delta`, `reasoning-delta`, `tool-call-start`, `tool-call-delta`, `tool-call-end`, `done`, `error`). | Event contract emitted by provider streams. |
+| `index.ts` | `*` | Entry Point | Re-exports public domain types, runtime factories, models, auth, and error classes. | Clean boundary; wire protocols and utilities are exported cleanly. |
+| `types.ts` | `ProviderId` | Type | Provider identifier union (`'anthropic'`, `'openai'`, `'google'`, `'github-copilot'`, `'openrouter'`, `'custom'`). | Built-in provider IDs. |
+| | `ReasoningEffort` | Type | 5-tier reasoning effort (`'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`). | Normalized reasoning scale. |
+| | `Message` | Type | Message union (`SystemMessage`, `UserMessage`, `AssistantMessage`, `ToolMessage`). | Pure JSON serializable; independent of SDKs. |
+| | `ToolSpec` | Interface | Tool specification `{ name, description, inputSchema }`. | Pure JSON Schema without Zod dependencies. |
+| | `InferenceEvent` | Type | Streaming event union (`text-delta`, `reasoning-delta`, `tool-call-*`, `done`, `error`). | Emitted by provider streams. |
 | | `InferenceStream` | Interface | Async iterable stream yielding `InferenceEvent` and providing `.result()`. | Self-draining promise result on demand. |
-| `errors.ts` | `AIError` | Class | Single serializable error family with typed `AIErrorCode`. | Never embeds secret tokens, raw response bodies, or full request headers. |
-| | `AIErrorCode` | Type | Code union: `auth`, `oauth`, `network`, `rate-limit`, `invalid-request`, `provider`, `parse`, `aborted`. | Clean machine-readable classifier. |
-| `json.ts` | `parseJson` | Function | Strict JSON parser wrapped in `AIError`. | Throws typed `AIError` with code `parse`. |
-| | `parseStreamingJson` | Function | Incremental JSON parser with automatic bracket/quote closing. | Allows emitting partial tool argument objects during streaming. |
-| | `sanitizeSurrogates` | Function | Replaces lone/unpaired surrogate code units with `\uFFFD`. | Protects JSON serialization and provider payloads from Unicode surrogate errors. |
-| `stream.ts` | `decodeSSE` | Function | Provider-neutral SSE decoder over `ReadableStream<Uint8Array>`. | Handles multi-line data, `\r\n`, comments, and trailing flushes. |
-| `inference.ts` | `streamInference` | Function | Public streaming inference engine resolving auth and dispatching based on `descriptor.protocol`. | Normalizes events and returns canonical `AssistantMessage`. |
-| | `createAIEngine` | Function | Instantiates a stateful `AIEngine` runtime sharing an auth manager instance. | Injected into app and session lifecycle. |
-
----
+| `client.ts` | `createAI` | Function | Factory creating an `AI` client instance with configured providers and stores. | Main client runtime entry point. |
+| | `AI` | Interface | AI client contract (`stream`, `availableModels`, `resolveAuth`). | Client instance API. |
+| `event-stream.ts` | `AssistantMessageStream` | Class | Stream builder managing chunks, tool accumulation, and self-draining `.result()`. | Never rejects; handles abort and errors gracefully. |
+| `errors.ts` | `AIError` | Class | Serializable error class with typed `AIErrorCode`. | Never embeds raw secrets or full request bodies. |
 
 ### Auth Modules (`src/auth/`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `types.ts` | `OAuthCredential` | Interface | Stored OAuth credential `{ type, accessToken, refreshToken?, expiresAt? }`. | Permanent keys use `expiresAt: Infinity`. |
-| | `ResolvedAuth` | Interface | Resolved execution credential `{ type, token, headers?, source, extra? }`. | Used by wire adapters to sign HTTP requests. |
-| | `AuthInteraction` | Interface | Interaction-neutral UI contract for OAuth prompts and progress events. | Exposes `prompt` and `notify`; no UI coupling. |
-| `pkce.ts` | `generatePKCE` | Function | Web Crypto PKCE generator producing verifier and SHA-256 base64url challenge. | Standard 32-byte entropy. |
-| `device-code.ts` | `pollOAuthDeviceCodeFlow` | Function | Polling helper for RFC 8628 OAuth 2.0 Device Authorization Grant. | Handles slow down, normalized `aborted` AIError on cancel, and polling intervals. |
-| `callback-server.ts` | `startOAuthCallbackServer` | Function | Loopback HTTP callback listener on provider-specified host/port. | Validates state, cleans up server and abort listeners on all exit paths. |
-| `store.ts` | `FileCredentialStore` | Class | Secure disk persistence at `~/.steward/auth.json` (mode `0600`, dir `0700`). | Atomic temp-file write and rename with canonical-path in-process write mutex and schema validation. |
-| `resolver.ts` | `AuthResolver` | Class | Resolves stored OAuth credential with double-checked near-expiry refresh. | Dispatches through centralized `OAUTH_ADAPTERS` table; falls back to static env keys. |
-| | `OAUTH_ADAPTERS` | Constant | Centralized dispatch table for OAuth login, refresh, and auth formatting. | Internal adapter registry avoiding duplicated provider conditionals. |
-| `manager.ts` | `DefaultAuthManager` | Class | Central coordinator for login, logout, credential listing, and status reporting. | Delegates login and refresh to `OAUTH_ADAPTERS`; exposes `getStatus`. |
-| `oauth/anthropic.ts` | `loginAnthropic` | Function | Anthropic PKCE OAuth flow on fixed callback `http://localhost:53692/callback`. | Exchanges code at `platform.claude.com/v1/oauth/token`. |
-| | `refreshAnthropic` | Function | Token refresh for Anthropic OAuth credentials. | Double-checked before expiry. |
-| `oauth/openrouter.ts` | `loginOpenRouter` | Function | OpenRouter PKCE OAuth flow on `http://127.0.0.1:8085/oauth/callback`. | Exchanges authorization code for permanent user API key. |
-| `oauth/github-copilot.ts` | `loginGitHubCopilot` | Function | GitHub Copilot Device Code flow (`https://github.com/login/device/code`). | Obtains and refreshes Copilot session tokens (`api.githubcopilot.com`). |
+| `types.ts` | `CredentialStore` | Interface | Pluggable credential storage interface (`get`, `set`, `delete`, `list`, `modify`). | Pure in-memory or custom storage. |
+| | `ResolvedAuth` | Interface | Resolved HTTP headers and token for signing requests. | Injected into provider protocol adapters. |
+| `resolve.ts` | `resolveAuth` | Function | Resolves credentials from store or environment with token refresh. | Double-checked refresh lock pattern. |
+| `memory-store.ts` | `InMemoryCredentialStore`| Class | In-memory `CredentialStore` with async transaction lock (`modify`). | Safe for tests and stateless runtimes. |
+| `api-key.ts` | `envApiKeyAuth` | Function | Helper extracting API keys from environment variables. | Fallback when no stored credential exists. |
+| `pkce.ts` | `generatePKCE` | Function | Generates code verifier and challenge using Web Crypto SHA-256. | Standard 32-byte entropy base64url. |
+| `device-code.ts` | `pollOAuthDeviceCodeFlow`| Function | RFC 8628 OAuth 2.0 Device Code polling helper. | Handles slow down, poll intervals, and aborts. |
 
----
-
-### Model Modules (`src/models/`)
+### Model & Catalog Modules (`src/models/`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `registry.ts` | `PROVIDER_REGISTRY` | Constant | Catalog of 11 supported providers, default models, protocols, and env vars. | Single source of truth for provider capabilities and wire protocols. |
-| | `getProviderDescriptor` | Function | Looks up descriptor for a given `ProviderId`. | Throws on unknown provider ID. |
-| `selection.ts` | `resolveModelSelection` | Function | Resolves active model based on request, saved settings, and priority. | Enforces canonical default effort (`medium`). |
-| | `inferProviderFromModelId` | Function | Ordered heuristic matching (`openrouter`, `copilot`, `gemini`, `claude`, `openai`, `deepseek`, `xai`, `mistral`, `ollama` tagged names). | Returns canonical `ProviderId`. |
-| `discovery.ts` | `fetchAvailableModels` | Function | Queries remote `/models` endpoints across configured providers using consolidated fetcher table. | Origin-validated OpenRouter pagination; filters out non-chat models. |
+| `catalog.ts` | `fetchModelsDevCatalog` | Function | Fetches and parses live model definitions from `models.dev`. | Caches with TTL + ETag; filters non-chat/deprecated models. |
+| `thinking.ts` | `clampThinkingEffort` | Function | Maps requested effort to closest supported model effort. | Fallback clamping logic. |
+| | `calculateAnthropicBudgetTokens` | Function | Computes Anthropic `budget_tokens` from effort and `maxTokens`. | Min 1024 tokens. |
+| `selection.ts` | `resolveModelSelection` | Function | Resolves model selection from requested provider/model or defaults. | Enforces canonical default effort. |
 
----
-
-### Provider Wire Adapters (`src/providers/`)
+### Message Transformation (`src/transform/`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `anthropic.ts` | `streamAnthropic` | Function | Native Anthropic `/v1/messages` SSE stream adapter. | Supports thinking budgets, signatures, ephemeral prompt caching on system prompt & last tool, and sequential tool calls with hardened payload parsing. |
-| `gemini.ts` | `streamGemini` | Function | Google Gemini `streamGenerateContent?alt=sse` adapter. | Uses `x-goog-api-key` header (no query param key); maps canonical signature fields; preserves block stream order. |
-| `openai.ts` | `streamOpenAI` | Function | OpenAI Chat Completions streaming adapter with reasoning effort. | Thin wrapper identifying `openai` provider over OpenAI-compatible wire adapter. |
-| `openai-compatible.ts` | `streamOpenAICompatible` | Function | Generic OpenAI-compatible streaming adapter with compact static profile table and lossless block ordering. | Handles `openrouter`, `deepseek`, `github-copilot`, `groq`, `xai`, `mistral`, `ollama`, `custom`. |
+| `messages.ts` | `transformMessages` | Function | Normalizes conversation history for target model protocol. | Sanitizes tool IDs, repairs orphan calls, prunes incomplete turns. |
+
+### Protocol Adapters (`src/protocols/`)
+
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `anthropic-messages.ts` | `anthropicMessagesProtocol` | Constant | Native Anthropic `/v1/messages` SSE stream adapter. | Supports thinking budgets and prompt caching. |
+| `openai-completions.ts` | `openAICompletionsProtocol` | Constant | OpenAI Chat Completions `/v1/chat/completions` SSE adapter. | Reasoning effort, tool streaming, usage extraction. |
+| `openai-responses.ts` | `openAIResponsesProtocol` | Constant | OpenAI Responses API `/v1/responses` SSE adapter. | Supports new Responses wire format. |
+| `google-generative-ai.ts`| `googleGenerativeAIProtocol`| Constant | Google Gemini `streamGenerateContent?alt=sse` adapter. | Header-based auth (`x-goog-api-key`), thinking budget. |
+
+### Providers (`src/providers/`)
+
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `anthropic.ts` | `anthropicProvider` | Constant | Provider descriptor for Anthropic Claude. | Uses `anthropic-messages` protocol. |
+| `openai.ts` | `openAIProvider` | Constant | Provider descriptor for OpenAI GPT/o-series. | Uses `openai-completions` protocol. |
+| `google.ts` | `googleProvider` | Constant | Provider descriptor for Google Gemini. | Uses `google-generative-ai` protocol. |
+| `github-copilot.ts` | `githubCopilotProvider` | Constant | Provider descriptor for GitHub Copilot. | Device flow auth and dynamic model filtering. |
+| `openrouter.ts` | `openRouterProvider` | Constant | Provider descriptor for OpenRouter. | OAuth PKCE / API key with model catalog support. |
+| `openai-compatible.ts` | `openAICompatibleProvider` | Function | Factory for OpenAI-compatible endpoints. | Configurable base URL, custom headers, and models. |
+| `index.ts` | `builtinProviders` | Function | Returns array of standard built-in providers. | Default provider catalog. |
 
 ---
 
-## Architecture & Invariants
+## Architectural Invariants
 
-1. **Zero External AI Dependencies**: Uses only native runtime APIs (`fetch`, Web Streams, Web Crypto, Node HTTP).
-2. **Strict Reasoning Effort**: All public contracts, commands, and persistence use exactly `none`, `low`, `medium`, `high`.
-3. **Lossless Canonical Message Ordering**: Stream encounters (thinking $\to$ text $\to$ tool $\to$ text) preserve their exact relative order in normalized `AssistantMessage.content`.
-4. **Header-Based Gemini Authentication**: Gemini API keys are sent via the `x-goog-api-key` header rather than URL query parameters to avoid log exposure.
-5. **OpenRouter Pagination Security Boundary**: Next-page URLs are validated against trusted `https://openrouter.ai/api/v1/models` origin and path, with loop detection and max-page limits.
-6. **Double-Checked OAuth Refresh**: Refreshes credentials automatically within the 5-minute expiry window under a serialized file/memory lock.
-7. **Credential Isolation**: Secrets are never logged, never rendered by TUI, and raw HTTP response bodies are excluded from `AIError` messages.
+1. **Zero External SDK Dependencies:** Only native runtime APIs (`fetch`, Web Streams, Web Crypto).
+2. **Pure In-Memory Core:** No filesystem I/O inside `@steward/ai`. Storage is strictly injected.
+3. **Safe Secrets & Error Boundaries:** Raw authorization headers, API keys, and unparsed HTTP error response bodies are never leaked into error messages or stack traces.
+4. **Header-Based Google Authentication:** Google API keys are passed strictly via `x-goog-api-key` headers rather than URL query parameters to avoid logging exposure.
+5. **Lossless Encounter Ordering:** Stream chunks maintain strict encounter order (`thinking` $\to$ `text` $\to$ `tool_call` $\to$ `text`) across all provider adapters.
