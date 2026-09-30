@@ -166,7 +166,11 @@ export class AssistantMessageStream implements InferenceStream {
       this.acc.startTool(event.id, event.name, this.toolBlockIndex);
     } else if (event.type === 'tool-call-delta') {
       this.acc.appendToolDelta(this.toolBlockIndex, event.delta);
-    } else if (event.type === 'done') {
+    }
+
+    this.deliver(event);
+
+    if (event.type === 'done') {
       this.terminated = true;
       this.usage = event.usage;
       this.meta = event.message.meta;
@@ -175,8 +179,6 @@ export class AssistantMessageStream implements InferenceStream {
       this.terminated = true;
       this.resolveResult('error', event.error, event.partial);
     }
-
-    this.deliver(event);
   }
 
   end(): void {
