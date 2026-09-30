@@ -275,25 +275,25 @@ async function handleCommand(
 
       try {
         let cred;
-        const methodChoice = (args[1] || '').toLowerCase();
-
-        if (providerArg === 'openrouter' || providerArg === 'google') {
+        if (providerArg === 'openrouter') {
+          const methodChoice = (args[1] || '').toLowerCase();
           if (methodChoice === 'key' || methodChoice === 'api-key') {
-            cred = await ai.login(providerArg, 'api-key', interaction);
+            cred = await ai.login('openrouter', 'api-key', interaction);
           } else if (methodChoice === 'oauth') {
-            cred = await ai.login(providerArg, 'oauth', interaction);
+            cred = await ai.login('openrouter', 'oauth', interaction);
           } else {
-            console.log(`Choose login method for ${providerArg}:`);
+            console.log(`Choose login method for OpenRouter:`);
             console.log(`  (1) OAuth (browser login) [Recommended]`);
             console.log(`  (2) API Key`);
             const choice = (await rl.question('Enter 1 or 2 [default 1]: ')).trim();
             if (choice === '2') {
-              cred = await ai.login(providerArg, 'api-key', interaction);
+              cred = await ai.login('openrouter', 'api-key', interaction);
             } else {
-              cred = await ai.login(providerArg, 'oauth', interaction);
+              cred = await ai.login('openrouter', 'oauth', interaction);
             }
           }
         } else {
+          // Google, Anthropic, OpenAI, etc. use direct API key
           cred = await ai.login(providerArg, 'api-key', interaction);
         }
 

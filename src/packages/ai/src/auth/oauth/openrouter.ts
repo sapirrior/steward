@@ -1,17 +1,23 @@
 /**
  * @steward/ai - OpenRouter OAuth Adapter
+ *
+ * Implements PKCE OAuth flow for OpenRouter, minting permanent API keys.
+ * Handles the callback via a one-shot loopback server that completes the token
+ * exchange before serving the browser page, raced with manual code entry for remote sessions.
  */
 
 import { generatePKCE } from '../pkce.js';
-import { startOAuthCallbackServer } from '../callback-server.js';
+import {
+  startOAuthCallbackServer,
+  waitForCallbackOrManualInput,
+} from '../callback-server.js';
 import type { AuthInteraction, OAuthCredential, ResolvedAuth } from '../types.js';
 import { AIError } from '../../errors.js';
 
 const AUTHORIZE_URL = 'https://openrouter.ai/auth';
 const TOKEN_URL = 'https://openrouter.ai/api/v1/auth/keys';
 const CALLBACK_HOST = '127.0.0.1';
-const CALLBACK_PORT = 8085;
-const CALLBACK_PATH = '/oauth/callback';
+const LOGIN_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 function parseAuthorizationInput(input: string): string | undefined {
   const value = input.trim();
@@ -50,7 +56,8 @@ async function exchangeAuthorizationCode(
   });
 
   if (!response.ok) {
-    throw new AIError(`OpenRouter OAuth key exchange failed with HTTP status ${response.status}`, {
+    const errorText = await response.text().catch(() => '');
+    throw new AIError(`OpenRouter OAuth key exchange failed with HTTP status ${response.status}: ${errorText}`, {
       code: 'oauth',
       provider: 'openrouter',
       status: response.status,
@@ -74,59 +81,47 @@ async function exchangeAuthorizationCode(
 
 export async function loginOpenRouter(interaction: AuthInteraction): Promise<OAuthCredential> {
   const { verifier, challenge } = await generatePKCE();
-  const server = await startOAuthCallbackServer({
-    host: CALLBACK_HOST,
-    port: CALLBACK_PORT,
-    path: CALLBACK_PATH,
-    signal: interaction.signal,
-  });
 
-  const manualAbort = new AbortController();
+  const callback = await startOAuthCallbackServer<OAuthCredential>({
+    providerName: 'OpenRouter',
+    host: CALLBACK_HOST,
+    port: 0, // dynamic port
+    path: `/oauth/callback/${crypto.randomUUID()}`,
+    complete: (code) => exchangeAuthorizationCode(code, verifier, interaction.signal),
+    signal: interaction.signal,
+    timeoutMs: LOGIN_TIMEOUT_MS,
+  });
 
   try {
     const authorizeUrl = new URL(AUTHORIZE_URL);
     authorizeUrl.search = new URLSearchParams({
-      callback_url: server.redirectUri,
+      callback_url: callback.redirectUri,
       code_challenge: challenge,
       code_challenge_method: 'S256',
     }).toString();
 
     interaction.notify({
+      type: 'progress',
+      message: `Listening for OpenRouter callback on ${callback.redirectUri}`,
+    });
+
+    interaction.notify({
       type: 'auth-url',
       url: authorizeUrl.toString(),
       instructions:
-        'Complete sign-in in your browser. If on another device, paste the redirect URL or code here.',
+        'Complete sign-in in your browser. If the browser is on another machine, paste the redirect URL or code here.',
     });
 
-    let manualInput: string | undefined;
-    const manualPromise = interaction
-      .prompt({
-        type: 'manual-code',
-        message:
-          'Complete sign-in in your browser, or paste the authorization code / redirect URL here:',
-        placeholder: server.redirectUri,
-        signal: manualAbort.signal,
-      })
-      .then((input) => {
-        manualInput = input;
-        server.cancel();
-      })
-      .catch(() => {});
-
-    const waitPromise = server.wait().catch((err) => {
-      if (manualInput) return null;
-      throw err;
+    const result = await waitForCallbackOrManualInput(interaction, callback, {
+      message: 'Complete sign-in in your browser, or paste the authorization code / redirect URL here:',
+      placeholder: callback.redirectUri,
     });
 
-    const result = await Promise.race([waitPromise, manualPromise.then(() => null)]);
-
-    let code: string | undefined;
-    if (result && result.code) {
-      code = result.code;
-    } else if (manualInput) {
-      code = parseAuthorizationInput(manualInput);
+    if (result.type === 'callback') {
+      return result.value;
     }
 
+    const code = parseAuthorizationInput(result.input);
     if (!code) {
       throw new AIError('Missing authorization code for OpenRouter OAuth.', {
         code: 'oauth',
@@ -141,8 +136,7 @@ export async function loginOpenRouter(interaction: AuthInteraction): Promise<OAu
 
     return await exchangeAuthorizationCode(code, verifier, interaction.signal);
   } finally {
-    manualAbort.abort();
-    await server.close();
+    callback.close();
   }
 }
 
