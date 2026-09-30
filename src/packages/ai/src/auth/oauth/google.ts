@@ -153,7 +153,7 @@ export async function loginGoogle(interaction: AuthInteraction): Promise<OAuthCr
       });
 
     const serverCallbackPromise = server
-      .waitForCallback(manualAbort.signal)
+      .wait()
       .then(async ({ code }) => {
         return exchangeAuthorizationCode(code, verifier, server.redirectUri, interaction.signal);
       });

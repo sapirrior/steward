@@ -233,23 +233,40 @@ async function handleCommand(
 
       const interaction: AuthInteraction = {
         async prompt(req: AuthPrompt): Promise<string> {
-          if (req.type === 'url') {
+          if (req.type === 'url' || req.type === 'manual-code') {
+            const targetUrl = req.url || (req as any).placeholder || '';
             console.log(`\nOpening browser for authorization...`);
-            console.log(`URL: ${req.url}\n`);
-            openBrowser(req.url);
-            return rl.question('Waiting for browser login (or paste authorization code / URL here): ');
+            if (targetUrl) {
+              console.log(`Authorize URL:\n  ${targetUrl}\n`);
+              openBrowser(targetUrl);
+            }
+
+            return new Promise((resolve) => {
+              const onAbort = () => resolve('');
+              if (req.signal?.aborted) return resolve('');
+              req.signal?.addEventListener('abort', onAbort, { once: true });
+
+              rl.question('Waiting for browser authorization... (or paste code/URL here if on another device): ')
+                .then((ans) => {
+                  req.signal?.removeEventListener('abort', onAbort);
+                  resolve(ans.trim());
+                })
+                .catch(() => resolve(''));
+            });
           }
           return rl.question(`${req.message} `);
         },
         notify(event: AuthEvent) {
           if (event.type === 'auth-url') {
             console.log(`\nOpening browser for authorization...`);
-            console.log(`URL: ${event.url}\n`);
+            console.log(`Authorize URL:\n  ${event.url}\n`);
             openBrowser(event.url);
           } else if (event.type === 'browser-opened') {
             console.log(`[Browser opened for authorization]`);
           } else if (event.type === 'code-received') {
-            console.log(`[Authorization code received! Finalizing token...]`);
+            console.log(`\n✔ Authorization code received from browser! Finalizing token...`);
+          } else if (event.type === 'progress') {
+            console.log(`[${event.message}]`);
           } else if (event.type === 'slow-down') {
             console.log(`[Rate limit: slowing down polling...]`);
           }
@@ -282,6 +299,30 @@ async function handleCommand(
 
         console.log(`✔ Successfully authenticated with ${providerArg}! (${cred.type})`);
         session.providerId = providerArg;
+        if (providerArg === 'openrouter') {
+          session.model = {
+            id: 'anthropic/claude-3.7-sonnet',
+            name: 'Claude 3.7 Sonnet (OpenRouter)',
+            provider: 'openrouter',
+            protocol: 'openai-completions',
+            baseUrl: 'https://openrouter.ai/api/v1',
+            contextWindow: 200000,
+            maxOutputTokens: 8192,
+            reasoning: true,
+          };
+        } else if (providerArg === 'google') {
+          session.model = {
+            id: 'gemini-2.5-flash',
+            name: 'Gemini 2.5 Flash',
+            provider: 'google',
+            protocol: 'google-generative-ai',
+            baseUrl: 'https://generativelanguage.googleapis.com',
+            contextWindow: 1048576,
+            maxOutputTokens: 8192,
+            reasoning: true,
+          };
+        }
+        console.log(`Active provider set to: ${session.providerId} (model: ${session.model.id})`);
       } catch (err: any) {
         console.error(`❌ Login failed: ${err.message}`);
       }
