@@ -1,50 +1,7 @@
 {
-  "name": "steward-cli",
-  "version": "0.29.0",
-  "description": "Interactive AI engineering assistant for the terminal.",
-  "author": "sapirrior",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/sapirrior/steward.git"
-  },
-  "bugs": {
-    "url": "https://github.com/sapirrior/steward/issues"
-  },
-  "homepage": "https://github.com/sapirrior/steward#readme",
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist"
-  ],
-  "type": "module",
-  "bin": {
-    "steward": "dist/cli.js",
-    "steward-cli": "dist/cli.js"
-  },
-  "scripts": {
-    "dev": "bun --watch src/app/main.ts",
-    "start": "bun src/app/main.ts",
-    "prepublishOnly": "bun run build",
-    "build": "bun build src/app/main.ts --outfile ./dist/cli.js --target node",
-    "compile": "bun build --compile --minify src/app/main.ts --outfile ./dist/steward",
-    "format": "bun ./node_modules/prettier/bin/prettier.cjs --check \"src/**/*.{ts,tsx,js,jsx}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
-    "format:fix": "bun ./node_modules/prettier/bin/prettier.cjs --write \"src/**/*.{ts,tsx,js,jsx}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
-    "lint:boundaries": "bun test tests/tui/boundary-lint.test.ts",
-    "test": "bun test"
-  },
-  "dependencies": {
-    "chalk": "6.0.0",
-    "cli-highlight": "2.1.11",
-    "get-east-asian-width": "1.6.0",
-    "marked": "18.0.12",
-    "string-width": "8.2.2",
-    "strip-ansi": "7.2.0",
-    "zod": "4.6.1"
-  },
-  "devDependencies": {
-    "@types/bun": "1.4.2",
-    "prettier": "3.9.6"
-  }
+  "name": "steward-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
 }
