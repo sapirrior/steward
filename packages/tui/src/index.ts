@@ -15,5 +15,6 @@ export * from './terminal/io.js';
 export * from './terminal/sequences.js';
 export * from './terminal/color.js';
 export * from './elements/index.js';
+export type { ColorValue } from './terminal/color.js';
 export * from './runtime/index.js';
 export * from './terminal/input.js';

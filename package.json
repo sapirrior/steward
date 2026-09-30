@@ -3,5 +3,19 @@
   "private": true,
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "build": "bun build packages/cli/src/main.ts --outfile packages/cli/dist/cli.js --target node",
+    "compile": "bun build --compile --minify packages/cli/src/main.ts --outfile packages/cli/dist/steward",
+    "dev": "bun --watch packages/cli/src/main.ts",
+    "start": "bun packages/cli/src/main.ts",
+    "test": "bun test",
+    "format": "prettier --check \"packages/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/tests/**/*.{ts,tsx,js,jsx}\"",
+    "format:fix": "prettier --write \"packages/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/tests/**/*.{ts,tsx,js,jsx}\"",
+    "lint:boundaries": "bun test packages/cli/tests/tui/boundary-lint.test.ts",
+    "typecheck": "tsc -b packages/ai packages/tui packages/agent packages/cli"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6"
+  }
 }

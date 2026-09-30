@@ -100,6 +100,14 @@ export const usageCommand: SlashCommand = {
     const duration = formatDuration(sessionData?.createdAt);
     const costEstimate = estimateUniversalCost(usage, model.modelId, model.provider);
 
+    const inputTokens = (usage as any).inputTokens ?? usage.input ?? 0;
+    const outputTokens = (usage as any).outputTokens ?? usage.output ?? 0;
+    const reasoningTokens = (usage as any).reasoningTokens ?? usage.reasoning ?? 0;
+    const cacheReadTokens = (usage as any).cacheReadTokens ?? usage.cacheRead ?? 0;
+    const cacheWriteTokens = (usage as any).cacheWriteTokens ?? usage.cacheWrite ?? 0;
+    const totalTokens =
+      (usage as any).totalTokens ?? usage.total ?? inputTokens + outputTokens;
+
     const lines: string[] = [
       `Session Usage & Analytics:`,
       `• Active Model: ${model.modelId} (${model.provider}${model.effort !== 'medium' ? `, effort: ${model.effort}` : ''})`,
@@ -107,27 +115,27 @@ export const usageCommand: SlashCommand = {
       `• Activity: ${formatNumber(turnsCount)} turns (${formatNumber(toolCallsCount)} tool executions)`,
       ``,
       `Token Breakdown:`,
-      `• Input Tokens: ${formatNumber(usage.inputTokens)}`,
-      `• Output Tokens: ${formatNumber(usage.outputTokens)}`,
+      `• Input Tokens: ${formatNumber(inputTokens)}`,
+      `• Output Tokens: ${formatNumber(outputTokens)}`,
     ];
 
-    if (usage.reasoningTokens && usage.reasoningTokens > 0) {
-      lines.push(`• Reasoning Tokens: ${formatNumber(usage.reasoningTokens)}`);
+    if (reasoningTokens > 0) {
+      lines.push(`• Reasoning Tokens: ${formatNumber(reasoningTokens)}`);
     }
 
-    if (usage.cacheReadTokens && usage.cacheReadTokens > 0) {
-      const totalIn = (usage.inputTokens || 0) + (usage.cacheReadTokens || 0);
-      const hitRate = totalIn > 0 ? Math.round((usage.cacheReadTokens / totalIn) * 100) : 0;
+    if (cacheReadTokens > 0) {
+      const totalIn = inputTokens + cacheReadTokens;
+      const hitRate = totalIn > 0 ? Math.round((cacheReadTokens / totalIn) * 100) : 0;
       lines.push(
-        `• Cache Read Tokens: ${formatNumber(usage.cacheReadTokens)} (${hitRate}% hit rate)`,
+        `• Cache Read Tokens: ${formatNumber(cacheReadTokens)} (${hitRate}% hit rate)`,
       );
     }
 
-    if (usage.cacheWriteTokens && usage.cacheWriteTokens > 0) {
-      lines.push(`• Cache Write Tokens: ${formatNumber(usage.cacheWriteTokens)}`);
+    if (cacheWriteTokens > 0) {
+      lines.push(`• Cache Write Tokens: ${formatNumber(cacheWriteTokens)}`);
     }
 
-    lines.push(`• Total Tokens: ${formatNumber(usage.totalTokens)}`);
+    lines.push(`• Total Tokens: ${formatNumber(totalTokens)}`);
     lines.push(``);
     lines.push(`Estimated Cost:`);
     lines.push(`• Session Spend: ${costEstimate}`);

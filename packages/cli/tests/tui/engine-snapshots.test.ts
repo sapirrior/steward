@@ -46,9 +46,9 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       isBusy: false,
     });
 
-    engine.mount(header, { kind: 'custom' });
-    engine.mount(prompt, { kind: 'input', keepCursorVisible: true });
-    engine.mount(statusBar, { kind: 'custom' });
+    engine.mount(header);
+    engine.mount(prompt, { keepCursorVisible: true });
+    engine.mount(statusBar);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -81,9 +81,9 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       isBusy: false,
     });
 
-    engine.mount(header, { kind: 'custom' });
-    engine.mount(prompt, { kind: 'input', keepCursorVisible: true });
-    engine.mount(statusBar, { kind: 'custom' });
+    engine.mount(header);
+    engine.mount(prompt, { keepCursorVisible: true });
+    engine.mount(statusBar);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -117,9 +117,9 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       isBusy: false,
     });
 
-    engine.mount(header, { kind: 'custom' });
-    engine.mount(prompt, { kind: 'input', keepCursorVisible: true });
-    engine.mount(statusBar, { kind: 'custom' });
+    engine.mount(header);
+    engine.mount(prompt, { keepCursorVisible: true });
+    engine.mount(statusBar);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -142,7 +142,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       escPending: true,
     });
 
-    engine.mount(prompt, { kind: 'input', keepCursorVisible: true });
+    engine.mount(prompt, { keepCursorVisible: true });
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -165,7 +165,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       paletteIdx: 0,
     });
 
-    engine.mount(prompt, { kind: 'input', keepCursorVisible: true });
+    engine.mount(prompt, { keepCursorVisible: true });
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -189,7 +189,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       fileSelectIdx: 1,
     });
 
-    engine.mount(prompt, { kind: 'input', keepCursorVisible: true });
+    engine.mount(prompt, { keepCursorVisible: true });
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -214,7 +214,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       recentLines: ['Searching files matching src/**/*.ts', 'Found 36 results'],
     });
 
-    engine.mount(streamView, { kind: 'custom' });
+    engine.mount(streamView);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -244,7 +244,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
     ].join('\n');
 
     streamView.setStream(markdownContent, true);
-    engine.mount(streamView, { kind: 'custom' });
+    engine.mount(streamView);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -353,9 +353,9 @@ describe('TUI Engine Headless Golden Snapshots', () => {
     });
     prompt.setState({ value: 'Testing resize reflow behavior' });
 
-    engine.mount(header, { kind: 'custom' });
+    engine.mount(header);
     engine.commit(formatUserMessage('Initial prompt before resize'), { tag: 'prompt', wrap: true });
-    engine.mount(prompt, { kind: 'input', keepCursorVisible: true });
+    engine.mount(prompt, { keepCursorVisible: true });
 
     const sharedRenderer = new StateRenderer();
 
@@ -388,7 +388,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onClose: () => {},
     });
 
-    engine.mount(shortcutsMenu, { kind: 'dock' });
+    engine.mount(shortcutsMenu);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -426,7 +426,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onCancel: () => {},
     });
 
-    engine.mount(modelPicker, { kind: 'dock' });
+    engine.mount(modelPicker);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -448,7 +448,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onCancel: () => {},
     });
 
-    engine.mount(themePicker, { kind: 'dock' });
+    engine.mount(themePicker);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -470,7 +470,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onCancel: () => {},
     });
 
-    engine.mount(themePicker, { kind: 'dock' });
+    engine.mount(themePicker);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -524,7 +524,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onCancel: () => {},
     });
 
-    engine.mount(sessionMenu, { kind: 'dock' });
+    engine.mount(sessionMenu);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -545,7 +545,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onCancel: () => {},
     });
 
-    engine.mount(effortPicker, { kind: 'dock' });
+    engine.mount(effortPicker);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -565,7 +565,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onDecision: () => {},
     });
 
-    engine.mount(trustGate, { kind: 'custom' });
+    engine.mount(trustGate);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -586,7 +586,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
     });
     trustGate.setState({ selectedIndex: 0 });
 
-    engine.mount(trustGate, { kind: 'custom' });
+    engine.mount(trustGate);
 
     const result = captureHeadlessRender(
       (renderer) => {
@@ -641,7 +641,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onCancel: () => {},
     });
 
-    engine80.mount(rewindMenu80, { kind: 'dock' });
+    engine80.mount(rewindMenu80);
 
     const result80 = captureHeadlessRender(
       (renderer) => {
@@ -661,7 +661,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onCancel: () => {},
     });
 
-    engine120.mount(rewindMenu120, { kind: 'dock' });
+    engine120.mount(rewindMenu120);
 
     const result120 = captureHeadlessRender(
       (renderer) => {
@@ -682,7 +682,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onDecision: () => {},
     });
 
-    engine80.mount(dock80, { kind: 'dock' });
+    engine80.mount(dock80);
 
     const result80 = captureHeadlessRender(
       (renderer) => {
@@ -703,7 +703,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onDecision: () => {},
     });
 
-    engine120.mount(dock120, { kind: 'dock' });
+    engine120.mount(dock120);
 
     const result120 = captureHeadlessRender(
       (renderer) => {
@@ -733,9 +733,9 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       warning: '⚠ Voice stopped: network connection lost',
     });
 
-    engine80.mount(header, { kind: 'custom' });
-    engine80.mount(prompt, { kind: 'input', keepCursorVisible: true });
-    engine80.mount(statusBar, { kind: 'custom' });
+    engine80.mount(header);
+    engine80.mount(prompt, { keepCursorVisible: true });
+    engine80.mount(statusBar);
 
     const result80 = captureHeadlessRender(
       (renderer) => {
@@ -752,6 +752,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
     const request = {
       kind: 'create' as const,
       filePath: 'src/utils/new-helper.ts',
+      before: null,
       after: 'export function helper() {\n  return "created";\n}\n',
     };
 
@@ -760,7 +761,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       request,
       onDecision: () => {},
     });
-    engine80.mount(dock80, { kind: 'dock' });
+    engine80.mount(dock80);
 
     const result80 = captureHeadlessRender((renderer) => renderer.render(engine80.tree, 0, true), {
       cols: 80,
@@ -774,7 +775,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       request,
       onDecision: () => {},
     });
-    engine120.mount(dock120, { kind: 'dock' });
+    engine120.mount(dock120);
 
     const result120 = captureHeadlessRender(
       (renderer) => renderer.render(engine120.tree, 0, true),
@@ -797,7 +798,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       request,
       onDecision: () => {},
     });
-    engine80.mount(dock80, { kind: 'dock' });
+    engine80.mount(dock80);
 
     const result80 = captureHeadlessRender((renderer) => renderer.render(engine80.tree, 0, true), {
       cols: 80,
@@ -811,7 +812,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       request,
       onDecision: () => {},
     });
-    engine120.mount(dock120, { kind: 'dock' });
+    engine120.mount(dock120);
 
     const result120 = captureHeadlessRender(
       (renderer) => renderer.render(engine120.tree, 0, true),
@@ -835,7 +836,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       request,
       onDecision: () => {},
     });
-    engine80.mount(dock80, { kind: 'dock' });
+    engine80.mount(dock80);
 
     const result80 = captureHeadlessRender((renderer) => renderer.render(engine80.tree, 0, true), {
       cols: 80,
@@ -849,7 +850,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       request,
       onDecision: () => {},
     });
-    engine120.mount(dock120, { kind: 'dock' });
+    engine120.mount(dock120);
 
     const result120 = captureHeadlessRender(
       (renderer) => renderer.render(engine120.tree, 0, true),
@@ -874,7 +875,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onDecision: () => {},
     });
     dock80.setState({ mode: 'REVIEW', scrollOffset: 0 });
-    engine80.mount(dock80, { kind: 'dock' });
+    engine80.mount(dock80);
 
     const result80 = captureHeadlessRender((renderer) => renderer.render(engine80.tree, 0, true), {
       cols: 80,
@@ -889,7 +890,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
       onDecision: () => {},
     });
     dock120.setState({ mode: 'REVIEW', scrollOffset: 0 });
-    engine120.mount(dock120, { kind: 'dock' });
+    engine120.mount(dock120);
 
     const result120 = captureHeadlessRender(
       (renderer) => renderer.render(engine120.tree, 0, true),
@@ -913,7 +914,7 @@ describe('TUI Engine Headless Golden Snapshots', () => {
     const newStr =
       'export async function processDataStream(stream: ReadableStream<Uint8Array>, bufferSize: number = 8192, timeoutMs: number = 5000, options?: StreamOptions): Promise<ProcessedResult>';
 
-    const diffOutput = editFileTool.summarize(
+    const diffOutput = editFileTool.summarize!(
       {
         file_path: 'src/stream-processor.ts',
         old_string: oldStr,

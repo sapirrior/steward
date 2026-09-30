@@ -52,6 +52,8 @@ export interface TurnEndLogEvent extends SessionLogBase {
   errorMessage?: string;
 }
 
+export type TurnPresentationEnd = TurnEndLogEvent;
+
 export type SessionLogEvent =
   TurnStartLogEvent | ToolStartLogEvent | ToolEndLogEvent | TurnEndLogEvent;
 

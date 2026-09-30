@@ -1,16 +1,16 @@
-import { describe, expect, it } from 'bun:test';
-import FilePermissionDock from '../../src/ui/components/docks/FilePermissionDock.js';
+import { describe, it, expect } from 'bun:test';
 import TerminalEngine from 'stitchable';
+import FilePermissionDock from '../../src/ui/components/docks/FilePermissionDock.js';
 import type { FilePermissionRequest } from '@steward/agent';
 
 describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
   it('defaults to Yes selection, toggles with Up/Down and numeric keys 1/2, submits on Enter', () => {
-    let decision: boolean | null = null;
+    let decision: any = null;
     const request: FilePermissionRequest = {
       kind: 'create',
-      filePath: 'src/hello.ts',
+      filePath: 'src/components/Header.tsx',
       before: null,
-      after: 'console.log("hello");\n',
+      after: 'export function Header() { return null; }',
     };
 
     const dock = new FilePermissionDock({
@@ -21,7 +21,7 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
     });
 
     const engine = new TerminalEngine();
-    engine.mount(dock, { kind: 'dock' });
+    engine.mount(dock);
 
     expect(dock.state.selectedIndex).toBe(0); // Yes
 
@@ -49,7 +49,7 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
   });
 
   it('submits allowed=false when Enter is pressed on No selection', () => {
-    let decision: boolean | null = null;
+    let decision: any = null;
     const dock = new FilePermissionDock({
       request: {
         kind: 'overwrite',
@@ -63,7 +63,7 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
     });
 
     const engine = new TerminalEngine();
-    engine.mount(dock, { kind: 'dock' });
+    engine.mount(dock);
 
     // Select No
     process.stdin.emit('data', Buffer.from('2'));
@@ -77,7 +77,7 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
   });
 
   it('cancels/denies on Esc key in normal mode', () => {
-    let decision: boolean | null = null;
+    let decision: any = null;
     const dock = new FilePermissionDock({
       request: {
         kind: 'edit',
@@ -91,7 +91,7 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
     });
 
     const engine = new TerminalEngine();
-    engine.mount(dock, { kind: 'dock' });
+    engine.mount(dock);
 
     process.stdin.emit('data', Buffer.from('\x1b'));
     expect(decision).toBe(false);
@@ -111,7 +111,7 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
     });
 
     const engine = new TerminalEngine();
-    engine.mount(dock, { kind: 'dock' });
+    engine.mount(dock);
 
     expect(dock.state.mode).toBe('NORMAL');
 
@@ -147,7 +147,7 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
     });
 
     const engine = new TerminalEngine();
-    engine.mount(dock, { kind: 'dock' });
+    engine.mount(dock);
 
     process.stdin.emit('data', Buffer.from('f'));
     expect(dock.state.mode).toBe('REVIEW');
@@ -183,7 +183,7 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
     });
 
     const engine = new TerminalEngine();
-    engine.mount(dock, { kind: 'dock' });
+    engine.mount(dock);
     engine.unmount(dock);
 
     // Inject input after unmount

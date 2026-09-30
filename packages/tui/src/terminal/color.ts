@@ -1,5 +1,7 @@
 import { RESET_SGR } from './sequences.js';
 
+export type ColorLevel = 0 | 1 | 2 | 3;
+
 export type StandardColorName =
   | 'black'
   | 'red'

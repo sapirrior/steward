@@ -14,7 +14,7 @@ describe('PromptInput Spinner & Permission Dock Lifecycle (Section 17 & 18)', ()
     promptInput.setDisabled(true);
 
     // 2. Mount to engine
-    engine.mount(promptInput, { kind: 'input' });
+    engine.mount(promptInput);
 
     // 3. Wait 200ms to allow spinner frames to advance
     await new Promise((resolve) => setTimeout(resolve, 200));
@@ -32,7 +32,7 @@ describe('PromptInput Spinner & Permission Dock Lifecycle (Section 17 & 18)', ()
     expect(frameWhileUnmounted).toBe(frameAtUnmount);
 
     // 6. User resolves permission dock (Yes/No) -> remount SAME PromptInput instance
-    engine.mount(promptInput, { kind: 'input' });
+    engine.mount(promptInput);
 
     // 7. Wait 200ms to ensure spinner resumes advancing
     await new Promise((resolve) => setTimeout(resolve, 200));

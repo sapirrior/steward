@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { TerminalEngine, parseInputChunk } from 'stitchable';
 import {
   AgentSession,
@@ -180,7 +181,7 @@ export class TUIApp {
       },
     });
 
-    this.engine.mount(trustGate, { kind: 'custom' });
+    this.engine.mount(trustGate);
   }
 
   private proceedStart(): void {
@@ -202,9 +203,9 @@ export class TUIApp {
     }
 
     // Mount live interactive components at the bottom
-    this.engine.mount(this.streamingView, { kind: 'custom' });
-    this.engine.mount(this.promptInput, { keepCursorVisible: true, kind: 'input' });
-    this.engine.mount(this.statusBar, { kind: 'custom' });
+    this.engine.mount(this.streamingView);
+    this.engine.mount(this.promptInput, { keepCursorVisible: true });
+    this.engine.mount(this.statusBar);
 
     // Handle global keybindings
     this.engine.addInputListener((chunk) => {
@@ -290,9 +291,9 @@ export class TUIApp {
       // Exit scroll view mode: re-render compact transcript, re-mount interactive controls, and scroll to bottom
       this.isScrollViewMode = false;
       renderTranscript(this.engine, this.session.session, this.header, { expanded: false });
-      this.engine.mount(this.streamingView, { kind: 'custom' });
-      this.engine.mount(this.promptInput, { keepCursorVisible: true, kind: 'input' });
-      this.engine.mount(this.statusBar, { kind: 'custom' });
+      this.engine.mount(this.streamingView);
+      this.engine.mount(this.promptInput, { keepCursorVisible: true });
+      this.engine.mount(this.statusBar);
       this.engine.scrollToBottom();
     } else {
       // Enter scroll view mode: unmount interactive controls, hide cursor, and re-render full expanded transcript

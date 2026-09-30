@@ -84,7 +84,7 @@ export class ModalController {
       engine.unmount(this.activeModal);
       engine.unmount(statusBar);
       this.activeModal = null;
-      engine.mount(promptInput, { keepCursorVisible: true, kind: 'input' });
+      engine.mount(promptInput, { keepCursorVisible: true });
       engine.mount(statusBar);
     }
   }
@@ -107,7 +107,7 @@ export class ModalController {
       onClose: () => this.closeModal(),
     });
     this.activeModal = help;
-    engine.mount(help, { kind: 'dock' });
+    engine.mount(help);
     engine.mount(statusBar);
   }
 
@@ -147,7 +147,7 @@ export class ModalController {
     });
 
     this.activeModal = picker;
-    engine.mount(picker, { kind: 'dock' });
+    engine.mount(picker);
     engine.mount(statusBar);
   }
 
@@ -167,7 +167,7 @@ export class ModalController {
         saveThemeSelection(selected.name);
         renderTranscript(engine, session.session, header);
         engine.mount(streamingView);
-        engine.mount(promptInput, { keepCursorVisible: true, kind: 'input' });
+        engine.mount(promptInput, { keepCursorVisible: true });
         engine.mount(statusBar);
         engine.requestFrame(true);
         engine.commit(formatSystemMessage(`Theme switched to ${selected.label}.`), { tag: 'system' });
@@ -177,7 +177,7 @@ export class ModalController {
     });
 
     this.activeModal = picker;
-    engine.mount(picker, { kind: 'dock' });
+    engine.mount(picker);
     engine.mount(statusBar);
   }
 
@@ -195,7 +195,7 @@ export class ModalController {
     renderTranscript(engine, selected, header);
 
     engine.mount(streamingView);
-    engine.mount(promptInput, { keepCursorVisible: true, kind: 'input' });
+    engine.mount(promptInput, { keepCursorVisible: true });
     engine.mount(statusBar);
   }
 
@@ -215,7 +215,7 @@ export class ModalController {
     });
 
     this.activeModal = menu;
-    engine.mount(menu, { kind: 'dock' });
+    engine.mount(menu);
     engine.mount(statusBar);
   }
 
@@ -245,7 +245,7 @@ export class ModalController {
     });
 
     this.activeModal = picker;
-    engine.mount(picker, { kind: 'dock' });
+    engine.mount(picker);
     engine.mount(statusBar);
   }
 
@@ -284,7 +284,7 @@ export class ModalController {
     });
 
     this.activeModal = menu;
-    engine.mount(menu, { kind: 'dock' });
+    engine.mount(menu);
     engine.mount(statusBar);
   }
 
@@ -308,7 +308,7 @@ export class ModalController {
       onDecision: params.onDecision,
     });
     this.activeModal = dock;
-    engine.mount(dock, { kind: 'dock' });
+    engine.mount(dock);
     engine.mount(statusBar);
     return dock;
   }
@@ -327,7 +327,7 @@ export class ModalController {
       onDecision: params.onDecision,
     });
     this.activeModal = dock;
-    engine.mount(dock, { kind: 'dock' });
+    engine.mount(dock);
     engine.mount(statusBar);
     return dock;
   }

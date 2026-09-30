@@ -9,12 +9,14 @@
   "exports": {
     ".": {
       "bun": "./src/index.ts",
-      "import": "./dist/index.js",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts",
       "types": "./src/index.ts"
     },
     "./testing": {
       "bun": "./src/testing/faux.ts",
-      "import": "./dist/testing/faux.js",
+      "import": "./src/testing/faux.ts",
+      "default": "./src/testing/faux.ts",
       "types": "./src/testing/faux.ts"
     }
   },

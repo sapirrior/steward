@@ -12,7 +12,7 @@ describe('PromptInput Interaction & Typing', () => {
       },
     });
 
-    engine.mount(prompt, { kind: 'input' });
+    engine.mount(prompt);
 
     // Type 'hello'
     for (const char of 'hello') {
@@ -41,7 +41,7 @@ describe('PromptInput Interaction & Typing', () => {
       },
     });
 
-    engine.mount(prompt, { kind: 'input' });
+    engine.mount(prompt);
 
     // Type 'abc'
     process.stdin.emit('data', Buffer.from('a'));
@@ -68,7 +68,7 @@ describe('PromptInput Interaction & Typing', () => {
       onSubmit: () => {},
     });
 
-    engine.mount(prompt, { kind: 'input' });
+    engine.mount(prompt);
 
     // Type '/'
     process.stdin.emit('data', Buffer.from('/'));

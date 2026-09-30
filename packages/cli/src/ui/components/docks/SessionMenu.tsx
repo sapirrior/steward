@@ -1,6 +1,6 @@
 /** @jsxImportSource stitchable */
 import { SelectList } from '../../utils/select-list.js';
-import type { SessionData } from '@steward/agent';
+import type { SessionData, SessionTurn } from '@steward/agent';
 import { figures } from '../../../theme/index.js';
 import { c } from '../../../theme/style.js';
 import { Box, Text } from 'stitchable';
@@ -9,6 +9,18 @@ export interface SessionMenuProps {
   sessions: SessionData[];
   onSelect: (session: SessionData) => void;
   onCancel: () => void;
+}
+
+function getFirstUserPrompt(turn?: SessionTurn): string {
+  if (!turn) return '';
+  if ((turn as any).userPrompt) return String((turn as any).userPrompt);
+  const userMsg = turn.messages?.find((m) => m.role === 'user');
+  if (typeof userMsg?.content === 'string') return userMsg.content;
+  if (Array.isArray(userMsg?.content)) {
+    const textBlock = userMsg.content.find((b: any) => b.type === 'text');
+    return (textBlock as any)?.text ?? '';
+  }
+  return '';
 }
 
 export default class SessionMenu extends SelectList<SessionData> {
@@ -25,7 +37,7 @@ export default class SessionMenu extends SelectList<SessionData> {
       emptyMessage: '  No saved sessions found.',
       maxVisible: 4,
       searchFilter: (s, q) => {
-        const firstPrompt = s.turns?.[0]?.userPrompt?.toLowerCase() ?? '';
+        const firstPrompt = getFirstUserPrompt(s.turns?.[0]).toLowerCase();
         const name = s.name?.toLowerCase() ?? '';
         const id = s.id?.toLowerCase() ?? '';
         return id.includes(q) || name.includes(q) || firstPrompt.includes(q);
@@ -33,7 +45,7 @@ export default class SessionMenu extends SelectList<SessionData> {
       onSelect: props.onSelect,
       onCancel: props.onCancel,
       renderItem: (s, isSelected, maxCols) => {
-        const rawTitle = s.name || s.turns?.[0]?.userPrompt || 'Untitled Session';
+        const rawTitle = s.name || getFirstUserPrompt(s.turns?.[0]) || 'Untitled Session';
         const cleanTitle = rawTitle.replace(/\s+/g, ' ').trim();
         const pointer = isSelected ? c.info(`${figures.pointer} `) : '  ';
         const title = isSelected ? c.info(cleanTitle) : c.text(cleanTitle);

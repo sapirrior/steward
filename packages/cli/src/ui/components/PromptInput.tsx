@@ -425,10 +425,7 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
 
   override componentWillUnmount(): void {
     this.isMounted = false;
-    if (this.spinnerTimer) {
-      clearInterval(this.spinnerTimer);
-      this.spinnerTimer = null;
-    }
+    this.syncSpinnerTimer();
     if (this.escTimer) {
       clearTimeout(this.escTimer);
       this.escTimer = null;
@@ -454,19 +451,6 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
         fileSelectIdx: this.autocomplete.getSelectedIndex(),
       });
     });
-  }
-
-  override componentWillUnmount(): void {
-    this.isMounted = false;
-    this.syncSpinnerTimer();
-    if (this.removeInputListener) {
-      this.removeInputListener();
-      this.removeInputListener = null;
-    }
-    if (this.escTimer) {
-      clearTimeout(this.escTimer);
-      this.escTimer = null;
-    }
   }
 
   override render(width?: number): string[] {

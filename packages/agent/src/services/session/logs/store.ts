@@ -47,16 +47,8 @@ export function chooseTurnStatusVerb(): string {
  * Resolves the base root directory for presentation session logs: ~/.steward/session-logs
  * (or derived from STEWARD_SESSIONS_DIR parent directory)
  */
-export function getSessionLogsRootDir(): string {
-  return join(dirname(getSessionsRootDir()), 'session-logs');
-}
-
-/**
- * Resolves the full file path for a session log: ~/.steward/session-logs/<date>/<sessionId>.jsonl
- */
-export function getSessionLogPath(date: string, sessionId: string): string {
-  return join(getSessionLogsRootDir(), date, `${sessionId}.jsonl`);
-}
+import { getSessionLogsRootDir, getSessionLogPath } from '../../paths.js';
+export { getSessionLogsRootDir, getSessionLogPath };
 
 /**
  * Bounds string length to prevent unbounded log growth.

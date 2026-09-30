@@ -124,7 +124,7 @@ describe('Theme Subsystem Tests', () => {
         expect(val).toBeDefined();
         if (key === 'syntax') {
           expect(typeof val).toBe('object');
-          expect(val.keyword).toBeDefined();
+          expect((val as any).keyword).toBeDefined();
         } else {
           expect(typeof val).toBe('string');
           expect((val as string).length).toBeGreaterThan(0);

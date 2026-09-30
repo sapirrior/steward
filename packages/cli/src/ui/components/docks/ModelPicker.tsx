@@ -24,7 +24,7 @@ export default class ModelPicker extends SelectList<any> {
       props.currentModel.model_id ??
       '';
     super({
-      items: props.models,
+      items: [...props.models],
       title: 'Select Model',
       subtitle: `Current: ${props.currentModel.provider}/${curSub}`,
       placeholder: 'Type to filter models…',
