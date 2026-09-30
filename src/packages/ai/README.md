@@ -54,17 +54,17 @@ A zero-dependency, pure Web Standards AI engine and model orchestrator for termi
 ```typescript
 import { createAI, builtinProviders, InMemoryCredentialStore } from '@steward/ai';
 
-// 1. Initialize store and credentials
+// 1. Initialize in-memory credential store
 const store = new InMemoryCredentialStore();
-await store.set('anthropic', {
+await store.modify('anthropic', async () => ({
   type: 'api-key',
   key: process.env.ANTHROPIC_API_KEY!,
-});
+}));
 
 // 2. Instantiate AI client
 const ai = createAI({
   providers: builtinProviders(),
-  credentialStore: store,
+  credentials: store,
 });
 
 // 3. Stream a completion
@@ -73,11 +73,12 @@ const stream = ai.stream({
     id: 'claude-3-7-sonnet-latest',
     provider: 'anthropic',
     name: 'Claude 3.7 Sonnet',
+    protocol: 'anthropic-messages',
+    baseUrl: 'https://api.anthropic.com',
     contextWindow: 200000,
-    maxTokens: 8192,
+    maxOutputTokens: 8192,
     reasoning: true,
-    inputPrice: 3,
-    outputPrice: 15,
+    cost: { input: 3, output: 15 },
   },
   messages: [
     { role: 'user', content: 'Explain quantum computing in three sentences.' },
@@ -96,8 +97,11 @@ for await (const event of stream) {
 
 // 5. Retrieve final canonical assistant message and usage
 const result = await stream.result();
-console.log('\nTotal Tokens:', result.usage?.totalTokens);
-console.log('Estimated Cost:', result.cost?.totalCost);
+const totalTokens = (result.usage?.input ?? 0) + (result.usage?.output ?? 0);
+console.log('\nTotal Tokens:', totalTokens);
+if (result.usage?.cost) {
+  console.log('Estimated Cost ($):', result.usage.cost.total);
+}
 ```
 
 ---
@@ -112,8 +116,8 @@ type InferenceEvent =
   | { type: 'reasoning-delta'; delta: string }
   | { type: 'tool-call-start'; id: string; name: string }
   | { type: 'tool-call-delta'; id: string; delta: string }
-  | { type: 'tool-call-end'; id: string }
-  | { type: 'done'; message: AssistantMessage; usage?: TokenUsage; cost?: TokenCost; finishReason?: FinishReason }
+  | { type: 'tool-call-end'; toolCall: ToolCallContent }
+  | { type: 'done'; message: AssistantMessage; usage?: TokenUsage }
   | { type: 'error'; error: AIError };
 ```
 
@@ -164,8 +168,8 @@ const result = await stream.result();
 
 // If the assistant requested tools:
 for (const block of result.message.content) {
-  if (block.type === 'tool_call') {
-    console.log(`Tool requested: ${block.name}(${JSON.stringify(block.input)})`);
+  if (block.type === 'tool-call') {
+    console.log(`Tool requested: ${block.name}(${JSON.stringify(block.arguments)})`);
   }
 }
 ```
@@ -180,7 +184,7 @@ Reasoning efforts are strictly standardized into 5 levels:
 export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 ```
 
-- **Clamping:** Providers with limited reasoning options are automatically clamped using `clampThinkingEffort(supportedEfforts, requestedEffort)`.
+- **Clamping:** Providers with limited reasoning options are automatically clamped using `clampThinkingEffort(model, requestedEffort)`.
 - **Budget Math:** Anthropic token budgets are computed via `calculateAnthropicBudgetTokens(effort, maxTokens)`:
   - `low`: $\min(2048, \lfloor\text{maxTokens} \times 0.25\rfloor)$ (min 1024)
   - `medium`: $\min(8192, \lfloor\text{maxTokens} \times 0.50\rfloor)$ (min 1024)
@@ -195,19 +199,14 @@ When switching between providers (e.g. OpenAI $\to$ Claude $\to$ Gemini), differ
 ```typescript
 import { transformMessages } from '@steward/ai';
 
-const sanitized = transformMessages(rawMessages, {
-  model: targetModel,
-  protocol: 'anthropic-messages',
-  normalizeToolCallId: (id) => id.replace(/[^a-zA-Z0-9_-]/g, '_'),
-  preserveSystemMessages: false, // Extract system messages to top-level prompt
-});
+const sanitized = transformMessages(rawMessages, targetModel);
 ```
 
 ### Transformation Invariants:
 1. **Tool ID Sanitization:** Rewrites tool call IDs to alphanumeric + `_` + `-` (max 64 chars) and synchronizes corresponding `tool` result messages.
 2. **Orphan Tool Call Pruning / Synthesizing:** Any tool call lacking a corresponding result generates a synthetic cancellation result so the turn is valid.
 3. **Incomplete Turn Pruning:** Strips trailing unfinished assistant/tool turns at conversation boundaries.
-4. **Canonical Block Ordering:** Preserves exact encounter order (`thinking` $\to$ `text` $\to$ `tool_call` $\to$ `text`).
+4. **Canonical Block Ordering:** Preserves exact encounter order (`thinking` $\to$ `text` $\to$ `tool-call` $\to$ `text`).
 
 ---
 
@@ -255,20 +254,37 @@ const ai = createAI({
 Authentication is stateless and non-blocking. Store credentials in any custom `CredentialStore` implementation:
 
 ```typescript
-import type { CredentialStore, Credential } from '@steward/ai';
+import type { CredentialStore, Credential, CredentialInfo, ProviderId } from '@steward/ai';
 
 class CustomDatabaseStore implements CredentialStore {
-  async get(providerId: string): Promise<Credential | undefined> {
-    // Read from DB / Secret Vault
+  private db = new Map<ProviderId, Credential>();
+
+  async read(provider: ProviderId): Promise<Credential | undefined> {
+    return this.db.get(provider);
   }
-  async set(providerId: string, credential: Credential): Promise<void> {
-    // Write to DB
+
+  async modify(
+    provider: ProviderId,
+    fn: (current: Credential | undefined) => Promise<Credential | undefined>,
+  ): Promise<Credential | undefined> {
+    const current = await this.read(provider);
+    const next = await fn(current);
+    if (next !== undefined) {
+      this.db.set(provider, next);
+    }
+    return next;
   }
-  async delete(providerId: string): Promise<void> {
-    // Remove from DB
+
+  async list(): Promise<readonly CredentialInfo[]> {
+    return [...this.db.entries()].map(([provider, cred]) => ({
+      provider,
+      type: cred.type,
+      expiresAt: cred.type === 'oauth' ? cred.expiresAt : undefined,
+    }));
   }
-  async list(): Promise<Array<{ providerId: string; credential: Credential }>> {
-    // List credentials
+
+  async delete(provider: ProviderId): Promise<void> {
+    this.db.delete(provider);
   }
 }
 ```
@@ -289,7 +305,7 @@ try {
   if (err instanceof AIError) {
     switch (err.code) {
       case 'rate-limit':
-        console.warn(`Rate limited. Retry after: ${err.retryAfter}s`);
+        console.warn(`Rate limited. Status: ${err.status}`);
         break;
       case 'context-overflow':
         console.error('Prompt exceeds context window limit.');
@@ -303,7 +319,7 @@ try {
 ```
 
 ### Error Code Summary:
-- `auth`: Missing, malformed, or invalid API key / token.
+- `auth`: Missing, malformed, or invalid API key / token (HTTP 401/403).
 - `oauth`: OAuth exchange, device flow timeout, or refresh failure.
 - `rate-limit`: HTTP 429 rate limit exceeded.
 - `context-overflow`: Model context window exceeded.
@@ -329,7 +345,7 @@ try {
 | | `InferenceEvent` | Type | Streaming event union (`text-delta`, `reasoning-delta`, `tool-call-*`, `done`, `error`). | Emitted by provider streams. |
 | | `InferenceStream` | Interface | Async iterable stream yielding `InferenceEvent` and providing `.result()`. | Self-draining promise result on demand. |
 | `client.ts` | `createAI` | Function | Factory creating an `AI` client instance with configured providers and stores. | Main client runtime entry point. |
-| | `AI` | Interface | AI client contract (`stream`, `availableModels`, `resolveAuth`). | Client instance API. |
+| | `AI` | Interface | AI client contract (`stream`, `availableModels`, `authStatus`, `login`, `logout`). | Client instance API. |
 | `event-stream.ts` | `AssistantMessageStream` | Class | Stream builder managing chunks, tool accumulation, and self-draining `.result()`. | Never rejects; handles abort and errors gracefully. |
 | `errors.ts` | `AIError` | Class | Serializable error class with typed `AIErrorCode`. | Never embeds raw secrets or full request bodies. |
 
@@ -337,13 +353,14 @@ try {
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `types.ts` | `CredentialStore` | Interface | Pluggable credential storage interface (`get`, `set`, `delete`, `list`, `modify`). | Pure in-memory or custom storage. |
+| `types.ts` | `CredentialStore` | Interface | Pluggable credential storage interface (`read`, `modify`, `list`, `delete`). | Pure in-memory or custom storage. |
 | | `ResolvedAuth` | Interface | Resolved HTTP headers and token for signing requests. | Injected into provider protocol adapters. |
 | `resolve.ts` | `resolveAuth` | Function | Resolves credentials from store or environment with token refresh. | Double-checked refresh lock pattern. |
 | `memory-store.ts` | `InMemoryCredentialStore`| Class | In-memory `CredentialStore` with async transaction lock (`modify`). | Safe for tests and stateless runtimes. |
 | `api-key.ts` | `envApiKeyAuth` | Function | Helper extracting API keys from environment variables. | Fallback when no stored credential exists. |
 | `pkce.ts` | `generatePKCE` | Function | Generates code verifier and challenge using Web Crypto SHA-256. | Standard 32-byte entropy base64url. |
 | `device-code.ts` | `pollOAuthDeviceCodeFlow`| Function | RFC 8628 OAuth 2.0 Device Code polling helper. | Handles slow down, poll intervals, and aborts. |
+| `callback-server.ts`| `startOAuthCallbackServer` | Function | Loopback OAuth redirect handler executing token exchange before browser page. | Dynamic ephemeral port, dark mode success/error HTML. |
 
 ### Model & Catalog Modules (`src/models/`)
 
@@ -375,9 +392,9 @@ try {
 | :--- | :--- | :--- | :--- | :--- |
 | `anthropic.ts` | `anthropicProvider` | Constant | Provider descriptor for Anthropic Claude. | Uses `anthropic-messages` protocol. |
 | `openai.ts` | `openAIProvider` | Constant | Provider descriptor for OpenAI GPT/o-series. | Uses `openai-completions` protocol. |
-| `google.ts` | `googleProvider` | Constant | Provider descriptor for Google Gemini. | Uses `google-generative-ai` protocol. |
+| `google.ts` | `googleProvider` | Constant | Provider descriptor for Google Gemini. | Uses `google-generative-ai` protocol with API key auth. |
 | `github-copilot.ts` | `githubCopilotProvider` | Constant | Provider descriptor for GitHub Copilot. | Device flow auth and dynamic model filtering. |
-| `openrouter.ts` | `openRouterProvider` | Constant | Provider descriptor for OpenRouter. | OAuth PKCE / API key with model catalog support. |
+| `openrouter.ts` | `openRouterProvider` | Constant | Provider descriptor for OpenRouter. | OAuth PKCE / API key with dynamic catalog support. |
 | `openai-compatible.ts` | `openAICompatibleProvider` | Function | Factory for OpenAI-compatible endpoints. | Configurable base URL, custom headers, and models. |
 | `index.ts` | `builtinProviders` | Function | Returns array of standard built-in providers. | Default provider catalog. |
 
@@ -389,4 +406,4 @@ try {
 2. **Pure In-Memory Core:** No filesystem I/O inside `@steward/ai`. Storage is strictly injected.
 3. **Safe Secrets & Error Boundaries:** Raw authorization headers, API keys, and unparsed HTTP error response bodies are never leaked into error messages or stack traces.
 4. **Header-Based Google Authentication:** Google API keys are passed strictly via `x-goog-api-key` headers rather than URL query parameters to avoid logging exposure.
-5. **Lossless Encounter Ordering:** Stream chunks maintain strict encounter order (`thinking` $\to$ `text` $\to$ `tool_call` $\to$ `text`) across all provider adapters.
+5. **Lossless Encounter Ordering:** Stream chunks maintain strict encounter order (`thinking` $\to$ `text` $\to$ `tool-call` $\to$ `text`) across all provider adapters.
