@@ -1,7 +1,7 @@
 import stripAnsi from 'strip-ansi';
 import stringWidth from 'string-width';
-import { getTheme, figures, resolveThemeColor } from '@steward/app/theme/index.js';
-import { c, bold } from '@steward/app/theme/style.js';
+import { getTheme, figures, resolveThemeColor } from '../../theme/index.js';
+import { c, bold } from '../../theme/style.js';
 import { applyMarkdown } from '../format/markdown.js';
 
 export function themeColor(color: string) {

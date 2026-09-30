@@ -3,8 +3,8 @@ import {
   getActiveThemeName,
   setActiveTheme,
   findTheme,
-} from '@steward/app/theme/index.js';
-import { saveThemeSelection } from '@steward/services/config/index.js';
+} from '../../theme/index.js';
+import { saveThemeSelection } from '@steward/agent';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
 /**

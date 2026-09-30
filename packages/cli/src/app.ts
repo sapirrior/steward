@@ -1,13 +1,22 @@
-import { existsSync } from 'node:fs';
-import TerminalEngine from '@steward/tui/engine/TerminalEngine.js';
-import { AgentSession } from '@steward/agents/engine/agent-session.js';
+import { TerminalEngine, parseInputChunk } from 'stitchable';
+import {
+  AgentSession,
+  defaultToolCatalog,
+  type SessionData,
+  SessionLogWriter,
+  getSessionLogPath,
+  isFolderTrusted,
+  trustFolder,
+  classifyError,
+  logError,
+  cycleMode,
+  setActiveMode,
+  getSavedMode,
+  saveModeSelection,
+} from '@steward/agent';
 import { defaultCommandRegistry } from './commands/registry.js';
-import { defaultToolCatalog } from '@steward/agents/tools/index.js';
-import type { SessionData } from '@steward/services/session/types.js';
-import { SessionLogWriter, getSessionLogPath } from '@steward/services/session/index.js';
-import { isFolderTrusted, trustFolder } from '@steward/services/config/index.js';
-import { listThemes } from '@steward/app/theme/index.js';
-import { c } from '@steward/app/theme/style.js';
+import { listThemes } from './theme/index.js';
+import { c } from './theme/style.js';
 import Header from './ui/components/Header.js';
 import StatusBar from './ui/components/StatusBar.js';
 import StreamingView from './ui/components/StreamingView.js';
@@ -16,7 +25,6 @@ import TrustGate from './ui/components/TrustGate.js';
 import BashPermissionDock from './ui/components/docks/BashPermissionDock.js';
 import FilePermissionDock from './ui/components/docks/FilePermissionDock.js';
 import { PermissionQueue } from './ui/utils/permission-queue.js';
-import { parseInputChunk } from '@steward/tui';
 import {
   formatSystemMessage,
   formatAssistantMessage,
@@ -24,9 +32,6 @@ import {
   formatUserMessage,
 } from './ui/utils/message-formatter.js';
 import { renderTranscript } from './ui/utils/transcript.js';
-import { classifyError, logError } from '@steward/services/errors/index.js';
-import { cycleMode, setActiveMode } from '@steward/agents/policy/modes.js';
-import { getSavedMode, saveModeSelection } from '@steward/services/config/settings.js';
 import { ModalController } from './ui/modal-controller.js';
 import { createAgentEventHandler, type AgentEventState } from './ui/agent-event-router.js';
 import { applyCommandResult } from './commands/handle-command-result.js';

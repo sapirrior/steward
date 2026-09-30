@@ -1,7 +1,7 @@
-import { figures } from '@steward/app/theme/index.js';
-import { c } from '@steward/app/theme/style.js';
+import { figures } from '../../theme/index.js';
+import { c } from '../../theme/style.js';
 import { visibleWidth, truncateToWidth } from './format.js';
-import { renderElement } from '@steward/tui';
+import { renderElement } from 'stitchable';
 
 export interface RenderModalBoxOptions {
   title: string;

@@ -1,8 +1,7 @@
-import Component from '@steward/tui/engine/Component.js';
-import { figures } from '@steward/app/theme/index.js';
-import { c, bold } from '@steward/app/theme/style.js';
+import { Component, parseInputChunk } from 'stitchable';
+import { figures } from '../../theme/index.js';
+import { c, bold } from '../../theme/style.js';
 import { truncateToWidth } from '../utils/format.js';
-import { parseInputChunk } from '@steward/tui';
 import { AutocompleteController } from './prompt-input/autocomplete-controller.js';
 import { CommandPaletteController } from './prompt-input/command-palette-controller.js';
 import { HistoryController } from './prompt-input/history-controller.js';

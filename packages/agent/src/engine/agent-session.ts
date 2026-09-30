@@ -4,14 +4,14 @@
 
 import { randomUUID } from 'node:crypto';
 import type {
-  AIEngine,
+  AI,
   Message,
   ModelSelection,
   ReasoningEffort,
   TokenUsage,
   ToolCallContent,
 } from '@steward/ai';
-import { createAIEngine } from '@steward/ai';
+import { createAI } from '@steward/ai';
 import {
   createSession,
   getCurrentDateString,
@@ -22,13 +22,13 @@ import {
   chooseTurnStatusVerb,
   type SessionData,
   type SessionLogEvent,
-} from '@steward/services/session/index.js';
-import type { MutationCheckpointTracker } from '@steward/services/checkpoint/index.js';
+} from '../services/session/index.js';
+import type { MutationCheckpointTracker } from '../services/checkpoint/index.js';
 import { defaultToolCatalog, summarizeToolResult, formatPlainToolSummary } from '../tools/index.js';
-import { ShellTaskManager } from '@steward/services/tasks/manager.js';
-import { loadSettings, saveSettings, isFolderTrusted } from '@steward/services/config/index.js';
-import { logError } from '@steward/services/errors/index.js';
-import { HookRuntime, type SessionStartSource } from '@steward/plugins';
+import { ShellTaskManager } from '../services/tasks/manager.js';
+import { loadSettings, saveSettings, isFolderTrusted } from '../services/config/index.js';
+import { logError } from '../services/errors/index.js';
+import { HookRuntime, type SessionStartSource } from '../hooks/index.js';
 import { runAgentTurn, type AgentTurnCallbacks } from './agent-runner.js';
 import { SAFETY_STEP_CEILING } from './constants.js';
 import type { AgentEvent } from './events.js';
@@ -118,7 +118,7 @@ export function accumulateUsage(current: TokenUsage, delta: TokenUsage): TokenUs
 }
 
 export interface AgentSessionDeps {
-  ai?: AIEngine;
+  ai?: AI;
   hookRuntime?: HookRuntime;
 }
 
@@ -127,7 +127,7 @@ export interface AgentSessionDeps {
  * active model configuration, abort controls, and turn execution.
  */
 export class AgentSession {
-  private readonly ai: AIEngine;
+  private readonly ai: AI;
   private config: SessionConfig;
   private messages: Message[] = [];
   private sessionData: SessionData;
@@ -150,7 +150,7 @@ export class AgentSession {
     existingSession?: SessionData,
     deps?: AgentSessionDeps,
   ) {
-    this.ai = deps?.ai ?? createAIEngine();
+    this.ai = deps?.ai ?? createAI();
     this.hookRuntime = deps?.hookRuntime;
 
     if (existingSession) {

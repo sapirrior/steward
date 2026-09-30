@@ -1,9 +1,9 @@
-/** @jsxImportSource @steward/tui */
+/** @jsxImportSource stitchable */
 import { SelectList } from '../../utils/select-list.js';
-import type { ThemeMeta } from '@steward/app/theme/colors.js';
-import { figures, resolveThemeColor } from '@steward/app/theme/index.js';
-import { c, bold } from '@steward/app/theme/style.js';
-import { Box, Text } from '@steward/tui';
+import type { ThemeMeta } from '../../../theme/colors.js';
+import { figures, resolveThemeColor } from '../../../theme/index.js';
+import { c, bold } from '../../../theme/style.js';
+import { Box, Text } from 'stitchable';
 
 export interface ThemePickerProps {
   themes: ThemeMeta[];

@@ -3,8 +3,8 @@
  */
 
 import { spawn } from 'node:child_process';
-import { getPlatformShell } from '@steward/services/tasks/shell.js';
-import { getFilteredChildEnv } from '@steward/services/tasks/process.js';
+import { getPlatformShell } from '../services/tasks/shell.js';
+import { getFilteredChildEnv } from '../services/tasks/process.js';
 import {
   MAX_HOOK_CONTEXT_CHARS,
   MAX_HOOK_INPUT_BYTES,

@@ -1,9 +1,8 @@
-/** @jsxImportSource @steward/tui */
-import Component from '@steward/tui/engine/Component.js';
-import { type ChatMode, MODES, getActiveMode } from '@steward/agents/policy/modes.js';
-import { figures } from '@steward/app/theme/index.js';
-import { c, bold } from '@steward/app/theme/style.js';
-import { Box, Text, Spacer, renderElement } from '@steward/tui';
+/** @jsxImportSource stitchable */
+import { Component, Box, Text, Spacer, renderElement } from 'stitchable';
+import { type ChatMode, MODES, getActiveMode } from '@steward/agent';
+import { figures } from '../../theme/index.js';
+import { c, bold } from '../../theme/style.js';
 
 export interface StatusBarProps {
   chatMode?: ChatMode;

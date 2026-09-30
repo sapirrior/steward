@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { Message, ToolSpec } from '@steward/ai';
-import { SessionLogWriter } from '@steward/services/session/index.js';
+import { SessionLogWriter } from '../services/session/index.js';
 import {
   MutationCheckpointTracker,
   globalMutationLockManager,
-} from '@steward/services/checkpoint/index.js';
+} from '../services/checkpoint/index.js';
 import { defaultToolCatalog } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
-import { ShellTaskManager } from '@steward/services/tasks/manager.js';
+import { ShellTaskManager } from '../services/tasks/manager.js';
 import { getActiveMode, MODES } from './mode.js';
 import { buildSystemPrompt } from './system-prompt.js';
 import type { AgentEvent, AgentEventListener } from './events.js';

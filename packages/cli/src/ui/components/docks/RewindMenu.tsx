@@ -1,12 +1,15 @@
-/** @jsxImportSource @steward/tui */
+/** @jsxImportSource stitchable */
 import { SelectList } from '../../utils/select-list.js';
-import type { SessionData, SessionTurn } from '@steward/services/session/types.js';
-import { loadCheckpointManifest } from '@steward/services/checkpoint/store.js';
-import { readCasBlob } from '@steward/services/checkpoint/cas.js';
-import { computeWorkspaceHash } from '@steward/services/checkpoint/path.js';
-import { figures } from '@steward/app/theme/index.js';
-import { c } from '@steward/app/theme/style.js';
-import { Box, Text } from '@steward/tui';
+import {
+  type SessionData,
+  type SessionTurn,
+  loadCheckpointManifest,
+  readCasBlob,
+  computeWorkspaceHash,
+} from '@steward/agent';
+import { figures } from '../../../theme/index.js';
+import { c } from '../../../theme/style.js';
+import { Box, Text } from 'stitchable';
 
 export interface RewindItem {
   turnId: string;

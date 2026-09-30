@@ -1,13 +1,12 @@
-import Component from '@steward/tui/engine/Component.js';
-import { figures } from '@steward/app/theme/index.js';
-import { c, bold } from '@steward/app/theme/style.js';
+import { Component, wrapVisualLine } from 'stitchable';
+import { figures } from '../../theme/index.js';
+import { c, bold } from '../../theme/style.js';
 import {
   formatMarkdown,
   getStatusBullet,
   truncateMiddle,
   extractPrimaryToolParam,
 } from '../utils/format.js';
-import { wrapVisualLine } from '@steward/tui';
 
 export interface ActiveToolCall {
   id: string;

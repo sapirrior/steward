@@ -1,5 +1,5 @@
-import type { ToolDetail } from '@steward/agents/tools/types.js';
-import { c, bg, bold } from '@steward/app/theme/style.js';
+import type { ToolDetail } from '@steward/agent';
+import { c, bg, bold } from '../../theme/style.js';
 import { highlightCode } from '../format/highlight.js';
 import stripAnsi from 'strip-ansi';
 

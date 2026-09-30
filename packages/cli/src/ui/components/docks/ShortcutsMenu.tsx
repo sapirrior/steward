@@ -1,8 +1,7 @@
-/** @jsxImportSource @steward/tui */
-import Component from '@steward/tui/engine/Component.js';
+/** @jsxImportSource stitchable */
+import { Component, Box, Text } from 'stitchable';
 import { renderModalBox } from '../../utils/modal-box.js';
-import { c } from '@steward/app/theme/style.js';
-import { Box, Text } from '@steward/tui';
+import { c } from '../../../theme/style.js';
 
 export interface ShortcutsMenuProps {
   onClose: () => void;

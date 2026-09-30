@@ -1,5 +1,5 @@
-import { figures } from '@steward/app/theme/index.js';
-import { c, bg, bold } from '@steward/app/theme/style.js';
+import { figures } from '../../theme/index.js';
+import { c, bg, bold } from '../../theme/style.js';
 import {
   formatMarkdown,
   getStatusBullet,
@@ -7,12 +7,15 @@ import {
   extractPrimaryToolParam,
   visibleWidth,
 } from './format.js';
-import { wrapVisualLine } from '@steward/tui';
+import { wrapVisualLine } from 'stitchable';
 import type { ToolExecutionStatus } from '../types.js';
-import type { StructuredError } from '@steward/services/errors/index.js';
-import type { ToolSummary } from '@steward/agents/tools/types.js';
+import {
+  type StructuredError,
+  type ToolSummary,
+  chooseTurnStatusVerb,
+  STATUS_VERBS,
+} from '@steward/agent';
 import { renderToolDetail } from './tool-detail.js';
-import { chooseTurnStatusVerb, STATUS_VERBS } from '@steward/services/session/logs/store.js';
 
 export function formatUserMessage(content: string, targetWidth?: number): string[] {
   const termCols =

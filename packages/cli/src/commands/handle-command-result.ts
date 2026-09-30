@@ -1,12 +1,15 @@
 import type { CommandResult } from './types.js';
-import { listSessions, loadSession } from '@steward/services/session/index.js';
+import { listSessions, loadSession } from '@steward/agent';
 import { formatSlashCommandOutput, formatUserMessage } from '../ui/utils/message-formatter.js';
-import { c } from '@steward/app/theme/style.js';
+import { listThemes } from '../theme/index.js';
 
 export interface SlashCommandHandlerCtx {
   engine: {
     clearAll(): void;
-    commit(lines: string[] | ((w: number) => string[]), opts?: { tag?: string; wrap?: boolean; clip?: boolean; hangingIndent?: number }): void;
+    commit(
+      lines: string[] | ((w: number) => string[]),
+      opts?: { tag?: string; wrap?: boolean; clip?: boolean; hangingIndent?: number },
+    ): void;
     mount(comp: any, opts?: any): void;
     components: any[];
     requestFrame(force?: boolean): void;
@@ -26,7 +29,6 @@ export interface SlashCommandHandlerCtx {
     openModelPicker(models: any[]): void;
     openThemePicker(themes: any[]): void;
     openEffortPicker(): void;
-    openLoginDock(targetProvider?: any): void;
     switchToSession(s: any): void;
     openSessionMenu(sessions: any[]): void;
   };
@@ -57,11 +59,6 @@ export async function handleSlashCommandResult(
 
   // Commit the user's prompt to history
   ctx.engine.commit((w) => formatUserMessage(text, w), { tag: 'prompt', wrap: false });
-
-  if (cmdResult.data?.showLoginDock) {
-    ctx.modals.openLoginDock(cmdResult.data.targetProvider);
-    return true;
-  }
 
   if (cmdResult.data?.showRewind) {
     ctx.modals.openRewindMenu();

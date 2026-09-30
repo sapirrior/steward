@@ -310,8 +310,8 @@ export class TerminalEngine {
       if (this.io.isTTY) {
         this.io.input.setRaw(true);
         this.io.input.resume();
-        this.cleanupInputListener = this.io.input.onData(this.inputHandler);
       }
+      this.cleanupInputListener = this.io.input.onData(this.inputHandler);
       this.cleanupResizeListener = this.io.onResize(this.resizeHandler);
 
       if (this.exitHook && !this.exitHookFn && typeof process !== 'undefined' && process.on) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { TUIApp } from './app.js';
-import { AgentSession } from '@steward/agents/index.js';
 import {
+  AgentSession,
   logError,
   setupGlobalErrorHandlers,
   loadSettings,
@@ -10,10 +10,11 @@ import {
   getSavedMode,
   saveThemeSelection,
   saveModeSelection,
-} from '@steward/services/index.js';
-import { setActiveTheme, listThemes, findTheme, getActiveThemeName } from '@steward/app/theme/index.js';
-import { type ChatMode, MODE_NAMES } from '@steward/agents/index.js';
-import pkg from '../../package.json' with { type: 'json' };
+  type ChatMode,
+  MODE_NAMES,
+} from '@steward/agent';
+import { setActiveTheme, listThemes, findTheme, getActiveThemeName } from './theme/index.js';
+import pkg from '../package.json' with { type: 'json' };
 
 export const VERSION = pkg.version;
 export const REPO_URL = 'https://github.com/sapirrior/steward';

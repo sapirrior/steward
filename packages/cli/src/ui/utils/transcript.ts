@@ -1,12 +1,16 @@
-import type TerminalEngine from '@steward/tui/engine/TerminalEngine.js';
-import type { SessionData } from '@steward/services/session/types.js';
+import type { TerminalEngine } from 'stitchable';
 import type Header from '../components/Header.js';
 import {
+  type SessionData,
   loadSessionLog,
   buildSessionPresentationProjection,
-} from '@steward/services/session/logs/store.js';
-import type { TurnPresentationEnd } from '@steward/services/session/logs/types.js';
-import { rehydrateSessionHistory } from '@steward/services/session/helpers.js';
+  type TurnPresentationEnd,
+  rehydrateSessionHistory,
+  classifyError,
+  defaultToolCatalog,
+  summarizeToolResult,
+  summarizeToolArgs,
+} from '@steward/agent';
 import {
   formatTurnStatus,
   formatSystemMessage,
@@ -15,8 +19,7 @@ import {
   formatAssistantMessage,
   formatUserMessage,
 } from './message-formatter.js';
-import { classifyError } from '@steward/services/errors/index.js';
-import { c } from '@steward/app/theme/style.js';
+import { c } from '../../theme/style.js';
 
 export function formatTurnFooter(
   engine: TerminalEngine,
@@ -47,12 +50,6 @@ export function formatTurnFooter(
     engine.commit(formatErrorBadge(structured), { tag: 'system' });
   }
 }
-
-import {
-  defaultToolCatalog,
-  summarizeToolResult,
-  summarizeToolArgs,
-} from '@steward/agents/index.js';
 
 export function renderTranscript(
   engine: TerminalEngine,

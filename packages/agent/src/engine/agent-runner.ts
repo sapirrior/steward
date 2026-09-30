@@ -3,7 +3,7 @@
  */
 
 import type {
-  AIEngine,
+  AI,
   AssistantMessage,
   InferenceRequest,
   Message,
@@ -50,7 +50,7 @@ export interface AgentTurnCallbacks {
 }
 
 export interface RunAgentTurnOptions {
-  ai: AIEngine;
+  ai: AI;
   model: ModelSelection;
   messages: Message[];
   instructions?: string;

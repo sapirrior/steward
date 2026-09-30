@@ -1,8 +1,7 @@
-/** @jsxImportSource @steward/tui */
-import Component from '@steward/tui/engine/Component.js';
-import { figures } from '@steward/app/theme/index.js';
-import { c, bold, italic } from '@steward/app/theme/style.js';
-import { Box, Text, renderElement, wrapVisualLine, parseInputChunk } from '@steward/tui';
+/** @jsxImportSource stitchable */
+import { Component, Box, Text, renderElement, wrapVisualLine, parseInputChunk } from 'stitchable';
+import { figures } from '../../../theme/index.js';
+import { c, bold, italic } from '../../../theme/style.js';
 
 export interface BashPermissionDockProps {
   command: string;

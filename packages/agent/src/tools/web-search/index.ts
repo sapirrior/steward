@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import pkg from '../../../../../../package.json' with { type: 'json' };
+import pkg from '../../../package.json' with { type: 'json' };
 import type { ToolDefinition } from '../types.js';
 
 const VERSION: string = pkg.version || '0.0.0';

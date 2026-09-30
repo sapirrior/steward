@@ -1,21 +1,26 @@
-import TerminalEngine from '@steward/tui/engine/TerminalEngine.js';
-import { AgentSession } from '@steward/agents/engine/agent-session.js';
-import type { ModelDescriptor } from '@steward/agents/models/index.js';
-import type { SessionData } from '@steward/services/session/types.js';
-import { listSessions, loadSession } from '@steward/services/session/index.js';
-import { saveSettings, saveThemeSelection } from '@steward/services/config/index.js';
-import { setActiveTheme, getActiveThemeName, listThemes } from '@steward/app/theme/index.js';
-import type { ThemeMeta } from '@steward/app/theme/colors.js';
-import type { DiscoveredModel, ProviderId, AuthManager } from '@steward/ai';
-import { createAuthManager } from '@steward/ai';
-import LoginDock from './components/docks/LoginDock.js';
+import { TerminalEngine } from 'stitchable';
+import {
+  AgentSession,
+  listSessions,
+  loadSession,
+  saveSettings,
+  saveThemeSelection,
+  executeRewind,
+  recoverPendingCheckpoint,
+  cycleMode,
+  saveModeSelection,
+  type SessionData,
+  type FilePermissionRequest,
+} from '@steward/agent';
+import { setActiveTheme, getActiveThemeName, listThemes } from '../theme/index.js';
+import type { ThemeMeta } from '../theme/colors.js';
+import type { Model, ProviderId } from '@steward/ai';
 import ModelPicker from './components/docks/ModelPicker.js';
 import ThemePicker from './components/docks/ThemePicker.js';
 import SessionMenu from './components/docks/SessionMenu.js';
 import ShortcutsMenu from './components/docks/ShortcutsMenu.js';
 import EffortPicker from './components/docks/EffortPicker.js';
 import RewindMenu from './components/docks/RewindMenu.js';
-import type { FilePermissionRequest } from '@steward/agents/tools/types.js';
 import BashPermissionDock from './components/docks/BashPermissionDock.js';
 import FilePermissionDock from './components/docks/FilePermissionDock.js';
 import PromptInput from './components/PromptInput.js';
@@ -24,9 +29,6 @@ import Header from './components/Header.js';
 import StreamingView from './components/StreamingView.js';
 import { formatSystemMessage } from './utils/message-formatter.js';
 import { renderTranscript } from './utils/transcript.js';
-import { executeRewind, recoverPendingCheckpoint } from '@steward/services/checkpoint/index.js';
-import { cycleMode } from '@steward/agents/policy/modes.js';
-import { saveModeSelection } from '@steward/services/config/settings.js';
 
 /**
  * Dependencies passed to ModalController at construction time.
@@ -45,7 +47,6 @@ export interface ModalControllerDeps {
 }
 
 type AnyModal =
-  | LoginDock
   | ModelPicker
   | ThemePicker
   | SessionMenu
@@ -57,12 +58,11 @@ type AnyModal =
 
 /**
  * Owns the activeModal discriminated-union field and all open / closeModal
- * operations that were previously inlined in TUIApp (~200 lines removed from app.ts).
+ * operations that were previously inlined in TUIApp.
  */
 export class ModalController {
   private activeModal: AnyModal | null = null;
   private deps: ModalControllerDeps;
-  private authManager: AuthManager = createAuthManager();
 
   constructor(deps: ModalControllerDeps) {
     this.deps = deps;
@@ -111,33 +111,7 @@ export class ModalController {
     engine.mount(statusBar);
   }
 
-  public openLoginDock(targetProvider?: ProviderId): void {
-    const { engine, promptInput, statusBar } = this.deps;
-    if (this.activeModal) this.closeModal();
-    engine.unmount(promptInput);
-    engine.unmount(statusBar);
-
-    const dock = new LoginDock({
-      authManager: this.authManager,
-      targetProvider,
-      onSuccess: (provider) => {
-        engine.commit(
-          formatSystemMessage(
-            `Authenticated with ${provider}. Stored credentials in ~/.steward/auth.json`,
-          ),
-          { tag: 'system' },
-        );
-        this.closeModal();
-      },
-      onCancel: () => this.closeModal(),
-    });
-
-    this.activeModal = dock;
-    engine.mount(dock, { kind: 'dock' });
-    engine.mount(statusBar);
-  }
-
-  public openModelPicker(models: DiscoveredModel[]): void {
+  public openModelPicker(models: readonly Model[]): void {
     const { engine, promptInput, statusBar, header } = this.deps;
     if (this.activeModal) this.closeModal();
     engine.unmount(promptInput);
@@ -150,7 +124,7 @@ export class ModalController {
       currentModel,
       onSelect: (selected) => {
         const updated = session.setModel({
-          provider: selected.provider,
+          provider: selected.provider as ProviderId,
           modelId: selected.modelId,
           effort: currentModel.effort ?? 'medium',
         });

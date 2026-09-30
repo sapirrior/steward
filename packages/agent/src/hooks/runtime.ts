@@ -20,7 +20,7 @@ import {
 import { hasHooksForEvent, matchesHook } from './match.js';
 import { executeHook } from './execute.js';
 import { getUserHooksPath, getProjectHooksPath, loadHooksConfigFile } from './config.js';
-import { createConfigHealthBuiltin } from '../builtins/index.js';
+import { createConfigHealthBuiltin } from './builtins/index.js';
 
 export interface HookRuntimeOptions {
   hooks?: CompiledHook[];

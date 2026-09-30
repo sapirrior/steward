@@ -1,10 +1,9 @@
-/** @jsxImportSource @steward/tui */
+/** @jsxImportSource stitchable */
 import { homedir } from 'node:os';
-import pkg from '../../../../package.json' with { type: 'json' };
-import Component from '@steward/tui/engine/Component.js';
-import { LOGO_LINES } from '@steward/app/theme/index.js';
-import { c, bold } from '@steward/app/theme/style.js';
-import { Box, Text, renderElement } from '@steward/tui';
+import pkg from '../../../package.json' with { type: 'json' };
+import { Component, Box, Text, renderElement } from 'stitchable';
+import { LOGO_LINES } from '../../theme/index.js';
+import { c, bold } from '../../theme/style.js';
 
 const DEFAULT_VERSION = pkg.version || '0.0.0';
 

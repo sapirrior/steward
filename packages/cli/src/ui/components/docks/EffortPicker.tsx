@@ -1,10 +1,9 @@
-/** @jsxImportSource @steward/tui */
-import Component from '@steward/tui/engine/Component.js';
+/** @jsxImportSource stitchable */
+import { Component, Box, Text, parseInputChunk } from 'stitchable';
 import type { ReasoningEffort } from '@steward/ai';
-import { figures } from '@steward/app/theme/index.js';
-import { c, bold } from '@steward/app/theme/style.js';
+import { figures } from '../../../theme/index.js';
+import { c, bold } from '../../../theme/style.js';
 import { renderModalBox } from '../../utils/modal-box.js';
-import { Box, Text, parseInputChunk } from '@steward/tui';
 
 export interface EffortOption {
   id: ReasoningEffort;

@@ -3,30 +3,13 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "baseUrl": ".",
-    "paths": {
-      "steward/tui/*": ["./src/packages/tui/src/*"],
-      "steward/tui/jsx-runtime": ["./src/packages/tui/src/jsx-runtime.ts"],
-      "steward/tui/jsx-dev-runtime": ["./src/packages/tui/src/jsx-dev-runtime.ts"],
-      "@steward/tui": ["./src/packages/tui/src/index.ts"],
-      "@steward/tui/*": ["./src/packages/tui/src/*"],
-      "@steward/agents": ["./src/packages/agents/src/index.ts"],
-      "@steward/agents/*": ["./src/packages/agents/src/*"],
-      "@steward/ai": ["./src/packages/ai/src/index.ts"],
-      "@steward/ai/*": ["./src/packages/ai/src/*"],
-      "@steward/services": ["./src/packages/services/src/index.ts"],
-      "@steward/services/*": ["./src/packages/services/src/*"],
-      "@steward/plugins": ["./src/packages/plugins/src/index.ts"],
-      "@steward/plugins/*": ["./src/packages/plugins/src/*"],
-      "@steward/app": ["./src/app/index.ts"],
-      "@steward/app/*": ["./src/app/*"]
-    },
     "jsx": "react-jsx",
-    "jsxImportSource": "steward/tui",
+    "jsxImportSource": "stitchable",
     "strict": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true
   },
-  "include": ["src/**/*", "tests/**/*"]
+  "include": ["packages/**/*", "tests/**/*"]
 }

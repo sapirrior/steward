@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
-import type { SessionDocument } from '@steward/services/session/types.js';
+import type { SessionDocument } from '@steward/agent';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
 /**

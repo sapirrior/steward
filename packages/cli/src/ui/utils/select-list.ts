@@ -1,7 +1,6 @@
-import Component from '@steward/tui/engine/Component.js';
-import { c } from '@steward/app/theme/style.js';
+import { Component, parseInputChunk } from 'stitchable';
+import { c } from '../../theme/style.js';
 import { renderModalBox } from './modal-box.js';
-import { parseInputChunk } from '@steward/tui';
 
 export interface SelectListOptions<T> {
   items: T[];

@@ -1,11 +1,9 @@
-/** @jsxImportSource @steward/tui */
-import Component from '@steward/tui/engine/Component.js';
-import { figures } from '@steward/app/theme/index.js';
-import { c, bg, bold, italic } from '@steward/app/theme/style.js';
-import type { FilePermissionRequest } from '@steward/agents/tools/types.js';
-import { buildUnifiedDiff, type UnifiedDiff } from '@steward/services/diff/diff.js';
+/** @jsxImportSource stitchable */
+import { Component, Box, Text, renderElement, wrapVisualLine, parseInputChunk } from 'stitchable';
+import { figures } from '../../../theme/index.js';
+import { c, bg, bold, italic } from '../../../theme/style.js';
+import { type FilePermissionRequest, buildUnifiedDiff, type UnifiedDiff } from '@steward/agent';
 import { highlightCode } from '../../format/highlight.js';
-import { Box, Text, renderElement, wrapVisualLine, parseInputChunk } from '@steward/tui';
 
 export interface FilePermissionDockProps {
   request: FilePermissionRequest;

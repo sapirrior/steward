@@ -1,11 +1,12 @@
-import TerminalEngine from '@steward/tui/engine/TerminalEngine.js';
-import type { AgentEventListener } from '@steward/agents/engine/events.js';
+import { TerminalEngine } from 'stitchable';
 import {
+  type AgentEventListener,
   defaultToolCatalog,
   summarizeToolResult,
   summarizeToolArgs,
-} from '@steward/agents/tools/index.js';
-import { classifyError, logError } from '@steward/services/errors/index.js';
+  classifyError,
+  logError,
+} from '@steward/agent';
 import {
   formatAssistantMessage,
   formatToolStatus,

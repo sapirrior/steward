@@ -1,7 +1,11 @@
+import TerminalEngine from './engine/TerminalEngine.js';
 export { TerminalEngine, default as TerminalEngineDefault } from './engine/TerminalEngine.js';
+export default TerminalEngine;
 export { Component, default as ComponentDefault } from './engine/Component.js';
 export { DocumentTree, TextNode, ResponsiveHistoryNode } from './engine/DocumentTree.js';
 export { HistoryStore } from './engine/HistoryStore.js';
+export { default as StateRenderer } from './engine/StateRenderer.js';
+export { computeDocumentFrame, type DocumentFrame } from './engine/FrameBuffer.js';
 export * from './engine/layout.js';
 export * from './text/wrap.js';
 export * from './text/truncate.js';

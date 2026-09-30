@@ -6,8 +6,6 @@ import { initCommand } from './init/index.js';
 import { usageCommand } from './usage/index.js';
 import { effortCommand } from './effort/index.js';
 import { exitCommand, quitCommand } from './exit/index.js';
-import { loginCommand } from './login/index.js';
-import { logoutCommand } from './logout/index.js';
 import { modelCommand } from './model/index.js';
 import { renameCommand } from './rename/index.js';
 import { resumeCommand } from './resume/index.js';
@@ -80,8 +78,6 @@ export const builtInCommands: SlashCommand[] = [
   usageCommand,
   rewindCommand,
   modelCommand,
-  loginCommand,
-  logoutCommand,
   effortCommand,
   themeCommand,
   modeCommand,

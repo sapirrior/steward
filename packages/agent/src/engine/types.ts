@@ -1,12 +1,13 @@
 import type {
-  ProviderName,
+  ProviderId,
   ReasoningEffort,
   ModelSelection,
   TokenUsage,
   Message,
-} from '@steward/services/contracts.js';
+} from '@steward/ai';
 
-export type { ProviderName, ReasoningEffort, ModelSelection, TokenUsage, Message };
+export type ProviderName = ProviderId;
+export type { ProviderId, ReasoningEffort, ModelSelection, TokenUsage, Message };
 
 /**
  * Information describing a tool call requested by the model.

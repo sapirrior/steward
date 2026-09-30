@@ -1,14 +1,14 @@
-/** @jsxImportSource @steward/tui */
+/** @jsxImportSource stitchable */
 import { SelectList } from '../../utils/select-list.js';
-import type { DiscoveredModel } from '@steward/ai';
-import { figures } from '@steward/app/theme/index.js';
-import { c, bold } from '@steward/app/theme/style.js';
-import { Box, Text } from '@steward/tui';
+import type { Model } from '@steward/ai';
+import { figures } from '../../../theme/index.js';
+import { c, bold } from '../../../theme/style.js';
+import { Box, Text } from 'stitchable';
 
 export interface ModelPickerProps {
-  models: DiscoveredModel[] | any[];
+  models: readonly (Model | any)[];
   currentModel: { provider: string; modelId?: string; model_id?: string };
-  onSelect: (model: DiscoveredModel) => void;
+  onSelect: (model: { provider: string; modelId: string }) => void;
   onCancel: () => void;
 }
 
@@ -18,7 +18,11 @@ export default class ModelPicker extends SelectList<any> {
   override ellipsis = false;
 
   constructor(props: ModelPickerProps) {
-    const curSub = props.currentModel.modelId ?? (props.currentModel as any).model ?? props.currentModel.model_id ?? '';
+    const curSub =
+      props.currentModel.modelId ??
+      (props.currentModel as any).model ??
+      props.currentModel.model_id ??
+      '';
     super({
       items: props.models,
       title: 'Select Model',
@@ -27,23 +31,37 @@ export default class ModelPicker extends SelectList<any> {
       emptyMessage: '  No models matching query.',
       maxVisible: 4,
       searchFilter: (m: any, q: string) => {
-        const id = m.modelId || '';
-        return id.toLowerCase().includes(q) || m.provider.toLowerCase().includes(q);
+        const id = m.id || m.modelId || m.model_id || '';
+        const name = m.name || '';
+        const provider = m.provider || '';
+        const lowerQ = q.toLowerCase();
+        return (
+          id.toLowerCase().includes(lowerQ) ||
+          name.toLowerCase().includes(lowerQ) ||
+          provider.toLowerCase().includes(lowerQ)
+        );
       },
-      onSelect: props.onSelect,
+      onSelect: (item: any) => {
+        props.onSelect({
+          provider: item.provider,
+          modelId: item.id || item.modelId || item.model_id,
+        });
+      },
       onCancel: props.onCancel,
       renderItem: (m: any, isSelected: boolean, maxCols: number) => {
+        const modelId = m.id || m.modelId || m.model_id || '';
         const isCurrent =
-          m.provider === props.currentModel.provider && m.modelId === props.currentModel.modelId;
+          m.provider === props.currentModel.provider &&
+          (modelId === props.currentModel.modelId || modelId === curSub);
 
         const pointer = isSelected ? c.info(`${figures.pointer} `) : '  ';
         const activeBadge = isCurrent ? bold(c.current(' (active)')) : '';
         const title = isSelected
-          ? c.info(m.modelId)
+          ? c.info(modelId)
           : isCurrent
-            ? c.current(m.modelId)
-            : c.text(m.modelId);
-        const providerName = m.provider.toUpperCase();
+            ? c.current(modelId)
+            : c.text(modelId);
+        const providerName = (m.provider || '').toUpperCase();
         const caps = m.reasoning ? 'reasoning' : 'chat';
         const meta = `${providerName} • ${caps}`;
 

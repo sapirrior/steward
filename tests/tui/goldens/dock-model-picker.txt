@@ -1,24 +1,0 @@
-[?2026h[H[J────────────────────────────────────────────────────────────────────────────────
-Select Model                       Current: anthropic/claude-3-5-sonnet-20241022
-> Type to filter models…
-────────────────────────────────────────────────────────────────────────────────
-> undefined
-  ANTHROPIC • chat
-  undefined
-  OPENAI • chat
-  undefined
-  GOOGLE • chat
-↑/↓ navigate · Enter select · Esc cancel  (3 available)
-
-
-
-
-
-
-
-
-
-
-
-
-[?25l[?2026l
