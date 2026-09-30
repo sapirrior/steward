@@ -9,9 +9,12 @@
  * 2. Exactly one terminal event (done | error). Nothing emitted after it.
  * 3. result() resolves with InferenceResult in all cases (stop, error, abort).
  * 4. Partial content accumulated before error/abort is preserved in result().
+ * 5. Cost is computed on done before yielding; overflow conditions are detected.
  */
 
-import type { AIError } from './errors.js';
+import { AIError } from './errors.js';
+import { calculateCost } from './util/cost.js';
+import { isContextOverflow } from './util/overflow.js';
 import type {
   AssistantContent,
   AssistantMessage,
@@ -20,6 +23,7 @@ import type {
   InferenceEvent,
   InferenceResult,
   InferenceStream,
+  Model,
   TextContent,
   ThinkingContent,
   TokenUsage,
@@ -132,10 +136,15 @@ class ContentAccumulator {
   }
 }
 
+export interface AssistantMessageStreamOptions {
+  model?: Model;
+}
+
 export class AssistantMessageStream implements InferenceStream {
   private queue = new FifoQueue<InferenceEvent>();
   private waiters = new FifoQueue<(r: IteratorResult<InferenceEvent>) => void>();
   private terminated = false;
+  private readonly model?: Model;
 
   private resultResolve!: (r: InferenceResult) => void;
   private readonly resultPromise: Promise<InferenceResult>;
@@ -145,7 +154,8 @@ export class AssistantMessageStream implements InferenceStream {
   private meta: AssistantMeta | undefined;
   private toolBlockIndex = 0;
 
-  constructor() {
+  constructor(options: AssistantMessageStreamOptions = {}) {
+    this.model = options.model;
     this.resultPromise = new Promise((resolve) => {
       this.resultResolve = resolve;
     });
@@ -166,19 +176,46 @@ export class AssistantMessageStream implements InferenceStream {
       this.acc.startTool(event.id, event.name, this.toolBlockIndex);
     } else if (event.type === 'tool-call-delta') {
       this.acc.appendToolDelta(this.toolBlockIndex, event.delta);
+    } else if (event.type === 'done') {
+      // Calculate USD cost
+      if (this.model) {
+        event.usage.cost = calculateCost(this.model, event.usage);
+      }
+      this.usage = event.usage;
+      if (event.message.meta) {
+        event.message.meta.usage = event.usage;
+      }
+      this.meta = event.message.meta;
+
+      let finishReason = event.finishReason;
+      let overflowError: AIError | undefined = undefined;
+
+      const provisionalResult: InferenceResult = {
+        message: event.message,
+        usage: this.usage,
+        finishReason,
+      };
+
+      if (this.model && isContextOverflow(provisionalResult, this.model.contextWindow)) {
+        finishReason = 'error';
+        overflowError = new AIError('Context overflow: context length limit exceeded.', {
+          code: 'context-overflow',
+          provider: this.model.provider,
+        });
+      }
+
+      this.terminated = true;
+      this.deliver(event);
+      this.resolveResult(finishReason, overflowError);
+      return;
+    } else if (event.type === 'error') {
+      this.terminated = true;
+      this.deliver(event);
+      this.resolveResult('error', event.error, event.partial);
+      return;
     }
 
     this.deliver(event);
-
-    if (event.type === 'done') {
-      this.terminated = true;
-      this.usage = event.usage;
-      this.meta = event.message.meta;
-      this.resolveResult(event.finishReason, undefined);
-    } else if (event.type === 'error') {
-      this.terminated = true;
-      this.resolveResult('error', event.error, event.partial);
-    }
   }
 
   end(): void {

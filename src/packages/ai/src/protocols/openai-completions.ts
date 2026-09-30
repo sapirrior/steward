@@ -20,7 +20,7 @@ import { withRetry, type HttpError } from '../util/retry.js';
 import { clampThinkingEffort } from '../models/thinking.js';
 import { transformMessages } from '../transform/messages.js';
 import { readErrorBody } from '../util/error-body.js';
-import { AIError } from '../errors.js';
+import { AIError, classifyHttpError } from '../errors.js';
 import type {
   AssistantContent,
   FinishReason,
@@ -86,7 +86,10 @@ export async function openAICompletionsProtocol(
 
       const item: Record<string, unknown> = { role: 'assistant' };
       if (text) item.content = sanitizeSurrogates(text);
-      if (reasoning_content) item.reasoning_content = sanitizeSurrogates(reasoning_content);
+      if (reasoning_content) {
+        const fieldName = model.interleavedReasoningField ?? 'reasoning_content';
+        item[fieldName] = sanitizeSurrogates(reasoning_content);
+      }
       if (tool_calls.length > 0) item.tool_calls = tool_calls;
       apiMessages.push(item);
       continue;
@@ -118,14 +121,16 @@ export async function openAICompletionsProtocol(
       : undefined;
 
   // 3. Reasoning effort mapping
-  const effort = clampThinkingEffort(model, request.model.effort);
+  const requestedEffort = request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
+  const effort = clampThinkingEffort(model, requestedEffort);
   const reasoningParams: Record<string, unknown> = {};
 
   if (model.reasoning && effort !== 'none') {
+    const wireVal = model.thinkingLevelMap?.[effort] ?? effort;
     if (model.provider === 'openrouter') {
-      reasoningParams.reasoning = { effort };
+      reasoningParams.reasoning = { effort: wireVal };
     } else {
-      reasoningParams.reasoning_effort = effort;
+      reasoningParams.reasoning_effort = wireVal;
     }
   }
 
@@ -177,37 +182,43 @@ export async function openAICompletionsProtocol(
         const error = new Error(`HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`) as HttpError;
         error.status = res.status;
         error.headers = res.headers;
+        (error as unknown as { detail?: string }).detail = errorText;
         throw error;
       }
       return res;
     }, { signal: request.abortSignal });
   } catch (err) {
     const isAbort = request.abortSignal?.aborted;
-    const status = (err as HttpError)?.status;
-    const code = isAbort
-      ? 'aborted'
-      : status === 401 || status === 403
-        ? 'auth'
-        : status === 429
-          ? 'rate-limit'
-          : status === 400
-            ? 'invalid-request'
-            : 'network';
+    if (isAbort) {
+      stream.push({
+        type: 'error',
+        error: new AIError('Inference request aborted.', {
+          code: 'aborted',
+          provider: model.provider,
+          cause: err,
+        }),
+      });
+      return;
+    }
 
-    const message = status === 401
-      ? `Authentication failed (HTTP 401): Invalid or missing API key for ${model.provider}.`
-      : isAbort
-        ? 'Inference request aborted.'
-        : `${model.provider} request failed: ${err instanceof Error ? err.message : String(err)}`;
+    const httpErr = err as HttpError & { detail?: string };
+    if (httpErr.status) {
+      stream.push({
+        type: 'error',
+        error: classifyHttpError(httpErr.status, httpErr.detail, model.provider, err),
+      });
+      return;
+    }
 
     stream.push({
       type: 'error',
-      error: new AIError(message, {
-        code,
-        provider: model.provider,
-        status,
-        cause: err,
-      }),
+      error: err instanceof AIError
+        ? err
+        : new AIError(`${model.provider} request failed: ${err instanceof Error ? err.message : String(err)}`, {
+            code: 'network',
+            provider: model.provider,
+            cause: err,
+          }),
     });
     return;
   }

@@ -46,6 +46,15 @@ const NON_OVERFLOW_PATTERNS: RegExp[] = [
 ];
 
 /**
+ * Returns true if text matches known context overflow patterns.
+ */
+export function isOverflowText(text: string): boolean {
+  if (!text) return false;
+  const isNonOverflow = NON_OVERFLOW_PATTERNS.some((p) => p.test(text));
+  return !isNonOverflow && OVERFLOW_PATTERNS.some((p) => p.test(text));
+}
+
+/**
  * Returns true when an InferenceResult represents a context overflow condition.
  *
  * @param result      - The completed inference result to check
@@ -57,13 +66,12 @@ export function isContextOverflow(result: InferenceResult, contextWindow?: numbe
   // Case 1: Error-based overflow — check AIError message or detail
   if (finishReason === 'error' && error) {
     const text = `${error.message} ${error.detail ?? ''}`.trim();
-    const isNonOverflow = NON_OVERFLOW_PATTERNS.some((p) => p.test(text));
-    if (!isNonOverflow && OVERFLOW_PATTERNS.some((p) => p.test(text))) {
+    if (isOverflowText(text)) {
       return true;
     }
   }
 
-  const usage = message.meta?.usage;
+  const usage = message.meta?.usage ?? result.usage;
   if (!usage) return false;
 
   // Case 2: Silent overflow — successful but input tokens exceed context window

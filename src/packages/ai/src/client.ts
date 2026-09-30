@@ -285,22 +285,27 @@ export function createAI(opts: CreateAIOptions = {}): AI {
     },
 
     stream(request: InferenceRequest): InferenceStream {
-      const stream = new AssistantMessageStream();
+      const providerId = request.model.provider;
+      const modelId = 'modelId' in request.model ? request.model.modelId : (request.model as Model).id;
+      const p = providersMap.get(providerId);
+
+      let model: Model | undefined;
+      if ('protocol' in request.model && (request.model as Model).protocol) {
+        model = request.model as Model;
+      } else if (p) {
+        const found = modelsMap.get(`${providerId}/${modelId}`);
+        model = found ?? syntheticModel(providerId, modelId, p);
+      }
+
+      const stream = new AssistantMessageStream({ model });
 
       (async () => {
         try {
-          const providerId = request.model.provider;
-          const modelId = 'modelId' in request.model ? request.model.modelId : (request.model as Model).id;
-
-          const p = providersMap.get(providerId);
           if (!p) {
             throw new AIError(`Unknown provider: ${providerId}`, { code: 'invalid-request', provider: providerId });
           }
 
-          let model: Model;
-          if ('protocol' in request.model && (request.model as Model).protocol) {
-            model = request.model as Model;
-          } else {
+          if (!model) {
             const found = modelsMap.get(`${providerId}/${modelId}`);
             model = found ?? syntheticModel(providerId, modelId, p);
           }

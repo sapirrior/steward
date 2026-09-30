@@ -118,4 +118,62 @@ describe('event-stream — AssistantMessageStream', () => {
       expect(toolBlock.arguments).toEqual({ q: 'hello' });
     }
   });
+
+  it('populates token cost when model pricing is provided', async () => {
+    const stream = new AssistantMessageStream({
+      model: {
+        id: 'test-model',
+        name: 'Test Model',
+        provider: 'anthropic',
+        protocol: 'anthropic-messages',
+        baseUrl: 'https://api.anthropic.com',
+        reasoning: false,
+        input: ['text'],
+        contextWindow: 100000,
+        maxOutputTokens: 4096,
+        temperature: true,
+        cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
+      },
+    });
+
+    stream.push({
+      type: 'done',
+      message: { role: 'assistant', content: [], meta: { provider: 'anthropic', protocol: 'anthropic-messages', modelId: 'test-model' } },
+      usage: { input: 1000, output: 200 },
+      finishReason: 'stop',
+    });
+
+    const res = await stream.result();
+    expect(res.usage.cost).toBeDefined();
+    expect(res.usage.cost?.total).toBeGreaterThan(0);
+    expect(res.message.meta?.usage?.cost?.total).toBe(res.usage.cost?.total);
+  });
+
+  it('detects silent context overflow on done and marks finishReason error', async () => {
+    const stream = new AssistantMessageStream({
+      model: {
+        id: 'test-model',
+        name: 'Test Model',
+        provider: 'openai',
+        protocol: 'openai-responses',
+        baseUrl: 'https://api.openai.com/v1',
+        reasoning: false,
+        input: ['text'],
+        contextWindow: 1000,
+        maxOutputTokens: 4096,
+        temperature: true,
+      },
+    });
+
+    stream.push({
+      type: 'done',
+      message: { role: 'assistant', content: [] },
+      usage: { input: 1200, output: 10 },
+      finishReason: 'stop',
+    });
+
+    const res = await stream.result();
+    expect(res.finishReason).toBe('error');
+    expect(res.error?.code).toBe('context-overflow');
+  });
 });

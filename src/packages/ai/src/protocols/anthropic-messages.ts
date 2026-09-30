@@ -17,7 +17,7 @@ import { readErrorBody } from '../util/error-body.js';
 import { withRetry, type HttpError } from '../util/retry.js';
 import { calculateAnthropicBudgetTokens, clampThinkingEffort } from '../models/thinking.js';
 import { transformMessages } from '../transform/messages.js';
-import { AIError } from '../errors.js';
+import { AIError, classifyHttpError } from '../errors.js';
 import type {
   AssistantContent,
   FinishReason,
@@ -115,7 +115,8 @@ export async function anthropicMessagesProtocol(
     : undefined;
 
   // 4. Configure Thinking mode
-  const effort = clampThinkingEffort(model, request.model.effort);
+  const requestedEffort = request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
+  const effort = clampThinkingEffort(model, requestedEffort);
   let thinkingPayload: unknown | undefined;
   let outputConfigPayload: unknown | undefined;
 
@@ -124,7 +125,10 @@ export async function anthropicMessagesProtocol(
       thinkingPayload = { type: 'adaptive' };
       outputConfigPayload = { effort };
     } else {
-      const budget = calculateAnthropicBudgetTokens(effort, model.maxOutputTokens);
+      const mappedVal = model.thinkingLevelMap?.[effort];
+      const budget = typeof mappedVal === 'number'
+        ? mappedVal
+        : calculateAnthropicBudgetTokens(effort, model.maxOutputTokens);
       if (budget) {
         thinkingPayload = { type: 'enabled', budget_tokens: budget };
       }
@@ -185,28 +189,47 @@ export async function anthropicMessagesProtocol(
       });
 
       if (!res.ok) {
-        const error = new Error(`HTTP ${res.status}`) as HttpError;
+        const errorText = await readErrorBody(res).catch(() => undefined);
+        const error = new Error(`HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`) as HttpError;
         error.status = res.status;
         error.headers = res.headers;
+        (error as unknown as { detail?: string }).detail = errorText;
         throw error;
       }
       return res;
     }, { signal: request.abortSignal });
   } catch (err: unknown) {
     const isAbort = request.abortSignal?.aborted;
-    let detail: string | undefined;
+    if (isAbort) {
+      stream.push({
+        type: 'error',
+        error: new AIError('Inference request aborted.', {
+          code: 'aborted',
+          provider: model.provider,
+          cause: err,
+        }),
+      });
+      return;
+    }
+
+    const httpErr = err as HttpError & { detail?: string };
+    if (httpErr.status) {
+      stream.push({
+        type: 'error',
+        error: classifyHttpError(httpErr.status, httpErr.detail, model.provider, err),
+      });
+      return;
+    }
 
     stream.push({
       type: 'error',
-      error: new AIError(
-        isAbort ? 'Inference request aborted.' : `Anthropic request failed: ${err instanceof Error ? err.message : String(err)}`,
-        {
-          code: isAbort ? 'aborted' : 'network',
-          provider: model.provider,
-          cause: err,
-          detail,
-        },
-      ),
+      error: err instanceof AIError
+        ? err
+        : new AIError(`Anthropic request failed: ${err instanceof Error ? err.message : String(err)}`, {
+            code: 'network',
+            provider: model.provider,
+            cause: err,
+          }),
     });
     return;
   }

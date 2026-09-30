@@ -16,7 +16,7 @@ import { withRetry, type HttpError } from '../util/retry.js';
 import { clampThinkingEffort } from '../models/thinking.js';
 import { transformMessages } from '../transform/messages.js';
 import { readErrorBody } from '../util/error-body.js';
-import { AIError } from '../errors.js';
+import { AIError, classifyHttpError } from '../errors.js';
 import type {
   AssistantContent,
   FinishReason,
@@ -147,7 +147,8 @@ export async function googleGenerativeAIProtocol(
       : undefined;
 
   // 3. Thinking config
-  const effort = clampThinkingEffort(model, request.model.effort);
+  const requestedEffort = request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
+  const effort = clampThinkingEffort(model, requestedEffort);
   const generationConfig: Record<string, unknown> = {};
 
   if (request.temperature !== undefined && effort === 'none') {
@@ -155,12 +156,18 @@ export async function googleGenerativeAIProtocol(
   }
 
   if (model.reasoning && effort !== 'none') {
-    let budget = 8192;
-    if (effort === 'low') budget = 2048;
-    else if (effort === 'high') budget = 24576;
-    else if (effort === 'xhigh') budget = 32768;
-
-    generationConfig.thinkingConfig = { thinkingBudget: budget };
+    const mapped = model.thinkingLevelMap?.[effort];
+    if (typeof mapped === 'string') {
+      generationConfig.thinkingConfig = { thinkingLevel: mapped };
+    } else if (typeof mapped === 'number') {
+      generationConfig.thinkingConfig = { thinkingBudget: mapped };
+    } else {
+      let budget = 8192;
+      if (effort === 'low') budget = 2048;
+      else if (effort === 'high') budget = 24576;
+      else if (effort === 'xhigh') budget = 32768;
+      generationConfig.thinkingConfig = { thinkingBudget: budget };
+    }
   }
 
   // 4. Request body
@@ -208,37 +215,43 @@ export async function googleGenerativeAIProtocol(
         const error = new Error(`HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`) as HttpError;
         error.status = res.status;
         error.headers = res.headers;
+        (error as unknown as { detail?: string }).detail = errorText;
         throw error;
       }
       return res;
     }, { signal: request.abortSignal });
   } catch (err) {
     const isAbort = request.abortSignal?.aborted;
-    const status = (err as HttpError)?.status;
-    const code = isAbort
-      ? 'aborted'
-      : status === 401 || status === 403
-        ? 'auth'
-        : status === 429
-          ? 'rate-limit'
-          : status === 400
-            ? 'invalid-request'
-            : 'network';
+    if (isAbort) {
+      stream.push({
+        type: 'error',
+        error: new AIError('Inference request aborted.', {
+          code: 'aborted',
+          provider: model.provider,
+          cause: err,
+        }),
+      });
+      return;
+    }
 
-    const message = status === 401 || status === 403
-      ? `Authentication failed (HTTP ${status}): Invalid or missing Google API key.`
-      : isAbort
-        ? 'Inference request aborted.'
-        : `Google request failed: ${err instanceof Error ? err.message : String(err)}`;
+    const httpErr = err as HttpError & { detail?: string };
+    if (httpErr.status) {
+      stream.push({
+        type: 'error',
+        error: classifyHttpError(httpErr.status, httpErr.detail, model.provider, err),
+      });
+      return;
+    }
 
     stream.push({
       type: 'error',
-      error: new AIError(message, {
-        code,
-        provider: model.provider,
-        status,
-        cause: err,
-      }),
+      error: err instanceof AIError
+        ? err
+        : new AIError(`Google request failed: ${err instanceof Error ? err.message : String(err)}`, {
+            code: 'network',
+            provider: model.provider,
+            cause: err,
+          }),
     });
     return;
   }
