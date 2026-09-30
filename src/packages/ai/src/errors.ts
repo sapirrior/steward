@@ -10,6 +10,7 @@ export type AIErrorCode =
   | 'network'
   | 'rate-limit'
   | 'invalid-request'
+  | 'context-overflow'
   | 'provider'
   | 'parse'
   | 'aborted';
@@ -19,6 +20,8 @@ export interface AIErrorOptions {
   provider?: ProviderId;
   status?: number;
   retryable?: boolean;
+  /** Redacted HTTP body detail — never contains secrets. Kept separate from the short `message`. */
+  detail?: string;
   cause?: unknown;
 }
 
@@ -27,6 +30,8 @@ export class AIError extends Error {
   readonly provider?: ProviderId;
   readonly status?: number;
   readonly retryable: boolean;
+  /** Redacted HTTP body detail. Present only when the server returned a readable body. */
+  readonly detail?: string;
   readonly cause?: unknown;
 
   constructor(message: string, options: AIErrorOptions) {
@@ -35,8 +40,10 @@ export class AIError extends Error {
     this.code = options.code;
     this.provider = options.provider;
     this.status = options.status;
+    this.detail = options.detail;
     this.retryable =
-      options.retryable ?? (options.code === 'rate-limit' || options.code === 'network');
+      options.retryable ??
+      (options.code === 'rate-limit' || options.code === 'network');
     this.cause = options.cause;
 
     // Maintain prototype chain
