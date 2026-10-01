@@ -15,6 +15,3 @@ export * from './models/index.js';
 
 // Persistent infrastructure & services
 export * from './services/index.js';
-
-// Lifecycle hooks
-export * from './hooks/index.js';

@@ -1,6 +1,6 @@
 # @steward/agent
 
-The `@steward/agent` package provides the agent loop, tool definition and execution, chat modes and policy, skill discovery, lifecycle hooks runtime, and core session and infrastructure services for Steward using `@steward/ai`.
+The `@steward/agent` package provides the agent loop, tool catalog and execution, chat modes and policy, skill discovery, and core session, CAS checkpoint, rewind, background tasks, and settings services for Steward using `@steward/ai`.
 
 ---
 
@@ -10,9 +10,9 @@ The `@steward/agent` package provides the agent loop, tool definition and execut
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, turn execution, and lifecycle hook orchestration. | Injected with `@steward/ai` `createAI()` instance and `HookRuntime`. |
+| `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, turn execution, and session persistence. | Injected with `@steward/ai` `AI` (`createAI()`) instance. |
 | `turn-context.ts` | `prepareTurn` | Function | Prepares execution environment, checkpoint tracker, and event logging for a turn. | Builds canonical `Message` and plain `ToolSpec` array. |
-| `agent-runner.ts` | `runAgentTurn` | Function | Executes multi-step agent turn, dispatching tools sequentially, invoking lifecycle callbacks (`beforeToolUse`, `afterToolUse`, `toolUseFailure`, `agentStop`), and emitting lifecycle events. | Pure loop over `@steward/ai` stream with callback seams. |
+| `agent-runner.ts` | `runAgentTurn` | Function | Executes deterministic multi-step agent turn loop, dispatching tool calls, consuming stream events and `InferenceResult.error` without uncaught exceptions, and accumulating canonical token usage. | Pure multi-step loop over `@steward/ai` stream with callback seams. |
 | `system-prompt.ts` | `buildSystemPrompt` / `buildSystemPromptSections` / `diffSystemPromptSections` | Function | Assembles dynamic, modular system instructions, sections, and diff patches including workspace context, mode policy, and skills. | Injects mode rules and deduplicated guidelines. |
 | `events.ts` | `AgentEvent` | Type | Discriminated union of streaming events (`text-delta`, `reasoning-delta`, `tool-call`, `tool-result`, `step-end`, `turn-complete`, `error`). | Typed event contract for UI rendering. |
 
@@ -55,37 +55,29 @@ Every tool has an implementation file in `src/tools/` and a corresponding schema
 
 ---
 
-### Lifecycle Hooks Runtime (`src/hooks/`)
-
-| File | Export / Item | Type | Description | Key Details / Constraints |
-| :--- | :--- | :--- | :--- | :--- |
-| `runtime.ts` | `HookRuntime` | Class | Executes lifecycle hooks sequentially across events (`SessionStart`, `UserPromptSubmit`, `BeforeToolUse`, `AfterToolUse`, `ToolUseFailure`, `AgentStop`). | Handles process spawns, timeouts, matchers, and aggregation. |
-| `config.ts` | `loadHooksConfig` / `compileHooksConfig` | Function | Discovers and compiles `.steward/hooks.json` (project) and `~/.steward/hooks.json` (user). | Validates schema and pre-compiles regex matchers. |
-| `matcher.ts` | `compileMatcher` / `matchesEvent` | Function | Compiles glob / pipe pattern matchers (`bash\|write_file`, `*`) against hook trigger events. | Pre-compiled regex matching. |
-| `types.ts` | `HookEvent` / `HookResult` | Type | Type definitions for hook declarations, triggers, and execution outputs. | Ephemeral context protocol. |
-
----
-
 ### Services Subsystems (`src/services/`)
 
 | File / Subsystem | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `session/store.ts` | `listSessions` / `loadSession` / `saveSession` | Function | Manages Session Schema v1 persistence in `~/.steward/sessions/`. | Validates schema with Zod; supports atomic JSON writes. |
-| `session/logs/store.ts` | `SessionLogWriter` / `loadSessionLog` | Class / Fn | Writes and loads structured JSONL presentation logs (`~/.steward/session-logs/<date>/<id>.jsonl`). | Appends streaming presentation events per turn. |
+| `session/schema.ts` | `SessionDocument` / `SessionTurn` / `SESSION_SCHEMA_VERSION` | Types / Schema | Defines Session Document schema v1 with canonical `TokenUsage` (`input`, `output`, `total`, `reasoning`, `cacheRead`, `cacheWrite`) and backwards compatibility for legacy fields. | Immutable `schemaVersion: 1`. |
+| `session/store.ts` | `listSessions` / `loadSession` / `saveSession` / `createSession` | Function | Manages Session persistence in `~/.steward/sessions/`. | Validates schema with Zod; supports atomic JSON writes and quarantine on invalid documents. |
+| `session/logs/store.ts` | `SessionLogWriter` / `loadSessionLog` | Class / Fn | Writes and loads structured JSONL presentation scrollback logs (`~/.steward/session-logs/<date>/<id>.jsonl`). | Appends streaming presentation events per turn. |
 | `checkpoint/cas.ts` | `ContentAddressedStore` | Class | Content-addressed storage for file pre-images and content hashes. | SHA-256 keyed blob storage in `~/.steward/checkpoints/cas/`. |
-| `checkpoint/rewind.ts` | `executeRewind` | Function | Performs atomic workspace rollback to previous turns. | Restores pre-images and truncates session turns atomically. |
+| `checkpoint/tracker.ts` | `MutationCheckpointTracker` | Class | Tracks file mutations per turn and stages checkpoint pre/post images. | Integrated directly into file mutation tools. |
+| `checkpoint/lock.ts` | `MutationLockManager` | Class | Manages deterministic fine-grained file mutation locks. | Lexicographical lock acquisition to avoid deadlocks. |
+| `checkpoint/rewind.ts` | `executeRewind` | Function | Performs atomic workspace rollback and history truncation to previous turns. | Restores pre-images, recalculates usage, and truncates session turns atomically. |
 | `tasks/manager.ts` | `TaskManager` | Class | Manages background shell tasks, streaming tail buffers, and process lifecycle. | Bounded ring buffer for task output streaming. |
 | `config/settings.ts` | `loadSettings` / `saveSettings` | Function | Reads and writes user preferences in `~/.steward/settings.json`. | Stores default model, theme, effort, and mode. |
-| `config/trust.ts` | `isFolderTrusted` / `trustFolder` | Function | Manages trusted workspace folder list in `~/.steward/trusted-folders.json`. | Prevents arbitrary hook execution in untrusted paths. |
+| `config/trust.ts` | `isFolderTrusted` / `trustFolder` | Function | Manages trusted workspace folder list in `~/.steward/trusted-folders.json`. | Restricts operations in untrusted paths. |
 | `logging/error-logger.ts` | `logError` / `classifyError` | Function | Classifies runtime errors and appends structured error logs to `~/.steward/errors.jsonl`. | Categorizes errors into system, permission, model, and network. |
 
 ---
 
 ## Agent Invariants & Safety
 
-1. **Pure Agent Loop**: Completely decoupled from provider implementations via `@steward/ai`.
+1. **Pure Agent Loop**: Completely decoupled from provider implementations via `@steward/ai` zero-dependency contracts.
 2. **Permission Gating**: Destructive mutations (`write_file`, `edit_file`, `bash`) require explicit human-in-the-loop permission callback approval before modifying the workspace.
 3. **Sequential Tool Execution**: Multiple tool calls in a turn execute sequentially in model order to prevent permission and checkpoint races.
 4. **Checkpoint Integration**: `write_file` and `edit_file` automatically record pre-mutation CAS hashes to enable lossless rewind.
-5. **Lifecycle Hook Seams**: Ephemeral hook context (`SessionStart`, `UserPromptSubmit`, `AfterToolUse`, `ToolUseFailure`) attaches to system instructions without corrupting session message transcripts.
-6. **Bounded Turn Continuations**: Natural finish events checked by `AgentStop` hooks allow at most one retry continuation per turn.
+5. **Schema v1 Stability**: Session document schema remains strictly at `schemaVersion: 1` with canonical `TokenUsage` formatting.
+6. **Chat Modes Guarantee**: The 4 chat modes (`normal`, `chat`, `review`, `build`) and `/mode` commands remain canonical and fully functional.

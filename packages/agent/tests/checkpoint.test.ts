@@ -290,7 +290,7 @@ describe('Checkpoint Core (CAS, Path, Lock, Tracker, Rewind)', () => {
       expect(readFileSync(fileA, 'utf-8')).toBe('A1');
       expect(session.turns.length).toBe(1);
       expect(session.turns[0].id).toBe('turn-1');
-      expect(session.totalUsage.totalTokens).toBe(30);
+      expect(session.totalUsage.total).toBe(30);
 
       // Verify manifest synchronized
       const manifest = loadCheckpointManifest(computeWorkspaceHash(workspaceDir), 'test-a-session');

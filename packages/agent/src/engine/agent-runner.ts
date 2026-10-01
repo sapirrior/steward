@@ -1,10 +1,9 @@
 /**
- * @steward/agents - Pure Tool / Agent Loop Runner
+ * @steward/agent - Pure Tool / Agent Loop Runner
  */
 
 import type {
   AI,
-  AssistantMessage,
   InferenceRequest,
   Message,
   ModelSelection,
@@ -17,38 +16,6 @@ import { SAFETY_STEP_CEILING } from './constants.js';
 import type { AgentEventListener } from './events.js';
 import type { ToolResultInfo, TurnStopReason, TurnSummary } from './types.js';
 
-export interface AgentTurnCallbacks {
-  beforeToolUse?: (params: {
-    toolCallId: string;
-    toolName: string;
-    toolInput: Record<string, unknown>;
-  }) => Promise<{ blocked: boolean; reason?: string }>;
-
-  afterToolUse?: (params: {
-    toolCallId: string;
-    toolName: string;
-    toolInput: Record<string, unknown>;
-    toolOutput: unknown;
-    isError: boolean;
-    durationMs: number;
-  }) => Promise<{ context?: string[] }>;
-
-  toolUseFailure?: (params: {
-    toolCallId: string;
-    toolName: string;
-    toolInput: Record<string, unknown>;
-    error: string;
-    durationMs: number;
-  }) => Promise<{ context?: string[] }>;
-
-  agentStop?: (params: {
-    stopReason: string;
-    finishReason: string;
-    assistantText: string;
-    stopHookActive: boolean;
-  }) => Promise<{ blocked: boolean; reason?: string }>;
-}
-
 export interface RunAgentTurnOptions {
   ai: AI;
   model: ModelSelection;
@@ -56,7 +23,6 @@ export interface RunAgentTurnOptions {
   instructions?: string;
   tools?: readonly ToolSpec[];
   toolExecutor?: (call: ToolCallContent) => Promise<ToolResultInfo>;
-  callbacks?: AgentTurnCallbacks;
   maxSteps?: number;
   temperature?: number;
   reasoningEffort?: ReasoningEffort;
@@ -73,7 +39,35 @@ function classifyStopReason(hitStepCeiling: boolean, wasAborted: boolean): TurnS
 }
 
 /**
- * Runs a multi-step agent turn using @steward/ai without external AI SDK dependencies.
+ * Pure helper to accumulate token usage metrics safely.
+ */
+export function accumulateTokenUsage(current: TokenUsage, delta?: TokenUsage): TokenUsage {
+  if (!delta) return { ...current };
+  const input = (current.input ?? 0) + (delta.input ?? 0);
+  const output = (current.output ?? 0) + (delta.output ?? 0);
+  const total = (current.total ?? 0) + (delta.total ?? (input + output));
+  return {
+    input,
+    output,
+    total,
+    reasoning:
+      delta.reasoning !== undefined
+        ? (current.reasoning ?? 0) + delta.reasoning
+        : current.reasoning,
+    cacheRead:
+      delta.cacheRead !== undefined
+        ? (current.cacheRead ?? 0) + delta.cacheRead
+        : current.cacheRead,
+    cacheWrite:
+      delta.cacheWrite !== undefined
+        ? (current.cacheWrite ?? 0) + delta.cacheWrite
+        : current.cacheWrite,
+    cost: delta.cost,
+  };
+}
+
+/**
+ * Runs a deterministic multi-step agent turn using @steward/ai without external AI SDK dependencies.
  */
 export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSummary> {
   const maxSteps = options.maxSteps ?? SAFETY_STEP_CEILING;
@@ -81,22 +75,19 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
   const turnStartedAt = new Date().toISOString();
   const turnStartMonotonic = performance.now();
 
-  let baseInstructions = options.instructions ?? '';
-  let pendingStepContext: string[] = [];
-  let stopHookContinuations = 0;
-
+  const baseInstructions = options.instructions ?? '';
   const activeMessages: Message[] = [...options.messages];
   if (baseInstructions) {
     activeMessages.unshift({ role: 'system', content: baseInstructions });
   }
 
-  const accumulatedUsage: TokenUsage = {
-    inputTokens: 0,
-    outputTokens: 0,
-    totalTokens: 0,
-    reasoningTokens: 0,
-    cacheReadTokens: 0,
-    cacheWriteTokens: 0,
+  let accumulatedUsage: TokenUsage = {
+    input: 0,
+    output: 0,
+    total: 0,
+    reasoning: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
   };
 
   let accumulatedText = '';
@@ -109,35 +100,6 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
     while (stepIndex < maxSteps) {
       if (options.abortSignal?.aborted) {
         break;
-      }
-
-      // Inject ephemeral hook context into the system instructions if present
-      if (pendingStepContext.length > 0) {
-        const extraSection = '\n\n[Hook Context]\n' + pendingStepContext.join('\n');
-        pendingStepContext = [];
-
-        const systemMsgIdx = activeMessages.findIndex((m) => m.role === 'system');
-        if (systemMsgIdx >= 0) {
-          const currentSys = activeMessages[systemMsgIdx]!;
-          const currentContent =
-            typeof currentSys.content === 'string'
-              ? currentSys.content
-              : Array.isArray(currentSys.content)
-                ? currentSys.content
-                    .filter((c: any) => c.type === 'text')
-                    .map((c: any) => c.text)
-                    .join('\n')
-                : '';
-          activeMessages[systemMsgIdx] = {
-            role: 'system',
-            content: currentContent + extraSection,
-          };
-        } else {
-          activeMessages.unshift({
-            role: 'system',
-            content: extraSection.trim(),
-          });
-        }
       }
 
       const inferenceRequest: InferenceRequest = {
@@ -205,29 +167,22 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
               error: event.error,
               isFatal: false,
             });
-            throw event.error;
+            break;
           }
         }
       }
 
       const stepResult = await stream.result();
       finalFinishReason = stepResult.finishReason;
+      accumulatedUsage = accumulateTokenUsage(accumulatedUsage, stepResult.usage);
 
-      // Accumulate usage
-      accumulatedUsage.inputTokens += stepResult.usage.inputTokens;
-      accumulatedUsage.outputTokens += stepResult.usage.outputTokens;
-      accumulatedUsage.totalTokens += stepResult.usage.totalTokens;
-      if (stepResult.usage.reasoningTokens) {
-        accumulatedUsage.reasoningTokens =
-          (accumulatedUsage.reasoningTokens ?? 0) + stepResult.usage.reasoningTokens;
-      }
-      if (stepResult.usage.cacheReadTokens) {
-        accumulatedUsage.cacheReadTokens =
-          (accumulatedUsage.cacheReadTokens ?? 0) + stepResult.usage.cacheReadTokens;
-      }
-      if (stepResult.usage.cacheWriteTokens) {
-        accumulatedUsage.cacheWriteTokens =
-          (accumulatedUsage.cacheWriteTokens ?? 0) + stepResult.usage.cacheWriteTokens;
+      // If step ended with error, record partial message if present and throw / break cleanly
+      if (stepResult.finishReason === 'error' && stepResult.error) {
+        if (stepResult.message.content.length > 0) {
+          activeMessages.push(stepResult.message);
+          newTurnMessages.push(stepResult.message);
+        }
+        throw stepResult.error;
       }
 
       // Append assistant message to history
@@ -241,28 +196,8 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
         usage: stepResult.usage,
       });
 
-      // If no tool calls, check AgentStop hook before natural finish
+      // If no tool calls, turn finishes naturally
       if (stepToolCalls.length === 0) {
-        if (
-          options.callbacks?.agentStop &&
-          !options.abortSignal?.aborted &&
-          stopHookContinuations === 0
-        ) {
-          const stopOutcome = await options.callbacks.agentStop({
-            stopReason: 'natural',
-            finishReason: finalFinishReason,
-            assistantText: accumulatedText,
-            stopHookActive: false,
-          });
-
-          if (stopOutcome.blocked && stopHookContinuations === 0 && stepIndex < maxSteps) {
-            stopHookContinuations++;
-            const retryGuidance =
-              stopOutcome.reason || 'AgentStop requested continuation. Please continue your turn.';
-            pendingStepContext.push(`[AgentStop Continuation]\n${retryGuidance}`);
-            continue;
-          }
-        }
         break;
       }
 
@@ -280,52 +215,6 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
           break;
         }
 
-        // 1. BeforeToolUse hook check
-        let isBlocked = false;
-        let blockReason: string | undefined;
-
-        if (options.callbacks?.beforeToolUse) {
-          const beforeRes = await options.callbacks.beforeToolUse({
-            toolCallId: call.id,
-            toolName: call.name,
-            toolInput: (call.arguments ?? {}) as Record<string, unknown>,
-          });
-          if (beforeRes.blocked) {
-            isBlocked = true;
-            blockReason = beforeRes.reason || `Tool execution blocked by hook.`;
-          }
-        }
-
-        if (isBlocked) {
-          // Tool was blocked before execution: emit error-shaped tool result without running ToolUseFailure
-          const blockedResultInfo: ToolResultInfo = {
-            id: call.id,
-            name: call.name,
-            args: call.arguments,
-            result: `Tool "${call.name}" blocked: ${blockReason}`,
-            isError: true,
-            durationMs: 0,
-            startedAt: new Date().toISOString(),
-            finishedAt: new Date().toISOString(),
-          };
-
-          toolResults.push(blockedResultInfo);
-          options.onEvent?.({
-            type: 'tool-result',
-            toolResult: blockedResultInfo,
-          });
-
-          toolResultsForStep.push({
-            type: 'tool-result',
-            toolCallId: call.id,
-            toolName: call.name,
-            output: blockedResultInfo.result,
-            isError: true,
-          });
-          continue;
-        }
-
-        // 2. Execute tool
         if (options.toolExecutor) {
           const resultInfo = await options.toolExecutor(call);
           toolResults.push(resultInfo);
@@ -341,47 +230,10 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
             output: resultInfo.result,
             isError: resultInfo.isError,
           });
-
-          // 3. AfterToolUse or ToolUseFailure hooks
-          if (resultInfo.isError) {
-            if (options.callbacks?.toolUseFailure) {
-              const errorText =
-                typeof resultInfo.result === 'object' && resultInfo.result !== null
-                  ? JSON.stringify(resultInfo.result)
-                  : String(resultInfo.result);
-
-              const failureRes = await options.callbacks.toolUseFailure({
-                toolCallId: call.id,
-                toolName: call.name,
-                toolInput: (call.arguments ?? {}) as Record<string, unknown>,
-                error: errorText,
-                durationMs: resultInfo.durationMs ?? 0,
-              });
-
-              if (failureRes?.context && failureRes.context.length > 0) {
-                pendingStepContext.push(...failureRes.context);
-              }
-            }
-          } else {
-            if (options.callbacks?.afterToolUse) {
-              const afterRes = await options.callbacks.afterToolUse({
-                toolCallId: call.id,
-                toolName: call.name,
-                toolInput: (call.arguments ?? {}) as Record<string, unknown>,
-                toolOutput: resultInfo.result,
-                isError: false,
-                durationMs: resultInfo.durationMs ?? 0,
-              });
-
-              if (afterRes?.context && afterRes.context.length > 0) {
-                pendingStepContext.push(...afterRes.context);
-              }
-            }
-          }
         }
       }
 
-      // Append tool result message
+      // Append tool result message to conversation history
       if (toolResultsForStep.length > 0) {
         const toolMsg: Message = {
           role: 'tool',

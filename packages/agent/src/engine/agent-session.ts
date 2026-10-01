@@ -1,5 +1,5 @@
 /**
- * @steward/agents - AgentSession Implementation
+ * @steward/agent - AgentSession Implementation
  */
 
 import { randomUUID } from 'node:crypto';
@@ -26,10 +26,9 @@ import {
 import type { MutationCheckpointTracker } from '../services/checkpoint/index.js';
 import { defaultToolCatalog, summarizeToolResult, formatPlainToolSummary } from '../tools/index.js';
 import { ShellTaskManager } from '../services/tasks/manager.js';
-import { loadSettings, saveSettings, isFolderTrusted } from '../services/config/index.js';
+import { loadSettings, saveSettings } from '../services/config/index.js';
 import { logError } from '../services/errors/index.js';
-import { HookRuntime, type SessionStartSource } from '../hooks/index.js';
-import { runAgentTurn, type AgentTurnCallbacks } from './agent-runner.js';
+import { runAgentTurn, accumulateTokenUsage } from './agent-runner.js';
 import { SAFETY_STEP_CEILING } from './constants.js';
 import type { AgentEvent } from './events.js';
 import type { SessionConfig, SubmitPromptOptions, ToolResultInfo, TurnSummary } from './types.js';
@@ -97,29 +96,12 @@ export function translateAgentEventToLogEvent(
 /**
  * Pure helper to accumulate token usage metrics safely.
  */
-export function accumulateUsage(current: TokenUsage, delta: TokenUsage): TokenUsage {
-  return {
-    inputTokens: current.inputTokens + delta.inputTokens,
-    outputTokens: current.outputTokens + delta.outputTokens,
-    totalTokens: current.totalTokens + delta.totalTokens,
-    reasoningTokens:
-      delta.reasoningTokens !== undefined
-        ? (current.reasoningTokens ?? 0) + delta.reasoningTokens
-        : current.reasoningTokens,
-    cacheReadTokens:
-      delta.cacheReadTokens !== undefined
-        ? (current.cacheReadTokens ?? 0) + delta.cacheReadTokens
-        : current.cacheReadTokens,
-    cacheWriteTokens:
-      delta.cacheWriteTokens !== undefined
-        ? (current.cacheWriteTokens ?? 0) + delta.cacheWriteTokens
-        : current.cacheWriteTokens,
-  };
+export function accumulateUsage(current: TokenUsage, delta?: TokenUsage): TokenUsage {
+  return accumulateTokenUsage(current, delta);
 }
 
 export interface AgentSessionDeps {
   ai?: AI;
-  hookRuntime?: HookRuntime;
 }
 
 /**
@@ -132,14 +114,13 @@ export class AgentSession {
   private messages: Message[] = [];
   private sessionData: SessionData;
   private sessionLogWriter?: SessionLogWriter;
-  private hookRuntime?: HookRuntime;
   private accumulatedUsage: TokenUsage = {
-    inputTokens: 0,
-    outputTokens: 0,
-    totalTokens: 0,
-    reasoningTokens: 0,
-    cacheReadTokens: 0,
-    cacheWriteTokens: 0,
+    input: 0,
+    output: 0,
+    total: 0,
+    reasoning: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
   };
   private activeAbortController: AbortController | null = null;
   private isGenerating = false;
@@ -151,7 +132,6 @@ export class AgentSession {
     deps?: AgentSessionDeps,
   ) {
     this.ai = deps?.ai ?? createAI();
-    this.hookRuntime = deps?.hookRuntime;
 
     if (existingSession) {
       this.sessionData = existingSession;
@@ -209,39 +189,6 @@ export class AgentSession {
 
   public get session(): SessionData {
     return this.sessionData;
-  }
-
-  public getHookRuntime(): HookRuntime | undefined {
-    return this.hookRuntime;
-  }
-
-  /**
-   * Initializes the hook runtime subject to workspace trust and triggers SessionStart hooks.
-   */
-  public async initializeHooks(
-    options: {
-      cwd?: string;
-      isTrusted?: boolean;
-      source?: SessionStartSource;
-    } = {},
-  ): Promise<void> {
-    const cwd = options.cwd ?? process.cwd();
-    const isTrusted = options.isTrusted ?? isFolderTrusted(cwd);
-    const source: SessionStartSource = options.source ?? 'startup';
-
-    if (!this.hookRuntime) {
-      this.hookRuntime = HookRuntime.load({
-        projectDir: cwd,
-        isTrusted,
-      });
-    }
-
-    await this.hookRuntime.runSessionStart({
-      sessionId: this.sessionData.id,
-      projectDir: cwd,
-      cwd,
-      source,
-    });
   }
 
   public setModel(selection: ModelSelection, persist = true): ModelSelection {
@@ -320,52 +267,11 @@ export class AgentSession {
       throw new Error('Prompt cannot be empty.');
     }
 
-    const cwd = options.cwd ?? process.cwd();
-
-    // 1. Ensure hook runtime is initialized
-    if (!this.hookRuntime) {
-      await this.initializeHooks({
-        cwd,
-        isTrusted: isFolderTrusted(cwd),
-        source: 'startup',
-      });
-    }
-
-    // 2. UserPromptSubmit hook lifecycle (pre-turn validation before persistence/turn creation)
-    const previewTurnId = randomUUID();
-    const promptHookResult = await this.hookRuntime!.runUserPromptSubmit({
-      sessionId: this.sessionData.id,
-      turnId: previewTurnId,
-      projectDir: cwd,
-      cwd,
-      prompt: trimmedPrompt,
-    });
-
-    if (promptHookResult.blocked) {
-      const blockReason =
-        promptHookResult.firstBlockReason || 'UserPromptSubmit hook blocked the prompt.';
-      throw new Error(`Prompt blocked: ${blockReason}`);
-    }
-
     this.isGenerating = true;
-
-    // Collect ephemeral hook instructions (session start context + prompt submit context)
-    const consumedSessionStartCtx = this.hookRuntime!.consumePendingSessionContext();
-    const combinedHookContext = [...consumedSessionStartCtx, ...promptHookResult.context];
-    const hookInstructionText =
-      combinedHookContext.length > 0
-        ? `[Hook Instructions]\n` + combinedHookContext.join('\n')
-        : undefined;
-
-    const effectiveExtraInstructions =
-      [options.extraInstructions, hookInstructionText].filter(Boolean).join('\n\n') || undefined;
 
     const prep = await prepareTurn(
       trimmedPrompt,
-      {
-        ...options,
-        extraInstructions: effectiveExtraInstructions,
-      },
+      options,
       {
         sessionId: this.sessionData.id,
         shellTasks: this.shellTasks,
@@ -421,67 +327,6 @@ export class AgentSession {
       }
     };
 
-    const callbacks: AgentTurnCallbacks = {
-      beforeToolUse: async (params) => {
-        const res = await this.hookRuntime!.runBeforeToolUse({
-          sessionId: this.sessionData.id,
-          turnId: prep.turnId,
-          projectDir: prep.toolContext.cwd,
-          cwd: prep.toolContext.cwd,
-          toolCallId: params.toolCallId,
-          toolName: params.toolName,
-          toolInput: params.toolInput,
-          abortSignal: prep.abortController.signal,
-        });
-        return { blocked: res.blocked, reason: res.firstBlockReason };
-      },
-      afterToolUse: async (params) => {
-        const res = await this.hookRuntime!.runAfterToolUse({
-          sessionId: this.sessionData.id,
-          turnId: prep.turnId,
-          projectDir: prep.toolContext.cwd,
-          cwd: prep.toolContext.cwd,
-          toolCallId: params.toolCallId,
-          toolName: params.toolName,
-          toolInput: params.toolInput,
-          toolOutput: params.toolOutput,
-          isError: params.isError,
-          durationMs: params.durationMs,
-          abortSignal: prep.abortController.signal,
-        });
-        return { context: res.context };
-      },
-      toolUseFailure: async (params) => {
-        const res = await this.hookRuntime!.runToolUseFailure({
-          sessionId: this.sessionData.id,
-          turnId: prep.turnId,
-          projectDir: prep.toolContext.cwd,
-          cwd: prep.toolContext.cwd,
-          toolCallId: params.toolCallId,
-          toolName: params.toolName,
-          toolInput: params.toolInput,
-          error: params.error,
-          durationMs: params.durationMs,
-          abortSignal: prep.abortController.signal,
-        });
-        return { context: res.context };
-      },
-      agentStop: async (params) => {
-        const res = await this.hookRuntime!.runAgentStop({
-          sessionId: this.sessionData.id,
-          turnId: prep.turnId,
-          projectDir: prep.toolContext.cwd,
-          cwd: prep.toolContext.cwd,
-          stopReason: params.stopReason,
-          finishReason: params.finishReason,
-          assistantText: params.assistantText,
-          stopHookActive: params.stopHookActive,
-          abortSignal: prep.abortController.signal,
-        });
-        return { blocked: res.blocked, reason: res.firstBlockReason };
-      },
-    };
-
     try {
       summary = await runAgentTurn({
         ai: this.ai,
@@ -490,7 +335,6 @@ export class AgentSession {
         instructions: prep.instructions,
         tools: prep.activeTools,
         toolExecutor,
-        callbacks,
         maxSteps: this.config.maxSteps,
         temperature: this.config.temperature,
         reasoningEffort: this.config.reasoningEffort,
@@ -589,7 +433,7 @@ export class AgentSession {
 
     const usage: TokenUsage = summary
       ? summary.usage
-      : { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+      : { input: 0, output: 0, total: 0 };
 
     recordSessionTurn(this.sessionData, {
       id: turnId,
@@ -645,12 +489,12 @@ export class AgentSession {
     this.shellTasks = new ShellTaskManager();
     this.messages = [];
     this.accumulatedUsage = {
-      inputTokens: 0,
-      outputTokens: 0,
-      totalTokens: 0,
-      reasoningTokens: 0,
-      cacheReadTokens: 0,
-      cacheWriteTokens: 0,
+      input: 0,
+      output: 0,
+      total: 0,
+      reasoning: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
     };
     this.sessionData = createSession({
       provider: this.config.provider,
@@ -661,15 +505,6 @@ export class AgentSession {
       this.sessionData.date || getCurrentDateString(),
       this.sessionData.id,
     );
-
-    if (this.hookRuntime) {
-      await this.hookRuntime.runSessionStart({
-        sessionId: this.sessionData.id,
-        projectDir: process.cwd(),
-        cwd: process.cwd(),
-        source: 'reset',
-      });
-    }
   }
 
   public getUsage(): TokenUsage {

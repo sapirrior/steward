@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import { runAgentTurn } from '../src/engine/agent-runner.js';
-import type { AIEngine, InferenceRequest, InferenceStream } from '@steward/ai';
+import type { AI, InferenceRequest, InferenceStream } from '@steward/ai';
 
 describe('runAgentTurn Integration', () => {
   it('executes a single step turn without tools', async () => {
-    const mockAIEngine: AIEngine = {
+    const mockAI: AI = {
       auth: {} as any,
       async resolveModel() {
         return { provider: 'openai', modelId: 'gpt-4o-mini', effort: 'medium' };
@@ -20,7 +20,7 @@ describe('runAgentTurn Integration', () => {
                 role: 'assistant',
                 content: [{ type: 'text', text: 'Hello from mock AI!' }],
               },
-              usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+              usage: { input: 10, output: 5, total: 15 },
               finishReason: 'stop',
             };
           },
@@ -29,20 +29,20 @@ describe('runAgentTurn Integration', () => {
     };
 
     const summary = await runAgentTurn({
-      ai: mockAIEngine,
+      ai: mockAI,
       model: { provider: 'openai', modelId: 'gpt-4o-mini', effort: 'medium' },
       messages: [{ role: 'user', content: 'Hi' }],
     });
 
     expect(summary.text).toBe('Hello from mock AI!');
-    expect(summary.usage.totalTokens).toBe(15);
+    expect(summary.usage.total).toBe(15);
     expect(summary.stopReason).toBe('natural');
   });
 
   it('executes tool call and continues turn sequentially', async () => {
     let callCount = 0;
 
-    const mockAIEngine: AIEngine = {
+    const mockAI: AI = {
       auth: {} as any,
       async resolveModel() {
         return { provider: 'openai', modelId: 'gpt-4o-mini', effort: 'medium' };
@@ -76,7 +76,7 @@ describe('runAgentTurn Integration', () => {
                     },
                   ],
                 },
-                usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+                usage: { input: 10, output: 5, total: 15 },
                 finishReason: 'tool-use',
               };
             },
@@ -93,7 +93,7 @@ describe('runAgentTurn Integration', () => {
                   role: 'assistant',
                   content: [{ type: 'text', text: 'Tool output processed.' }],
                 },
-                usage: { inputTokens: 15, outputTokens: 5, totalTokens: 20 },
+                usage: { input: 15, output: 5, total: 20 },
                 finishReason: 'stop',
               };
             },
@@ -104,7 +104,7 @@ describe('runAgentTurn Integration', () => {
 
     const executedTools: string[] = [];
     const summary = await runAgentTurn({
-      ai: mockAIEngine,
+      ai: mockAI,
       model: { provider: 'openai', modelId: 'gpt-4o-mini', effort: 'medium' },
       messages: [{ role: 'user', content: 'Run test tool' }],
       toolExecutor: async (call) => {
@@ -121,7 +121,7 @@ describe('runAgentTurn Integration', () => {
 
     expect(executedTools).toEqual(['test_tool']);
     expect(summary.text).toBe('Tool output processed.');
-    expect(summary.usage.totalTokens).toBe(35);
+    expect(summary.usage.total).toBe(35);
     expect(summary.toolCalls.length).toBe(1);
   });
 });

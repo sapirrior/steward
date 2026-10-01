@@ -308,26 +308,26 @@ export async function executeRewind(options: RewindOptions): Promise<RewindResul
 
     // 9. Recompute session usage and truncate session turns
     const recalculatedUsage = {
-      inputTokens: 0,
-      outputTokens: 0,
-      totalTokens: 0,
-      reasoningTokens: 0,
-      cacheReadTokens: 0,
-      cacheWriteTokens: 0,
+      input: 0,
+      output: 0,
+      total: 0,
+      reasoning: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
     };
 
     for (const t of keptTurns) {
-      recalculatedUsage.inputTokens += t.usage.inputTokens;
-      recalculatedUsage.outputTokens += t.usage.outputTokens;
-      recalculatedUsage.totalTokens += t.usage.totalTokens;
-      if (t.usage.reasoningTokens) {
-        recalculatedUsage.reasoningTokens += t.usage.reasoningTokens;
+      recalculatedUsage.input += (t.usage as any).input ?? (t.usage as any).inputTokens ?? 0;
+      recalculatedUsage.output += (t.usage as any).output ?? (t.usage as any).outputTokens ?? 0;
+      recalculatedUsage.total += (t.usage as any).total ?? (t.usage as any).totalTokens ?? 0;
+      if (t.usage.reasoning ?? (t.usage as any).reasoningTokens) {
+        recalculatedUsage.reasoning += t.usage.reasoning ?? (t.usage as any).reasoningTokens ?? 0;
       }
-      if (t.usage.cacheReadTokens) {
-        recalculatedUsage.cacheReadTokens += t.usage.cacheReadTokens;
+      if (t.usage.cacheRead ?? (t.usage as any).cacheReadTokens) {
+        recalculatedUsage.cacheRead += t.usage.cacheRead ?? (t.usage as any).cacheReadTokens ?? 0;
       }
-      if (t.usage.cacheWriteTokens) {
-        recalculatedUsage.cacheWriteTokens += t.usage.cacheWriteTokens;
+      if (t.usage.cacheWrite ?? (t.usage as any).cacheWriteTokens) {
+        recalculatedUsage.cacheWrite += t.usage.cacheWrite ?? (t.usage as any).cacheWriteTokens ?? 0;
       }
     }
 

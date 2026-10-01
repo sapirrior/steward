@@ -88,16 +88,16 @@ describe('Definition of Done — Multi-Turn Parallel Mutation and Rewind Scenari
       id: 'turn-1',
       timestamp: new Date().toISOString(),
       status: 'complete',
-      usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      usage: { input: 50, output: 100, total: 150 },
       messages: [{ role: 'user', content: 'Create A and B' }],
     });
     session.totalUsage = {
-      inputTokens: 50,
-      outputTokens: 100,
-      totalTokens: 150,
-      reasoningTokens: 0,
-      cacheReadTokens: 0,
-      cacheWriteTokens: 0,
+      input: 50,
+      output: 100,
+      total: 150,
+      reasoning: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
     };
     saveSession(session);
 
@@ -150,12 +150,12 @@ describe('Definition of Done — Multi-Turn Parallel Mutation and Rewind Scenari
       id: 'turn-2',
       timestamp: new Date().toISOString(),
       status: 'complete',
-      usage: { inputTokens: 60, outputTokens: 120, totalTokens: 180 },
+      usage: { input: 60, output: 120, total: 180 },
       messages: [{ role: 'user', content: 'Edit A twice and replace B' }],
     });
-    session.totalUsage.inputTokens += 60;
-    session.totalUsage.outputTokens += 120;
-    session.totalUsage.totalTokens += 180;
+    session.totalUsage.input += 60;
+    session.totalUsage.output += 120;
+    session.totalUsage.total += 180;
     saveSession(session);
 
     expect(readFileSync(fileA, 'utf-8')).toBe('Final Turn-2 A content');
@@ -189,17 +189,17 @@ describe('Definition of Done — Multi-Turn Parallel Mutation and Rewind Scenari
       id: 'turn-3',
       timestamp: new Date().toISOString(),
       status: 'complete',
-      usage: { inputTokens: 40, outputTokens: 80, totalTokens: 120 },
+      usage: { input: 40, output: 80, total: 120 },
       messages: [{ role: 'user', content: 'Make another change' }],
     });
-    session.totalUsage.inputTokens += 40;
-    session.totalUsage.outputTokens += 80;
-    session.totalUsage.totalTokens += 120;
+    session.totalUsage.input += 40;
+    session.totalUsage.output += 80;
+    session.totalUsage.total += 120;
     saveSession(session);
 
     expect(readFileSync(fileA, 'utf-8')).toBe('Turn-3 A content');
     expect(session.turns.length).toBe(3);
-    expect(session.totalUsage.totalTokens).toBe(450);
+    expect(session.totalUsage.total).toBe(450);
 
     // === /rewind before Turn 2 (keeping Turn 1) ===
     const rewindRes = await executeRewind({
@@ -222,9 +222,9 @@ describe('Definition of Done — Multi-Turn Parallel Mutation and Rewind Scenari
     expect(readFileSync(fileB, 'utf-8')).toBe('Initial B content');
 
     // 3. Usage equals Turn-1 usage
-    expect(session.totalUsage.inputTokens).toBe(50);
-    expect(session.totalUsage.outputTokens).toBe(100);
-    expect(session.totalUsage.totalTokens).toBe(150);
+    expect(session.totalUsage.input).toBe(50);
+    expect(session.totalUsage.output).toBe(100);
+    expect(session.totalUsage.total).toBe(150);
 
     // 4. All discarded turns are absent
     expect(session.turns.find((t) => t.id === 'turn-2')).toBeUndefined();

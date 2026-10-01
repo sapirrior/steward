@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Message, ModelSelection, TokenUsage } from '../services/contracts.js';
+import type { Message, ModelSelection, TokenUsage } from '@steward/ai';
 
 export const SESSION_SCHEMA_VERSION = 1;
 
@@ -24,16 +24,47 @@ export interface SessionDocument {
   turns: SessionTurn[];
 }
 
-export const TokenUsageSchema = z.object({
-  inputTokens: z.number(),
-  outputTokens: z.number(),
-  totalTokens: z.number(),
-  reasoningTokens: z.number().optional(),
-  cacheReadTokens: z.number().optional(),
-  cacheWriteTokens: z.number().optional(),
+export const TokenCostSchema = z.object({
+  input: z.number(),
+  output: z.number(),
+  cacheRead: z.number(),
+  cacheWrite: z.number(),
+  total: z.number(),
 });
 
-export const ReasoningEffortSchema = z.enum(['none', 'low', 'medium', 'high']).optional();
+export const TokenUsageSchema = z
+  .object({
+    input: z.number().optional(),
+    output: z.number().optional(),
+    total: z.number().optional(),
+    reasoning: z.number().optional(),
+    cacheRead: z.number().optional(),
+    cacheWrite: z.number().optional(),
+    cost: TokenCostSchema.optional(),
+    // Legacy schema v1 field aliases for backwards-compatibility during parse
+    inputTokens: z.number().optional(),
+    outputTokens: z.number().optional(),
+    totalTokens: z.number().optional(),
+    reasoningTokens: z.number().optional(),
+    cacheReadTokens: z.number().optional(),
+    cacheWriteTokens: z.number().optional(),
+  })
+  .transform((val) => {
+    const input = val.input ?? val.inputTokens ?? 0;
+    const output = val.output ?? val.outputTokens ?? 0;
+    const total = val.total ?? val.totalTokens ?? (input + output);
+    return {
+      input,
+      output,
+      total,
+      reasoning: val.reasoning ?? val.reasoningTokens,
+      cacheRead: val.cacheRead ?? val.cacheReadTokens,
+      cacheWrite: val.cacheWrite ?? val.cacheWriteTokens,
+      cost: val.cost,
+    } satisfies TokenUsage;
+  });
+
+export const ReasoningEffortSchema = z.enum(['none', 'low', 'medium', 'high', 'xhigh']).optional();
 
 export const ModelSelectionSchema = z.object({
   provider: z.string() as z.ZodType<any>,

@@ -77,12 +77,12 @@ export function createSession(model: ModelSelection, customId?: string): Session
     updatedAt: now,
     model,
     totalUsage: {
-      inputTokens: 0,
-      outputTokens: 0,
-      totalTokens: 0,
-      reasoningTokens: 0,
-      cacheReadTokens: 0,
-      cacheWriteTokens: 0,
+      input: 0,
+      output: 0,
+      total: 0,
+      reasoning: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
     },
     turns: [],
   };
@@ -189,16 +189,22 @@ export function recordSessionTurn(
   session.turns.push(turn);
 
   // Accumulate total usage
-  session.totalUsage.inputTokens += turn.usage.inputTokens;
-  session.totalUsage.outputTokens += turn.usage.outputTokens;
-  session.totalUsage.totalTokens += turn.usage.totalTokens;
-  if (turn.usage.reasoningTokens) {
-    session.totalUsage.reasoningTokens =
-      (session.totalUsage.reasoningTokens ?? 0) + turn.usage.reasoningTokens;
+  session.totalUsage.input = (session.totalUsage.input ?? 0) + (turn.usage.input ?? 0);
+  session.totalUsage.output = (session.totalUsage.output ?? 0) + (turn.usage.output ?? 0);
+  session.totalUsage.total =
+    (session.totalUsage.total ?? 0) +
+    (turn.usage.total ?? ((turn.usage.input ?? 0) + (turn.usage.output ?? 0)));
+  if (turn.usage.reasoning !== undefined) {
+    session.totalUsage.reasoning =
+      (session.totalUsage.reasoning ?? 0) + turn.usage.reasoning;
   }
-  if (turn.usage.cacheReadTokens) {
-    session.totalUsage.cacheReadTokens =
-      (session.totalUsage.cacheReadTokens ?? 0) + turn.usage.cacheReadTokens;
+  if (turn.usage.cacheRead !== undefined) {
+    session.totalUsage.cacheRead =
+      (session.totalUsage.cacheRead ?? 0) + turn.usage.cacheRead;
+  }
+  if (turn.usage.cacheWrite !== undefined) {
+    session.totalUsage.cacheWrite =
+      (session.totalUsage.cacheWrite ?? 0) + turn.usage.cacheWrite;
   }
 
   saveSession(session);
@@ -315,7 +321,7 @@ export function listSessions(limit = 50): SessionSummary[] {
             createdAt: doc.createdAt || new Date().toISOString(),
             updatedAt: doc.updatedAt || doc.createdAt || new Date().toISOString(),
             model: doc.model,
-            totalTokens: doc.totalUsage?.totalTokens ?? 0,
+            totalTokens: doc.totalUsage?.total ?? (doc.totalUsage as any)?.totalTokens ?? 0,
             turnCount: doc.turns?.length ?? 0,
             filePath: fullPath,
           });
