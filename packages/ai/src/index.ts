@@ -67,7 +67,6 @@ export {
   PROVIDER_PRESETS,
   parseModelsDevModel,
   inferProtocolForModel,
-  supportsImages,
   supportsReasoning,
   filterModels,
   type ProviderPreset,

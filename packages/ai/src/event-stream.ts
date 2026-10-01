@@ -58,8 +58,8 @@ class FifoQueue<T> {
 class ContentAccumulator {
   private textMap = new Map<number, string>(); // index → accumulated text
   private thinkingMap = new Map<number, { text: string; signature?: string; redacted?: boolean }>();
-  private toolMap = new Map<number, { id: string; name: string; args: string; thoughtSig?: string }>();
-  private order: Array<{ kind: 'text' | 'thinking' | 'tool'; index: number }> = [];
+  private toolMap = new Map<string, { id: string; name: string; args: string; thoughtSig?: string; parsedArgs?: JsonObject }>();
+  private order: Array<{ kind: 'text' | 'thinking'; index: number } | { kind: 'tool'; id: string }> = [];
 
   private ensureText(index: number) {
     if (!this.textMap.has(index)) {
@@ -86,30 +86,59 @@ class ContentAccumulator {
     t.text += delta;
   }
 
-  startTool(id: string, name: string, blockIndex: number): void {
-    this.toolMap.set(blockIndex, { id, name, args: '' });
-    this.order.push({ kind: 'tool', index: blockIndex });
+  startTool(id: string, name: string): void {
+    const existing = this.toolMap.get(id);
+    if (existing) {
+      if (name && !existing.name) existing.name = name;
+      return;
+    }
+    this.toolMap.set(id, { id, name, args: '' });
+    this.order.push({ kind: 'tool', id });
   }
 
-  appendToolDelta(blockIndex: number, delta: string): void {
-    const t = this.toolMap.get(blockIndex);
-    if (t) t.args += delta;
+  appendToolDelta(id: string, delta: string): void {
+    let t = this.toolMap.get(id);
+    if (!t) {
+      this.startTool(id, '');
+      t = this.toolMap.get(id)!;
+    }
+    t.args += delta;
+  }
+
+  endTool(toolCall: ToolCallContent): void {
+    const existing = this.toolMap.get(toolCall.id);
+    if (existing) {
+      if (toolCall.name) existing.name = toolCall.name;
+      existing.parsedArgs = toolCall.arguments;
+      if (toolCall.thoughtSignature) existing.thoughtSig = toolCall.thoughtSignature;
+    } else {
+      this.toolMap.set(toolCall.id, {
+        id: toolCall.id,
+        name: toolCall.name,
+        args: JSON.stringify(toolCall.arguments),
+        thoughtSig: toolCall.thoughtSignature,
+        parsedArgs: toolCall.arguments,
+      });
+      this.order.push({ kind: 'tool', id: toolCall.id });
+    }
   }
 
   build(): readonly AssistantContent[] {
     const blocks: AssistantContent[] = [];
     const seen = new Set<string>();
 
-    for (const { kind, index } of this.order) {
-      const key = `${kind}:${index}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      if (kind === 'text') {
-        const text = this.textMap.get(index) ?? '';
+    for (const item of this.order) {
+      if (item.kind === 'text') {
+        const key = `text:${item.index}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const text = this.textMap.get(item.index) ?? '';
         if (text) blocks.push({ type: 'text', text } satisfies TextContent);
-      } else if (kind === 'thinking') {
-        const t = this.thinkingMap.get(index)!;
+      } else if (item.kind === 'thinking') {
+        const key = `thinking:${item.index}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const t = this.thinkingMap.get(item.index)!;
         if (t.text || t.redacted) {
           blocks.push({
             type: 'thinking',
@@ -118,10 +147,19 @@ class ContentAccumulator {
             redacted: t.redacted,
           } satisfies ThinkingContent);
         }
-      } else if (kind === 'tool') {
-        const t = this.toolMap.get(index)!;
-        let args: Record<string, unknown> = {};
-        try { args = JSON.parse(t.args || '{}'); } catch { /* partial */ }
+      } else if (item.kind === 'tool') {
+        const key = `tool:${item.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const t = this.toolMap.get(item.id)!;
+        let args: JsonObject = t.parsedArgs ?? {};
+        if (!t.parsedArgs) {
+          try {
+            args = JSON.parse(t.args || '{}') as JsonObject;
+          } catch {
+            /* partial JSON handled gracefully */
+          }
+        }
         blocks.push({
           type: 'tool-call',
           id: t.id,
@@ -152,7 +190,6 @@ export class AssistantMessageStream implements InferenceStream {
   private acc = new ContentAccumulator();
   private usage: TokenUsage = {};
   private meta: AssistantMeta | undefined;
-  private toolBlockIndex = 0;
 
   constructor(options: AssistantMessageStreamOptions = {}) {
     this.model = options.model;
@@ -172,10 +209,11 @@ export class AssistantMessageStream implements InferenceStream {
     } else if (event.type === 'reasoning-delta') {
       this.acc.appendReasoning(event.delta);
     } else if (event.type === 'tool-call-start') {
-      this.toolBlockIndex++;
-      this.acc.startTool(event.id, event.name, this.toolBlockIndex);
+      this.acc.startTool(event.id, event.name);
     } else if (event.type === 'tool-call-delta') {
-      this.acc.appendToolDelta(this.toolBlockIndex, event.delta);
+      this.acc.appendToolDelta(event.id, event.delta);
+    } else if (event.type === 'tool-call-end') {
+      this.acc.endTool(event.toolCall);
     } else if (event.type === 'done') {
       if (event.usage.total === undefined) {
         event.usage.total = (event.usage.input ?? 0) + (event.usage.output ?? 0);

@@ -176,4 +176,44 @@ describe('event-stream — AssistantMessageStream', () => {
     expect(res.finishReason).toBe('error');
     expect(res.error?.code).toBe('context-overflow');
   });
+
+  it('correctly accumulates multiple interleaved concurrent tool calls by ID', async () => {
+    const stream = new AssistantMessageStream();
+
+    stream.push({ type: 'tool-call-start', id: 'call_A', name: 'read_file' });
+    stream.push({ type: 'tool-call-start', id: 'call_B', name: 'write_file' });
+
+    // Interleaved chunks for call_A and call_B
+    stream.push({ type: 'tool-call-delta', id: 'call_A', delta: '{"path":' });
+    stream.push({ type: 'tool-call-delta', id: 'call_B', delta: '{"path":' });
+    stream.push({ type: 'tool-call-delta', id: 'call_A', delta: '"foo.ts"}' });
+    stream.push({ type: 'tool-call-delta', id: 'call_B', delta: '"bar.ts","content":"hello"}' });
+
+    stream.push({
+      type: 'done',
+      message: { role: 'assistant', content: [] },
+      usage: {},
+      finishReason: 'tool-use',
+    });
+
+    const result = await stream.result();
+    expect(result.finishReason).toBe('tool-use');
+    const toolCalls = result.message.content.filter((b) => b.type === 'tool-call');
+    expect(toolCalls).toHaveLength(2);
+
+    const tcA = toolCalls.find((t) => t.type === 'tool-call' && t.id === 'call_A');
+    const tcB = toolCalls.find((t) => t.type === 'tool-call' && t.id === 'call_B');
+
+    expect(tcA).toBeDefined();
+    if (tcA?.type === 'tool-call') {
+      expect(tcA.name).toBe('read_file');
+      expect(tcA.arguments).toEqual({ path: 'foo.ts' });
+    }
+
+    expect(tcB).toBeDefined();
+    if (tcB?.type === 'tool-call') {
+      expect(tcB.name).toBe('write_file');
+      expect(tcB.arguments).toEqual({ path: 'bar.ts', content: 'hello' });
+    }
+  });
 });

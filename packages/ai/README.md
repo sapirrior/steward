@@ -15,7 +15,6 @@ Zero-dependency, pure Web Standards AI streaming inference engine and model orch
 - [Streaming & Event Handling](#streaming--event-handling)
 - [Tool Calling](#tool-calling)
 - [Thinking & Reasoning](#thinking--reasoning)
-- [Multimodal Vision Support](#multimodal-vision-support)
 - [Cross-Model Message Transformation](#cross-model-message-transformation)
 - [models.dev Dynamic Catalog](#modelsdev-dynamic-catalog)
 - [Package API Reference (Sonnet Convention)](#package-api-reference)
@@ -29,22 +28,21 @@ Zero-dependency, pure Web Standards AI streaming inference engine and model orch
 - **Pure Web Standards:** Built entirely on standard JavaScript/TypeScript primitives (`fetch`, `Headers`, `ReadableStream`, `TextDecoder`). Works natively in Bun, Node.js 22+, Deno, and edge runtimes.
 - **Offline-First Seeded Catalog:** Ships with a static, pre-generated catalog of over 400+ frontier and open-source models parsed from `models.dev`, with live on-demand refresh support.
 - **OpenRouter Exclusivity:** Fully standardized OpenRouter integration via Anthropic Messages protocol (`https://openrouter.ai/api/v1/messages`).
-- **Canonical Reasoning Scale:** 5-tier reasoning effort scale (`'none'`, `'low'`, `'medium'`, `'high'`, `'max'`) with automatic fallback clamping and Anthropic token budget calculation.
-- **Multimodal Vision & Fallback:** Native support for base64 image inputs with automatic, graceful degradation to text placeholders when switching to text-only models.
-- **Cross-Model Handoff:** Seamlessly re-routes conversation history across OpenAI, Anthropic, Google, and OpenRouter—automatically normalizing tool IDs, synthesizing orphaned tool call results, and stripping incompatible thinking blocks.
+- **Canonical Reasoning Scale:** 5-tier reasoning effort scale (`'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`) with automatic fallback clamping and Anthropic token budget calculation.
+- **Cross-Model Handoff:** Seamlessly re-routes conversation history across OpenAI, Anthropic, Google, and OpenRouter—automatically normalizing tool IDs, synthesizing orphaned tool call results, and preserving or converting thinking blocks.
 - **Resilient Error Classification:** Automatic classification of HTTP errors (`rate-limit`, `auth`, `context-overflow`, `invalid-request`, `provider`, `network`, `aborted`) with silent exponential backoff before the first byte.
 
 ---
 
 ## Supported Providers & Protocols
 
-| Provider ID | Protocol | Endpoint | Auth Env Var / Scheme | Thinking / Reasoning | Tool Calling | Vision |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `anthropic` | `anthropic-messages` | `https://api.anthropic.com/v1/messages` | `ANTHROPIC_API_KEY` (`x-api-key`) | `thinking.budget_tokens` | Native | Native |
-| `openai` | `openai-completions` / `openai-responses` | `https://api.openai.com/v1/chat/completions` | `OPENAI_API_KEY` (`Bearer`) | `reasoning_effort` | Native | Native |
-| `google` | `google-generative-ai` | `https://generativelanguage.googleapis.com` | `GEMINI_API_KEY` / `GOOGLE_API_KEY` (`x-goog-api-key`) | `thinkingConfig.thinkingBudget` | Function Declarations | Native |
-| `openrouter` | `anthropic-messages` | `https://openrouter.ai/api/v1/messages` | `OPENROUTER_API_KEY` (`Bearer`) | `thinking.budget_tokens` | Native | Native |
-| *Custom* | `openai-completions` / *any* | Configurable | API Key / Bearer | Provider-dependent | Supported | Supported |
+| Provider ID | Protocol | Endpoint | Auth Env Var / Scheme | Thinking / Reasoning | Tool Calling |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `anthropic` | `anthropic-messages` | `https://api.anthropic.com/v1/messages` | `ANTHROPIC_API_KEY` (`x-api-key`) | `thinking.budget_tokens` | Native |
+| `openai` | `openai-completions` / `openai-responses` | `https://api.openai.com/v1/chat/completions` | `OPENAI_API_KEY` (`Bearer`) | `reasoning_effort` | Native |
+| `google` | `google-generative-ai` | `https://generativelanguage.googleapis.com` | `GEMINI_API_KEY` / `GOOGLE_API_KEY` (`x-goog-api-key`) | `thinkingConfig.thinkingBudget` | Function Declarations |
+| `openrouter` | `anthropic-messages` | `https://openrouter.ai/api/v1/messages` | `OPENROUTER_API_KEY` (`Bearer`) | `thinking.budget_tokens` | Native |
+| *Custom* | `openai-completions` / *any* | Configurable | API Key / Bearer | Provider-dependent | Supported |
 
 ---
 
@@ -142,32 +140,9 @@ const stream = ai.stream({
 
 ---
 
-## Multimodal Vision Support
-
-`@steward/ai` natively supports base64 image parts in user messages:
-
-```typescript
-const stream = ai.stream({
-  model: { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022' },
-  messages: [
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'Describe what you see in this image:' },
-        { type: 'image', mimeType: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUgAA...' },
-      ],
-    },
-  ],
-});
-```
-
-When targeting a model without vision input support (`input: ['text']`), `transformMessages()` automatically degrades image blocks to `[image omitted: model does not support images]` without failing the turn.
-
----
-
 ## models.dev Dynamic Catalog
 
-`@steward/ai` uses metadata from [`models.dev`](https://models.dev) to provide accurate token limits, pricing, context windows, and modal capabilities:
+`@steward/ai` uses metadata from [`models.dev`](https://models.dev) to provide accurate token limits, pricing, context windows, and reasoning capabilities:
 
 - **Offline Seeded:** 400+ models bundled in `src/models/catalog.generated.ts`.
 - **OpenRouter Support:** Fully captures OpenRouter's catalog including free models (`openrouter/free`, `google/gemma-4-26b-a4b-it:free`, etc.).
@@ -220,9 +195,8 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `MODELS` | `readonly Model[]` | Pre-generated catalog of frontier and open-source models. |
 | `PROVIDER_PRESETS` | `readonly ProviderPreset[]` | Third-party provider presets (DeepSeek, Groq, xAI, Mistral, Ollama, LM Studio). |
 | `parseModelsDevModel` | `(providerId, raw) => Model` | Parses raw `models.dev` API model definition into canonical `Model`. |
-| `supportsImages` | `(model: Model) => boolean` | Checks if model accepts image inputs. |
 | `supportsReasoning` | `(model: Model) => boolean` | Checks if model supports reasoning / thinking. |
-| `filterModels` | `(models: readonly Model[], filter: ModelFilter) => Model[]` | Filters models by provider, query string, reasoning, or vision support. |
+| `filterModels` | `(models: readonly Model[], filter: ModelFilter) => Model[]` | Filters models by provider, query string, or reasoning support. |
 
 ### 6. `src/models/selection.ts`
 
@@ -242,7 +216,7 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
-| `transformMessages` | `(messages: readonly Message[], targetModel: Model) => Message[]` | Normalizes message history for cross-model handoff. Converts foreign thinking blocks, drops redacted blocks, normalizes tool call IDs to `^[a-zA-Z0-9_-]{1,64}$`, downgrades images for non-vision models, and fixes orphaned tool calls. |
+| `transformMessages` | `(messages: readonly Message[], targetModel: Model) => Message[]` | Normalizes message history for cross-model handoff. Converts foreign thinking blocks, drops redacted blocks, normalizes tool call IDs to `^[a-zA-Z0-9_-]{1,64}$`, and fixes orphaned tool calls. |
 
 ### 9. `src/protocols/index.ts`
 

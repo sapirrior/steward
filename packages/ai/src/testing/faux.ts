@@ -112,7 +112,7 @@ export const FAUX_MODEL: Model = {
   protocol: 'openai-completions',
   baseUrl: 'http://localhost:0',
   reasoning: true,
-  input: ['text', 'image'],
+  input: ['text'],
   contextWindow: 128000,
   maxOutputTokens: 4096,
   temperature: true,

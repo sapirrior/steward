@@ -6,7 +6,6 @@ import { MODELS, PROVIDER_PRESETS, type ProviderPreset } from './catalog.generat
 import {
   parseModelsDevModel,
   inferProtocolForModel,
-  supportsImages,
   supportsReasoning,
   type ModelsDevApiResponse,
   type ModelsDevRawModel,
@@ -18,7 +17,6 @@ export {
   PROVIDER_PRESETS,
   parseModelsDevModel,
   inferProtocolForModel,
-  supportsImages,
   supportsReasoning,
   type ProviderPreset,
   type ModelsDevApiResponse,
@@ -28,7 +26,6 @@ export {
 export interface ModelFilter {
   provider?: ProviderId;
   reasoning?: boolean;
-  image?: boolean;
   status?: 'alpha' | 'beta' | 'deprecated';
 }
 
@@ -44,7 +41,6 @@ export function filterModels(
   return models.filter((m) => {
     if (filter.provider && m.provider !== filter.provider) return false;
     if (filter.reasoning !== undefined && m.reasoning !== filter.reasoning) return false;
-    if (filter.image !== undefined && supportsImages(m) !== filter.image) return false;
     if (filter.status !== undefined && m.status !== filter.status) return false;
     return true;
   });

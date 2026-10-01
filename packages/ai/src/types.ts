@@ -45,16 +45,6 @@ export interface TextContent {
   textSignature?: string;
 }
 
-export type ImageMimeType = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp';
-
-export interface ImageContent {
-  type: 'image';
-  data: string;
-  mimeType: ImageMimeType;
-}
-
-export type UserContent = TextContent | ImageContent;
-
 export interface ThinkingContent {
   type: 'thinking';
   thinking: string;
@@ -81,7 +71,7 @@ export interface SystemMessage {
 
 export interface UserMessage {
   role: 'user';
-  content: string | readonly (TextContent | ImageContent)[];
+  content: string | readonly TextContent[];
 }
 
 export interface ToolResultContent {
@@ -89,7 +79,6 @@ export interface ToolResultContent {
   toolCallId: string;
   toolName: string;
   output: JsonValue;
-  images?: readonly ImageContent[];
   isError?: boolean;
 }
 
@@ -183,7 +172,7 @@ export interface Model {
    */
   thinkingLevelMap?: Partial<Record<ReasoningEffort, string | number | null>>;
   /** Input modalities supported by this model. */
-  input: readonly ('text' | 'image')[];
+  input?: readonly ('text')[];
   /** Context window in tokens. */
   contextWindow: number;
   /** Max input tokens when different from context window. */

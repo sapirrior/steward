@@ -63,14 +63,6 @@ export async function openAIResponsesProtocol(
         for (const b of msg.content) {
           if (b.type === 'text') {
             contentParts.push({ type: 'input_text', text: sanitizeSurrogates(b.text) });
-          } else if (b.type === 'image') {
-            if (!b.data || !b.mimeType) {
-              throw new AIError('Invalid image content: missing base64 data or mimeType', { code: 'invalid-request' });
-            }
-            contentParts.push({
-              type: 'input_image',
-              image_url: `data:${b.mimeType};base64,${b.data}`,
-            });
           }
         }
         inputItems.push({
@@ -114,23 +106,6 @@ export async function openAIResponsesProtocol(
           call_id: res.toolCallId,
           output: sanitizeSurrogates(outStr),
         });
-        if (res.images && res.images.length > 0) {
-          const imgParts: unknown[] = [];
-          for (const img of res.images) {
-            if (!img.data || !img.mimeType) {
-              throw new AIError('Invalid image content: missing base64 data or mimeType', { code: 'invalid-request' });
-            }
-            imgParts.push({
-              type: 'input_image',
-              image_url: `data:${img.mimeType};base64,${img.data}`,
-            });
-          }
-          inputItems.push({
-            type: 'message',
-            role: 'user',
-            content: imgParts,
-          });
-        }
       }
     }
   }

@@ -139,10 +139,8 @@ export function parseModelsDevModel(
   if (raw.tool_call !== true) return undefined;
 
   // 3. Filter modalities: must support text
-  const inputModalities = (raw.modalities?.input ?? ['text']).filter(
-    (m): m is 'text' | 'image' => m === 'text' || m === 'image',
-  );
-  if (!inputModalities.includes('text')) {
+  const rawModalities = raw.modalities?.input ?? ['text'];
+  if (!rawModalities.includes('text')) {
     return undefined;
   }
 
@@ -183,7 +181,7 @@ export function parseModelsDevModel(
     baseUrl,
     reasoning,
     thinkingLevelMap,
-    input: inputModalities,
+    input: ['text'],
     contextWindow,
     maxInputTokens: raw.limit?.input,
     maxOutputTokens,
@@ -201,11 +199,6 @@ export function parseModelsDevModel(
       : undefined,
     compat: deriveCompat(providerId, raw.id),
   };
-}
-
-/** Check if model supports image inputs */
-export function supportsImages(model: Model): boolean {
-  return Array.isArray(model?.input) ? model.input.includes('image') : false;
 }
 
 /** Check if model supports reasoning */

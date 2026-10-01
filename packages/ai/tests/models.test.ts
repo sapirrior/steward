@@ -7,7 +7,6 @@ import {
 import {
   parseModelsDevModel,
   inferProtocolForModel,
-  supportsImages,
   supportsReasoning,
   filterModels,
   MODELS,
@@ -146,7 +145,6 @@ describe('models/catalog — parseModelsDevModel & inferProtocolForModel', () =>
     expect(item?.protocol).toBe('anthropic-messages');
     expect(item?.contextWindow).toBe(200000);
     expect(item?.cost?.input).toBe(3);
-    expect(supportsImages(item!)).toBe(true);
     expect(supportsReasoning(item!)).toBe(true);
   });
 

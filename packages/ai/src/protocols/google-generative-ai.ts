@@ -84,16 +84,6 @@ export async function googleGenerativeAIProtocol(
         for (const b of msg.content) {
           if (b.type === 'text') {
             parts.push({ text: sanitizeSurrogates(b.text) });
-          } else if (b.type === 'image') {
-            if (!b.data || !b.mimeType) {
-              throw new AIError('Invalid image content: missing base64 data or mimeType', { code: 'invalid-request' });
-            }
-            parts.push({
-              inlineData: {
-                mimeType: b.mimeType,
-                data: b.data,
-              },
-            });
           }
         }
         contents.push({ role: 'user', parts });
@@ -122,6 +112,7 @@ export async function googleGenerativeAIProtocol(
             functionCall: {
               name: block.name,
               args: block.arguments,
+              ...(block.id ? { id: block.id } : {}),
             },
             ...(block.thoughtSignature ? { thoughtSignature: block.thoughtSignature } : {}),
           });
@@ -135,36 +126,17 @@ export async function googleGenerativeAIProtocol(
 
     if (msg.role === 'tool') {
       const parts: unknown[] = [];
-      const imageParts: unknown[] = [];
       for (const res of msg.content) {
         const outStr = typeof res.output === 'string' ? res.output : JSON.stringify(res.output);
         parts.push({
           functionResponse: {
             name: res.toolName,
             response: { result: sanitizeSurrogates(outStr) },
+            ...(res.toolCallId ? { id: res.toolCallId } : {}),
           },
         });
-        if (res.images && res.images.length > 0) {
-          for (const img of res.images) {
-            if (!img.data || !img.mimeType) {
-              throw new AIError('Invalid image content: missing base64 data or mimeType', { code: 'invalid-request' });
-            }
-            imageParts.push({
-              inlineData: {
-                mimeType: img.mimeType,
-                data: img.data,
-              },
-            });
-          }
-        }
       }
       contents.push({ role: 'user', parts });
-      if (imageParts.length > 0) {
-        contents.push({
-          role: 'user',
-          parts: [{ text: 'Images from tool result:' }, ...imageParts],
-        });
-      }
     }
   }
 
@@ -381,7 +353,10 @@ export async function googleGenerativeAIProtocol(
             } else if (part.functionCall && typeof part.functionCall === 'object') {
               const fc = part.functionCall as Record<string, unknown>;
               toolCallIdx++;
-              const toolId = `call_${toolCallIdx}`;
+              const toolId =
+                (typeof fc.id === 'string' && fc.id) ||
+                (typeof fc.callId === 'string' && fc.callId) ||
+                `call_${toolCallIdx}`;
               const fnName = typeof fc.name === 'string' ? fc.name : '';
               const fnArgs = (typeof fc.args === 'object' && fc.args !== null ? fc.args : {}) as Record<string, unknown>;
               const toolCall: ToolCallContent = {

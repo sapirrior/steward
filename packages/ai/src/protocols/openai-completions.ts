@@ -64,14 +64,6 @@ export async function openAICompletionsProtocol(
         for (const b of msg.content) {
           if (b.type === 'text') {
             parts.push({ type: 'text', text: sanitizeSurrogates(b.text) });
-          } else if (b.type === 'image') {
-            if (!b.data || !b.mimeType) {
-              throw new AIError('Invalid image content: missing base64 data or mimeType', { code: 'invalid-request' });
-            }
-            parts.push({
-              type: 'image_url',
-              image_url: { url: `data:${b.mimeType};base64,${b.data}` },
-            });
           }
         }
         apiMessages.push({ role: 'user', content: parts });
@@ -113,33 +105,12 @@ export async function openAICompletionsProtocol(
     }
 
     if (msg.role === 'tool') {
-      const syntheticToolImages: unknown[] = [];
       for (const res of msg.content) {
         const outStr = typeof res.output === 'string' ? res.output : JSON.stringify(res.output);
         apiMessages.push({
           role: 'tool',
           tool_call_id: res.toolCallId,
           content: sanitizeSurrogates(outStr),
-        });
-        if (res.images && res.images.length > 0) {
-          for (const img of res.images) {
-            if (!img.data || !img.mimeType) {
-              throw new AIError('Invalid image content: missing base64 data or mimeType', { code: 'invalid-request' });
-            }
-            syntheticToolImages.push({
-              type: 'image_url',
-              image_url: { url: `data:${img.mimeType};base64,${img.data}` },
-            });
-          }
-        }
-      }
-      if (syntheticToolImages.length > 0) {
-        apiMessages.push({
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Images from tool result:' },
-            ...syntheticToolImages,
-          ],
         });
       }
       continue;
