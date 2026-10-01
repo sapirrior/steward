@@ -61,7 +61,7 @@ export type ModelsDevApiResponse = Record<string, ModelsDevRawProvider>;
  * Infer wire protocol for a model based on provider and model ID conventions.
  */
 export function inferProtocolForModel(providerId: ProviderId, modelId: string): ProtocolId {
-  if (providerId === 'anthropic' || providerId === 'openrouter') return 'anthropic-messages';
+  if (providerId === 'anthropic') return 'anthropic-messages';
   if (providerId === 'google') return 'google-generative-ai';
   if (providerId === 'openai') return 'openai-responses';
   return 'openai-completions';

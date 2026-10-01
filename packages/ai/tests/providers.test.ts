@@ -33,7 +33,7 @@ describe('providers/index — builtinProviders', () => {
     expect(google.streams['google-generative-ai']).toBeDefined();
 
     const openrouter = openRouterProvider();
-    expect(openrouter.streams['anthropic-messages']).toBeDefined();
+    expect(openrouter.streams['openai-completions']).toBeDefined();
   });
 
   it('openAICompatibleProvider supports keyless resolution for local models', async () => {

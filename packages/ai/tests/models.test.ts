@@ -151,7 +151,8 @@ describe('models/catalog — parseModelsDevModel & inferProtocolForModel', () =>
   it('infers correct protocol for known models', () => {
     expect(inferProtocolForModel('anthropic', 'claude-sonnet-4-5')).toBe('anthropic-messages');
     expect(inferProtocolForModel('openai', 'gpt-5.4')).toBe('openai-responses');
-    expect(inferProtocolForModel('openrouter', 'meta-llama-3')).toBe('anthropic-messages');
+    expect(inferProtocolForModel('openrouter', 'anthropic/claude-sonnet-4.5')).toBe('openai-completions');
+    expect(inferProtocolForModel('openrouter', 'meta-llama-3')).toBe('openai-completions');
   });
 
   it('static MODELS catalog is populated offline with valid context windows', () => {

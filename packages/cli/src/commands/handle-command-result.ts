@@ -1,7 +1,6 @@
 import type { CommandResult } from './types.js';
 import { listSessions, loadSession } from '@steward/agent';
 import { formatSlashCommandOutput, formatUserMessage } from '../ui/utils/message-formatter.js';
-import { listThemes } from '../theme/index.js';
 
 export interface SlashCommandHandlerCtx {
   engine: {
@@ -27,7 +26,6 @@ export interface SlashCommandHandlerCtx {
   modals: {
     openRewindMenu(): void;
     openModelPicker(models: any[]): void;
-    openThemePicker(themes: any[]): void;
     openEffortPicker(): void;
     switchToSession(s: any): void;
     openSessionMenu(sessions: any[]): void;
@@ -69,16 +67,6 @@ export async function handleSlashCommandResult(
   if (cmdResult.data?.showModelPicker) {
     ctx.modals.openModelPicker(cmdResult.data.models ?? []);
     return true;
-  }
-
-  if (cmdResult.data?.showThemePicker) {
-    ctx.modals.openThemePicker(cmdResult.data.themes ?? listThemes());
-    return true;
-  }
-
-  if (cmdResult.data?.themeSwitched) {
-    for (const comp of ctx.engine.components) comp.markDirty?.();
-    ctx.engine.requestFrame(true);
   }
 
   if (cmdResult.data?.modeSwitched && cmdResult.data?.selectedMode) {

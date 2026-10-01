@@ -6,14 +6,12 @@ import PromptInput from '../../src/ui/components/PromptInput.js';
 import StreamingView from '../../src/ui/components/StreamingView.js';
 import ShortcutsMenu from '../../src/ui/components/docks/ShortcutsMenu.js';
 import ModelPicker from '../../src/ui/components/docks/ModelPicker.js';
-import ThemePicker from '../../src/ui/components/docks/ThemePicker.js';
 import SessionMenu from '../../src/ui/components/docks/SessionMenu.js';
 import EffortPicker from '../../src/ui/components/docks/EffortPicker.js';
 import RewindMenu from '../../src/ui/components/docks/RewindMenu.js';
 import BashPermissionDock from '../../src/ui/components/docks/BashPermissionDock.js';
 import FilePermissionDock from '../../src/ui/components/docks/FilePermissionDock.js';
 import TrustGate from '../../src/ui/components/TrustGate.js';
-import { listThemes } from '../../src/theme/index.js';
 import {
   formatAssistantMessage,
   formatToolStatus,
@@ -437,50 +435,6 @@ describe('TUI Engine Headless Golden Snapshots', () => {
 
     engine.cleanupSync();
     assertGoldenMatch('dock-model-picker', result.rawAnsi);
-  });
-
-  it('golden: dock-theme-picker (ThemePicker dock open at 80 cols)', () => {
-    const engine = new TerminalEngine();
-    const themePicker = new ThemePicker({
-      themes: listThemes(),
-      currentTheme: 'dark',
-      onSelect: () => {},
-      onCancel: () => {},
-    });
-
-    engine.mount(themePicker);
-
-    const result = captureHeadlessRender(
-      (renderer) => {
-        return renderer.render(engine.tree, 0, true);
-      },
-      { cols: 80, rows: 24 },
-    );
-
-    engine.cleanupSync();
-    assertGoldenMatch('dock-theme-picker', result.rawAnsi);
-  });
-
-  it('golden: dock-theme-picker-120 (ThemePicker dock open at 120 cols)', () => {
-    const engine = new TerminalEngine();
-    const themePicker = new ThemePicker({
-      themes: listThemes(),
-      currentTheme: 'dark',
-      onSelect: () => {},
-      onCancel: () => {},
-    });
-
-    engine.mount(themePicker);
-
-    const result = captureHeadlessRender(
-      (renderer) => {
-        return renderer.render(engine.tree, 0, true);
-      },
-      { cols: 120, rows: 24 },
-    );
-
-    engine.cleanupSync();
-    assertGoldenMatch('dock-theme-picker-120', result.rawAnsi);
   });
 
   it('golden: dock-session-menu (SessionMenu dock open)', () => {

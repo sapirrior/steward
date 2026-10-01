@@ -1,24 +1,0 @@
-[?2026h[H[J────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Select Theme                                                                                     Current: Dark (Default)
-> Type to filter themes…
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-> Dark (Default) (active)
-  ● ● ● ● ● ●  Default dark theme with terracotta and purple accents
-  Light
-  ● ● ● ● ● ●  Clean light palette optimized for light backgrounds
-  Dark Daltonized
-  ● ● ● ● ● ●  Color-blind friendly dark theme adjusted for deuteranopia
-  Light Daltonized
-  ● ● ● ● ● ●  Color-blind friendly light theme adjusted for deuteranopia
-↑/↓ navigate · Enter select · Esc cancel  (8 available)
-
-
-
-
-
-
-
-
-
-
-[?25l[?2026l

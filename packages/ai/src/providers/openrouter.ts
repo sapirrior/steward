@@ -3,7 +3,7 @@
  */
 
 import type { Provider } from '../client.js';
-import { anthropicMessagesProtocol } from '../protocols/anthropic-messages.js';
+import { openAICompletionsProtocol } from '../protocols/openai-completions.js';
 
 export function openRouterProvider(): Provider {
   return {
@@ -14,7 +14,7 @@ export function openRouterProvider(): Provider {
     envVars: ['OPENROUTER_API_KEY'],
     authScheme: 'bearer',
     streams: {
-      'anthropic-messages': anthropicMessagesProtocol,
+      'openai-completions': openAICompletionsProtocol,
     },
   };
 }

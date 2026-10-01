@@ -50,18 +50,20 @@ export async function anthropicMessagesProtocol(
     }
 
     if (msg.role === 'user') {
+      const blocks: unknown[] = [];
       if (typeof msg.content === 'string') {
-        apiMessages.push({
-          role: 'user',
-          content: [{ type: 'text', text: sanitizeSurrogates(msg.content) }],
-        });
+        blocks.push({ type: 'text', text: sanitizeSurrogates(msg.content) });
       } else {
-        const blocks: unknown[] = [];
         for (const b of msg.content) {
           if (b.type === 'text') {
             blocks.push({ type: 'text', text: sanitizeSurrogates(b.text) });
           }
         }
+      }
+      const last = apiMessages[apiMessages.length - 1];
+      if (last && last.role === 'user') {
+        last.content.push(...blocks);
+      } else {
         apiMessages.push({ role: 'user', content: blocks });
       }
       continue;
@@ -87,7 +89,12 @@ export async function anthropicMessagesProtocol(
           });
         }
       }
-      apiMessages.push({ role: 'assistant', content: blocks });
+      const last = apiMessages[apiMessages.length - 1];
+      if (last && last.role === 'assistant') {
+        last.content.push(...blocks);
+      } else {
+        apiMessages.push({ role: 'assistant', content: blocks });
+      }
       continue;
     }
 
@@ -102,7 +109,12 @@ export async function anthropicMessagesProtocol(
           is_error: res.isError,
         });
       }
-      apiMessages.push({ role: 'user', content: toolResults });
+      const last = apiMessages[apiMessages.length - 1];
+      if (last && last.role === 'user') {
+        last.content.push(...toolResults);
+      } else {
+        apiMessages.push({ role: 'user', content: toolResults });
+      }
       continue;
     }
   }
@@ -179,8 +191,21 @@ export async function anthropicMessagesProtocol(
   };
 
   if (auth.apiKey) {
-    if (auth.scheme === 'bearer') {
+    const isOAuth =
+      auth.scheme === 'bearer' ||
+      auth.apiKey.startsWith('sk-ant-sso') ||
+      auth.apiKey.startsWith('sk-ant-oauth') ||
+      model.provider === ('github-copilot' as any);
+
+    if (isOAuth) {
       headers['Authorization'] = `Bearer ${auth.apiKey}`;
+      const existingBeta = headers['anthropic-beta'] ? `${headers['anthropic-beta']}, ` : '';
+      if (!existingBeta.includes('oauth-2025-04-20')) {
+        headers['anthropic-beta'] = `${existingBeta}claude-code-20250219, oauth-2025-04-20`;
+      }
+      headers['user-agent'] = headers['user-agent'] || 'claude-cli/0.2.29';
+      headers['x-app'] = headers['x-app'] || 'cli';
+      headers['anthropic-dangerous-direct-browser-access'] = 'true';
     } else {
       headers['x-api-key'] = auth.apiKey;
     }

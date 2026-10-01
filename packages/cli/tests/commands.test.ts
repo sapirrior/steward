@@ -7,7 +7,6 @@ import { initCommand } from '../src/commands/init/index.js';
 import { copyCommand } from '../src/commands/copy/index.js';
 import { exportCommand } from '../src/commands/export/index.js';
 import { usageCommand } from '../src/commands/usage/index.js';
-import { compileHooksConfig } from '@steward/agent';
 
 describe('Slash Commands: /init, /copy, /usage, /export', () => {
   let tempDir: string;
@@ -23,7 +22,7 @@ describe('Slash Commands: /init, /copy, /usage, /export', () => {
   });
 
   describe('/init command', () => {
-    it('should scaffold AGENTS.md, .steward/hooks.json, and .agents/skills/ in empty directory', async () => {
+    it('should scaffold AGENTS.md and .agents/skills/ in empty directory', async () => {
       const result = await initCommand.execute([], {
         cwd: tempDir,
         session: {} as any,
@@ -32,20 +31,11 @@ describe('Slash Commands: /init, /copy, /usage, /export', () => {
       expect(result.handled).toBe(true);
       expect(result.message).toContain('Project initialized successfully!');
       expect(result.message).toContain('AGENTS.md');
-      expect(result.message).toContain('.steward/hooks.json');
       expect(result.message).toContain('.agents/skills/');
 
       // Verify files on disk
       expect(existsSync(join(tempDir, 'AGENTS.md'))).toBe(true);
-      expect(existsSync(join(tempDir, '.steward', 'hooks.json'))).toBe(true);
       expect(existsSync(join(tempDir, '.agents', 'skills'))).toBe(true);
-
-      // Verify generated hooks.json passes strict schema validation
-      const hooksRaw = JSON.parse(readFileSync(join(tempDir, '.steward', 'hooks.json'), 'utf-8'));
-      const { hooks, error } = compileHooksConfig(hooksRaw, 'project');
-      expect(error).toBeUndefined();
-      expect(hooks.length).toBeGreaterThan(0);
-      expect(hooks.every((h) => h.enabled === false)).toBe(true);
     });
 
     it('should detect Node package.json scripts when generating AGENTS.md', async () => {
@@ -65,7 +55,7 @@ describe('Slash Commands: /init, /copy, /usage, /export', () => {
       expect(agentsMd).toContain('npm run build');
     });
 
-    it('should not overwrite existing AGENTS.md or hooks.json on subsequent runs', async () => {
+    it('should not overwrite existing AGENTS.md on subsequent runs', async () => {
       writeFileSync(join(tempDir, 'AGENTS.md'), '# Existing Custom Guidelines');
 
       const result = await initCommand.execute([], {
@@ -137,7 +127,7 @@ describe('Slash Commands: /init, /copy, /usage, /export', () => {
         session: {
           session: { turns: [], createdAt: new Date().toISOString() },
           getModel: () => ({ provider: 'gemini', modelId: 'gemini-2.5-flash', effort: 'medium' }),
-          getUsage: () => ({ inputTokens: 0, outputTokens: 0, totalTokens: 0 }),
+          getUsage: () => ({ input: 0, output: 0, total: 0 }),
         } as any,
       });
 
@@ -165,12 +155,12 @@ describe('Slash Commands: /init, /copy, /usage, /export', () => {
           },
           getModel: () => ({ provider: 'anthropic', modelId: 'claude-3-7-sonnet', effort: 'high' }),
           getUsage: () => ({
-            inputTokens: 15420,
-            outputTokens: 2310,
-            totalTokens: 17730,
-            reasoningTokens: 1200,
-            cacheReadTokens: 10500,
-            cacheWriteTokens: 1200,
+            input: 15420,
+            output: 2310,
+            total: 17730,
+            reasoning: 1200,
+            cacheRead: 10500,
+            cacheWrite: 1200,
           }),
         } as any,
       });

@@ -77,15 +77,20 @@ export async function googleGenerativeAIProtocol(
     }
 
     if (msg.role === 'user') {
+      const parts: unknown[] = [];
       if (typeof msg.content === 'string') {
-        contents.push({ role: 'user', parts: [{ text: sanitizeSurrogates(msg.content) }] });
+        parts.push({ text: sanitizeSurrogates(msg.content) });
       } else {
-        const parts: unknown[] = [];
         for (const b of msg.content) {
           if (b.type === 'text') {
             parts.push({ text: sanitizeSurrogates(b.text) });
           }
         }
+      }
+      const last = contents[contents.length - 1] as { role: string; parts: unknown[] } | undefined;
+      if (last && last.role === 'user') {
+        last.parts.push(...parts);
+      } else {
         contents.push({ role: 'user', parts });
       }
       continue;
@@ -119,7 +124,12 @@ export async function googleGenerativeAIProtocol(
         }
       }
       if (parts.length > 0) {
-        contents.push({ role: 'model', parts });
+        const last = contents[contents.length - 1] as { role: string; parts: unknown[] } | undefined;
+        if (last && last.role === 'model') {
+          last.parts.push(...parts);
+        } else {
+          contents.push({ role: 'model', parts });
+        }
       }
       continue;
     }
@@ -136,7 +146,12 @@ export async function googleGenerativeAIProtocol(
           },
         });
       }
-      contents.push({ role: 'user', parts });
+      const last = contents[contents.length - 1] as { role: string; parts: unknown[] } | undefined;
+      if (last && last.role === 'user') {
+        last.parts.push(...parts);
+      } else {
+        contents.push({ role: 'user', parts });
+      }
     }
   }
 

@@ -1,22 +1,14 @@
 import { TerminalEngine } from 'stitchable';
 import {
   AgentSession,
-  listSessions,
-  loadSession,
   saveSettings,
-  saveThemeSelection,
   executeRewind,
   recoverPendingCheckpoint,
-  cycleMode,
-  saveModeSelection,
   type SessionData,
   type FilePermissionRequest,
 } from '@steward/agent';
-import { setActiveTheme, getActiveThemeName, listThemes } from '../theme/index.js';
-import type { ThemeMeta } from '../theme/colors.js';
 import type { Model, ProviderId } from '@steward/ai';
 import ModelPicker from './components/docks/ModelPicker.js';
-import ThemePicker from './components/docks/ThemePicker.js';
 import SessionMenu from './components/docks/SessionMenu.js';
 import ShortcutsMenu from './components/docks/ShortcutsMenu.js';
 import EffortPicker from './components/docks/EffortPicker.js';
@@ -48,7 +40,6 @@ export interface ModalControllerDeps {
 
 type AnyModal =
   | ModelPicker
-  | ThemePicker
   | SessionMenu
   | ShortcutsMenu
   | EffortPicker
@@ -141,36 +132,6 @@ export class ModalController {
           formatSystemMessage(`Active model switched to ${selected.provider}/${selected.modelId}`),
           { tag: 'system' },
         );
-        this.closeModal();
-      },
-      onCancel: () => this.closeModal(),
-    });
-
-    this.activeModal = picker;
-    engine.mount(picker);
-    engine.mount(statusBar);
-  }
-
-  public openThemePicker(themes: ThemeMeta[]): void {
-    const { engine, promptInput, statusBar, header, streamingView } = this.deps;
-    if (this.activeModal) this.closeModal();
-    engine.unmount(promptInput);
-    engine.unmount(statusBar);
-
-    const currentTheme = getActiveThemeName();
-    const session = this.deps.getSession();
-    const picker = new ThemePicker({
-      themes,
-      currentTheme,
-      onSelect: (selected) => {
-        setActiveTheme(selected.name);
-        saveThemeSelection(selected.name);
-        renderTranscript(engine, session.session, header);
-        engine.mount(streamingView);
-        engine.mount(promptInput, { keepCursorVisible: true });
-        engine.mount(statusBar);
-        engine.requestFrame(true);
-        engine.commit(formatSystemMessage(`Theme switched to ${selected.label}.`), { tag: 'system' });
         this.closeModal();
       },
       onCancel: () => this.closeModal(),

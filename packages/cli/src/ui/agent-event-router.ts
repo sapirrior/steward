@@ -111,7 +111,11 @@ export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventL
       }
       case 'turn-complete': {
         streamingView.setActiveTool(null);
-        const finalText = (state.accumulatedText || event.summary.text || '').trim();
+        const finalText = (
+          state.accumulatedText ||
+          (event.summary.toolCalls.length === 0 ? event.summary.text : '') ||
+          ''
+        ).trim();
         if (finalText) {
           engine.commit(formatAssistantMessage(finalText), {
             tag: 'assistant-message',

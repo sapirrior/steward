@@ -2932,7 +2932,7 @@ export const MODELS: readonly Model[] = [
     "id": "~anthropic/claude-fable-latest",
     "name": "Claude Fable Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -2961,7 +2961,7 @@ export const MODELS: readonly Model[] = [
     "id": "~anthropic/claude-haiku-latest",
     "name": "Claude Haiku Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -2983,7 +2983,7 @@ export const MODELS: readonly Model[] = [
     "id": "~anthropic/claude-opus-latest",
     "name": "Claude Opus Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3012,7 +3012,7 @@ export const MODELS: readonly Model[] = [
     "id": "~anthropic/claude-sonnet-latest",
     "name": "Claude Sonnet Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3041,7 +3041,7 @@ export const MODELS: readonly Model[] = [
     "id": "~deepseek/deepseek-flash-latest",
     "name": "DeepSeek Flash Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3069,7 +3069,7 @@ export const MODELS: readonly Model[] = [
     "id": "~deepseek/deepseek-pro-latest",
     "name": "DeepSeek Pro Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3096,7 +3096,7 @@ export const MODELS: readonly Model[] = [
     "id": "~deepseek/deepseek-v4-flash-latest",
     "name": "DeepSeek V4 Flash Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3123,7 +3123,7 @@ export const MODELS: readonly Model[] = [
     "id": "~google/gemini-flash-latest",
     "name": "Gemini Flash Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3152,7 +3152,7 @@ export const MODELS: readonly Model[] = [
     "id": "~google/gemini-pro-latest",
     "name": "Gemini Pro Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3181,7 +3181,7 @@ export const MODELS: readonly Model[] = [
     "id": "~moonshotai/kimi-latest",
     "name": "Kimi Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3209,7 +3209,7 @@ export const MODELS: readonly Model[] = [
     "id": "~openai/gpt-astra-latest",
     "name": "GPT Astra Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3238,7 +3238,7 @@ export const MODELS: readonly Model[] = [
     "id": "~openai/gpt-luna-latest",
     "name": "GPT Luna Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3267,7 +3267,7 @@ export const MODELS: readonly Model[] = [
     "id": "~openai/gpt-mini-latest",
     "name": "GPT Mini Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3295,7 +3295,7 @@ export const MODELS: readonly Model[] = [
     "id": "~openai/gpt-sol-latest",
     "name": "GPT Sol Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3324,7 +3324,7 @@ export const MODELS: readonly Model[] = [
     "id": "~openai/gpt-terra-latest",
     "name": "GPT Terra Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3353,7 +3353,7 @@ export const MODELS: readonly Model[] = [
     "id": "~x-ai/grok-latest",
     "name": "Grok Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3381,7 +3381,7 @@ export const MODELS: readonly Model[] = [
     "id": "~z-ai/glm-flash-latest",
     "name": "GLM Flash Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3409,7 +3409,7 @@ export const MODELS: readonly Model[] = [
     "id": "~z-ai/glm-latest",
     "name": "GLM Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3436,7 +3436,7 @@ export const MODELS: readonly Model[] = [
     "id": "aion-labs/aion-2.0",
     "name": "Aion-2.0",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -3456,7 +3456,7 @@ export const MODELS: readonly Model[] = [
     "id": "aion-labs/aion-3.0",
     "name": "Aion-3.0",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -3476,7 +3476,7 @@ export const MODELS: readonly Model[] = [
     "id": "aion-labs/aion-3.0-mini",
     "name": "Aion-3.0-Mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -3496,7 +3496,7 @@ export const MODELS: readonly Model[] = [
     "id": "aion-labs/aion-3.5",
     "name": "Aion 3.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3523,7 +3523,7 @@ export const MODELS: readonly Model[] = [
     "id": "aion-labs/aion-3.5-mini",
     "name": "Aion 3.5 Mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3550,7 +3550,7 @@ export const MODELS: readonly Model[] = [
     "id": "amazon/nova-2-lite-v1",
     "name": "Nova 2 Lite",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -3570,7 +3570,7 @@ export const MODELS: readonly Model[] = [
     "id": "amazon/nova-lite-v1",
     "name": "Nova Lite 1.0",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -3590,7 +3590,7 @@ export const MODELS: readonly Model[] = [
     "id": "amazon/nova-micro-v1",
     "name": "Nova Micro 1.0",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -3609,7 +3609,7 @@ export const MODELS: readonly Model[] = [
     "id": "amazon/nova-premier-v1",
     "name": "Nova Premier 1.0",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -3630,7 +3630,7 @@ export const MODELS: readonly Model[] = [
     "id": "amazon/nova-pro-v1",
     "name": "Nova Pro 1.0",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -3650,7 +3650,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-fable-5",
     "name": "Claude Fable 5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3679,7 +3679,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-fable-5.1",
     "name": "Claude Fable 5.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3708,7 +3708,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-haiku-4.5",
     "name": "Claude Haiku 4.5 (latest)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -3730,7 +3730,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-opus-4.1",
     "name": "Claude Opus 4.1 (latest)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -3752,7 +3752,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-opus-4.5",
     "name": "Claude Opus 4.5 (latest)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -3774,7 +3774,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-opus-4.6",
     "name": "Claude Opus 4.6",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3803,7 +3803,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-opus-4.7",
     "name": "Claude Opus 4.7",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3832,7 +3832,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-opus-4.8",
     "name": "Claude Opus 4.8",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3861,7 +3861,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-opus-5",
     "name": "Claude Opus 5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3890,7 +3890,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-opus-5.5",
     "name": "Claude Opus 5.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3919,7 +3919,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-sonnet-4",
     "name": "Claude Sonnet 4",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -3941,7 +3941,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-sonnet-4.5",
     "name": "Claude Sonnet 4.5 (latest)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -3963,7 +3963,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-sonnet-4.6",
     "name": "Claude Sonnet 4.6",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -3992,7 +3992,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-sonnet-5",
     "name": "Claude Sonnet 5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4021,7 +4021,7 @@ export const MODELS: readonly Model[] = [
     "id": "anthropic/claude-sonnet-5.5",
     "name": "Claude Sonnet 5.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4050,7 +4050,7 @@ export const MODELS: readonly Model[] = [
     "id": "arcee-ai/trinity-large-thinking",
     "name": "Trinity Large Thinking",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4070,7 +4070,7 @@ export const MODELS: readonly Model[] = [
     "id": "bytedance-seed/seed-1.6",
     "name": "Seed 1.6",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4090,7 +4090,7 @@ export const MODELS: readonly Model[] = [
     "id": "bytedance-seed/seed-1.6-flash",
     "name": "Seed 1.6 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4110,7 +4110,7 @@ export const MODELS: readonly Model[] = [
     "id": "bytedance-seed/seed-2-1-turbo",
     "name": "Seed 2.1 Turbo",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4130,7 +4130,7 @@ export const MODELS: readonly Model[] = [
     "id": "bytedance-seed/seed-2.0-code",
     "name": "Seed 2.0 Code",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4157,7 +4157,7 @@ export const MODELS: readonly Model[] = [
     "id": "bytedance-seed/seed-2.0-lite",
     "name": "Seed 2.0 Lite",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4184,7 +4184,7 @@ export const MODELS: readonly Model[] = [
     "id": "bytedance-seed/seed-2.0-mini",
     "name": "Seed 2.0 Mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4211,7 +4211,7 @@ export const MODELS: readonly Model[] = [
     "id": "cohere/command-a-plus",
     "name": "Command A+",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4232,7 +4232,7 @@ export const MODELS: readonly Model[] = [
     "id": "cohere/command-r-08-2024",
     "name": "Command R",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -4251,7 +4251,7 @@ export const MODELS: readonly Model[] = [
     "id": "cohere/command-r-plus-08-2024",
     "name": "Command R+",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -4270,7 +4270,7 @@ export const MODELS: readonly Model[] = [
     "id": "cohere/north-mini-code:free",
     "name": "North Mini Code (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4289,7 +4289,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-chat",
     "name": "DeepSeek Chat",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -4308,7 +4308,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-chat-v3-0324",
     "name": "DeepSeek V3 0324",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -4328,7 +4328,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-chat-v3.1",
     "name": "DeepSeek V3.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4348,7 +4348,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-r1",
     "name": "DeepSeek-R1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4367,7 +4367,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-r1-0528",
     "name": "R1 0528",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4387,7 +4387,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-v3.1-terminus",
     "name": "DeepSeek V3.1 Terminus",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4407,7 +4407,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-v3.2",
     "name": "DeepSeek V3.2",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4427,7 +4427,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-v3.2-exp",
     "name": "DeepSeek V3.2 Exp",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4446,7 +4446,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-v4-flash",
     "name": "DeepSeek V4 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4474,7 +4474,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-v4-flash-0731",
     "name": "DeepSeek V4 Flash 0731",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4501,7 +4501,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-v4-flash-vision-exp",
     "name": "DeepSeek V4 Flash Vision Exp",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4529,7 +4529,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-v4-pro",
     "name": "DeepSeek V4 Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4557,7 +4557,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-v4-pro-0813",
     "name": "DeepSeek V4 Pro 0813",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4584,7 +4584,7 @@ export const MODELS: readonly Model[] = [
     "id": "deepseek/deepseek-v4.1-flash",
     "name": "DeepSeek V4.1 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4612,7 +4612,7 @@ export const MODELS: readonly Model[] = [
     "id": "dots-studio/dots-3-note-preview:free",
     "name": "Dots3-Note Preview (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4632,7 +4632,7 @@ export const MODELS: readonly Model[] = [
     "id": "fireworks/ember-1",
     "name": "Ember-1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4660,7 +4660,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-2.5-flash",
     "name": "Gemini 2.5 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4682,7 +4682,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-2.5-flash-lite",
     "name": "Gemini 2.5 Flash-Lite",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4704,7 +4704,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-2.5-pro",
     "name": "Gemini 2.5 Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4733,7 +4733,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-2.5-pro-preview",
     "name": "Gemini 2.5 Pro Preview 06-05",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4762,7 +4762,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3-flash-preview",
     "name": "Gemini 3 Flash Preview",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4792,7 +4792,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3-pro-image",
     "name": "Nano Banana Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -4814,7 +4814,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3.1-flash-lite",
     "name": "Gemini 3.1 Flash Lite",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4843,7 +4843,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3.1-flash-lite-preview",
     "name": "Gemini 3.1 Flash Lite Preview",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4872,7 +4872,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3.1-pro-preview",
     "name": "Gemini 3.1 Pro Preview",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4902,7 +4902,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3.1-pro-preview-customtools",
     "name": "Gemini 3.1 Pro Preview Custom Tools",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4932,7 +4932,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3.5-flash",
     "name": "Gemini 3.5 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4961,7 +4961,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3.5-flash-lite",
     "name": "Gemini 3.5 Flash Lite",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -4990,7 +4990,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3.6-flash",
     "name": "Gemini 3.6 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5019,7 +5019,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3.7-flash",
     "name": "Gemini 3.7 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5048,7 +5048,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemini-3.8-flash",
     "name": "Gemini 3.8 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5077,7 +5077,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemma-3-12b-it",
     "name": "Gemma 3 12B IT",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5097,7 +5097,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemma-3-27b-it",
     "name": "Gemma 3 27B IT",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5118,7 +5118,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemma-4-26b-a4b-it",
     "name": "Gemma 4 26B A4B IT",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5139,7 +5139,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemma-4-26b-a4b-it:free",
     "name": "Gemma 4 26B A4B  (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5159,7 +5159,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemma-4-31b-it",
     "name": "Gemma 4 31B IT",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5180,7 +5180,7 @@ export const MODELS: readonly Model[] = [
     "id": "google/gemma-4-31b-it:free",
     "name": "Gemma 4 31B (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5200,7 +5200,7 @@ export const MODELS: readonly Model[] = [
     "id": "ibm-granite/granite-4.2-8b",
     "name": "Granite 4.2 8B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5227,7 +5227,7 @@ export const MODELS: readonly Model[] = [
     "id": "inception/mercury-2",
     "name": "Mercury 2",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5254,7 +5254,7 @@ export const MODELS: readonly Model[] = [
     "id": "inception/mercury-2.5",
     "name": "Mercury 2.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5281,7 +5281,7 @@ export const MODELS: readonly Model[] = [
     "id": "inclusionai/ling-3.0-flash",
     "name": "Ling 3.0 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5301,7 +5301,7 @@ export const MODELS: readonly Model[] = [
     "id": "inclusionai/ling-3.0-flash-fin",
     "name": "Ling 3.0 Flash Fin",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5321,7 +5321,7 @@ export const MODELS: readonly Model[] = [
     "id": "inclusionai/ling-3.0-flash-sante:free",
     "name": "Ling 3.0 Flash Sante (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5340,7 +5340,7 @@ export const MODELS: readonly Model[] = [
     "id": "inclusionai/ling-3.0-flash-vl",
     "name": "Ling 3.0 Flash VL",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5361,7 +5361,7 @@ export const MODELS: readonly Model[] = [
     "id": "kwaipilot/kat-coder-pro-v2.5",
     "name": "KAT-Coder-Pro V2.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5381,7 +5381,7 @@ export const MODELS: readonly Model[] = [
     "id": "liquid/lfm-2.5-2.6b:free",
     "name": "LFM2.5-2.6B (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5400,7 +5400,7 @@ export const MODELS: readonly Model[] = [
     "id": "meituan/longcat-2.0",
     "name": "LongCat 2.0",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5427,7 +5427,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta-llama/llama-3.1-70b-instruct",
     "name": "Llama-3.1-70B-Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5446,7 +5446,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta-llama/llama-3.1-8b-instruct",
     "name": "Llama-3.1-8B-Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5466,7 +5466,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta-llama/llama-3.3-70b-instruct",
     "name": "Llama-3.3-70B-Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5485,7 +5485,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta-llama/llama-4-maverick",
     "name": "Llama 4 Maverick",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5505,7 +5505,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta-llama/llama-4-scout",
     "name": "Llama 4 Scout",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5525,7 +5525,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta/muse-glimmer-30b",
     "name": "Muse Glimmer 30B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5553,7 +5553,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta/muse-spark-1.1",
     "name": "Muse Spark 1.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5581,7 +5581,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta/muse-spark-1.2",
     "name": "Muse Spark 1.2",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5609,7 +5609,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta/muse-spark-1.2-contributor",
     "name": "Muse Spark 1.2 Contributor",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5637,7 +5637,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta/muse-spark-1.3",
     "name": "Muse Spark 1.3",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5665,7 +5665,7 @@ export const MODELS: readonly Model[] = [
     "id": "meta/muse-spark-1.3-contributor",
     "name": "Muse Spark 1.3 Contributor",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -5693,7 +5693,7 @@ export const MODELS: readonly Model[] = [
     "id": "minimax/minimax-m1",
     "name": "MiniMax M1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5712,7 +5712,7 @@ export const MODELS: readonly Model[] = [
     "id": "minimax/minimax-m2",
     "name": "MiniMax-M2",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5732,7 +5732,7 @@ export const MODELS: readonly Model[] = [
     "id": "minimax/minimax-m2.1",
     "name": "MiniMax-M2.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5753,7 +5753,7 @@ export const MODELS: readonly Model[] = [
     "id": "minimax/minimax-m2.5",
     "name": "MiniMax-M2.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5774,7 +5774,7 @@ export const MODELS: readonly Model[] = [
     "id": "minimax/minimax-m2.7",
     "name": "MiniMax-M2.7",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5794,7 +5794,7 @@ export const MODELS: readonly Model[] = [
     "id": "minimax/minimax-m3",
     "name": "MiniMax-M3",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -5815,7 +5815,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/codestral-2508",
     "name": "Codestral 2508",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5835,7 +5835,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/devstral-2512",
     "name": "Devstral 2",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5855,7 +5855,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/ministral-14b-2512",
     "name": "Ministral 3 14B 2512",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5876,7 +5876,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/ministral-3b-2512",
     "name": "Ministral 3 3B 2512",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5897,7 +5897,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/ministral-8b-2512",
     "name": "Ministral 3 8B 2512",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5918,7 +5918,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-large",
     "name": "Mistral Large",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5938,7 +5938,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-large-2407",
     "name": "Mistral Large 2407",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5958,7 +5958,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-large-2512",
     "name": "Mistral Large 3",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -5979,7 +5979,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-medium-3",
     "name": "Mistral Medium 3",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6000,7 +6000,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-medium-3-5",
     "name": "Mistral Medium 3.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6027,7 +6027,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-medium-3.1",
     "name": "Mistral Medium 3.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6048,7 +6048,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-nemo",
     "name": "Mistral Nemo",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6067,7 +6067,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-saba",
     "name": "Saba",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6087,7 +6087,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-small-2603",
     "name": "Mistral Small 4",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6115,7 +6115,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-small-3.1-24b-instruct",
     "name": "Mistral Small 3.1 24B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6135,7 +6135,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mistral-small-3.2-24b-instruct",
     "name": "Mistral Small 3.2 24B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6155,7 +6155,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/mixtral-8x22b-instruct",
     "name": "Mixtral 8x22B Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6175,7 +6175,7 @@ export const MODELS: readonly Model[] = [
     "id": "mistralai/voxtral-small-24b-2507",
     "name": "Voxtral Small 24B 2507",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6195,7 +6195,7 @@ export const MODELS: readonly Model[] = [
     "id": "moonshotai/kimi-k2",
     "name": "Kimi K2 0711",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6214,7 +6214,7 @@ export const MODELS: readonly Model[] = [
     "id": "moonshotai/kimi-k2-0905",
     "name": "Kimi K2 0905",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6233,7 +6233,7 @@ export const MODELS: readonly Model[] = [
     "id": "moonshotai/kimi-k2-thinking",
     "name": "Kimi K2 Thinking",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -6254,7 +6254,7 @@ export const MODELS: readonly Model[] = [
     "id": "moonshotai/kimi-k2.5",
     "name": "Kimi K2.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -6276,7 +6276,7 @@ export const MODELS: readonly Model[] = [
     "id": "moonshotai/kimi-k2.6",
     "name": "Kimi K2.6",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -6298,7 +6298,7 @@ export const MODELS: readonly Model[] = [
     "id": "moonshotai/kimi-k2.7-code",
     "name": "Kimi K2.7 Code",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -6319,7 +6319,7 @@ export const MODELS: readonly Model[] = [
     "id": "moonshotai/kimi-k3",
     "name": "Kimi K3",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6347,7 +6347,7 @@ export const MODELS: readonly Model[] = [
     "id": "nex-agi/nex-n2.5-pro",
     "name": "Nex-N2.5-Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6375,7 +6375,7 @@ export const MODELS: readonly Model[] = [
     "id": "nvidia/nemotron-3-nano-30b-a3b",
     "name": "Nemotron 3 Nano 30B A3B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -6395,7 +6395,7 @@ export const MODELS: readonly Model[] = [
     "id": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
     "name": "Nemotron 3 Nano Omni (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6422,7 +6422,7 @@ export const MODELS: readonly Model[] = [
     "id": "nvidia/nemotron-3-super-120b-a12b",
     "name": "Nemotron 3 Super 120B A12B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6448,7 +6448,7 @@ export const MODELS: readonly Model[] = [
     "id": "nvidia/nemotron-3-super-120b-a12b:free",
     "name": "Nemotron 3 Super (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6474,7 +6474,7 @@ export const MODELS: readonly Model[] = [
     "id": "nvidia/nemotron-3-ultra-550b-a55b",
     "name": "Nemotron 3 Ultra 550B A55B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6501,7 +6501,7 @@ export const MODELS: readonly Model[] = [
     "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "name": "Nemotron 3 Ultra (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6527,7 +6527,7 @@ export const MODELS: readonly Model[] = [
     "id": "nvidia/nemotron-3.5-lightning",
     "name": "Nemotron 3.5 Lightning 30B A3B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -6547,7 +6547,7 @@ export const MODELS: readonly Model[] = [
     "id": "nvidia/nemotron-3.5-lightning:free",
     "name": "Nemotron 3.5 Lightning (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -6566,7 +6566,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-3.5-turbo",
     "name": "GPT-3.5-turbo",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6585,7 +6585,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-3.5-turbo-0613",
     "name": "GPT-3.5 Turbo (older v0613)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6604,7 +6604,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-3.5-turbo-16k",
     "name": "GPT-3.5 Turbo 16k",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6623,7 +6623,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4",
     "name": "GPT-4",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6642,7 +6642,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4-turbo",
     "name": "GPT-4 Turbo",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6662,7 +6662,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4.1",
     "name": "GPT-4.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6683,7 +6683,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4.1-mini",
     "name": "GPT-4.1 mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6704,7 +6704,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4.1-nano",
     "name": "GPT-4.1 nano",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6725,7 +6725,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4o",
     "name": "GPT-4o",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6746,7 +6746,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4o-2024-05-13",
     "name": "GPT-4o (2024-05-13)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6766,7 +6766,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4o-2024-08-06",
     "name": "GPT-4o (2024-08-06)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6787,7 +6787,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4o-2024-11-20",
     "name": "GPT-4o (2024-11-20)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6808,7 +6808,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4o-mini",
     "name": "GPT-4o mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6829,7 +6829,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-4o-mini-2024-07-18",
     "name": "GPT-4o-mini (2024-07-18)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -6850,7 +6850,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5",
     "name": "GPT-5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6879,7 +6879,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5-mini",
     "name": "GPT-5 Mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6908,7 +6908,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5-nano",
     "name": "GPT-5 Nano",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6937,7 +6937,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5-pro",
     "name": "GPT-5 Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6965,7 +6965,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.1",
     "name": "GPT-5.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -6994,7 +6994,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.1-codex",
     "name": "GPT-5.1 Codex",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7023,7 +7023,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.1-codex-max",
     "name": "GPT-5.1 Codex Max",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7052,7 +7052,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.1-codex-mini",
     "name": "GPT-5.1 Codex mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7081,7 +7081,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.2",
     "name": "GPT-5.2",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7110,7 +7110,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.2-chat",
     "name": "GPT-5.2 Chat",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -7131,7 +7131,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.2-codex",
     "name": "GPT-5.2 Codex",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7160,7 +7160,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.2-pro",
     "name": "GPT-5.2 Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7188,7 +7188,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.3-codex",
     "name": "GPT-5.3 Codex",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7217,7 +7217,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.4",
     "name": "GPT-5.4",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7246,7 +7246,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.4-mini",
     "name": "GPT-5.4 mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7275,7 +7275,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.4-nano",
     "name": "GPT-5.4 nano",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7304,7 +7304,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.4-pro",
     "name": "GPT-5.4 Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7332,7 +7332,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.5",
     "name": "GPT-5.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7361,7 +7361,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.5-pro",
     "name": "GPT-5.5 Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7389,7 +7389,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.6-luna",
     "name": "GPT-5.6 Luna",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7419,7 +7419,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.6-luna-pro",
     "name": "GPT-5.6 Luna Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7449,7 +7449,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.6-sol",
     "name": "GPT-5.6 Sol",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7479,7 +7479,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.6-sol-pro",
     "name": "GPT-5.6 Sol Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7509,7 +7509,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.6-terra",
     "name": "GPT-5.6 Terra",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7539,7 +7539,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-5.6-terra-pro",
     "name": "GPT-5.6 Terra Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7569,7 +7569,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-6-astra",
     "name": "GPT-6 Astra",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7599,7 +7599,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-6-astra-pro",
     "name": "GPT-6 Astra Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7628,7 +7628,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-6-luna",
     "name": "GPT-6 Luna",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7658,7 +7658,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-6-luna-pro",
     "name": "GPT-6 Luna Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7687,7 +7687,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-6-sol",
     "name": "GPT-6 Sol",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7717,7 +7717,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-6-sol-pro",
     "name": "GPT-6 Sol Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7746,7 +7746,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-6.1-sol",
     "name": "GPT-6.1 Sol",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7776,7 +7776,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-6.1-sol-pro",
     "name": "GPT-6.1 Sol Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7805,7 +7805,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-audio",
     "name": "GPT Audio",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -7824,7 +7824,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-audio-mini",
     "name": "GPT Audio Mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -7843,7 +7843,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-chat-latest",
     "name": "GPT Chat Latest",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -7864,7 +7864,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-oss-120b",
     "name": "GPT OSS 120B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7890,7 +7890,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-oss-20b",
     "name": "GPT OSS 20B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7917,7 +7917,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/gpt-oss-safeguard-20b",
     "name": "GPT OSS Safeguard 20B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -7944,7 +7944,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/o1",
     "name": "o1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -7965,7 +7965,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/o3",
     "name": "o3",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -7986,7 +7986,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/o3-mini",
     "name": "o3-mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8006,7 +8006,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/o3-mini-high",
     "name": "o3 Mini High",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -8033,7 +8033,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/o3-pro",
     "name": "o3-pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8053,7 +8053,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/o4-mini",
     "name": "o4-mini",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8074,7 +8074,7 @@ export const MODELS: readonly Model[] = [
     "id": "openai/o4-mini-high",
     "name": "o4 Mini High",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -8102,7 +8102,7 @@ export const MODELS: readonly Model[] = [
     "id": "openrouter/auto",
     "name": "Auto Router",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8118,7 +8118,7 @@ export const MODELS: readonly Model[] = [
     "id": "openrouter/free",
     "name": "Free Models Router",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8139,7 +8139,7 @@ export const MODELS: readonly Model[] = [
     "id": "perceptron/perceptron-mk1.5",
     "name": "Perceptron Mk1.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -8166,7 +8166,7 @@ export const MODELS: readonly Model[] = [
     "id": "poolside/laguna-s-2.1",
     "name": "Laguna S 2.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8186,7 +8186,7 @@ export const MODELS: readonly Model[] = [
     "id": "poolside/laguna-s-2.1:free",
     "name": "Laguna S 2.1 (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8205,7 +8205,7 @@ export const MODELS: readonly Model[] = [
     "id": "poolside/laguna-xs-2.1",
     "name": "Laguna XS 2.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8225,7 +8225,7 @@ export const MODELS: readonly Model[] = [
     "id": "poolside/laguna-xs-2.1:free",
     "name": "Laguna XS 2.1 (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8244,7 +8244,7 @@ export const MODELS: readonly Model[] = [
     "id": "prism-ml/ternary-bonsai-2-27b",
     "name": "Ternary Bonsai 2 27B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -8272,7 +8272,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen-2.5-72b-instruct",
     "name": "Qwen2.5 72B Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8291,7 +8291,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen-2.5-7b-instruct",
     "name": "Qwen2.5 7B Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8310,7 +8310,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen-plus",
     "name": "Qwen Plus",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8331,7 +8331,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen-plus-2025-07-28",
     "name": "Qwen Plus 0728",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8350,7 +8350,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-14b",
     "name": "Qwen3 14B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8369,7 +8369,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-235b-a22b",
     "name": "Qwen3 235B-A22B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8388,7 +8388,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-235b-a22b-2507",
     "name": "Qwen3 235B A22B Instruct 2507",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8408,7 +8408,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-235b-a22b-thinking-2507",
     "name": "Qwen3 235B A22B Thinking 2507",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8427,7 +8427,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-30b-a3b",
     "name": "Qwen3 30B A3B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8446,7 +8446,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-30b-a3b-instruct-2507",
     "name": "Qwen3 30B A3B Instruct 2507",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8465,7 +8465,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-30b-a3b-thinking-2507",
     "name": "Qwen3 30B A3B Thinking 2507",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8484,7 +8484,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-32b",
     "name": "Qwen3 32B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8503,7 +8503,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-8b",
     "name": "Qwen3 8B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8522,7 +8522,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-coder",
     "name": "Qwen3 Coder 480B A35B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8542,7 +8542,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-coder-30b-a3b-instruct",
     "name": "Qwen3-Coder 30B-A3B Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8561,7 +8561,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-coder-flash",
     "name": "Qwen3 Coder Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8582,7 +8582,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-coder-next",
     "name": "Qwen3 Coder Next",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8602,7 +8602,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-coder-plus",
     "name": "Qwen3 Coder Plus",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8623,7 +8623,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-max",
     "name": "Qwen3 Max",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8644,7 +8644,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-max-thinking",
     "name": "Qwen3 Max Thinking",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8663,7 +8663,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-next-80b-a3b-instruct",
     "name": "Qwen3-Next 80B-A3B Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8683,7 +8683,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-next-80b-a3b-thinking",
     "name": "Qwen3-Next 80B-A3B (Thinking)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8702,7 +8702,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-vl-235b-a22b-instruct",
     "name": "Qwen3 VL 235B A22B Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8723,7 +8723,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-vl-235b-a22b-thinking",
     "name": "Qwen3 VL 235B A22B Thinking",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8743,7 +8743,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-vl-30b-a3b-instruct",
     "name": "Qwen3 VL 30B A3B Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8763,7 +8763,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-vl-30b-a3b-thinking",
     "name": "Qwen3 VL 30B A3B Thinking",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8783,7 +8783,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-vl-32b-instruct",
     "name": "Qwen3 VL 32B Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8803,7 +8803,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-vl-8b-instruct",
     "name": "Qwen3 VL 8B Instruct",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -8823,7 +8823,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3-vl-8b-thinking",
     "name": "Qwen3 VL 8B Thinking",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8843,7 +8843,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.5-122b-a10b",
     "name": "Qwen3.5 122B-A10B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8863,7 +8863,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.5-27b",
     "name": "Qwen3.5 27B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8883,7 +8883,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.5-35b-a3b",
     "name": "Qwen3.5 35B-A3B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8903,7 +8903,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.5-397b-a17b",
     "name": "Qwen3.5 397B-A17B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8924,7 +8924,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.5-9b",
     "name": "Qwen3.5 9B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8944,7 +8944,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.5-flash-02-23",
     "name": "Qwen3.5-Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8964,7 +8964,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.5-plus-02-15",
     "name": "Qwen3.5 Plus 2026-02-15",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -8984,7 +8984,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.5-plus-20260420",
     "name": "Qwen3.5 Plus 2026-04-20",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -9005,7 +9005,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.6-27b",
     "name": "Qwen3.6 27B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -9025,7 +9025,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.6-35b-a3b",
     "name": "Qwen3.6 35B-A3B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -9046,7 +9046,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.6-flash",
     "name": "Qwen3.6 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -9067,7 +9067,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.6-max-preview",
     "name": "Qwen3.6 Max Preview",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -9087,7 +9087,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.6-plus",
     "name": "Qwen3.6 Plus",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -9108,7 +9108,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.7-flash",
     "name": "Qwen3.7 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9138,7 +9138,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.7-max",
     "name": "Qwen3.7 Max",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -9159,7 +9159,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.7-plus",
     "name": "Qwen3.7 Plus",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -9181,7 +9181,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.8-2.4t-a95b",
     "name": "Qwen3.8 2.4T A95B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9208,7 +9208,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.8-27b",
     "name": "Qwen3.8 27B",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9236,7 +9236,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.8-27b:free",
     "name": "Qwen3.8 27B (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9263,7 +9263,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.8-flash",
     "name": "Qwen3.8 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9292,7 +9292,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.8-max-0902",
     "name": "Qwen3.8 Max 0902",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9321,7 +9321,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.8-max-prime",
     "name": "Qwen 3.8 Max Prime",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9349,7 +9349,7 @@ export const MODELS: readonly Model[] = [
     "id": "qwen/qwen3.8-omni-flash",
     "name": "Qwen3.8 Omni Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9377,7 +9377,7 @@ export const MODELS: readonly Model[] = [
     "id": "rekaai/reka-edge",
     "name": "Reka Edge",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -9397,7 +9397,7 @@ export const MODELS: readonly Model[] = [
     "id": "relace/relace-search",
     "name": "Relace Search",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -9416,7 +9416,7 @@ export const MODELS: readonly Model[] = [
     "id": "sakana/fugu-max",
     "name": "Fugu Max",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9444,7 +9444,7 @@ export const MODELS: readonly Model[] = [
     "id": "sakana/fugu-ultra",
     "name": "Fugu Ultra",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9472,7 +9472,7 @@ export const MODELS: readonly Model[] = [
     "id": "sakana/fugu-ultra-v2",
     "name": "Fugu Ultra v2",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9500,7 +9500,7 @@ export const MODELS: readonly Model[] = [
     "id": "sakana/sakana-namazu",
     "name": "Sakana Namazu",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9528,7 +9528,7 @@ export const MODELS: readonly Model[] = [
     "id": "sao10k/l3.1-euryale-70b",
     "name": "Llama 3.1 Euryale 70B v2.2",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -9547,7 +9547,7 @@ export const MODELS: readonly Model[] = [
     "id": "stealth/space-bunny-alpha",
     "name": "Space Bunny Alpha",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9574,7 +9574,7 @@ export const MODELS: readonly Model[] = [
     "id": "stepfun/step-3.5-flash",
     "name": "Step 3.5 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -9593,7 +9593,7 @@ export const MODELS: readonly Model[] = [
     "id": "stepfun/step-3.7-flash",
     "name": "Step 3.7 Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9622,7 +9622,7 @@ export const MODELS: readonly Model[] = [
     "id": "tencent/hy3",
     "name": "Hy3",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9650,7 +9650,7 @@ export const MODELS: readonly Model[] = [
     "id": "tencent/hy3-preview",
     "name": "Hy3 preview",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9677,7 +9677,7 @@ export const MODELS: readonly Model[] = [
     "id": "tencent/hy4-preview",
     "name": "Hy4 preview",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9704,7 +9704,7 @@ export const MODELS: readonly Model[] = [
     "id": "thinkingmachines/inkling",
     "name": "Inkling",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9732,7 +9732,7 @@ export const MODELS: readonly Model[] = [
     "id": "thinkingmachines/inkling-small",
     "name": "Inkling Small",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9760,7 +9760,7 @@ export const MODELS: readonly Model[] = [
     "id": "thinkingmachines/inkling-small:free",
     "name": "Inkling Small (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9787,7 +9787,7 @@ export const MODELS: readonly Model[] = [
     "id": "thinkingmachines/inkling:free",
     "name": "Inkling (free)",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9814,7 +9814,7 @@ export const MODELS: readonly Model[] = [
     "id": "unbiased/pareto",
     "name": "Pareto",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": false,
     "input": [
@@ -9835,7 +9835,7 @@ export const MODELS: readonly Model[] = [
     "id": "upstage/solar-mini4",
     "name": "Solar Mini 4",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9862,7 +9862,7 @@ export const MODELS: readonly Model[] = [
     "id": "upstage/solar-pro-3",
     "name": "Solar Pro 3",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9889,7 +9889,7 @@ export const MODELS: readonly Model[] = [
     "id": "upstage/solar-pro4",
     "name": "Solar Pro 4",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9916,7 +9916,7 @@ export const MODELS: readonly Model[] = [
     "id": "x-ai/grok-4.20",
     "name": "Grok 4.20",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -9937,7 +9937,7 @@ export const MODELS: readonly Model[] = [
     "id": "x-ai/grok-4.3",
     "name": "Grok 4.3",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9965,7 +9965,7 @@ export const MODELS: readonly Model[] = [
     "id": "x-ai/grok-4.5",
     "name": "Grok 4.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -9993,7 +9993,7 @@ export const MODELS: readonly Model[] = [
     "id": "x-ai/grok-4.6",
     "name": "Grok 4.6",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -10021,7 +10021,7 @@ export const MODELS: readonly Model[] = [
     "id": "x-ai/grok-4.7",
     "name": "Grok 4.7",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -10049,7 +10049,7 @@ export const MODELS: readonly Model[] = [
     "id": "x-ai/grok-build-0.1",
     "name": "Grok Build 0.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10070,7 +10070,7 @@ export const MODELS: readonly Model[] = [
     "id": "xiaomi/mimo-v2.5",
     "name": "MiMo-V2.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10092,7 +10092,7 @@ export const MODELS: readonly Model[] = [
     "id": "xiaomi/mimo-v2.5-pro",
     "name": "MiMo-V2.5-Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10113,7 +10113,7 @@ export const MODELS: readonly Model[] = [
     "id": "xiaomi/mimo-v2.6-flash",
     "name": "MiMo-V2.6-Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10134,7 +10134,7 @@ export const MODELS: readonly Model[] = [
     "id": "xiaomi/mimo-v2.6-pro",
     "name": "MiMo-V2.6-Pro",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10155,7 +10155,7 @@ export const MODELS: readonly Model[] = [
     "id": "xiaomi/mimo-v2.6-pro-ultraspeed",
     "name": "MiMo-V2.6-Pro-UltraSpeed",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10176,7 +10176,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-4.5",
     "name": "GLM-4.5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10196,7 +10196,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-4.5-air",
     "name": "GLM-4.5-Air",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10216,7 +10216,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-4.5v",
     "name": "GLM-4.5V",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10237,7 +10237,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-4.6",
     "name": "GLM-4.6",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10257,7 +10257,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-4.6v",
     "name": "GLM-4.6V",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10278,7 +10278,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-4.7",
     "name": "GLM-4.7",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10299,7 +10299,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-4.7-flash",
     "name": "GLM-4.7-Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10319,7 +10319,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-5",
     "name": "GLM-5",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10340,7 +10340,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-5-turbo",
     "name": "GLM-5-Turbo",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10361,7 +10361,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-5.1",
     "name": "GLM-5.1",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [
@@ -10382,7 +10382,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-5.2",
     "name": "GLM-5.2",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -10410,7 +10410,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-5.3",
     "name": "GLM-5.3",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -10437,7 +10437,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-5.3-flash",
     "name": "GLM-5.3-Flash",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -10465,7 +10465,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-5.3-flashx",
     "name": "GLM 5.3 FlashX",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -10493,7 +10493,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-5.3-prime",
     "name": "GLM 5.3 Prime",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "thinkingLevelMap": {
@@ -10520,7 +10520,7 @@ export const MODELS: readonly Model[] = [
     "id": "z-ai/glm-5v-turbo",
     "name": "GLM-5V-Turbo",
     "provider": "openrouter",
-    "protocol": "anthropic-messages",
+    "protocol": "openai-completions",
     "baseUrl": "https://openrouter.ai/api/v1",
     "reasoning": true,
     "input": [

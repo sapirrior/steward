@@ -28,7 +28,7 @@ function formatDuration(isoDateString?: string): string {
  * Calculates a universally grounded cost estimate based on standard industry token pricing tiers.
  */
 function estimateUniversalCost(
-  usage: { inputTokens: number; outputTokens: number; cacheReadTokens?: number },
+  usage: any,
   modelId: string,
   provider: string,
 ): string {
@@ -51,14 +51,18 @@ function estimateUniversalCost(
   const outputPerMillion = isLightweight ? 0.6 : 15.0;
   const cachePerMillion = isLightweight ? 0.075 : 0.3;
 
-  const baseCost = (usage.inputTokens * inputPerMillion) / 1_000_000;
-  const outputCost = (usage.outputTokens * outputPerMillion) / 1_000_000;
-  const cacheCost = ((usage.cacheReadTokens ?? 0) * cachePerMillion) / 1_000_000;
+  const input = usage?.input ?? usage?.inputTokens ?? 0;
+  const output = usage?.output ?? usage?.outputTokens ?? 0;
+  const cacheRead = usage?.cacheRead ?? usage?.cacheReadTokens ?? 0;
+
+  const baseCost = (input * inputPerMillion) / 1_000_000;
+  const outputCost = (output * outputPerMillion) / 1_000_000;
+  const cacheCost = (cacheRead * cachePerMillion) / 1_000_000;
 
   const total = baseCost + outputCost + cacheCost;
 
   if (total === 0) {
-    return '$0.00 USD [estimated]';
+    return '$0.00 USD';
   }
 
   const formatted = total < 0.005 ? '< $0.01' : `$${total.toFixed(2)}`;

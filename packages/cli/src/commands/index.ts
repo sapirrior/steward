@@ -12,5 +12,5 @@ export * from './resume/index.js';
 export * from './rename/index.js';
 export * from './rewind/index.js';
 export * from './skills/index.js';
-export * from './theme/index.js';
+export * from './mode/index.js';
 export * from './registry.js';

@@ -54,41 +54,11 @@ ${commandsSection}
 }
 
 /**
- * Valid dummy hooks.json template complying with @steward/plugins schema.
- */
-const DUMMY_HOOKS_JSON = JSON.stringify(
-  {
-    version: 1,
-    hooks: {
-      SessionStart: [
-        {
-          name: 'sample-session-start',
-          command: 'echo "Steward session started"',
-          enabled: false,
-          description: 'Runs when a session starts or resumes',
-        },
-      ],
-      BeforeToolUse: [
-        {
-          name: 'sample-tool-guard',
-          command: 'echo "Checking tool call"',
-          matcher: 'bash',
-          enabled: false,
-          description: 'Runs before specific tool executions',
-        },
-      ],
-    },
-  },
-  null,
-  2,
-);
-
-/**
- * /init slash command: scaffolds AGENTS.md, .steward/hooks.json, and .agents/skills/ in the workspace.
+ * /init slash command: scaffolds AGENTS.md and .agents/skills/ in the workspace.
  */
 export const initCommand: SlashCommand = {
   name: 'init',
-  description: 'Initializes project with AGENTS.md, .steward/hooks.json, and .agents/ directory',
+  description: 'Initializes project with AGENTS.md and .agents/skills/ directory',
   usage: '/init',
 
   async execute(_args: string[], context: CommandContext): Promise<CommandResult> {
@@ -106,20 +76,7 @@ export const initCommand: SlashCommand = {
         skipped.push('AGENTS.md (already exists)');
       }
 
-      // 2. .steward/hooks.json
-      const stewardDir = join(cwd, '.steward');
-      if (!existsSync(stewardDir)) {
-        mkdirSync(stewardDir, { recursive: true });
-      }
-      const hooksPath = join(stewardDir, 'hooks.json');
-      if (!existsSync(hooksPath)) {
-        writeFileSync(hooksPath, DUMMY_HOOKS_JSON, 'utf-8');
-        created.push('.steward/hooks.json');
-      } else {
-        skipped.push('.steward/hooks.json (already exists)');
-      }
-
-      // 3. .agents/skills/ directory
+      // 2. .agents/skills/ directory
       const skillsDir = join(cwd, '.agents', 'skills');
       if (!existsSync(skillsDir)) {
         mkdirSync(skillsDir, { recursive: true });

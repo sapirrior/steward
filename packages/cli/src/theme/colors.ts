@@ -1,5 +1,3 @@
-import { bumpThemeVersion } from './style.js';
-
 export interface SyntaxTheme {
   keyword: string;
   string: string;
@@ -61,6 +59,9 @@ export interface ThemeMeta {
   source?: 'built-in' | string;
 }
 
+/**
+ * Canonical default dark theme palette.
+ */
 export const darkTheme: UITheme = {
   text: 'rgb(255,255,255)',
   muted: 'rgb(110,110,110)',
@@ -102,404 +103,40 @@ export const darkTheme: UITheme = {
   },
 };
 
-export const lightTheme: UITheme = {
-  text: 'default',
-  muted: 'rgb(120,120,120)',
-  subtle: 'rgb(175,175,175)',
-  brand: 'rgb(215,119,87)',
-  info: 'rgb(40,100,180)',
-  success: 'rgb(44,122,57)',
-  warning: 'rgb(150,108,30)',
-  error: 'rgb(171,43,63)',
-  permission: 'rgb(87,105,247)',
-  selected: 'rgb(87,105,247)',
-  current: 'rgb(150,108,30)',
-  promptBorder: 'rgb(153,153,153)',
-  rule: 'rgb(120,130,160)',
-  userChevron: 'rgb(160,160,160)',
+export const defaultTheme = darkTheme;
 
-  userBg: 'rgb(240,240,240)',
-  diffAddBg: 'rgb(220,245,220)',
-  diffDelBg: 'rgb(255,230,230)',
-
-  diffAddFg: 'rgb(30,120,40)',
-  diffDelFg: 'rgb(180,40,40)',
-
-  syntax: {
-    keyword: '#d73a49',
-    string: '#032f62',
-    number: '#005cc5',
-    literal: '#005cc5',
-    comment: '#6a737d',
-    function: '#6f42c1',
-    type: '#e36209',
-    variable: '#e36209',
-    tag: '#22863a',
-    attr: '#005cc5',
-    meta: '#005cc5',
-    addition: '#22863a',
-    deletion: '#b31d28',
-    default: 'default',
-  },
-};
-
-export const draculaTheme: UITheme = {
-  text: 'rgb(248,248,242)',
-  muted: 'rgb(98,114,164)',
-  subtle: 'rgb(68,71,90)',
-  brand: 'rgb(255,184,108)',
-  info: 'rgb(139,233,253)',
-  success: 'rgb(80,250,123)',
-  warning: 'rgb(255,184,108)',
-  error: 'rgb(255,85,85)',
-  permission: 'rgb(189,147,249)',
-  selected: 'rgb(189,147,249)',
-  current: 'rgb(255,184,108)',
-  promptBorder: 'rgb(98,114,164)',
-  rule: 'rgb(189,147,249)',
-  userChevron: 'rgb(98,114,164)',
-
-  userBg: 'rgb(68,71,90)',
-  diffAddBg: 'rgb(12,38,18)',
-  diffDelBg: 'rgb(45,15,15)',
-
-  diffAddFg: 'rgb(80,250,123)',
-  diffDelFg: 'rgb(255,85,85)',
-
-  syntax: {
-    keyword: 'rgb(255,121,198)',
-    string: 'rgb(241,250,140)',
-    number: 'rgb(189,147,249)',
-    literal: 'rgb(189,147,249)',
-    comment: 'rgb(98,114,164)',
-    function: 'rgb(80,250,123)',
-    type: 'rgb(139,233,253)',
-    variable: 'rgb(255,184,108)',
-    tag: 'rgb(255,121,198)',
-    attr: 'rgb(80,250,123)',
-    meta: 'rgb(255,121,198)',
-    addition: 'rgb(80,250,123)',
-    deletion: 'rgb(255,85,85)',
-    default: 'rgb(248,248,242)',
-  },
-};
-
-export const darkDaltonizedTheme: UITheme = {
-  text: 'rgb(255,255,255)',
-  muted: 'rgb(153,153,153)',
-  subtle: 'rgb(80,80,80)',
-  brand: 'rgb(255,153,51)',
-  info: 'rgb(153,204,255)',
-  success: 'rgb(51,153,255)',
-  warning: 'rgb(255,204,0)',
-  error: 'rgb(255,102,102)',
-  permission: 'rgb(153,204,255)',
-  selected: 'rgb(153,204,255)',
-  current: 'rgb(255,204,0)',
-  promptBorder: 'rgb(136,136,136)',
-  rule: 'rgb(102,153,153)',
-  userChevron: 'rgb(136,136,136)',
-
-  userBg: 'rgb(55,55,55)',
-  diffAddBg: 'rgb(0,68,102)',
-  diffDelBg: 'rgb(102,0,0)',
-
-  diffAddFg: 'rgb(0,119,179)',
-  diffDelFg: 'rgb(179,0,0)',
-
-  syntax: {
-    keyword: 'rgb(255,178,102)',
-    string: 'rgb(153,204,255)',
-    number: 'rgb(255,255,102)',
-    literal: 'rgb(255,255,102)',
-    comment: 'rgb(153,153,153)',
-    function: 'rgb(178,102,255)',
-    type: 'rgb(255,153,51)',
-    variable: 'rgb(255,178,102)',
-    tag: 'rgb(102,178,255)',
-    attr: 'rgb(153,204,255)',
-    meta: 'rgb(178,102,255)',
-    addition: 'rgb(102,178,255)',
-    deletion: 'rgb(255,102,102)',
-    default: 'rgb(255,255,255)',
-  },
-};
-
-export const lightDaltonizedTheme: UITheme = {
-  text: 'rgb(0,0,0)',
-  muted: 'rgb(102,102,102)',
-  subtle: 'rgb(175,175,175)',
-  brand: 'rgb(255,153,51)',
-  info: 'rgb(51,102,255)',
-  success: 'rgb(0,102,153)',
-  warning: 'rgb(255,153,0)',
-  error: 'rgb(204,0,0)',
-  permission: 'rgb(51,102,255)',
-  selected: 'rgb(51,102,255)',
-  current: 'rgb(255,153,0)',
-  promptBorder: 'rgb(153,153,153)',
-  rule: 'rgb(51,102,102)',
-  userChevron: 'rgb(153,153,153)',
-
-  userBg: 'rgb(220,220,220)',
-  diffAddBg: 'rgb(153,204,255)',
-  diffDelBg: 'rgb(255,204,204)',
-
-  diffAddFg: 'rgb(51,102,204)',
-  diffDelFg: 'rgb(153,51,51)',
-
-  syntax: {
-    keyword: 'rgb(204,0,0)',
-    string: 'rgb(0,102,204)',
-    number: 'rgb(0,102,204)',
-    literal: 'rgb(0,102,204)',
-    comment: 'rgb(102,102,102)',
-    function: 'rgb(128,0,128)',
-    type: 'rgb(255,128,0)',
-    variable: 'rgb(255,128,0)',
-    tag: 'rgb(0,102,204)',
-    attr: 'rgb(0,102,204)',
-    meta: 'rgb(128,0,128)',
-    addition: 'rgb(0,102,153)',
-    deletion: 'rgb(204,0,0)',
-    default: 'rgb(0,0,0)',
-  },
-};
-
-export const darkAnsiTheme: UITheme = {
-  text: 'ansi(whiteBright)',
-  muted: 'ansi(white)',
-  subtle: 'ansi(white)',
-  brand: 'ansi(redBright)',
-  info: 'ansi(blueBright)',
-  success: 'ansi(greenBright)',
-  warning: 'ansi(yellowBright)',
-  error: 'ansi(redBright)',
-  permission: 'ansi(blueBright)',
-  selected: 'ansi(blueBright)',
-  current: 'ansi(yellowBright)',
-  promptBorder: 'ansi(white)',
-  rule: 'ansi(cyanBright)',
-  userChevron: 'ansi(white)',
-
-  userBg: 'ansi(bgBlackBright)',
-  diffAddBg: 'default',
-  diffDelBg: 'default',
-
-  diffAddFg: 'ansi(greenBright)',
-  diffDelFg: 'ansi(redBright)',
-
-  syntax: {
-    keyword: 'ansi(redBright)',
-    string: 'ansi(cyan)',
-    number: 'ansi(cyan)',
-    literal: 'ansi(cyan)',
-    comment: 'ansi(gray)',
-    function: 'ansi(magentaBright)',
-    type: 'ansi(yellowBright)',
-    variable: 'ansi(yellowBright)',
-    tag: 'ansi(greenBright)',
-    attr: 'ansi(cyan)',
-    meta: 'ansi(blueBright)',
-    addition: 'ansi(greenBright)',
-    deletion: 'ansi(redBright)',
-    default: 'ansi(whiteBright)',
-  },
-};
-
-export const lightAnsiTheme: UITheme = {
-  text: 'ansi(black)',
-  muted: 'ansi(blackBright)',
-  subtle: 'ansi(blackBright)',
-  brand: 'ansi(redBright)',
-  info: 'ansi(blue)',
-  success: 'ansi(green)',
-  warning: 'ansi(yellow)',
-  error: 'ansi(red)',
-  permission: 'ansi(blue)',
-  selected: 'ansi(blue)',
-  current: 'ansi(yellow)',
-  promptBorder: 'ansi(white)',
-  rule: 'ansi(cyan)',
-  userChevron: 'ansi(blackBright)',
-
-  userBg: 'ansi(bgWhiteBright)',
-  diffAddBg: 'default',
-  diffDelBg: 'default',
-
-  diffAddFg: 'ansi(greenBright)',
-  diffDelFg: 'ansi(redBright)',
-
-  syntax: {
-    keyword: 'ansi(red)',
-    string: 'ansi(blue)',
-    number: 'ansi(blue)',
-    literal: 'ansi(blue)',
-    comment: 'ansi(gray)',
-    function: 'ansi(magenta)',
-    type: 'ansi(yellow)',
-    variable: 'ansi(yellow)',
-    tag: 'ansi(green)',
-    attr: 'ansi(blue)',
-    meta: 'ansi(blue)',
-    addition: 'ansi(green)',
-    deletion: 'ansi(red)',
-    default: 'ansi(black)',
-  },
-};
-
-export const noColorTheme: UITheme = {
-  text: 'rgb(255,255,255)',
-  muted: 'rgb(255,255,255)',
-  subtle: 'rgb(255,255,255)',
-  brand: 'rgb(255,255,255)',
-  info: 'rgb(255,255,255)',
-  success: 'rgb(255,255,255)',
-  warning: 'rgb(255,255,255)',
-  error: 'rgb(255,255,255)',
-  permission: 'rgb(255,255,255)',
-  selected: 'rgb(255,255,255)',
-  current: 'rgb(255,255,255)',
-  promptBorder: 'rgb(255,255,255)',
-  rule: 'rgb(255,255,255)',
-  userChevron: 'rgb(255,255,255)',
-
-  userBg: 'default',
-  diffAddBg: 'default',
-  diffDelBg: 'default',
-
-  diffAddFg: 'rgb(255,255,255)',
-  diffDelFg: 'rgb(255,255,255)',
-
-  syntax: {
-    keyword: 'rgb(255,255,255)',
-    string: 'rgb(255,255,255)',
-    number: 'rgb(255,255,255)',
-    literal: 'rgb(255,255,255)',
-    comment: 'rgb(255,255,255)',
-    function: 'rgb(255,255,255)',
-    type: 'rgb(255,255,255)',
-    variable: 'rgb(255,255,255)',
-    tag: 'rgb(255,255,255)',
-    attr: 'rgb(255,255,255)',
-    meta: 'rgb(255,255,255)',
-    addition: 'rgb(255,255,255)',
-    deletion: 'rgb(255,255,255)',
-    default: 'rgb(255,255,255)',
-  },
-};
-
-const builtInThemes: ThemeMeta[] = [
-  {
-    name: 'dark',
-    label: 'Dark (Default)',
-    description: 'Default dark theme with terracotta and purple accents',
-    theme: darkTheme,
-    source: 'built-in',
-  },
-  {
-    name: 'light',
-    label: 'Light',
-    description: 'Clean light palette optimized for light backgrounds',
-    theme: lightTheme,
-    source: 'built-in',
-  },
-  {
-    name: 'dark-daltonized',
-    label: 'Dark Daltonized',
-    description: 'Color-blind friendly dark theme adjusted for deuteranopia',
-    theme: darkDaltonizedTheme,
-    source: 'built-in',
-  },
-  {
-    name: 'light-daltonized',
-    label: 'Light Daltonized',
-    description: 'Color-blind friendly light theme adjusted for deuteranopia',
-    theme: lightDaltonizedTheme,
-    source: 'built-in',
-  },
-  {
-    name: 'dracula',
-    label: 'Dracula',
-    description: 'Official gothic-inspired vampire color scheme',
-    theme: draculaTheme,
-    source: 'built-in',
-  },
-  {
-    name: 'dark-ansi',
-    label: 'Dark ANSI',
-    description: '16-color ANSI palette respecting your terminal theme',
-    theme: darkAnsiTheme,
-    source: 'built-in',
-  },
-  {
-    name: 'light-ansi',
-    label: 'Light ANSI',
-    description: '16-color ANSI light palette respecting terminal colors',
-    theme: lightAnsiTheme,
-    source: 'built-in',
-  },
-  {
-    name: 'no-color',
-    label: 'No Color',
-    description: 'Monochrome pure white palette with no color styling',
-    theme: noColorTheme,
-    source: 'built-in',
-  },
-];
-
-const registry = new Map<string, ThemeMeta>();
-for (const t of builtInThemes) {
-  registry.set(t.name, t);
-}
-
-let activeThemeId = 'dark';
-
-export function registerTheme(meta: ThemeMeta): void {
-  registry.set(meta.name, meta);
-}
-
-export function listThemes(): ThemeMeta[] {
-  return Array.from(registry.values());
-}
-
-export function findTheme(query: string): ThemeMeta | undefined {
-  const q = query
-    .trim()
-    .toLowerCase()
-    .replace(/^["']|["']$/g, '');
-  if (!q) return undefined;
-  const normalizedQ = q.replace(/[\s-_]+/g, '');
-  return listThemes().find(
-    (t) =>
-      t.name.toLowerCase() === q ||
-      t.label.toLowerCase() === q ||
-      t.label.toLowerCase().startsWith(q) ||
-      t.name.replace(/[\s-_]+/g, '') === normalizedQ ||
-      t.label.toLowerCase().replace(/[\s-_]+/g, '') === normalizedQ,
-  );
-}
-
-export function setActiveTheme(name: string): boolean {
-  if (registry.has(name)) {
-    activeThemeId = name;
-    bumpThemeVersion();
-    return true;
-  }
-  // Fallback to dark if unknown
-  activeThemeId = 'dark';
-  bumpThemeVersion();
-  return false;
+export function getTheme(): UITheme {
+  return darkTheme;
 }
 
 export function getActiveThemeId(): string {
-  return activeThemeId;
+  return 'dark';
 }
 
 export function getActiveThemeName(): string {
-  return activeThemeId;
+  return 'dark';
 }
 
-export function getTheme(): UITheme {
-  return registry.get(activeThemeId)?.theme ?? darkTheme;
+export function setActiveTheme(_name: string): boolean {
+  return true;
+}
+
+export function listThemes(): ThemeMeta[] {
+  return [
+    {
+      name: 'dark',
+      label: 'Dark (Default)',
+      description: 'Default dark theme with terracotta and purple accents',
+      theme: darkTheme,
+      source: 'built-in',
+    },
+  ];
+}
+
+export function findTheme(query: string): ThemeMeta | undefined {
+  const q = query.trim().toLowerCase();
+  if (q === 'dark' || q === 'default') {
+    return listThemes()[0];
+  }
+  return undefined;
 }

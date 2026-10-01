@@ -176,6 +176,11 @@ export async function openAICompletionsProtocol(
     headers['Authorization'] = `Bearer ${auth.apiKey}`;
   }
 
+  if (model.provider === 'openrouter') {
+    headers['HTTP-Referer'] = headers['HTTP-Referer'] || 'https://github.com/sapirrior/steward';
+    headers['X-Title'] = headers['X-Title'] || 'Steward';
+  }
+
   // 6. Execute request with retry
   let response: Response;
   try {

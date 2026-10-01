@@ -5,15 +5,11 @@ import {
   logError,
   setupGlobalErrorHandlers,
   loadSettings,
-  saveSettings,
-  getSavedTheme,
   getSavedMode,
-  saveThemeSelection,
   saveModeSelection,
   type ChatMode,
   MODE_NAMES,
 } from '@steward/agent';
-import { setActiveTheme, listThemes, findTheme, getActiveThemeName } from './theme/index.js';
 import pkg from '../package.json' with { type: 'json' };
 
 export const VERSION = pkg.version;
@@ -23,9 +19,6 @@ export const REPO_URL = 'https://github.com/sapirrior/steward';
 setupGlobalErrorHandlers();
 
 export function printHelp(): void {
-  const themeNames = listThemes()
-    .map((t) => t.name)
-    .join(', ');
   console.log(`Steward — Interactive AI engineering assistant for the terminal
 
 Usage:
@@ -33,7 +26,6 @@ Usage:
   steward --help, -h             Show this help message
   steward --version, -v          Show steward version
   steward --repo, -r             Show official GitHub repository URL
-  steward --config theme <name>  Configure preferred theme (${themeNames})
   steward --config mode <name>   Configure default mode (${MODE_NAMES.join(', ')})
 `);
 }
@@ -41,30 +33,11 @@ Usage:
 export function handleConfig(args: string[]): void {
   const target = args[0]?.toLowerCase();
   const value = args[1]?.toLowerCase();
-  const availableThemes = listThemes().map((t) => t.name);
 
   if (!target || target === 'all') {
     const settings = loadSettings();
     console.log('Current settings:');
-    console.log(`  Theme: ${settings.theme ?? 'dark (default)'}`);
     console.log(`  Mode: ${settings.mode ?? 'normal (default)'}`);
-    return;
-  }
-
-  if (target === 'theme') {
-    if (!value) {
-      console.log(`Current theme: ${getSavedTheme() ?? 'dark'}`);
-      console.log(`Available themes: ${availableThemes.join(', ')}`);
-      return;
-    }
-    const match = findTheme(value);
-    if (match) {
-      saveThemeSelection(match.name);
-      console.log(`Theme set to: ${match.name}`);
-    } else {
-      console.error(`Unknown theme "${value}". Available: ${availableThemes.join(', ')}`);
-      process.exit(1);
-    }
     return;
   }
 
@@ -84,7 +57,7 @@ export function handleConfig(args: string[]): void {
     return;
   }
 
-  console.error(`Unknown configuration target "${target}". Supported: theme, mode`);
+  console.error(`Unknown configuration target "${target}". Supported: mode`);
   process.exit(1);
 }
 
@@ -122,7 +95,6 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<void>
   }
 
   try {
-    setActiveTheme(getSavedTheme() ?? 'dark');
     const session = new AgentSession();
     const app = new TUIApp({
       version: VERSION,
@@ -141,7 +113,5 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<void>
   }
 }
 
-// Auto-run if executed directly
-if (import.meta.main) {
-  run();
-}
+// Auto-run entrypoint
+run();

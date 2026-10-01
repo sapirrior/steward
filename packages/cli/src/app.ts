@@ -16,7 +16,6 @@ import {
   saveModeSelection,
 } from '@steward/agent';
 import { defaultCommandRegistry } from './commands/registry.js';
-import { listThemes } from './theme/index.js';
 import { c } from './theme/style.js';
 import Header from './ui/components/Header.js';
 import StatusBar from './ui/components/StatusBar.js';
@@ -186,13 +185,6 @@ export class TUIApp {
 
   private proceedStart(): void {
     this.engine.ensureAlternateScreen();
-
-    // Initialize session hooks after workspace trust confirmation
-    void this.session.initializeHooks({
-      cwd: this.cwd,
-      isTrusted: true,
-      source: this.session.session.turns.length > 0 ? 'resume' : 'startup',
-    });
 
     // Rehydrate previous session turns or direct commands if any, or render header
     const logPath = getSessionLogPath(this.session.session.date, this.session.session.id);

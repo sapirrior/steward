@@ -10,7 +10,7 @@ The `@steward/cli` package serves as the application composition root and termin
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `main.ts` | CLI entry point | Script | CLI bootstrapper handling flags (`-v`, `-h`, `-r`, `--config theme|mode`) and bootstrapping `TUIApp`. | Global unhandled rejection and exception handlers initialized before app startup. |
+| `main.ts` | CLI entry point | Script | CLI bootstrapper handling flags (`-v`, `-h`, `-r`, `--config mode`) and bootstrapping `TUIApp`. | Global unhandled rejection and exception handlers initialized before app startup. |
 | `app.ts` | `TUIApp` | Class | Main application orchestrator managing component mounting, user turns, and dock state transitions. | Coordinates `TerminalEngine`, `AgentSession`, `ModalController`, and `PermissionQueue`. |
 
 ---
@@ -23,11 +23,10 @@ The `@steward/cli` package serves as the application composition root and termin
 | `components/PromptInput.tsx` | Component | Main interactive prompt input supporting multiline typing, cursor navigation, history, `@file` search, and `/slash` palette. | Unicode-safe and ANSI-safe text buffer. |
 | `components/StreamingView.tsx` | Component | Live streaming response view rendering incremental text, thinking indicator, and active tool execution status. | Real-time ANSI-rendered markdown output. |
 | `components/StatusBar.tsx` | Component | Sticky bottom bar displaying active model, reasoning effort, token usage counters, and chat mode badge. | Subline status bar. |
-| `components/TrustGate.tsx` | Component | Security gate displayed when launching in an untrusted workspace folder. | Requires explicit folder authorization before loading hooks. |
+| `components/TrustGate.tsx` | Component | Security gate displayed when launching in an untrusted workspace folder. | Requires explicit folder authorization before accessing sensitive paths. |
 | `components/docks/FilePermissionDock.tsx` | Component | Interactive modal reviewing file creations, edits, and overwrites with line diffs before applying changes. | Yes / No / Review (F) mode. |
 | `components/docks/BashPermissionDock.tsx` | Component | Interactive modal prompting for approval before executing bash commands. | Yes / No selection with command preview. |
 | `components/docks/ModelPicker.tsx` | Component | Interactive dock for switching LLM models across all configured providers. | Searchable provider list with capability badges. |
-| `components/docks/ThemePicker.tsx` | Component | Interactive dock for live theme preview and selection. | Arrow-key navigation across color themes. |
 | `components/docks/SessionMenu.tsx` | Component | Interactive dock for browsing, resuming, or deleting saved session transcripts. | Lists past sessions with turn counts. |
 | `components/docks/RewindMenu.tsx` | Component | Interactive dock for rolling back file changes to previous session turns with diff statistics. | Computes accurate `+lines / -lines` per turn. |
 | `components/docks/ShortcutsMenu.tsx` | Component | Help modal displaying all keyboard shortcuts and navigation tips. | Quick-reference keyboard cheat sheet. |
@@ -46,14 +45,13 @@ The `@steward/cli` package serves as the application composition root and termin
 | `/help` | `commands/help/` | Opens help manual and keyboard shortcut reference. |
 | `/model` | `commands/model/` | Opens interactive ModelPicker dock. |
 | `/mode` | `commands/mode/` | Cycles through or sets active chat mode (`normal`, `chat`, `review`, `build`). |
-| `/theme` | `commands/theme/` | Opens ThemePicker dock to change visual styling. |
 | `/effort` | `commands/effort/` | Adjusts reasoning effort slider (`none`, `low`, `medium`, `high`). |
 | `/sessions` | `commands/sessions/` | Opens SessionMenu dock to browse and switch sessions. |
 | `/rewind` | `commands/rewind/` | Opens RewindMenu dock to roll back workspace mutations. |
 | `/clear` | `commands/clear/` | Clears current terminal history buffer. |
 | `/copy` | `commands/copy/` | Copies the last AI assistant message to the clipboard. |
 | `/export` | `commands/export/` | Exports the 1:1 UI conversation transcript to the clipboard or a file. |
-| `/init` | `commands/init/` | Scaffolds AGENTS.md, .steward/hooks.json, and .agents/skills/ in the workspace. |
+| `/init` | `commands/init/` | Scaffolds AGENTS.md and .agents/skills/ in the workspace. |
 | `/bug` | `commands/bug/` | Displays the issue tracker and feedback URL. |
 | `/usage` | `commands/usage/` | Displays token usage metrics and turn statistics for the active session. |
 | `/exit` | `commands/exit/` | Gracefully cleans up terminal and exits Steward. |
