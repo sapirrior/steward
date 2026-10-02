@@ -30,11 +30,9 @@ const mockAI: ModelPort = {
 
 describe('Provider Configuration & Discovery', () => {
   it('should update sessionData.model when setModel is called on AgentSession', async () => {
-    const session = new AgentSession(
-      { provider: 'openai', modelId: 'gpt-4o-mini' },
-      undefined,
-      { ai: mockAI },
-    );
+    const session = new AgentSession({ provider: 'openai', modelId: 'gpt-4o-mini' }, undefined, {
+      ai: mockAI,
+    });
 
     expect(session.getModel().provider).toBe('openai');
     expect(session.session.model.provider).toBe('openai');
@@ -50,11 +48,9 @@ describe('Provider Configuration & Discovery', () => {
   });
 
   it('should update reasoning effort on AgentSession and sessionData.model', async () => {
-    const session = new AgentSession(
-      { provider: 'openai', modelId: 'gpt-4o-mini' },
-      undefined,
-      { ai: mockAI },
-    );
+    const session = new AgentSession({ provider: 'openai', modelId: 'gpt-4o-mini' }, undefined, {
+      ai: mockAI,
+    });
 
     expect(session.getEffort()).toBe('medium');
     expect(session.session.model.effort).toBe('medium');

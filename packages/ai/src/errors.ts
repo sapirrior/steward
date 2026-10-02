@@ -118,11 +118,7 @@ export function classifyHttpError(
     code = 'provider';
     retryable = true;
     // 529 is Anthropic's overloaded status
-    if (
-      status === 529 ||
-      providerType === 'overloaded_error' ||
-      providerType === 'api_error'
-    ) {
+    if (status === 529 || providerType === 'overloaded_error' || providerType === 'api_error') {
       message = providerMessage
         ? `Provider overloaded (HTTP ${status}): ${providerMessage}`
         : `Provider "${provider ?? 'unknown'}" is overloaded (HTTP ${status}).`;

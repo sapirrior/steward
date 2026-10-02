@@ -260,4 +260,3 @@ describe('protocols/openai-responses', () => {
     expect(res.error?.providerType).toBe('content_policy');
   });
 });
-

@@ -85,9 +85,7 @@ export function parseProviderError(bodyText: string): ParsedProviderError {
   const oneLine = trimmed.replace(/\s+/g, ' ');
   return {
     message:
-      oneLine.length <= MAX_MESSAGE_EXCERPT
-        ? oneLine
-        : `${oneLine.slice(0, MAX_MESSAGE_EXCERPT)}…`,
+      oneLine.length <= MAX_MESSAGE_EXCERPT ? oneLine : `${oneLine.slice(0, MAX_MESSAGE_EXCERPT)}…`,
   };
 }
 

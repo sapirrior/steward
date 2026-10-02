@@ -135,7 +135,14 @@ describe('Monorepo Package Boundary Rules', () => {
       { name: 'stitchable', dirName: 'tui', selfNames: ['stitchable', '@steward/tui'] },
     ];
 
-    const allPkgIdentities = ['@steward/ai', '@steward/agent', '@steward/oauth', '@steward/cli', '@steward/tui', 'stitchable'];
+    const allPkgIdentities = [
+      '@steward/ai',
+      '@steward/agent',
+      '@steward/oauth',
+      '@steward/cli',
+      '@steward/tui',
+      'stitchable',
+    ];
     const violations: string[] = [];
 
     for (const pkg of packages) {
@@ -150,7 +157,9 @@ describe('Monorepo Package Boundary Rules', () => {
           for (const ident of allPkgIdentities) {
             if (pkg.selfNames.includes(ident)) continue;
             if (imp.source === ident || imp.source.startsWith(`${ident}/`)) {
-              violations.push(`${pkg.dirName}/src/${rel}:${imp.line} imports forbidden sibling '${imp.source}'`);
+              violations.push(
+                `${pkg.dirName}/src/${rel}:${imp.line} imports forbidden sibling '${imp.source}'`,
+              );
             }
           }
         }
@@ -168,7 +177,14 @@ describe('Monorepo Package Boundary Rules', () => {
       { dirName: 'tui', selfNames: ['stitchable', '@steward/tui'] },
     ];
 
-    const allPkgIdentities = ['@steward/ai', '@steward/agent', '@steward/oauth', '@steward/cli', '@steward/tui', 'stitchable'];
+    const allPkgIdentities = [
+      '@steward/ai',
+      '@steward/agent',
+      '@steward/oauth',
+      '@steward/cli',
+      '@steward/tui',
+      'stitchable',
+    ];
     const violations: string[] = [];
 
     for (const pkg of packages) {

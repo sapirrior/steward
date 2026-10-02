@@ -9,11 +9,7 @@ import {
 } from './format.js';
 import { wrapVisualLine } from 'stitchable';
 import type { ToolExecutionStatus } from '../types.js';
-import {
-  type ToolSummary,
-  chooseTurnStatusVerb,
-  STATUS_VERBS,
-} from '@steward/agent';
+import { type ToolSummary, chooseTurnStatusVerb, STATUS_VERBS } from '@steward/agent';
 import { presentError, type PresentedError } from '../../errors/present.js';
 import { renderToolDetail } from './tool-detail.js';
 
@@ -204,10 +200,18 @@ export function formatErrorBadge(
 
   const isInfo = presented.tone === 'info';
   const isWarning = presented.tone === 'warning';
-  const icon = isInfo ? c.muted(figures.info) : isWarning ? c.warning(figures.warning) : c.error(figures.asterisk);
+  const icon = isInfo
+    ? c.muted(figures.info)
+    : isWarning
+      ? c.warning(figures.warning)
+      : c.error(figures.asterisk);
   const midDot = c.muted(` ${figures.bullet} `);
 
-  let msg = isInfo ? c.muted(presented.headline) : isWarning ? c.warning(presented.headline) : c.error(presented.headline);
+  let msg = isInfo
+    ? c.muted(presented.headline)
+    : isWarning
+      ? c.warning(presented.headline)
+      : c.error(presented.headline);
 
   if (retryInfo) {
     const retryStr = c.muted(

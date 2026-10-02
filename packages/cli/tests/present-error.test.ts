@@ -49,7 +49,12 @@ describe('cli/errors/present — presentError', () => {
   });
 
   it('formats overloaded provider error (529 / 503) as warning tone', () => {
-    const err = { code: 'provider', status: 529, provider: 'anthropic', providerType: 'overloaded_error' };
+    const err = {
+      code: 'provider',
+      status: 529,
+      provider: 'anthropic',
+      providerType: 'overloaded_error',
+    };
     const res = presentError(err);
     expect(res.headline).toBe('anthropic is currently overloaded');
     expect(res.hint).toContain('Retrying shortly');

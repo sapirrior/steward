@@ -312,7 +312,8 @@ export async function openAIResponsesProtocol(
         }
       } else if (eventType === 'error') {
         const err = eventData.error as Record<string, unknown> | undefined;
-        const errMsg = typeof err?.message === 'string' ? err.message : 'OpenAI Responses stream error';
+        const errMsg =
+          typeof err?.message === 'string' ? err.message : 'OpenAI Responses stream error';
         const errCode = typeof err?.code === 'string' ? err.code : undefined;
         const errType = typeof err?.type === 'string' ? err.type : undefined;
 
@@ -325,7 +326,11 @@ export async function openAIResponsesProtocol(
           }),
         });
         return;
-      } else if (eventType === 'response.completed' || eventType === 'response.done' || eventType === 'response.failed') {
+      } else if (
+        eventType === 'response.completed' ||
+        eventType === 'response.done' ||
+        eventType === 'response.failed'
+      ) {
         const resp = eventData.response as Record<string, unknown> | undefined;
         if (resp?.usage && typeof resp.usage === 'object') {
           const u = resp.usage as Record<string, unknown>;
