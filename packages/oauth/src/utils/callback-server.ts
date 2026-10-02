@@ -30,7 +30,12 @@ function escapeHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
-function renderPage(options: { title: string; heading: string; message: string; details?: string }): string {
+function renderPage(options: {
+  title: string;
+  heading: string;
+  message: string;
+  details?: string;
+}): string {
   const title = escapeHtml(options.title);
   const heading = escapeHtml(options.heading);
   const message = escapeHtml(options.message);
@@ -119,14 +124,25 @@ function renderPage(options: { title: string; heading: string; message: string; 
 }
 
 function sendPage(response: ServerResponse, status: number, html: string): void {
-  response.writeHead(status, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+  response.writeHead(status, {
+    'content-type': 'text/html; charset=utf-8',
+    'cache-control': 'no-store',
+  });
   response.end(html);
 }
 
 export async function startOAuthCallbackServer<T = string>(
   options: OAuthCallbackServerOptions<T>,
 ): Promise<OAuthCallbackServer<T>> {
-  const { providerName, host, port, path: expectedPath, expectedState, signal, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+  const {
+    providerName,
+    host,
+    port,
+    path: expectedPath,
+    expectedState,
+    signal,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+  } = options;
 
   if (signal?.aborted) throw new OAuthError('Login cancelled', 'aborted', providerName);
 
@@ -144,7 +160,8 @@ export async function startOAuthCallbackServer<T = string>(
   let settled = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const onAbort = () => finish({ error: new OAuthError('Login cancelled', 'aborted', providerName) });
+  const onAbort = () =>
+    finish({ error: new OAuthError('Login cancelled', 'aborted', providerName) });
   const finish = (result: { value: T | undefined } | { error: Error }): void => {
     if (settled) return;
     settled = true;
@@ -190,7 +207,8 @@ export async function startOAuthCallbackServer<T = string>(
           renderPage({
             title: 'Already Processed',
             heading: 'Sign-in Handled',
-            message: 'This authentication request has already been completed. You may close this window.',
+            message:
+              'This authentication request has already been completed. You may close this window.',
           }),
         );
         return;
@@ -209,7 +227,13 @@ export async function startOAuthCallbackServer<T = string>(
             details: description,
           }),
         );
-        finish({ error: new OAuthError(`${providerName} authorization failed: ${description}`, 'oauth', providerName) });
+        finish({
+          error: new OAuthError(
+            `${providerName} authorization failed: ${description}`,
+            'oauth',
+            providerName,
+          ),
+        });
         return;
       }
 
@@ -281,7 +305,10 @@ export async function startOAuthCallbackServer<T = string>(
   signal?.addEventListener('abort', onAbort, { once: true });
   if (timeoutMs !== undefined) {
     timer = setTimeout(
-      () => finish({ error: new OAuthError(`${providerName} sign-in timed out`, 'timeout', providerName) }),
+      () =>
+        finish({
+          error: new OAuthError(`${providerName} sign-in timed out`, 'timeout', providerName),
+        }),
       timeoutMs,
     );
   }

@@ -24,7 +24,6 @@ describe('providers/index — builtinProviders', () => {
     expect(ids).toContain('github-copilot');
   });
 
-
   it('declares protocol streams for each provider', () => {
     const anthropic = anthropicProvider();
     expect(anthropic.streams['anthropic-messages']).toBeDefined();

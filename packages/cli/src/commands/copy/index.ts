@@ -12,7 +12,8 @@ function extractAssistantText(msg: Message): string {
   if (!Array.isArray(msg.content)) return '';
   return msg.content
     .filter(
-      (b: any): b is { type: 'text'; text: string } => b?.type === 'text' && typeof b.text === 'string',
+      (b: any): b is { type: 'text'; text: string } =>
+        b?.type === 'text' && typeof b.text === 'string',
     )
     .map((b) => b.text.trim())
     .filter(Boolean)

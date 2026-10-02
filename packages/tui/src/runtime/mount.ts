@@ -45,7 +45,7 @@ export interface UIHandle<S extends object> {
 
 /**
  * Mounts a functional UI component into a TerminalEngine.
- * 
+ *
  * Guarantees:
  * - Zero hooks / zero dependency array reconciler overhead
  * - Zero closure allocations per frame
@@ -95,34 +95,34 @@ export function mount<S extends object = Record<string, any>>(
     },
   };
 
-function resolveElementTree(node: any): any {
-  if (node === null || node === undefined || typeof node === 'boolean') {
-    return null;
-  }
-  if (typeof node === 'string' || typeof node === 'number') {
-    return String(node);
-  }
-  if (Array.isArray(node)) {
-    return node.map(resolveElementTree);
-  }
-  if (typeof node === 'object') {
-    if (typeof node.type === 'function' && typeof node.render !== 'function') {
-      const res = node.type({ ...(node.props || {}), children: node.children });
-      return resolveElementTree(res);
+  function resolveElementTree(node: any): any {
+    if (node === null || node === undefined || typeof node === 'boolean') {
+      return null;
     }
-    if (node.children) {
-      const children = Array.isArray(node.children)
-        ? node.children.map(resolveElementTree)
-        : resolveElementTree(node.children);
-      return {
-        ...node,
-        props: { ...(node.props || {}), children },
-        children,
-      };
+    if (typeof node === 'string' || typeof node === 'number') {
+      return String(node);
     }
+    if (Array.isArray(node)) {
+      return node.map(resolveElementTree);
+    }
+    if (typeof node === 'object') {
+      if (typeof node.type === 'function' && typeof node.render !== 'function') {
+        const res = node.type({ ...(node.props || {}), children: node.children });
+        return resolveElementTree(res);
+      }
+      if (node.children) {
+        const children = Array.isArray(node.children)
+          ? node.children.map(resolveElementTree)
+          : resolveElementTree(node.children);
+        return {
+          ...node,
+          props: { ...(node.props || {}), children },
+          children,
+        };
+      }
+    }
+    return node;
   }
-  return node;
-}
 
   class FunctionalRootComponent extends Component {
     _getLines(width: number): string[] {

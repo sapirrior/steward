@@ -28,19 +28,21 @@ export function formatTurnFooter(
   if (!turnPresentationEnd) return;
 
   if (turnPresentationEnd.status === 'complete') {
-    engine.commit([
-      '',
-      formatTurnStatus(
-        turnPresentationEnd.durationMs,
-        new Date(turnPresentationEnd.finishedAt),
-        turnPresentationEnd.statusVerb,
-      ),
-    ], { tag: 'system' });
+    engine.commit(
+      [
+        '',
+        formatTurnStatus(
+          turnPresentationEnd.durationMs,
+          new Date(turnPresentationEnd.finishedAt),
+          turnPresentationEnd.statusVerb,
+        ),
+      ],
+      { tag: 'system' },
+    );
     if (turnPresentationEnd.stopReason === 'step-limit') {
-      engine.commit(
-        formatSystemMessage('Step budget reached. Generation stopped early.'),
-        { tag: 'system' },
-      );
+      engine.commit(formatSystemMessage('Step budget reached. Generation stopped early.'), {
+        tag: 'system',
+      });
     }
   } else if (
     (turnPresentationEnd.status === 'errored' || turnPresentationEnd.status === 'interrupted') &&

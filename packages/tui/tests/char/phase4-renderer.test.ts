@@ -49,11 +49,11 @@ describe('Phase 4: Optimized Renderer, Viewport Slicing, Throttling & Scrolling'
 
     const hostileInputs = [
       '\x1b]52;c;c2VjcmV0\x07', // OSC 52 clipboard set
-      '\x1b]0;Title\x07',       // OSC 0 window title
-      '\x1b[2J\x1b[H',          // Clear screen / home
-      '\x1b[?1049h',            // Alt screen escape injection
-      '\x9b31mRed\x9c',         // C1 8-bit CSI/ST
-      '\x1bc\x00\x07\x08',      // Reset / NUL / BEL / BS
+      '\x1b]0;Title\x07', // OSC 0 window title
+      '\x1b[2J\x1b[H', // Clear screen / home
+      '\x1b[?1049h', // Alt screen escape injection
+      '\x9b31mRed\x9c', // C1 8-bit CSI/ST
+      '\x1bc\x00\x07\x08', // Reset / NUL / BEL / BS
     ];
 
     for (const hostile of hostileInputs) {

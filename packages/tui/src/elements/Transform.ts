@@ -22,7 +22,14 @@ export function Transform(
   props: TransformProps,
   children?: any,
 ): StitchableElement<TransformProps> {
-  const childList = children !== undefined ? (Array.isArray(children) ? children : [children]) : (props.children ? [props.children] : []);
+  const childList =
+    children !== undefined
+      ? Array.isArray(children)
+        ? children
+        : [children]
+      : props.children
+        ? [props.children]
+        : [];
   const el: StitchableElement<TransformProps> = {
     type: Transform,
     props: { ...props, children: childList },

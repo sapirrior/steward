@@ -370,10 +370,8 @@ describe('Mutation Tools (write_file & edit_file)', () => {
   describe('bash vs checkpoint boundary', () => {
     it('proves bash tool does not invoke checkpoint tracker', async () => {
       const { bashTool } = await import('../src/tools/bash/index.js');
-      const { loadPendingJournal } =
-        await import('../src/services/checkpoint/store.js');
-      const { computeWorkspaceHash } =
-        await import('../src/services/checkpoint/path.js');
+      const { loadPendingJournal } = await import('../src/services/checkpoint/store.js');
+      const { computeWorkspaceHash } = await import('../src/services/checkpoint/path.js');
       const testFile = join(workspaceDir, 'bash-mutated.txt');
 
       // Execute a bash mutation with approval

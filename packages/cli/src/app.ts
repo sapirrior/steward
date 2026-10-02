@@ -78,15 +78,13 @@ export class TUIApp {
         },
       });
     this.session =
-      options.initialSession ??
-      new AgentSession(undefined, undefined, { ai: this.ai });
+      options.initialSession ?? new AgentSession(undefined, undefined, { ai: this.ai });
     this.onExitCallback = options.onExit;
     this.engine = new TerminalEngine({
       mouse: true,
       scrollKeys: true,
       onError: (err) => logError(err),
     });
-
 
     const savedMode = getSavedMode();
     if (savedMode) {
@@ -345,7 +343,8 @@ export class TUIApp {
         session: this.session,
         modals: this.modals,
         exit: () => this.exit(),
-        commitPrompt: (t: string) => this.engine.commit((w) => formatUserMessage(t, w), { tag: 'prompt', wrap: false }),
+        commitPrompt: (t: string) =>
+          this.engine.commit((w) => formatUserMessage(t, w), { tag: 'prompt', wrap: false }),
       });
       return;
     }
@@ -445,10 +444,7 @@ export class TUIApp {
         });
 
         this.engine.commit(
-          [
-            `${c.permission('!')} ${c.text(command)}`,
-            `  ${c.muted('└ ')}${c.error(msg)}`,
-          ],
+          [`${c.permission('!')} ${c.text(command)}`, `  ${c.muted('└ ')}${c.error(msg)}`],
           { tag: 'raw' },
         );
       } finally {
@@ -488,13 +484,10 @@ export class TUIApp {
       this.streamingView.reset();
       const structured = classifyError(err);
       if (eventState.accumulatedText.trim()) {
-        this.engine.commit(
-          formatAssistantMessage(eventState.accumulatedText),
-          {
-            tag: 'assistant-message',
-            hangingIndent: 2,
-          },
-        );
+        this.engine.commit(formatAssistantMessage(eventState.accumulatedText), {
+          tag: 'assistant-message',
+          hangingIndent: 2,
+        });
       }
       this.engine.commit(formatErrorBadge(structured), { tag: 'system' });
     } finally {

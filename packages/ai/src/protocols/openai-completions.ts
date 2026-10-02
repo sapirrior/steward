@@ -131,7 +131,8 @@ export async function openAICompletionsProtocol(
       : undefined;
 
   // 3. Reasoning effort mapping
-  const requestedEffort = request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
+  const requestedEffort =
+    request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
   const effort = clampThinkingEffort(model, requestedEffort);
   const reasoningParams: Record<string, unknown> = {};
 
@@ -161,7 +162,10 @@ export async function openAICompletionsProtocol(
   }
 
   // 5. Construct URL & Headers
-  const rawBase = (auth.baseUrl || model.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
+  const rawBase = (auth.baseUrl || model.baseUrl || 'https://api.openai.com/v1').replace(
+    /\/+$/,
+    '',
+  );
   let url: string;
   if (rawBase.endsWith('/chat/completions')) {
     url = rawBase;
@@ -193,24 +197,29 @@ export async function openAICompletionsProtocol(
   // 6. Execute request with retry
   let response: Response;
   try {
-    response = await withRetry(async () => {
-      const res = await fetchFn(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        signal: request.abortSignal,
-      });
+    response = await withRetry(
+      async () => {
+        const res = await fetchFn(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body),
+          signal: request.abortSignal,
+        });
 
-      if (!res.ok) {
-        const errorText = await readErrorBody(res).catch(() => undefined);
-        const error = new Error(`HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`) as HttpError;
-        error.status = res.status;
-        error.headers = res.headers;
-        (error as unknown as { detail?: string }).detail = errorText;
-        throw error;
-      }
-      return res;
-    }, { signal: request.abortSignal });
+        if (!res.ok) {
+          const errorText = await readErrorBody(res).catch(() => undefined);
+          const error = new Error(
+            `HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`,
+          ) as HttpError;
+          error.status = res.status;
+          error.headers = res.headers;
+          (error as unknown as { detail?: string }).detail = errorText;
+          throw error;
+        }
+        return res;
+      },
+      { signal: request.abortSignal },
+    );
   } catch (err) {
     const isAbort = request.abortSignal?.aborted;
     if (isAbort) {
@@ -236,13 +245,17 @@ export async function openAICompletionsProtocol(
 
     stream.push({
       type: 'error',
-      error: err instanceof AIError
-        ? err
-        : new AIError(`${model.provider} request failed: ${err instanceof Error ? err.message : String(err)}`, {
-            code: 'network',
-            provider: model.provider,
-            cause: err,
-          }),
+      error:
+        err instanceof AIError
+          ? err
+          : new AIError(
+              `${model.provider} request failed: ${err instanceof Error ? err.message : String(err)}`,
+              {
+                code: 'network',
+                provider: model.provider,
+                cause: err,
+              },
+            ),
     });
     return;
   }
@@ -288,12 +301,14 @@ export async function openAICompletionsProtocol(
           usage.total = (usage.input ?? 0) + (usage.output ?? 0);
         }
 
-        const details = (u.completion_tokens_details ?? u.output_tokens_details) as Record<string, unknown> | undefined;
+        const details = (u.completion_tokens_details ?? u.output_tokens_details) as
+          Record<string, unknown> | undefined;
         if (typeof details?.reasoning_tokens === 'number') {
           usage.reasoning = details.reasoning_tokens;
         }
 
-        const promptDetails = (u.prompt_tokens_details ?? u.input_tokens_details) as Record<string, unknown> | undefined;
+        const promptDetails = (u.prompt_tokens_details ?? u.input_tokens_details) as
+          Record<string, unknown> | undefined;
         if (typeof promptDetails?.cached_tokens === 'number') {
           usage.cacheRead = promptDetails.cached_tokens;
         }
@@ -356,7 +371,12 @@ export async function openAICompletionsProtocol(
           let entry = toolCallBuffers.get(idx);
           if (!entry) {
             const buffer = { id: tcId || `call_${idx}`, name: fnName || '', rawArgs: '' };
-            const slot: ToolCallContent = { type: 'tool-call', id: buffer.id, name: buffer.name, arguments: {} };
+            const slot: ToolCallContent = {
+              type: 'tool-call',
+              id: buffer.id,
+              name: buffer.name,
+              arguments: {},
+            };
             assistantContent.push(slot);
             entry = { buffer, slot };
             toolCallBuffers.set(idx, entry);
@@ -372,7 +392,11 @@ export async function openAICompletionsProtocol(
             if (!entry.buffer.name && fnName) {
               entry.buffer.name = fnName;
               entry.slot.name = fnName;
-              stream.push({ type: 'tool-call-start', id: entry.buffer.id, name: entry.buffer.name });
+              stream.push({
+                type: 'tool-call-start',
+                id: entry.buffer.id,
+                name: entry.buffer.name,
+              });
             }
           }
 

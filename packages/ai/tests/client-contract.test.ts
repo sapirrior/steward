@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'bun:test';
 import { createAI } from '../src/client.ts';
-import { createFauxProvider, FAUX_PROVIDER_ID, FAUX_MODEL_ID, FAUX_MODEL } from '../src/testing/faux.ts';
+import {
+  createFauxProvider,
+  FAUX_PROVIDER_ID,
+  FAUX_MODEL_ID,
+  FAUX_MODEL,
+} from '../src/testing/faux.ts';
 import { AIError } from '../src/errors.ts';
 import type { InferenceEvent } from '../src/types.ts';
 
@@ -19,7 +24,9 @@ function fauxRequest(extra: Partial<Parameters<ReturnType<typeof makeAI>['stream
   };
 }
 
-async function collectEvents(stream: ReturnType<ReturnType<typeof makeAI>['stream']>): Promise<InferenceEvent[]> {
+async function collectEvents(
+  stream: ReturnType<ReturnType<typeof makeAI>['stream']>,
+): Promise<InferenceEvent[]> {
   const events: InferenceEvent[] = [];
   for await (const e of stream) events.push(e);
   return events;
@@ -32,7 +39,9 @@ describe('client-contract — §4.4 stream contract', () => {
     const ai = makeAI();
     // Must not throw, must return synchronously
     let stream: ReturnType<typeof ai.stream> | undefined;
-    expect(() => { stream = ai.stream(fauxRequest()); }).not.toThrow();
+    expect(() => {
+      stream = ai.stream(fauxRequest());
+    }).not.toThrow();
     expect(stream).toBeDefined();
   });
 
@@ -93,7 +102,10 @@ describe('client-contract — §4.4 stream contract', () => {
     const controller = new AbortController();
     controller.abort(); // abort immediately
 
-    const ai = makeAI([{ type: 'delay', ms: 500 }, { type: 'text', text: 'never' }]);
+    const ai = makeAI([
+      { type: 'delay', ms: 500 },
+      { type: 'text', text: 'never' },
+    ]);
     const stream = ai.stream(fauxRequest({ abortSignal: controller.signal }));
     const result = await stream.result();
     expect(result.finishReason).toBe('aborted');
@@ -166,7 +178,9 @@ describe('client-contract — provider registry', () => {
   it('registerProvider adds and replaces by id', () => {
     const ai = makeAI();
     expect(ai.providers()).toHaveLength(1);
-    ai.registerProvider({ ...createFauxProvider([]), id: 'faux2', name: 'Faux 2' } as ReturnType<typeof createFauxProvider>);
+    ai.registerProvider({ ...createFauxProvider([]), id: 'faux2', name: 'Faux 2' } as ReturnType<
+      typeof createFauxProvider
+    >);
     expect(ai.providers()).toHaveLength(2);
     // Upsert — re-register same id
     ai.registerProvider(createFauxProvider([]));

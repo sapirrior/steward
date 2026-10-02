@@ -70,13 +70,10 @@ export function inferProviderFromModelId(modelId: string): ProviderId | null {
   return null;
 }
 
-
 export interface ModelResolutionContext {
   isConfigured: (provider: ProviderId) => boolean | Promise<boolean>;
   getSavedSelection?: () =>
-    | ModelSelectionRequest
-    | undefined
-    | Promise<ModelSelectionRequest | undefined>;
+    ModelSelectionRequest | undefined | Promise<ModelSelectionRequest | undefined>;
 }
 
 export async function resolveModelSelection(

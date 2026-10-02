@@ -6,20 +6,14 @@ import type { TokenRecord } from './types.js';
  */
 export const EXPIRY_BUFFER_MS = 5 * 60 * 1000;
 
-export type ProviderRefresher = (
-  token: TokenRecord,
-  signal?: AbortSignal,
-) => Promise<TokenRecord>;
+export type ProviderRefresher = (token: TokenRecord, signal?: AbortSignal) => Promise<TokenRecord>;
 
 const refreshers = new Map<string, ProviderRefresher>();
 
 /**
  * Registers a token refresh handler for an OAuth provider.
  */
-export function registerTokenRefresher(
-  provider: string,
-  refresher: ProviderRefresher,
-): void {
+export function registerTokenRefresher(provider: string, refresher: ProviderRefresher): void {
   refreshers.set(provider, refresher);
 }
 

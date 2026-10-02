@@ -10,19 +10,12 @@ import type { AIError } from './errors.js';
 // ─── Provider & Protocol identifiers ────────────────────────────────────────
 
 /** Built-in provider ids. ProviderId is open — custom providers register at runtime. */
-export type BuiltinProviderId =
-  | 'anthropic'
-  | 'openai'
-  | 'google'
-  | 'openrouter';
+export type BuiltinProviderId = 'anthropic' | 'openai' | 'google' | 'openrouter';
 
 export type ProviderId = BuiltinProviderId | (string & {});
 
 export type ProtocolId =
-  | 'anthropic-messages'
-  | 'openai-completions'
-  | 'openai-responses'
-  | 'google-generative-ai';
+  'anthropic-messages' | 'openai-completions' | 'openai-responses' | 'google-generative-ai';
 
 export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 
@@ -172,7 +165,7 @@ export interface Model {
    */
   thinkingLevelMap?: Partial<Record<ReasoningEffort, string | number | null>>;
   /** Input modalities supported by this model. */
-  input?: readonly ('text')[];
+  input?: readonly 'text'[];
   /** Context window in tokens. */
   contextWindow: number;
   /** Max input tokens when different from context window. */

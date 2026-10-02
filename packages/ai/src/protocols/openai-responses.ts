@@ -122,7 +122,8 @@ export async function openAIResponsesProtocol(
       : undefined;
 
   // 3. Reasoning effort
-  const requestedEffort = request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
+  const requestedEffort =
+    request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
   const effort = clampThinkingEffort(model, requestedEffort);
   const reasoningConfig: Record<string, unknown> = {};
   if (model.reasoning && effort !== 'none') {
@@ -163,24 +164,29 @@ export async function openAIResponsesProtocol(
   // 6. Execute request with retry
   let response: Response;
   try {
-    response = await withRetry(async () => {
-      const res = await fetchFn(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        signal: request.abortSignal,
-      });
+    response = await withRetry(
+      async () => {
+        const res = await fetchFn(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body),
+          signal: request.abortSignal,
+        });
 
-      if (!res.ok) {
-        const errorText = await readErrorBody(res).catch(() => undefined);
-        const error = new Error(`HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`) as HttpError;
-        error.status = res.status;
-        error.headers = res.headers;
-        (error as unknown as { detail?: string }).detail = errorText;
-        throw error;
-      }
-      return res;
-    }, { signal: request.abortSignal });
+        if (!res.ok) {
+          const errorText = await readErrorBody(res).catch(() => undefined);
+          const error = new Error(
+            `HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`,
+          ) as HttpError;
+          error.status = res.status;
+          error.headers = res.headers;
+          (error as unknown as { detail?: string }).detail = errorText;
+          throw error;
+        }
+        return res;
+      },
+      { signal: request.abortSignal },
+    );
   } catch (err) {
     const isAbort = request.abortSignal?.aborted;
     if (isAbort) {
@@ -206,13 +212,17 @@ export async function openAIResponsesProtocol(
 
     stream.push({
       type: 'error',
-      error: err instanceof AIError
-        ? err
-        : new AIError(`OpenAI Responses request failed: ${err instanceof Error ? err.message : String(err)}`, {
-            code: 'network',
-            provider: model.provider,
-            cause: err,
-          }),
+      error:
+        err instanceof AIError
+          ? err
+          : new AIError(
+              `OpenAI Responses request failed: ${err instanceof Error ? err.message : String(err)}`,
+              {
+                code: 'network',
+                provider: model.provider,
+                cause: err,
+              },
+            ),
     });
     return;
   }
@@ -275,7 +285,10 @@ export async function openAIResponsesProtocol(
           stream.push({ type: 'tool-call-end', toolCall });
           activeToolCall = null;
         }
-      } else if (eventType === 'response.text.delta' || eventType === 'response.output_text.delta') {
+      } else if (
+        eventType === 'response.text.delta' ||
+        eventType === 'response.output_text.delta'
+      ) {
         const delta = typeof eventData.delta === 'string' ? eventData.delta : '';
         if (delta) {
           const lastBlock = assistantContent[assistantContent.length - 1];

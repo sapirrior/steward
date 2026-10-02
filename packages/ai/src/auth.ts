@@ -32,7 +32,9 @@ export interface AuthOptions {
  */
 export function defaultEnvGetter(name: string): string | undefined {
   if (typeof globalThis !== 'undefined' && 'process' in globalThis) {
-    return (globalThis as unknown as { process?: { env?: Record<string, string> } }).process?.env?.[name];
+    return (globalThis as unknown as { process?: { env?: Record<string, string> } }).process?.env?.[
+      name
+    ];
   }
   return undefined;
 }

@@ -136,7 +136,8 @@ export async function anthropicMessagesProtocol(
     : undefined;
 
   // 4. Configure Thinking mode
-  const requestedEffort = request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
+  const requestedEffort =
+    request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
   const effort = clampThinkingEffort(model, requestedEffort);
   let thinkingPayload: unknown | undefined;
   let outputConfigPayload: unknown | undefined;
@@ -147,9 +148,10 @@ export async function anthropicMessagesProtocol(
       outputConfigPayload = { effort };
     } else {
       const mappedVal = model.thinkingLevelMap?.[effort];
-      const budget = typeof mappedVal === 'number'
-        ? mappedVal
-        : calculateAnthropicBudgetTokens(effort, model.maxOutputTokens);
+      const budget =
+        typeof mappedVal === 'number'
+          ? mappedVal
+          : calculateAnthropicBudgetTokens(effort, model.maxOutputTokens);
       if (budget) {
         thinkingPayload = { type: 'enabled', budget_tokens: budget };
       }
@@ -178,7 +180,10 @@ export async function anthropicMessagesProtocol(
   }
 
   // 6. Build headers
-  const rawBase = (auth.baseUrl || model.baseUrl || 'https://api.anthropic.com').replace(/\/+$/, '');
+  const rawBase = (auth.baseUrl || model.baseUrl || 'https://api.anthropic.com').replace(
+    /\/+$/,
+    '',
+  );
   const url = rawBase.endsWith('/v1') ? `${rawBase}/messages` : `${rawBase}/v1/messages`;
 
   const headers: Record<string, string> = {
@@ -214,24 +219,29 @@ export async function anthropicMessagesProtocol(
   // 7. Execute request with retry before first byte
   let response: Response;
   try {
-    response = await withRetry(async () => {
-      const res = await fetchFn(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        signal: request.abortSignal,
-      });
+    response = await withRetry(
+      async () => {
+        const res = await fetchFn(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body),
+          signal: request.abortSignal,
+        });
 
-      if (!res.ok) {
-        const errorText = await readErrorBody(res).catch(() => undefined);
-        const error = new Error(`HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`) as HttpError;
-        error.status = res.status;
-        error.headers = res.headers;
-        (error as unknown as { detail?: string }).detail = errorText;
-        throw error;
-      }
-      return res;
-    }, { signal: request.abortSignal });
+        if (!res.ok) {
+          const errorText = await readErrorBody(res).catch(() => undefined);
+          const error = new Error(
+            `HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`,
+          ) as HttpError;
+          error.status = res.status;
+          error.headers = res.headers;
+          (error as unknown as { detail?: string }).detail = errorText;
+          throw error;
+        }
+        return res;
+      },
+      { signal: request.abortSignal },
+    );
   } catch (err: unknown) {
     const isAbort = request.abortSignal?.aborted;
     if (isAbort) {
@@ -257,13 +267,17 @@ export async function anthropicMessagesProtocol(
 
     stream.push({
       type: 'error',
-      error: err instanceof AIError
-        ? err
-        : new AIError(`Anthropic request failed: ${err instanceof Error ? err.message : String(err)}`, {
-            code: 'network',
-            provider: model.provider,
-            cause: err,
-          }),
+      error:
+        err instanceof AIError
+          ? err
+          : new AIError(
+              `Anthropic request failed: ${err instanceof Error ? err.message : String(err)}`,
+              {
+                code: 'network',
+                provider: model.provider,
+                cause: err,
+              },
+            ),
     });
     return;
   }
@@ -316,8 +330,10 @@ export async function anthropicMessagesProtocol(
         else if (typeof u.completion_tokens === 'number') usage.output = u.completion_tokens;
 
         if (typeof u.total_tokens === 'number') usage.total = u.total_tokens;
-        if (typeof u.cache_read_input_tokens === 'number') usage.cacheRead = u.cache_read_input_tokens;
-        if (typeof u.cache_creation_input_tokens === 'number') usage.cacheWrite = u.cache_creation_input_tokens;
+        if (typeof u.cache_read_input_tokens === 'number')
+          usage.cacheRead = u.cache_read_input_tokens;
+        if (typeof u.cache_creation_input_tokens === 'number')
+          usage.cacheWrite = u.cache_creation_input_tokens;
       }
 
       const eventType =

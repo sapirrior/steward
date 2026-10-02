@@ -9,10 +9,7 @@ process.env.STEWARD_SETTINGS_DIR = join(testDir, 'settings');
 process.env.STEWARD_SESSIONS_DIR = join(testDir, 'sessions');
 process.env.STEWARD_LOGS_DIR = join(testDir, 'logs');
 
-import {
-  getAvailableProviders,
-  hasProviderConfig,
-} from '../src/services/config/index.js';
+import { getAvailableProviders, hasProviderConfig } from '../src/services/config/index.js';
 import { PROVIDER_SELECTION_PRIORITY, resolveModelSelection, createAI } from '@steward/ai';
 import { AgentSession } from '../src/engine/agent-session.js';
 import { parseSessionDocument } from '../src/services/session/validate.js';

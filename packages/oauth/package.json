@@ -1,6 +1,7 @@
 {
   "name": "@steward/oauth",
   "version": "0.1.0",
+  "private": true,
   "description": "Zero-dependency OAuth credential store and authentication flows for Steward",
   "type": "module",
   "main": "./src/index.ts",

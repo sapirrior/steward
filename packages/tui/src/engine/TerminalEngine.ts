@@ -441,12 +441,7 @@ export class TerminalEngine {
     if (typeof linesOrFn === 'function') {
       const initialLines = linesOrFn(this.io.columns);
       this.history.push(initialLines, opts?.tag);
-      this.tree.addResponsive(
-        linesOrFn,
-        isWrappable,
-        isClipped,
-        opts?.hangingIndent,
-      );
+      this.tree.addResponsive(linesOrFn, isWrappable, isClipped, opts?.hangingIndent);
     } else {
       this.history.push(linesOrFn, opts?.tag);
       this.tree.addText(linesOrFn, isWrappable, undefined, opts?.hangingIndent, isClipped);
@@ -454,10 +449,7 @@ export class TerminalEngine {
     this.requestFrame();
   }
 
-  mount(
-    component: Component,
-    options: { keepCursorVisible?: boolean } = {},
-  ): void {
+  mount(component: Component, options: { keepCursorVisible?: boolean } = {}): void {
     this.ensureAlternateScreen();
     // If component is already mounted, unmount previous adapter first to avoid duplicate nodes
     if (this.adapters.has(component)) {
@@ -467,10 +459,7 @@ export class TerminalEngine {
     component.engine = this;
     this.components.push(component);
 
-    const adapter = new ComponentNodeAdapter(
-      `comp-${this.idCounter++}`,
-      component,
-    );
+    const adapter = new ComponentNodeAdapter(`comp-${this.idCounter++}`, component);
     this.adapters.set(component, adapter);
     this.tree.mountNode(adapter);
 

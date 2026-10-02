@@ -52,7 +52,7 @@ export const TokenUsageSchema = z
   .transform((val) => {
     const input = val.input ?? val.inputTokens ?? 0;
     const output = val.output ?? val.outputTokens ?? 0;
-    const total = val.total ?? val.totalTokens ?? (input + output);
+    const total = val.total ?? val.totalTokens ?? input + output;
     return {
       input,
       output,

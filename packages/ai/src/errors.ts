@@ -42,8 +42,7 @@ export class AIError extends Error {
     this.status = options.status;
     this.detail = options.detail;
     this.retryable =
-      options.retryable ??
-      (options.code === 'rate-limit' || options.code === 'network');
+      options.retryable ?? (options.code === 'rate-limit' || options.code === 'network');
     this.cause = options.cause;
 
     // Maintain prototype chain

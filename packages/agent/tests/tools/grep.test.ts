@@ -5,7 +5,10 @@ describe('grep tool', () => {
   const cwd = process.cwd();
 
   it('finds text pattern in codebase files', async () => {
-    const result = await grepTool.execute({ pattern: 'Steward', path: 'packages/cli/src/main.ts' }, { cwd });
+    const result = await grepTool.execute(
+      { pattern: 'Steward', path: 'packages/cli/src/main.ts' },
+      { cwd },
+    );
 
     expect(result.matches.length).toBeGreaterThan(0);
     expect(result.matches[0]?.file).toBe('packages/cli/src/main.ts');

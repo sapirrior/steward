@@ -265,10 +265,13 @@ describe('TUI Engine Headless Golden Snapshots', () => {
     engine.commit(header.render(80), { wrap: false, tag: 'header' });
 
     for (let i = 1; i <= 10; i++) {
-      engine.commit(formatUserMessage(`User prompt ${i}: Refactor component ${i} to use Layer 1 primitives.`), {
-        tag: 'prompt',
-        wrap: true,
-      });
+      engine.commit(
+        formatUserMessage(`User prompt ${i}: Refactor component ${i} to use Layer 1 primitives.`),
+        {
+          tag: 'prompt',
+          wrap: true,
+        },
+      );
       engine.commit(
         formatAssistantMessage(
           `Assistant response ${i}:\n- Item A for step ${i}\n- Item B with longer explanation text that wraps across multiple lines cleanly.`,
@@ -307,10 +310,13 @@ describe('TUI Engine Headless Golden Snapshots', () => {
     engine.commit(header.render(120), { wrap: false, tag: 'header' });
 
     for (let i = 1; i <= 10; i++) {
-      engine.commit(formatUserMessage(`User prompt ${i}: Refactor component ${i} to use Layer 1 primitives.`), {
-        tag: 'prompt',
-        wrap: true,
-      });
+      engine.commit(
+        formatUserMessage(`User prompt ${i}: Refactor component ${i} to use Layer 1 primitives.`),
+        {
+          tag: 'prompt',
+          wrap: true,
+        },
+      );
       engine.commit(
         formatAssistantMessage(
           `Assistant response ${i}:\n- Item A for step ${i}\n- Item B with longer explanation text that wraps across multiple lines cleanly.`,

@@ -78,7 +78,6 @@ export async function handleSlashCommandResult(
     return true;
   }
 
-
   if (cmdResult.data?.modeSwitched && cmdResult.data?.selectedMode) {
     ctx.statusBar.setMode(cmdResult.data.selectedMode.name);
   }

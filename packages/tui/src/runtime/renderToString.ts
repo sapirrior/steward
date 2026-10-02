@@ -10,10 +10,7 @@ export interface RenderToStringOptions {
 /**
  * Renders an element tree directly to an ANSI string.
  */
-export function renderToString(
-  element: any,
-  options: RenderToStringOptions = {},
-): string {
+export function renderToString(element: any, options: RenderToStringOptions = {}): string {
   const width = options.columns ?? 80;
   const lines = renderElement(element, {
     width,

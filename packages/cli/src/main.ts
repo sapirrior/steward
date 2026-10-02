@@ -113,7 +113,6 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<void>
     });
     await app.start();
   } catch (err) {
-
     logError(err, { phase: 'initialization' });
     console.error(
       'Failed to initialize steward:',

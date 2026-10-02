@@ -71,7 +71,9 @@ describe('event-stream — AssistantMessageStream', () => {
     await consuming;
     const terminalEvents = events.filter((e) => e.type === 'done' || e.type === 'error');
     expect(terminalEvents).toHaveLength(1);
-    expect(events.find((e) => e.type === 'text-delta' && (e as { delta: string }).delta === 'ignored')).toBeUndefined();
+    expect(
+      events.find((e) => e.type === 'text-delta' && (e as { delta: string }).delta === 'ignored'),
+    ).toBeUndefined();
   });
 
   it('is async-iterable and yields events in push order', async () => {
@@ -101,7 +103,10 @@ describe('event-stream — AssistantMessageStream', () => {
     stream.push({ type: 'tool-call-start', id: 'tc1', name: 'search' });
     stream.push({ type: 'tool-call-delta', id: 'tc1', delta: '{"q":' });
     stream.push({ type: 'tool-call-delta', id: 'tc1', delta: '"hello"}' });
-    stream.push({ type: 'tool-call-end', toolCall: { type: 'tool-call', id: 'tc1', name: 'search', arguments: { q: 'hello' } } });
+    stream.push({
+      type: 'tool-call-end',
+      toolCall: { type: 'tool-call', id: 'tc1', name: 'search', arguments: { q: 'hello' } },
+    });
     stream.push({
       type: 'done',
       message: { role: 'assistant', content: [] },
@@ -138,7 +143,11 @@ describe('event-stream — AssistantMessageStream', () => {
 
     stream.push({
       type: 'done',
-      message: { role: 'assistant', content: [], meta: { provider: 'anthropic', protocol: 'anthropic-messages', modelId: 'test-model' } },
+      message: {
+        role: 'assistant',
+        content: [],
+        meta: { provider: 'anthropic', protocol: 'anthropic-messages', modelId: 'test-model' },
+      },
       usage: { input: 1000, output: 200 },
       finishReason: 'stop',
     });

@@ -16,7 +16,7 @@ export interface CreateAppOptions<S extends object> extends MountOptions<S> {
 
 /**
  * Creates and runs a Stitchable TUI application with automatic engine management.
- * 
+ *
  * @example
  * ```ts
  * const app = createApp((state, ctx) => {
@@ -35,7 +35,8 @@ export function createApp<S extends object = Record<string, any>>(
   options: CreateAppOptions<S> = {},
 ): UIHandle<S> {
   const io = options.io ?? nodeIO({ stdout: options.stdout, stdin: options.stdin });
-  const isInteractive = options.interactive ?? (io.isTTY && !(typeof process !== 'undefined' && process.env.CI));
+  const isInteractive =
+    options.interactive ?? (io.isTTY && !(typeof process !== 'undefined' && process.env.CI));
 
   const engine = new TerminalEngine({
     io,

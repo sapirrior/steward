@@ -38,21 +38,13 @@ describe('new providers (Grok, Mistral, GitHub Copilot)', () => {
     expect(p.streams['openai-completions']).toBeDefined();
 
     // Test default base URL when token has no proxy-ep
-    const prepDefault = p.prepare?.(
-      {} as any,
-      {} as any,
-      { apiKey: 'simple-token' },
-    );
+    const prepDefault = p.prepare?.({} as any, {} as any, { apiKey: 'simple-token' });
     expect(prepDefault?.baseUrl).toBe('https://api.individual.githubcopilot.com');
     expect(prepDefault?.headers?.['User-Agent']).toBe(COPILOT_HEADERS['User-Agent']);
 
     // Test dynamic base URL resolution from proxy-ep
     const proxyToken = 'tid=123;proxy-ep=proxy.business.githubcopilot.com;exp=456';
-    const prepDynamic = p.prepare?.(
-      {} as any,
-      {} as any,
-      { apiKey: proxyToken },
-    );
+    const prepDynamic = p.prepare?.({} as any, {} as any, { apiKey: proxyToken });
     expect(prepDynamic?.baseUrl).toBe('https://api.business.githubcopilot.com');
   });
 

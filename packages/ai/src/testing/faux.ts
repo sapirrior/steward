@@ -47,18 +47,19 @@ function runScript(
         if (step.type === 'delay') {
           await new Promise<void>((resolve, reject) => {
             const t = setTimeout(resolve, step.ms);
-            request.abortSignal?.addEventListener('abort', () => {
-              clearTimeout(t);
-              reject(new Error('aborted'));
-            }, { once: true });
+            request.abortSignal?.addEventListener(
+              'abort',
+              () => {
+                clearTimeout(t);
+                reject(new Error('aborted'));
+              },
+              { once: true },
+            );
           });
-
         } else if (step.type === 'text') {
           stream.push({ type: 'text-delta', delta: step.text });
-
         } else if (step.type === 'thinking') {
           stream.push({ type: 'reasoning-delta', delta: step.text });
-
         } else if (step.type === 'tool-call') {
           stream.push({ type: 'tool-call-start', id: step.id, name: step.name });
           stream.push({ type: 'tool-call-delta', id: step.id, delta: JSON.stringify(step.args) });
@@ -66,14 +67,15 @@ function runScript(
             type: 'tool-call-end',
             toolCall: { type: 'tool-call', id: step.id, name: step.name, arguments: step.args },
           });
-
         } else if (step.type === 'error') {
           stream.push({
             type: 'error',
-            error: new AIError(step.message, { code: step.code ?? 'provider', provider: FAUX_PROVIDER_ID }),
+            error: new AIError(step.message, {
+              code: step.code ?? 'provider',
+              provider: FAUX_PROVIDER_ID,
+            }),
           });
           return;
-
         } else if (step.type === 'done') {
           break;
         }

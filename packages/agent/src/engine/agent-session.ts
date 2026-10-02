@@ -196,7 +196,6 @@ export class AgentSession {
     return this.ai;
   }
 
-
   public setModel(selection: ModelSelection, persist = true): ModelSelection {
     this.config.provider = selection.provider;
     this.config.modelId = selection.modelId;
@@ -275,17 +274,13 @@ export class AgentSession {
 
     this.isGenerating = true;
 
-    const prep = await prepareTurn(
-      trimmedPrompt,
-      options,
-      {
-        sessionId: this.sessionData.id,
-        shellTasks: this.shellTasks,
-        sessionLogWriter: this.sessionLogWriter,
-        turnNumber: this.sessionData.turns.length + 1,
-        model: this.getModel(),
-      },
-    );
+    const prep = await prepareTurn(trimmedPrompt, options, {
+      sessionId: this.sessionData.id,
+      shellTasks: this.shellTasks,
+      sessionLogWriter: this.sessionLogWriter,
+      turnNumber: this.sessionData.turns.length + 1,
+      model: this.getModel(),
+    });
 
     this.messages.push(prep.userMessage);
     this.activeAbortController = prep.abortController;
@@ -437,9 +432,7 @@ export class AgentSession {
     const turnMessages: Message[] =
       status === 'errored' ? [userMessage] : [userMessage, ...responseMessages];
 
-    const usage: TokenUsage = summary
-      ? summary.usage
-      : { input: 0, output: 0, total: 0 };
+    const usage: TokenUsage = summary ? summary.usage : { input: 0, output: 0, total: 0 };
 
     recordSessionTurn(this.sessionData, {
       id: turnId,

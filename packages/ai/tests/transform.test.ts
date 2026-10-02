@@ -199,10 +199,14 @@ describe('transform/messages — Cross-Model Handoff', () => {
 
     const sameRes = transformMessages(messages, claudeModel);
     const sameAssistant = sameRes[0] as AssistantMessage;
-    expect((sameAssistant.content[0] as { thoughtSignature?: string }).thoughtSignature).toBe('sig_123');
+    expect((sameAssistant.content[0] as { thoughtSignature?: string }).thoughtSignature).toBe(
+      'sig_123',
+    );
 
     const foreignRes = transformMessages(messages, gptModel);
     const foreignAssistant = foreignRes[0] as AssistantMessage;
-    expect((foreignAssistant.content[0] as { thoughtSignature?: string }).thoughtSignature).toBeUndefined();
+    expect(
+      (foreignAssistant.content[0] as { thoughtSignature?: string }).thoughtSignature,
+    ).toBeUndefined();
   });
 });

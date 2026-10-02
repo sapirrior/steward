@@ -1,4 +1,10 @@
-import { getActiveMode, listModes, findMode, setActiveMode, saveModeSelection } from '@steward/agent';
+import {
+  getActiveMode,
+  listModes,
+  findMode,
+  setActiveMode,
+  saveModeSelection,
+} from '@steward/agent';
 import type { SlashCommand, CommandContext } from '../types.js';
 
 export const modeCommand: SlashCommand = {

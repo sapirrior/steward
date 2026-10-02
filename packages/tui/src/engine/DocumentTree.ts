@@ -112,7 +112,11 @@ export class DocumentTree {
   }
 
   private pruneHistoryIfNeeded(): void {
-    if (this.historyLimit && this.historyLimit > 0 && this.cachedHistoryRows.length > this.historyLimit) {
+    if (
+      this.historyLimit &&
+      this.historyLimit > 0 &&
+      this.cachedHistoryRows.length > this.historyLimit
+    ) {
       const dropCount = this.cachedHistoryRows.length - this.historyLimit;
       this.cachedHistoryRows = this.cachedHistoryRows.slice(dropCount);
       // If historyNodes array grows excessively, keep it bounded

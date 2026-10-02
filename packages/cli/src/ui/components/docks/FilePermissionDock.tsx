@@ -68,7 +68,11 @@ export default class FilePermissionDock extends Component<
     if (this.removeInputListener) return;
 
     const handleChunk = (chunk: string | Buffer): boolean | void => {
-      const rawStr = Buffer.isBuffer(chunk) ? chunk.toString('utf-8') : typeof chunk === 'string' ? chunk : String(chunk);
+      const rawStr = Buffer.isBuffer(chunk)
+        ? chunk.toString('utf-8')
+        : typeof chunk === 'string'
+          ? chunk
+          : String(chunk);
       const normalized = rawStr.replace(/\x1bO([A-D])/g, '\x1b[$1');
       const events = parseInputChunk(normalized);
 

@@ -193,18 +193,15 @@ export function recordSessionTurn(
   session.totalUsage.output = (session.totalUsage.output ?? 0) + (turn.usage.output ?? 0);
   session.totalUsage.total =
     (session.totalUsage.total ?? 0) +
-    (turn.usage.total ?? ((turn.usage.input ?? 0) + (turn.usage.output ?? 0)));
+    (turn.usage.total ?? (turn.usage.input ?? 0) + (turn.usage.output ?? 0));
   if (turn.usage.reasoning !== undefined) {
-    session.totalUsage.reasoning =
-      (session.totalUsage.reasoning ?? 0) + turn.usage.reasoning;
+    session.totalUsage.reasoning = (session.totalUsage.reasoning ?? 0) + turn.usage.reasoning;
   }
   if (turn.usage.cacheRead !== undefined) {
-    session.totalUsage.cacheRead =
-      (session.totalUsage.cacheRead ?? 0) + turn.usage.cacheRead;
+    session.totalUsage.cacheRead = (session.totalUsage.cacheRead ?? 0) + turn.usage.cacheRead;
   }
   if (turn.usage.cacheWrite !== undefined) {
-    session.totalUsage.cacheWrite =
-      (session.totalUsage.cacheWrite ?? 0) + turn.usage.cacheWrite;
+    session.totalUsage.cacheWrite = (session.totalUsage.cacheWrite ?? 0) + turn.usage.cacheWrite;
   }
 
   saveSession(session);

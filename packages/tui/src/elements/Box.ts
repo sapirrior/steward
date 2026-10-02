@@ -1,20 +1,9 @@
-import type {
-  BoxProps,
-  Block,
-  RenderContext,
-  StitchableElement,
-  BorderGlyphs,
-} from './types.js';
+import type { BoxProps, Block, RenderContext, StitchableElement, BorderGlyphs } from './types.js';
 import { visibleWidth } from '../text/width.js';
 import { resolveBorderStyle } from './border.js';
 import { colorToSgr, styleText } from '../terminal/color.js';
 import { RESET_SGR } from '../terminal/sequences.js';
-import {
-  distributeFlexSpace,
-  computeJustifyGaps,
-  alignBlockInRow,
-  type FlexItem,
-} from './flex.js';
+import { distributeFlexSpace, computeJustifyGaps, alignBlockInRow, type FlexItem } from './flex.js';
 import { renderTextElement } from './Text.js';
 import { renderNewlineElement } from './Newline.js';
 import { renderSpacerElement, Spacer } from './Spacer.js';
@@ -155,7 +144,10 @@ export function renderBoxElement(
 
   const childContext: RenderContext = {
     width: availableInnerWidth,
-    height: explicitHeight !== undefined ? Math.max(0, explicitHeight - totalVerticalOverhead) : undefined,
+    height:
+      explicitHeight !== undefined
+        ? Math.max(0, explicitHeight - totalVerticalOverhead)
+        : undefined,
     colorLevel: context.colorLevel,
     inheritedBg: props.backgroundColor ?? context.inheritedBg,
   };
@@ -179,7 +171,7 @@ export function renderBoxElement(
   const isReverse = direction === 'row-reverse' || direction === 'column-reverse';
   const itemsList = isReverse ? [...childrenList].reverse() : childrenList;
 
-  const gap = props.gap ?? (isRow ? props.columnGap ?? 0 : props.rowGap ?? 0);
+  const gap = props.gap ?? (isRow ? (props.columnGap ?? 0) : (props.rowGap ?? 0));
   const justifyContent = props.justifyContent ?? 'flex-start';
   const alignItems = props.alignItems ?? 'stretch';
 
@@ -216,15 +208,25 @@ export function renderBoxElement(
     const childFlexItems: FlexItem[] = [];
 
     for (const child of itemsList) {
-      const isSpacer = typeof child === 'object' && (child?.type?.name === 'Spacer' || child?.type === Spacer);
-      const flexGrow = isSpacer ? 1 : (typeof child === 'object' && child?.props?.flexGrow ? child.props.flexGrow : 0);
-      const flexShrink = typeof child === 'object' && child?.props?.flexShrink !== undefined ? child.props.flexShrink : 1;
-      const childWidthProp = typeof child === 'object' && child?.props?.width !== undefined
-        ? parseDimension(child.props.width, availableInnerWidth)
-        : undefined;
-      const flexBasisProp = typeof child === 'object' && child?.props?.flexBasis !== undefined
-        ? parseDimension(child.props.flexBasis, availableInnerWidth)
-        : undefined;
+      const isSpacer =
+        typeof child === 'object' && (child?.type?.name === 'Spacer' || child?.type === Spacer);
+      const flexGrow = isSpacer
+        ? 1
+        : typeof child === 'object' && child?.props?.flexGrow
+          ? child.props.flexGrow
+          : 0;
+      const flexShrink =
+        typeof child === 'object' && child?.props?.flexShrink !== undefined
+          ? child.props.flexShrink
+          : 1;
+      const childWidthProp =
+        typeof child === 'object' && child?.props?.width !== undefined
+          ? parseDimension(child.props.width, availableInnerWidth)
+          : undefined;
+      const flexBasisProp =
+        typeof child === 'object' && child?.props?.flexBasis !== undefined
+          ? parseDimension(child.props.flexBasis, availableInnerWidth)
+          : undefined;
 
       let naturalWidth = 0;
       if (isSpacer) {
@@ -268,7 +270,13 @@ export function renderBoxElement(
     // Join horizontally
     const tallest = Math.max(1, ...renderedBlocks.map((b) => b.lines.length));
     const alignedBlocks = renderedBlocks.map((b, idx) =>
-      alignBlockInRow(b, tallest, targetWidths[idx] ?? b.width, alignItems, childFlexItems[idx]?.alignSelf),
+      alignBlockInRow(
+        b,
+        tallest,
+        targetWidths[idx] ?? b.width,
+        alignItems,
+        childFlexItems[idx]?.alignSelf,
+      ),
     );
 
     const { leadingSpace, gaps } = computeJustifyGaps(
@@ -297,9 +305,9 @@ export function renderBoxElement(
   const innerWidth =
     explicitWidth !== undefined
       ? Math.max(0, explicitWidth - (marginLeft + marginRight + borderX))
-      : (props.flexGrow && context.width > 0 && !context.isNaturalMeasuring
-          ? Math.max(contentWidth + paddingLeft + paddingRight, context.width)
-          : contentWidth + paddingLeft + paddingRight);
+      : props.flexGrow && context.width > 0 && !context.isNaturalMeasuring
+        ? Math.max(contentWidth + paddingLeft + paddingRight, context.width)
+        : contentWidth + paddingLeft + paddingRight;
 
   const paddedLines: string[] = [];
   const emptyPaddedRow = ' '.repeat(innerWidth);
@@ -347,22 +355,44 @@ export function renderBoxElement(
     };
 
     if (hasBorderTop) {
-      const tl = colorizeBorder(borderGlyphs.topLeft, props.borderTopColor ?? props.borderLeftColor);
-      const tr = colorizeBorder(borderGlyphs.topRight, props.borderTopColor ?? props.borderRightColor);
-      const horiz = colorizeBorder(borderGlyphs.horizontal.repeat(innerWidth), props.borderTopColor);
+      const tl = colorizeBorder(
+        borderGlyphs.topLeft,
+        props.borderTopColor ?? props.borderLeftColor,
+      );
+      const tr = colorizeBorder(
+        borderGlyphs.topRight,
+        props.borderTopColor ?? props.borderRightColor,
+      );
+      const horiz = colorizeBorder(
+        borderGlyphs.horizontal.repeat(innerWidth),
+        props.borderTopColor,
+      );
       finalBoxLines.push(`${tl}${horiz}${tr}`);
     }
 
     for (const rowLine of paddedLines) {
-      const left = hasBorderLeft ? colorizeBorder(borderGlyphs.vertical, props.borderLeftColor) : '';
-      const right = hasBorderRight ? colorizeBorder(borderGlyphs.vertical, props.borderRightColor) : '';
+      const left = hasBorderLeft
+        ? colorizeBorder(borderGlyphs.vertical, props.borderLeftColor)
+        : '';
+      const right = hasBorderRight
+        ? colorizeBorder(borderGlyphs.vertical, props.borderRightColor)
+        : '';
       finalBoxLines.push(`${left}${rowLine}${right}`);
     }
 
     if (hasBorderBottom) {
-      const bl = colorizeBorder(borderGlyphs.bottomLeft, props.borderBottomColor ?? props.borderLeftColor);
-      const br = colorizeBorder(borderGlyphs.bottomRight, props.borderBottomColor ?? props.borderRightColor);
-      const horiz = colorizeBorder(borderGlyphs.horizontal.repeat(innerWidth), props.borderBottomColor);
+      const bl = colorizeBorder(
+        borderGlyphs.bottomLeft,
+        props.borderBottomColor ?? props.borderLeftColor,
+      );
+      const br = colorizeBorder(
+        borderGlyphs.bottomRight,
+        props.borderBottomColor ?? props.borderRightColor,
+      );
+      const horiz = colorizeBorder(
+        borderGlyphs.horizontal.repeat(innerWidth),
+        props.borderBottomColor,
+      );
       finalBoxLines.push(`${bl}${horiz}${br}`);
     }
   } else {
@@ -421,9 +451,12 @@ export function Box(
     !('type' in propsOrChildren)
   ) {
     props = { ...propsOrChildren };
-    children = props.children !== undefined
-      ? (Array.isArray(props.children) ? props.children : [props.children])
-      : restChildren;
+    children =
+      props.children !== undefined
+        ? Array.isArray(props.children)
+          ? props.children
+          : [props.children]
+        : restChildren;
   } else if (propsOrChildren !== undefined) {
     children = [propsOrChildren, ...restChildren];
     props.children = children;

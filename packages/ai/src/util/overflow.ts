@@ -14,36 +14,33 @@ import type { InferenceResult } from '../types.js';
  * Ordered from most-specific to most-generic.
  */
 const OVERFLOW_PATTERNS: RegExp[] = [
-  /prompt (?:is )?too long/i,                                                            // Anthropic, z.ai
-  /request_too_large/i,                                                                   // Anthropic HTTP 413
-  /exceeds the context window/i,                                                          // OpenAI Completions & Responses
+  /prompt (?:is )?too long/i, // Anthropic, z.ai
+  /request_too_large/i, // Anthropic HTTP 413
+  /exceeds the context window/i, // OpenAI Completions & Responses
   /exceeds (?:the )?(?:model'?s )?maximum context length(?: of [\d,]+ tokens?|\s*\([\d,]+\))/i, // OpenAI-compatible / LiteLLM
-  /input token count.*exceeds the maximum/i,                                              // Google Gemini
-  /maximum prompt length is \d+/i,                                                        // xAI Grok
-  /reduce the length of the messages/i,                                                   // Groq
-  /maximum context length is \d+ tokens/i,                                                // OpenRouter
-  /exceeds (?:the )?maximum allowed input length of [\d,]+ tokens?/i,                    // OpenRouter/Poolside
-  /input \(\d+ tokens\) is longer than the model'?s context length \(\d+ tokens\)/i,     // Together AI
-  /exceeds the limit of \d+/i,                                                            // GitHub Copilot
-  /exceeds the available context size/i,                                                  // llama.cpp
-  /greater than the context length/i,                                                     // LM Studio
-  /context window exceeds limit/i,                                                        // MiniMax
-  /exceeded model token limit/i,                                                          // Kimi for Coding
-  /too large for model with \d+ maximum context length/i,                                 // Mistral
-  /prompt has [\d,]+ tokens?, but the configured context size is [\d,]+ tokens?/i,       // DS4
-  /model_context_window_exceeded/i,                                                       // z.ai non-standard finish_reason
-  /prompt too long; exceeded (?:max )?context length/i,                                  // Ollama
-  /range of input length should be/i,                                                     // DashScope / Qwen
-  /context[_ ]length[_ ]exceeded/i,                                                       // Generic fallback
-  /too many tokens/i,                                                                     // Generic fallback
-  /token limit exceeded/i,                                                                // Generic fallback
+  /input token count.*exceeds the maximum/i, // Google Gemini
+  /maximum prompt length is \d+/i, // xAI Grok
+  /reduce the length of the messages/i, // Groq
+  /maximum context length is \d+ tokens/i, // OpenRouter
+  /exceeds (?:the )?maximum allowed input length of [\d,]+ tokens?/i, // OpenRouter/Poolside
+  /input \(\d+ tokens\) is longer than the model'?s context length \(\d+ tokens\)/i, // Together AI
+  /exceeds the limit of \d+/i, // GitHub Copilot
+  /exceeds the available context size/i, // llama.cpp
+  /greater than the context length/i, // LM Studio
+  /context window exceeds limit/i, // MiniMax
+  /exceeded model token limit/i, // Kimi for Coding
+  /too large for model with \d+ maximum context length/i, // Mistral
+  /prompt has [\d,]+ tokens?, but the configured context size is [\d,]+ tokens?/i, // DS4
+  /model_context_window_exceeded/i, // z.ai non-standard finish_reason
+  /prompt too long; exceeded (?:max )?context length/i, // Ollama
+  /range of input length should be/i, // DashScope / Qwen
+  /context[_ ]length[_ ]exceeded/i, // Generic fallback
+  /too many tokens/i, // Generic fallback
+  /token limit exceeded/i, // Generic fallback
 ];
 
 /** Patterns that indicate non-overflow errors (e.g. rate limiting) — take priority. */
-const NON_OVERFLOW_PATTERNS: RegExp[] = [
-  /rate limit/i,
-  /too many requests/i,
-];
+const NON_OVERFLOW_PATTERNS: RegExp[] = [/rate limit/i, /too many requests/i];
 
 /**
  * Returns true if text matches known context overflow patterns.

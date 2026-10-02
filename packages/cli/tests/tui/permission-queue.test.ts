@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import {
-  PermissionQueue,
-  type QueuedPermissionItem,
-} from '../../src/ui/utils/permission-queue.js';
+import { PermissionQueue, type QueuedPermissionItem } from '../../src/ui/utils/permission-queue.js';
 
-import type {
-  BashPermissionRequest,
-  FilePermissionRequest,
-} from '@steward/agent';
+import type { BashPermissionRequest, FilePermissionRequest } from '@steward/agent';
 
 describe('PermissionQueue Concurrency & Abort Orchestration (Section 32)', () => {
   it('displays request A, queues request B, and transitions B to active on A approval', async () => {

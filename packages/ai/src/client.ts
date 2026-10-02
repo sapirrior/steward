@@ -22,10 +22,7 @@ import {
   type ModelFilter,
   type ModelsDevApiResponse,
 } from './models/catalog.js';
-import {
-  resolveModelSelection,
-  type ModelSelectionRequest,
-} from './models/selection.js';
+import { resolveModelSelection, type ModelSelectionRequest } from './models/selection.js';
 import { builtinProviders } from './providers/index.js';
 import type {
   InferenceRequest,
@@ -56,7 +53,11 @@ export interface Provider {
   readonly keyless?: boolean;
   readonly defaultModelId?: string;
   streams: Partial<Record<ProtocolId, ProtocolStream>>;
-  prepare?(model: Model, request: InferenceRequest, auth: ResolvedAuth): { headers?: Record<string, string>; baseUrl?: string };
+  prepare?(
+    model: Model,
+    request: InferenceRequest,
+    auth: ResolvedAuth,
+  ): { headers?: Record<string, string>; baseUrl?: string };
 }
 
 // ─── Provider & Auth Status ───────────────────────────────────────────────────
@@ -138,7 +139,6 @@ export function createAI(opts: CreateAIOptions = {}): AI {
   for (const m of opts.models ?? []) {
     modelsMap.set(`${m.provider}/${m.id}`, m);
   }
-
 
   const authOptions: AuthOptions = {
     apiKeys: opts.apiKeys,
@@ -287,7 +287,6 @@ export function createAI(opts: CreateAIOptions = {}): AI {
       return filterModels(available, normalizeFilter(filter));
     },
 
-
     async resolveModel(request?: ModelSelectionRequest): Promise<ModelSelection> {
       return resolveModelSelection(request, {
         isConfigured: (id) => ai.isConfigured(id),
@@ -296,7 +295,8 @@ export function createAI(opts: CreateAIOptions = {}): AI {
 
     stream(request: InferenceRequest): InferenceStream {
       const providerId = request.model.provider;
-      const modelId = 'modelId' in request.model ? request.model.modelId : (request.model as Model).id;
+      const modelId =
+        'modelId' in request.model ? request.model.modelId : (request.model as Model).id;
       const p = providersMap.get(providerId);
 
       let model: Model | undefined;
@@ -312,7 +312,10 @@ export function createAI(opts: CreateAIOptions = {}): AI {
       (async () => {
         try {
           if (!p) {
-            throw new AIError(`Unknown provider: ${providerId}`, { code: 'invalid-request', provider: providerId });
+            throw new AIError(`Unknown provider: ${providerId}`, {
+              code: 'invalid-request',
+              provider: providerId,
+            });
           }
 
           if (!model) {
@@ -341,9 +344,12 @@ export function createAI(opts: CreateAIOptions = {}): AI {
         } catch (err) {
           stream.push({
             type: 'error',
-            error: err instanceof AIError
-              ? err
-              : new AIError(err instanceof Error ? err.message : String(err), { code: 'provider' }),
+            error:
+              err instanceof AIError
+                ? err
+                : new AIError(err instanceof Error ? err.message : String(err), {
+                    code: 'provider',
+                  }),
           });
         }
       })();

@@ -327,7 +327,8 @@ export async function executeRewind(options: RewindOptions): Promise<RewindResul
         recalculatedUsage.cacheRead += t.usage.cacheRead ?? (t.usage as any).cacheReadTokens ?? 0;
       }
       if (t.usage.cacheWrite ?? (t.usage as any).cacheWriteTokens) {
-        recalculatedUsage.cacheWrite += t.usage.cacheWrite ?? (t.usage as any).cacheWriteTokens ?? 0;
+        recalculatedUsage.cacheWrite +=
+          t.usage.cacheWrite ?? (t.usage as any).cacheWriteTokens ?? 0;
       }
     }
 

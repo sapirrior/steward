@@ -44,9 +44,18 @@ export function parseStreamingJson<T = JsonObject>(partial: string): T {
 
   for (let i = 0; i < candidate.length; i++) {
     const char = candidate[i];
-    if (escaped) { escaped = false; continue; }
-    if (char === '\\') { escaped = true; continue; }
-    if (char === '"') { inString = !inString; continue; }
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
     if (inString) continue;
     if (char === '{' || char === '[') stack.push(char);
     else if (char === '}' && stack[stack.length - 1] === '{') stack.pop();

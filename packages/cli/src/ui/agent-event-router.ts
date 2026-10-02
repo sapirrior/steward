@@ -131,18 +131,14 @@ export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventL
           ? new Date(event.summary.finishedAt)
           : new Date();
         engine.commit(
-          [
-            '',
-            formatTurnStatus(totalDurationMs, finishedAt, event.summary.statusVerb),
-          ],
+          ['', formatTurnStatus(totalDurationMs, finishedAt, event.summary.statusVerb)],
           { tag: 'system' },
         );
 
         if (event.summary.stopReason === 'step-limit') {
-          engine.commit(
-            formatSystemMessage('Step budget reached. Generation stopped early.'),
-            { tag: 'system' },
-          );
+          engine.commit(formatSystemMessage('Step budget reached. Generation stopped early.'), {
+            tag: 'system',
+          });
         }
         break;
       }

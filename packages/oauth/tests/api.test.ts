@@ -34,7 +34,6 @@ describe('@steward/oauth public API', () => {
     await rm(tempDir, { recursive: true, force: true });
   });
 
-
   it('setupAuth is idempotent and creates directory', async () => {
     await setupAuth();
     await setupAuth(); // Multiple calls should succeed
@@ -72,5 +71,4 @@ describe('@steward/oauth public API', () => {
     // Use test without actually popping browser
     await expect(launch('https://example.com')).resolves.toBeUndefined();
   });
-
 });

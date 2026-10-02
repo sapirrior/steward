@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import {
-  isPrivateIP,
-  validateSafeUrl,
-} from '../../src/tools/web-fetch/index.js';
+import { isPrivateIP, validateSafeUrl } from '../../src/tools/web-fetch/index.js';
 
 describe('Web Fetch Tool & SSRF Hardening', () => {
   describe('Private & Reserved IP Detection', () => {

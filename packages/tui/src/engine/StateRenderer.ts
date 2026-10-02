@@ -33,7 +33,10 @@ export default class StateRenderer {
     return END_SYNC_OUTPUT;
   }
 
-  private ensureBuffers(width: number, height: number): { front: ScreenBuffer | null; back: ScreenBuffer } {
+  private ensureBuffers(
+    width: number,
+    height: number,
+  ): { front: ScreenBuffer | null; back: ScreenBuffer } {
     if (width !== this.lastWidth || height !== this.lastHeight || !this.backBuffer) {
       this.backBuffer = new ScreenBuffer(width, height);
       this.lastWidth = width;

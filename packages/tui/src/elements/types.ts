@@ -16,12 +16,7 @@ export interface TextStyleProps {
 }
 
 export type TextWrapMode =
-  | 'wrap'
-  | 'hard'
-  | 'truncate'
-  | 'truncate-start'
-  | 'truncate-middle'
-  | 'truncate-end';
+  'wrap' | 'hard' | 'truncate' | 'truncate-start' | 'truncate-middle' | 'truncate-end';
 
 export interface TextProps extends TextStyleProps {
   wrap?: TextWrapMode;
@@ -31,23 +26,12 @@ export interface TextProps extends TextStyleProps {
 
 export type FlexDirection = 'row' | 'column' | 'row-reverse' | 'column-reverse';
 export type JustifyContent =
-  | 'flex-start'
-  | 'flex-end'
-  | 'center'
-  | 'space-between'
-  | 'space-around'
-  | 'space-evenly';
+  'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around' | 'space-evenly';
 export type AlignItems = 'flex-start' | 'center' | 'flex-end' | 'stretch';
 export type AlignSelf = 'auto' | 'flex-start' | 'center' | 'flex-end' | 'stretch';
 
 export type BorderStyleName =
-  | 'single'
-  | 'double'
-  | 'round'
-  | 'bold'
-  | 'singleDouble'
-  | 'doubleSingle'
-  | 'classic';
+  'single' | 'double' | 'round' | 'bold' | 'singleDouble' | 'doubleSingle' | 'classic';
 
 export interface BorderGlyphs {
   topLeft: string;

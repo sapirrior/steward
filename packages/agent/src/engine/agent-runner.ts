@@ -45,7 +45,7 @@ export function accumulateTokenUsage(current: TokenUsage, delta?: TokenUsage): T
   if (!delta) return { ...current };
   const input = (current.input ?? 0) + (delta.input ?? 0);
   const output = (current.output ?? 0) + (delta.output ?? 0);
-  const total = (current.total ?? 0) + (delta.total ?? (input + output));
+  const total = (current.total ?? 0) + (delta.total ?? input + output);
   return {
     input,
     output,

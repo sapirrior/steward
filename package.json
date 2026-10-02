@@ -10,8 +10,8 @@
     "dev": "bun --watch packages/cli/src/main.ts",
     "start": "bun packages/cli/src/main.ts",
     "test": "bun test",
-    "format": "prettier --check \"packages/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/tests/**/*.{ts,tsx,js,jsx}\"",
-    "format:fix": "prettier --write \"packages/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/tests/**/*.{ts,tsx,js,jsx}\"",
+    "format": "bun ./node_modules/prettier/bin/prettier.cjs --check \"packages/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/tests/**/*.{ts,tsx,js,jsx}\"",
+    "format:fix": "bun ./node_modules/prettier/bin/prettier.cjs --write \"packages/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/tests/**/*.{ts,tsx,js,jsx}\"",
     "lint:boundaries": "bun test packages/cli/tests/tui/boundary-lint.test.ts",
     "typecheck": "tsc -b packages/ai packages/tui packages/agent packages/cli"
   },

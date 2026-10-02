@@ -1,12 +1,28 @@
-import { login as oauthLogin, authStatus as oauthAuthStatus, type LoginResult } from '@steward/oauth';
+import {
+  login as oauthLogin,
+  authStatus as oauthAuthStatus,
+  type LoginResult,
+} from '@steward/oauth';
 import { normalizeProviderId } from '@steward/ai';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 import type { OAuthProviderItem } from '../../ui/components/docks/LoginPicker.js';
 
 const OAUTH_PROVIDERS: { id: string; name: string; description: string }[] = [
-  { id: 'anthropic', name: 'Anthropic (Claude)', description: 'Authenticate via Anthropic Console OAuth' },
-  { id: 'openrouter', name: 'OpenRouter', description: 'Authenticate with PKCE to access all OpenRouter models' },
-  { id: 'github-copilot', name: 'GitHub Copilot', description: 'Authenticate with Device Code to access Copilot models' },
+  {
+    id: 'anthropic',
+    name: 'Anthropic (Claude)',
+    description: 'Authenticate via Anthropic Console OAuth',
+  },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    description: 'Authenticate with PKCE to access all OpenRouter models',
+  },
+  {
+    id: 'github-copilot',
+    name: 'GitHub Copilot',
+    description: 'Authenticate with Device Code to access Copilot models',
+  },
 ];
 
 /**

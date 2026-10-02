@@ -1,12 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import {
-  Box,
-  Text,
-  Newline,
-  Spacer,
-  Transform,
-  renderElement,
-} from '../../src/elements/index.js';
+import { Box, Text, Newline, Spacer, Transform, renderElement } from '../../src/elements/index.js';
 import { visibleWidth } from '../../src/text/width.js';
 import { stripAnsi } from '../../src/text/ansi.js';
 
@@ -18,10 +11,7 @@ describe('Phase 5: Declarative Element Layer Acceptance Tests (5.5)', () => {
   });
 
   it('2 (I) <Box width={10}><Box width="50%"><Text>X</Text></Box><Text>Y</Text></Box>', () => {
-    const el = Box({ width: 10 }, [
-      Box({ width: '50%' }, [Text('X')]),
-      Text('Y'),
-    ]);
+    const el = Box({ width: 10 }, [Box({ width: '50%' }, [Text('X')]), Text('Y')]);
     const lines = renderElement(el, { width: 20 });
     expect(lines[0]?.trimEnd()).toBe('X    Y');
   });
@@ -95,10 +85,7 @@ describe('Phase 5: Declarative Element Layer Acceptance Tests (5.5)', () => {
   });
 
   it('10 (I) <Box width={6}><Box flexBasis={3}><Text>X</Text></Box><Text>Y</Text></Box>', () => {
-    const el = Box({ width: 6 }, [
-      Box({ flexBasis: 3 }, [Text('X')]),
-      Text('Y'),
-    ]);
+    const el = Box({ width: 6 }, [Box({ flexBasis: 3 }, [Text('X')]), Text('Y')]);
     const lines = renderElement(el, { width: 10 });
     expect(lines[0]?.trimEnd()).toBe('X  Y');
   });
@@ -138,10 +125,7 @@ describe('Phase 5: Declarative Element Layer Acceptance Tests (5.5)', () => {
   });
 
   it('16 (S) <Box><Text>Label:</Text><Box flexGrow={1}><Text>fill</Text></Box></Box> at width 20', () => {
-    const el = Box({ width: 20 }, [
-      Text('Label:'),
-      Box({ flexGrow: 1 }, [Text('fill')]),
-    ]);
+    const el = Box({ width: 20 }, [Text('Label:'), Box({ flexGrow: 1 }, [Text('fill')])]);
     const lines = renderElement(el, { width: 20 });
     expect(lines[0]).toBe('Label:fill          ');
   });
@@ -166,11 +150,7 @@ describe('Phase 5: Declarative Element Layer Acceptance Tests (5.5)', () => {
   });
 
   it('19 (I) <Box><Text>Left</Text><Spacer/><Text>Right</Text></Box> at width 12', () => {
-    const el = Box({ width: 12 }, [
-      Text('Left'),
-      Spacer(),
-      Text('Right'),
-    ]);
+    const el = Box({ width: 12 }, [Text('Left'), Spacer(), Text('Right')]);
     const lines = renderElement(el, { width: 12 });
     expect(lines[0]).toBe('Left   Right');
   });
@@ -200,11 +180,7 @@ describe('Phase 5: Declarative Element Layer Acceptance Tests (5.5)', () => {
   });
 
   it('22 (S) nested <Text color="red">a<Text bold>b</Text>c</Text>', () => {
-    const el = Text({ color: 'red' }, [
-      'a',
-      Text({ bold: true }, 'b'),
-      'c',
-    ]);
+    const el = Text({ color: 'red' }, ['a', Text({ bold: true }, 'b'), 'c']);
     const lines = renderElement(el, { width: 10 });
     // Strip escape sequences to verify characters, and check ANSI styling
     expect(stripAnsi(lines[0]!)).toBe('abc');
@@ -223,9 +199,7 @@ describe('Phase 5: Declarative Element Layer Acceptance Tests (5.5)', () => {
   });
 
   it('24 (S) wide (CJK/emoji) content in a bordered/padded box stays aligned', () => {
-    const el = Box({ width: 12, borderStyle: 'single', padding: 1 }, [
-      Text('你好👋'),
-    ]);
+    const el = Box({ width: 12, borderStyle: 'single', padding: 1 }, [Text('你好👋')]);
     const lines = renderElement(el, { width: 12 });
     for (const line of lines) {
       expect(visibleWidth(line)).toBe(12);

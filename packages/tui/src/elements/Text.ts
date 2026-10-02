@@ -1,9 +1,4 @@
-import type {
-  TextProps,
-  Block,
-  RenderContext,
-  StitchableElement,
-} from './types.js';
+import type { TextProps, Block, RenderContext, StitchableElement } from './types.js';
 import { visibleWidth } from '../text/width.js';
 import { truncate } from '../text/truncate.js';
 import { wrapVisualLine } from '../text/wrap.js';
@@ -88,9 +83,7 @@ export function flattenStyledChildren(
   }
 
   if (Array.isArray(node)) {
-    return node
-      .map((child) => flattenStyledChildren(child, parentStyle, context))
-      .join('');
+    return node.map((child) => flattenStyledChildren(child, parentStyle, context)).join('');
   }
 
   if (typeof node === 'object' && node.type) {
@@ -117,11 +110,7 @@ export function renderTextElement(
         ? visibleWidth(props.hangingIndent)
         : 0;
 
-  const styledContent = flattenStyledChildren(
-    props.children ?? element.children,
-    props,
-    context,
-  );
+  const styledContent = flattenStyledChildren(props.children ?? element.children, props, context);
 
   const rawLines = styledContent.split('\n');
   const resultLines: string[] = [];
@@ -139,11 +128,7 @@ export function renderTextElement(
       wrapMode === 'truncate-start'
     ) {
       const mode =
-        wrapMode === 'truncate-start'
-          ? 'start'
-          : wrapMode === 'truncate-middle'
-            ? 'middle'
-            : 'end';
+        wrapMode === 'truncate-start' ? 'start' : wrapMode === 'truncate-middle' ? 'middle' : 'end';
       const truncated = truncate(rawLine, width, { mode, ellipsis: '…' });
       resultLines.push(truncated);
     } else {
@@ -161,18 +146,12 @@ export function renderTextElement(
   };
 }
 
-export function Text(
-  arg1?: any,
-  ...restArgs: any[]
-): StitchableElement<TextProps> {
+export function Text(arg1?: any, ...restArgs: any[]): StitchableElement<TextProps> {
   let props: TextProps = {};
   let children: any[] = [];
 
   const isPropsObject = (obj: any) =>
-    typeof obj === 'object' &&
-    obj !== null &&
-    !Array.isArray(obj) &&
-    !('type' in obj);
+    typeof obj === 'object' && obj !== null && !Array.isArray(obj) && !('type' in obj);
 
   if (isPropsObject(arg1)) {
     props = { ...arg1 };

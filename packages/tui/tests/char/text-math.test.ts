@@ -27,7 +27,8 @@ describe('Phase 3: Text Math, Graphemes, Sanitizer and Truncate', () => {
 
   test('Sanitizer drops malicious terminal escape injections', () => {
     // OSC 52 clipboard write, OSC 0 title change, clear screen, mode 1049
-    const hostile = 'SafeText\x1b]52;c;SGVsbG8=\x07\x1b[2J\x1b]0;Title\x07\x1b[?1049h\x1b[31mRedText\x1b[0m';
+    const hostile =
+      'SafeText\x1b]52;c;SGVsbG8=\x07\x1b[2J\x1b]0;Title\x07\x1b[?1049h\x1b[31mRedText\x1b[0m';
     const sanitized = sanitize(hostile);
 
     expect(sanitized).not.toContain('\x1b]52');

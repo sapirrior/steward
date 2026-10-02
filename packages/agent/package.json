@@ -1,6 +1,7 @@
 {
   "name": "@steward/agent",
   "version": "0.1.0",
+  "private": true,
   "description": "Agent loop, tools, skills, policy, services, and hooks for Steward",
   "type": "module",
   "main": "./src/index.ts",

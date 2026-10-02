@@ -31,7 +31,6 @@ export async function getToken(provider: string, signal?: AbortSignal): Promise<
   return getOrRefreshToken(provider, signal);
 }
 
-
 import { executeProviderLogin } from './providers/index.js';
 
 /**
@@ -58,7 +57,6 @@ export async function logoutAll(): Promise<number> {
   return clearStoredTokens();
 }
 
-
 import { getAuthStatus } from './status.js';
 import { launchBrowser } from './utils/browser.js';
 
@@ -76,4 +74,3 @@ export async function authStatus(): Promise<import('./types').AuthStatus> {
 export async function launch(url: string): Promise<void> {
   await launchBrowser(url);
 }
-

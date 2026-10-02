@@ -11,7 +11,6 @@ export async function launchBrowser(url: string): Promise<void> {
   }
   const platform = process.platform;
 
-
   try {
     // 1. Termux support (Android Termux CLI)
     if (

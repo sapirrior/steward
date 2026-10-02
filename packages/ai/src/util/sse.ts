@@ -41,7 +41,8 @@ export async function* decodeSSE(
       while ((eventEndIndex = findEventEnd(buffer)) !== -1) {
         const rawEvent = buffer.slice(0, eventEndIndex);
         // Advance past the double-newline terminator (handles \n\n, \r\n\r\n, \r\r)
-        const termLen = buffer[eventEndIndex] === '\r' && buffer[eventEndIndex + 1] === '\n' ? 4 : 2;
+        const termLen =
+          buffer[eventEndIndex] === '\r' && buffer[eventEndIndex + 1] === '\n' ? 4 : 2;
         buffer = buffer.slice(eventEndIndex + termLen);
 
         const parsed = parseSSEEvent(rawEvent);

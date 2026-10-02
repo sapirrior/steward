@@ -2,13 +2,7 @@
  * @steward/ai - models.dev Schema Parser and Metadata Normalizer
  */
 
-import type {
-  Model,
-  ProtocolId,
-  ProviderId,
-  ReasoningEffort,
-  ProtocolCompat,
-} from '../types.js';
+import type { Model, ProtocolId, ProviderId, ReasoningEffort, ProtocolCompat } from '../types.js';
 
 export interface ModelsDevRawModel {
   id: string;
@@ -152,11 +146,15 @@ export function parseModelsDevModel(
   }
 
   const protocol = inferProtocolForModel(providerId, raw.id);
-  const reasoning = Boolean(raw.reasoning || (raw.reasoning_options && raw.reasoning_options.length > 0));
+  const reasoning = Boolean(
+    raw.reasoning || (raw.reasoning_options && raw.reasoning_options.length > 0),
+  );
   const thinkingLevelMap = buildThinkingLevelMap(raw.reasoning_options);
 
-  const baseUrl = providerDef?.api || providerDef?.baseUrl || (
-    providerId === 'anthropic'
+  const baseUrl =
+    providerDef?.api ||
+    providerDef?.baseUrl ||
+    (providerId === 'anthropic'
       ? 'https://api.anthropic.com'
       : providerId === 'openai'
         ? 'https://api.openai.com/v1'
@@ -164,12 +162,12 @@ export function parseModelsDevModel(
           ? 'https://generativelanguage.googleapis.com'
           : providerId === 'openrouter'
             ? 'https://openrouter.ai/api/v1'
-            : 'https://api.openai.com/v1'
-  );
+            : 'https://api.openai.com/v1');
 
-  const interleavedField = raw.interleaved?.field === 'reasoning_content' || raw.interleaved?.field === 'reasoning_details'
-    ? raw.interleaved.field
-    : undefined;
+  const interleavedField =
+    raw.interleaved?.field === 'reasoning_content' || raw.interleaved?.field === 'reasoning_details'
+      ? raw.interleaved.field
+      : undefined;
 
   const status = raw.status === 'alpha' || raw.status === 'beta' ? raw.status : undefined;
 

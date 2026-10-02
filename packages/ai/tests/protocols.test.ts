@@ -17,7 +17,8 @@ function createMockFetch(sseLines: string[], status = 200): typeof fetch {
     },
   });
 
-  return async () => new Response(body, { status, headers: { 'Content-Type': 'text/event-stream' } });
+  return async () =>
+    new Response(body, { status, headers: { 'Content-Type': 'text/event-stream' } });
 }
 
 describe('protocols/anthropic-messages', () => {
@@ -49,7 +50,13 @@ describe('protocols/anthropic-messages', () => {
     const stream = new AssistantMessageStream();
     const fetchFn = createMockFetch(sse);
 
-    await anthropicMessagesProtocol(model, req, { apiKey: 'sk-ant-test', source: 'test' }, fetchFn, stream);
+    await anthropicMessagesProtocol(
+      model,
+      req,
+      { apiKey: 'sk-ant-test', source: 'test' },
+      fetchFn,
+      stream,
+    );
     const res = await stream.result();
 
     expect(res.finishReason).toBe('stop');
@@ -86,7 +93,13 @@ describe('protocols/openai-completions', () => {
     const stream = new AssistantMessageStream();
     const fetchFn = createMockFetch(sse);
 
-    await openAICompletionsProtocol(model, req, { apiKey: 'sk-test', source: 'test' }, fetchFn, stream);
+    await openAICompletionsProtocol(
+      model,
+      req,
+      { apiKey: 'sk-test', source: 'test' },
+      fetchFn,
+      stream,
+    );
     const res = await stream.result();
 
     expect(res.finishReason).toBe('stop');
@@ -124,7 +137,13 @@ describe('protocols/google-generative-ai', () => {
     const stream = new AssistantMessageStream();
     const fetchFn = createMockFetch(sse);
 
-    await googleGenerativeAIProtocol(model, req, { apiKey: 'AIzaSyTest', source: 'test' }, fetchFn, stream);
+    await googleGenerativeAIProtocol(
+      model,
+      req,
+      { apiKey: 'AIzaSyTest', source: 'test' },
+      fetchFn,
+      stream,
+    );
     const res = await stream.result();
 
     expect(res.finishReason).toBe('tool-use');
@@ -170,7 +189,13 @@ describe('protocols/openai-responses', () => {
     const stream = new AssistantMessageStream();
     const fetchFn = createMockFetch(sse);
 
-    await openAIResponsesProtocol(model, req, { apiKey: 'sk-resp-test', source: 'test' }, fetchFn, stream);
+    await openAIResponsesProtocol(
+      model,
+      req,
+      { apiKey: 'sk-resp-test', source: 'test' },
+      fetchFn,
+      stream,
+    );
     const res = await stream.result();
 
     expect(res.finishReason).toBe('tool-use');

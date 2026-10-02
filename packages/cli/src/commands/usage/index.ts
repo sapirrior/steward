@@ -27,11 +27,7 @@ function formatDuration(isoDateString?: string): string {
 /**
  * Calculates a universally grounded cost estimate based on standard industry token pricing tiers.
  */
-function estimateUniversalCost(
-  usage: any,
-  modelId: string,
-  provider: string,
-): string {
+function estimateUniversalCost(usage: any, modelId: string, provider: string): string {
   const p = provider.toLowerCase();
   const m = modelId.toLowerCase();
 
@@ -109,8 +105,7 @@ export const usageCommand: SlashCommand = {
     const reasoningTokens = (usage as any).reasoningTokens ?? usage.reasoning ?? 0;
     const cacheReadTokens = (usage as any).cacheReadTokens ?? usage.cacheRead ?? 0;
     const cacheWriteTokens = (usage as any).cacheWriteTokens ?? usage.cacheWrite ?? 0;
-    const totalTokens =
-      (usage as any).totalTokens ?? usage.total ?? inputTokens + outputTokens;
+    const totalTokens = (usage as any).totalTokens ?? usage.total ?? inputTokens + outputTokens;
 
     const lines: string[] = [
       `Session Usage & Analytics:`,
@@ -130,9 +125,7 @@ export const usageCommand: SlashCommand = {
     if (cacheReadTokens > 0) {
       const totalIn = inputTokens + cacheReadTokens;
       const hitRate = totalIn > 0 ? Math.round((cacheReadTokens / totalIn) * 100) : 0;
-      lines.push(
-        `• Cache Read Tokens: ${formatNumber(cacheReadTokens)} (${hitRate}% hit rate)`,
-      );
+      lines.push(`• Cache Read Tokens: ${formatNumber(cacheReadTokens)} (${hitRate}% hit rate)`);
     }
 
     if (cacheWriteTokens > 0) {

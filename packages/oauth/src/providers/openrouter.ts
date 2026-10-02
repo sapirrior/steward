@@ -81,7 +81,11 @@ export async function loginOpenRouter(options?: LoginOptions): Promise<TokenReco
 
     const token = await server.wait();
     if (!token) {
-      throw new OAuthError('OpenRouter OAuth login was cancelled or failed to complete', 'cancelled', 'openrouter');
+      throw new OAuthError(
+        'OpenRouter OAuth login was cancelled or failed to complete',
+        'cancelled',
+        'openrouter',
+      );
     }
     return token;
   } finally {

@@ -61,7 +61,11 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     if (this.removeInputListener) return;
 
     const handleChunk = (chunk: string | Buffer): boolean | void => {
-      const rawStr = Buffer.isBuffer(chunk) ? chunk.toString('utf-8') : typeof chunk === 'string' ? chunk : String(chunk);
+      const rawStr = Buffer.isBuffer(chunk)
+        ? chunk.toString('utf-8')
+        : typeof chunk === 'string'
+          ? chunk
+          : String(chunk);
 
       // Strip SGR mouse sequences (\x1b[<...M/m) and X10 mouse sequences (\x1b[M...)
       const noMouseStr = rawStr

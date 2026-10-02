@@ -20,7 +20,11 @@ describe('errors — classifyHttpError', () => {
     const err413 = classifyHttpError(413, 'Payload too large', 'openai');
     expect(err413.code).toBe('context-overflow');
 
-    const errPattern = classifyHttpError(400, 'prompt is too long for model context window', 'anthropic');
+    const errPattern = classifyHttpError(
+      400,
+      'prompt is too long for model context window',
+      'anthropic',
+    );
     expect(errPattern.code).toBe('context-overflow');
   });
 

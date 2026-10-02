@@ -28,10 +28,7 @@ export interface ModelFilter {
 /**
  * Filter a list of models using structured criteria.
  */
-export function filterModels(
-  models: readonly Model[],
-  filter?: ModelFilter,
-): readonly Model[] {
+export function filterModels(models: readonly Model[], filter?: ModelFilter): readonly Model[] {
   if (!filter) return models;
 
   return models.filter((m) => {

@@ -1,18 +1,7 @@
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
-import {
-  existsSync,
-  mkdirSync,
-  chmodSync,
-  readFileSync,
-  unlinkSync,
-} from 'node:fs';
-import {
-  open,
-  rename,
-  unlink,
-  chmod,
-} from 'node:fs/promises';
+import { existsSync, mkdirSync, chmodSync, readFileSync, unlinkSync } from 'node:fs';
+import { open, rename, unlink, chmod } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import type { AuthStoreData, TokenRecord } from './types.js';
 
@@ -25,7 +14,11 @@ const LOCK_RETRY_INTERVAL_MS = 25;
  * Custom error class ensuring credentials are never leaked in error logs.
  */
 export class AuthStorageError extends Error {
-  constructor(message: string, public readonly code: string, cause?: unknown) {
+  constructor(
+    message: string,
+    public readonly code: string,
+    cause?: unknown,
+  ) {
     super(message, cause ? { cause } : undefined);
     this.name = 'AuthStorageError';
   }
@@ -95,7 +88,10 @@ function withInProcessLock<T>(fn: () => Promise<T>): Promise<T> {
   const next = processLockQueue.then(async () => {
     return fn();
   });
-  processLockQueue = next.then(() => {}, () => {});
+  processLockQueue = next.then(
+    () => {},
+    () => {},
+  );
   return next;
 }
 
@@ -178,10 +174,7 @@ export async function readAuthStore(): Promise<AuthStoreData> {
 export async function writeAuthStore(data: AuthStoreData): Promise<void> {
   const dir = await ensureAuthDir();
   const filePath = getAuthFilePath();
-  const tempPath = join(
-    dir,
-    `auth.tmp.${Date.now()}.${randomBytes(4).toString('hex')}`,
-  );
+  const tempPath = join(dir, `auth.tmp.${Date.now()}.${randomBytes(4).toString('hex')}`);
 
   const serialized = JSON.stringify(data, null, 2);
 
@@ -210,7 +203,9 @@ export async function writeAuthStore(data: AuthStoreData): Promise<void> {
  * Executes a locked read-modify-write mutation on the auth store.
  */
 export async function mutateAuthStore<T>(
-  mutator: (data: AuthStoreData) => Promise<{ data: AuthStoreData; result: T }> | { data: AuthStoreData; result: T },
+  mutator: (
+    data: AuthStoreData,
+  ) => Promise<{ data: AuthStoreData; result: T }> | { data: AuthStoreData; result: T },
 ): Promise<T> {
   return withInProcessLock(async () => {
     const releaseLock = await acquireFileLock();
@@ -265,4 +260,3 @@ export async function clearStoredTokens(): Promise<number> {
     return { data: {}, result: count };
   });
 }
-

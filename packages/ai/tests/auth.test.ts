@@ -70,7 +70,7 @@ describe('auth — resolveApiKey priority order', () => {
 
   it('createAI resolves dynamically with external token provider callback', async () => {
     const { createAI } = await import('../src/client.ts');
-    
+
     // External token source (mocking an external OAuth store)
     const externalTokens: Record<string, string | null> = {
       anthropic: 'external-oauth-token-abc',
@@ -90,4 +90,3 @@ describe('auth — resolveApiKey priority order', () => {
     expect(status.source).toBe('callback');
   });
 });
-

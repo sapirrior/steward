@@ -52,9 +52,7 @@ async function exchangeAuthorizationCode(
     account?: { email?: string };
   };
 
-  const expiresAt = tokenData.expires_in
-    ? Date.now() + tokenData.expires_in * 1000
-    : undefined;
+  const expiresAt = tokenData.expires_in ? Date.now() + tokenData.expires_in * 1000 : undefined;
 
   return {
     type: 'oauth',
@@ -98,7 +96,11 @@ export async function loginAnthropic(options?: LoginOptions): Promise<TokenRecor
 
     const token = await server.wait();
     if (!token) {
-      throw new OAuthError('Anthropic OAuth login was cancelled or failed to complete', 'cancelled', 'anthropic');
+      throw new OAuthError(
+        'Anthropic OAuth login was cancelled or failed to complete',
+        'cancelled',
+        'anthropic',
+      );
     }
     return token;
   } finally {
@@ -148,9 +150,7 @@ export async function refreshAnthropic(
     expires_in?: number;
   };
 
-  const expiresAt = tokenData.expires_in
-    ? Date.now() + tokenData.expires_in * 1000
-    : undefined;
+  const expiresAt = tokenData.expires_in ? Date.now() + tokenData.expires_in * 1000 : undefined;
 
   return {
     ...token,

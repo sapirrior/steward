@@ -11,7 +11,7 @@ const baseModel: Model = {
   reasoning: false,
   maxOutputTokens: 4096,
   cost: {
-    input: 3.0,   // $3.00 / M tokens
+    input: 3.0, // $3.00 / M tokens
     output: 15.0, // $15.00 / M tokens
     cacheRead: 0.3,
     cacheWrite: 3.75,
@@ -45,7 +45,12 @@ describe('util/cost — calculateCost', () => {
   });
 
   it('total equals sum of all parts', () => {
-    const usage: TokenUsage = { input: 500_000, output: 200_000, cacheRead: 100_000, cacheWrite: 50_000 };
+    const usage: TokenUsage = {
+      input: 500_000,
+      output: 200_000,
+      cacheRead: 100_000,
+      cacheWrite: 50_000,
+    };
     const result = calculateCost(baseModel, usage);
     const expected = result!.input + result!.output + result!.cacheRead + result!.cacheWrite;
     expect(result!.total).toBeCloseTo(expected);

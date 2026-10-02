@@ -8,7 +8,8 @@ export function sanitize(text: string): string {
   if (!text) return '';
 
   const expanded = expandTabs(text);
-  const sgrOrOtherRegex = /(\x1b\[[0-9;]*m)|(\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;?]*[a-zA-Z]|\x9b[0-9;]*[a-zA-Z]|\x1b[=>NOWc])/g;
+  const sgrOrOtherRegex =
+    /(\x1b\[[0-9;]*m)|(\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;?]*[a-zA-Z]|\x9b[0-9;]*[a-zA-Z]|\x1b[=>NOWc])/g;
 
   let result = '';
   let lastIndex = 0;

@@ -197,7 +197,10 @@ export function transformMessages(
 
       const assistantMsg = msg as AssistantMessage;
       // Skip incomplete turns on replay
-      if (assistantMsg.meta?.finishReason === 'error' || assistantMsg.meta?.finishReason === 'aborted') {
+      if (
+        assistantMsg.meta?.finishReason === 'error' ||
+        assistantMsg.meta?.finishReason === 'aborted'
+      ) {
         continue;
       }
 

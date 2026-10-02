@@ -124,7 +124,8 @@ export async function googleGenerativeAIProtocol(
         }
       }
       if (parts.length > 0) {
-        const last = contents[contents.length - 1] as { role: string; parts: unknown[] } | undefined;
+        const last = contents[contents.length - 1] as
+          { role: string; parts: unknown[] } | undefined;
         if (last && last.role === 'model') {
           last.parts.push(...parts);
         } else {
@@ -170,7 +171,8 @@ export async function googleGenerativeAIProtocol(
       : undefined;
 
   // 3. Thinking config
-  const requestedEffort = request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
+  const requestedEffort =
+    request.effort ?? ('effort' in request.model ? request.model.effort : undefined);
   const effort = clampThinkingEffort(model, requestedEffort);
   const generationConfig: Record<string, unknown> = {};
 
@@ -225,24 +227,29 @@ export async function googleGenerativeAIProtocol(
   // 6. Execute request with retry
   let response: Response;
   try {
-    response = await withRetry(async () => {
-      const res = await fetchFn(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        signal: request.abortSignal,
-      });
+    response = await withRetry(
+      async () => {
+        const res = await fetchFn(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body),
+          signal: request.abortSignal,
+        });
 
-      if (!res.ok) {
-        const errorText = await readErrorBody(res).catch(() => undefined);
-        const error = new Error(`HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`) as HttpError;
-        error.status = res.status;
-        error.headers = res.headers;
-        (error as unknown as { detail?: string }).detail = errorText;
-        throw error;
-      }
-      return res;
-    }, { signal: request.abortSignal });
+        if (!res.ok) {
+          const errorText = await readErrorBody(res).catch(() => undefined);
+          const error = new Error(
+            `HTTP ${res.status}${errorText ? `: ${errorText}` : ''}`,
+          ) as HttpError;
+          error.status = res.status;
+          error.headers = res.headers;
+          (error as unknown as { detail?: string }).detail = errorText;
+          throw error;
+        }
+        return res;
+      },
+      { signal: request.abortSignal },
+    );
   } catch (err) {
     const isAbort = request.abortSignal?.aborted;
     if (isAbort) {
@@ -268,13 +275,17 @@ export async function googleGenerativeAIProtocol(
 
     stream.push({
       type: 'error',
-      error: err instanceof AIError
-        ? err
-        : new AIError(`Google request failed: ${err instanceof Error ? err.message : String(err)}`, {
-            code: 'network',
-            provider: model.provider,
-            cause: err,
-          }),
+      error:
+        err instanceof AIError
+          ? err
+          : new AIError(
+              `Google request failed: ${err instanceof Error ? err.message : String(err)}`,
+              {
+                code: 'network',
+                provider: model.provider,
+                cause: err,
+              },
+            ),
     });
     return;
   }
@@ -331,7 +342,8 @@ export async function googleGenerativeAIProtocol(
         if (Array.isArray(content?.parts)) {
           for (const rawPart of content.parts) {
             const part = rawPart as Record<string, unknown>;
-            const thoughtSig = typeof part.thoughtSignature === 'string' ? part.thoughtSignature : undefined;
+            const thoughtSig =
+              typeof part.thoughtSignature === 'string' ? part.thoughtSignature : undefined;
 
             if (part.thought) {
               const thoughtDelta = typeof part.text === 'string' ? part.text : '';
@@ -373,7 +385,9 @@ export async function googleGenerativeAIProtocol(
                 (typeof fc.callId === 'string' && fc.callId) ||
                 `call_${toolCallIdx}`;
               const fnName = typeof fc.name === 'string' ? fc.name : '';
-              const fnArgs = (typeof fc.args === 'object' && fc.args !== null ? fc.args : {}) as Record<string, unknown>;
+              const fnArgs = (
+                typeof fc.args === 'object' && fc.args !== null ? fc.args : {}
+              ) as Record<string, unknown>;
               const toolCall: ToolCallContent = {
                 type: 'tool-call',
                 id: toolId,
@@ -385,7 +399,11 @@ export async function googleGenerativeAIProtocol(
               finishReason = 'tool-use';
 
               stream.push({ type: 'tool-call-start', id: toolId, name: toolCall.name });
-              stream.push({ type: 'tool-call-delta', id: toolId, delta: JSON.stringify(toolCall.arguments) });
+              stream.push({
+                type: 'tool-call-delta',
+                id: toolId,
+                delta: JSON.stringify(toolCall.arguments),
+              });
               stream.push({ type: 'tool-call-end', toolCall });
             }
           }

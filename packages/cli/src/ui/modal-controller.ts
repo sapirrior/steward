@@ -163,10 +163,9 @@ export class ModalController {
       providers,
       onSelect: async (item) => {
         this.closeModal();
-        engine.commit(
-          formatSystemMessage(`Initiating authentication for ${item.name}...`),
-          { tag: 'system' },
-        );
+        engine.commit(formatSystemMessage(`Initiating authentication for ${item.name}...`), {
+          tag: 'system',
+        });
         try {
           if (onSelect) {
             const res = await onSelect(item, {
@@ -208,8 +207,6 @@ export class ModalController {
     engine.mount(picker);
     engine.mount(statusBar);
   }
-
-
 
   public switchToSession(selected: SessionData): void {
     const { engine, promptInput, statusBar, header, streamingView, cwd } = this.deps;
@@ -267,10 +264,9 @@ export class ModalController {
         header.props.model = updatedModel;
         statusBar.update({ model: updatedModel });
         const scope = persist ? 'saved globally to settings' : 'for this session only';
-        engine.commit(
-          formatSystemMessage(`Reasoning effort set to "${selected}" (${scope})`),
-          { tag: 'system' },
-        );
+        engine.commit(formatSystemMessage(`Reasoning effort set to "${selected}" (${scope})`), {
+          tag: 'system',
+        });
         this.closeModal();
       },
       onCancel: () => this.closeModal(),

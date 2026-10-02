@@ -127,12 +127,27 @@ export function parseInputChunk(chunk: string): InputEvent[] {
         if (mod === 2) key.shift = true;
         if (mod === 3) key.meta = true;
         if (mod === 5) key.ctrl = true;
-        if (mod === 6) { key.ctrl = true; key.shift = true; }
+        if (mod === 6) {
+          key.ctrl = true;
+          key.shift = true;
+        }
 
-        if (code === 'A') { key.upArrow = true; key.name = 'up'; }
-        if (code === 'B') { key.downArrow = true; key.name = 'down'; }
-        if (code === 'C') { key.rightArrow = true; key.name = 'right'; }
-        if (code === 'D') { key.leftArrow = true; key.name = 'left'; }
+        if (code === 'A') {
+          key.upArrow = true;
+          key.name = 'up';
+        }
+        if (code === 'B') {
+          key.downArrow = true;
+          key.name = 'down';
+        }
+        if (code === 'C') {
+          key.rightArrow = true;
+          key.name = 'right';
+        }
+        if (code === 'D') {
+          key.leftArrow = true;
+          key.name = 'left';
+        }
 
         events.push({ input: '', key });
         i += modArrowMatch[0].length;

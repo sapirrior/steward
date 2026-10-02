@@ -1,10 +1,4 @@
-import type {
-  FlexDirection,
-  JustifyContent,
-  AlignItems,
-  AlignSelf,
-  Block,
-} from './types.js';
+import type { FlexDirection, JustifyContent, AlignItems, AlignSelf, Block } from './types.js';
 import { visibleWidth } from '../text/width.js';
 
 export interface FlexItem {
@@ -19,11 +13,7 @@ export interface FlexItem {
 /**
  * Distributes available integer space across items using the largest-remainder method.
  */
-export function distributeFlexSpace(
-  items: FlexItem[],
-  availableWidth: number,
-  gap = 0,
-): number[] {
+export function distributeFlexSpace(items: FlexItem[], availableWidth: number, gap = 0): number[] {
   const n = items.length;
   if (n === 0) return [];
   if (n === 1) {
@@ -43,9 +33,7 @@ export function distributeFlexSpace(
   if (freeSpace > 0) {
     const totalGrow = items.reduce((sum, it) => sum + it.flexGrow, 0);
     if (totalGrow > 0) {
-      const floatAllocations = items.map(
-        (it) => (it.flexGrow / totalGrow) * freeSpace,
-      );
+      const floatAllocations = items.map((it) => (it.flexGrow / totalGrow) * freeSpace);
       const integerAllocations = floatAllocations.map(Math.floor);
       let allocatedTotal = integerAllocations.reduce((sum, v) => sum + v, 0);
       let remainder = freeSpace - allocatedTotal;
@@ -66,10 +54,7 @@ export function distributeFlexSpace(
     }
   } else if (freeSpace < 0) {
     const deficit = -freeSpace;
-    const totalShrinkCapacity = items.reduce(
-      (sum, it) => sum + it.flexShrink * it.basis,
-      0,
-    );
+    const totalShrinkCapacity = items.reduce((sum, it) => sum + it.flexShrink * it.basis, 0);
 
     if (totalShrinkCapacity > 0) {
       const floatShrinks = items.map(

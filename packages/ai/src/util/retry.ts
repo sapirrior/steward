@@ -25,15 +25,30 @@ function isRetryableStatus(status: number): boolean {
 
 function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (signal?.aborted) { reject(new AbortError()); return; }
-    const onAbort = () => { clearTimeout(t); reject(new AbortError()); };
-    const t = setTimeout(() => { signal?.removeEventListener('abort', onAbort); resolve(); }, Math.max(0, ms));
+    if (signal?.aborted) {
+      reject(new AbortError());
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(t);
+      reject(new AbortError());
+    };
+    const t = setTimeout(
+      () => {
+        signal?.removeEventListener('abort', onAbort);
+        resolve();
+      },
+      Math.max(0, ms),
+    );
     signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
 
 class AbortError extends Error {
-  constructor() { super('Request aborted'); this.name = 'AbortError'; }
+  constructor() {
+    super('Request aborted');
+    this.name = 'AbortError';
+  }
 }
 
 function getRetryDelayMs(
@@ -62,7 +77,9 @@ function getRetryDelayMs(
 
 function capDelay(ms: number, max: number, msg: string): number {
   if (max > 0 && ms > max) {
-    throw new Error(`Server requested ${Math.ceil(ms / 1000)}s retry delay (max: ${Math.ceil(max / 1000)}s). ${msg}`);
+    throw new Error(
+      `Server requested ${Math.ceil(ms / 1000)}s retry delay (max: ${Math.ceil(max / 1000)}s). ${msg}`,
+    );
   }
   return ms;
 }

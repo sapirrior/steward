@@ -1,6 +1,11 @@
 import { Box } from './elements/Box.js';
 import { Text } from './elements/Text.js';
-import { Fragment, type BoxProps, type TextProps, type StitchableElement } from './elements/types.js';
+import {
+  Fragment,
+  type BoxProps,
+  type TextProps,
+  type StitchableElement,
+} from './elements/types.js';
 import Component from './engine/Component.js';
 
 export { Fragment };
@@ -54,4 +59,3 @@ export namespace JSX {
     text: TextProps & { children?: any };
   }
 }
-

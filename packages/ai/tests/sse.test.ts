@@ -92,7 +92,9 @@ describe('util/sse — decodeSSE', () => {
     const msgs: unknown[] = [];
     try {
       for await (const msg of decodeSSE(stream, controller.signal)) msgs.push(msg);
-    } catch { /* abort expected */ }
+    } catch {
+      /* abort expected */
+    }
     // Stream must terminate (not hang) — we don't assert count as timing is non-deterministic
     expect(true).toBe(true);
   });

@@ -58,8 +58,13 @@ class FifoQueue<T> {
 class ContentAccumulator {
   private textMap = new Map<number, string>(); // index → accumulated text
   private thinkingMap = new Map<number, { text: string; signature?: string; redacted?: boolean }>();
-  private toolMap = new Map<string, { id: string; name: string; args: string; thoughtSig?: string; parsedArgs?: JsonObject }>();
-  private order: Array<{ kind: 'text' | 'thinking'; index: number } | { kind: 'tool'; id: string }> = [];
+  private toolMap = new Map<
+    string,
+    { id: string; name: string; args: string; thoughtSig?: string; parsedArgs?: JsonObject }
+  >();
+  private order: Array<
+    { kind: 'text' | 'thinking'; index: number } | { kind: 'tool'; id: string }
+  > = [];
 
   private ensureText(index: number) {
     if (!this.textMap.has(index)) {

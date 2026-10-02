@@ -163,7 +163,10 @@ export function colorToSgr(
 
   // rgb(r, g, b)
   if (normalized.startsWith('rgb(') && normalized.endsWith(')')) {
-    const parts = normalized.slice(4, -1).split(',').map((p) => parseInt(p.trim(), 10) || 0);
+    const parts = normalized
+      .slice(4, -1)
+      .split(',')
+      .map((p) => parseInt(p.trim(), 10) || 0);
     if (parts.length >= 3) {
       const [r, g, b] = [parts[0]!, parts[1]!, parts[2]!];
       if (colorLevel >= 3) {

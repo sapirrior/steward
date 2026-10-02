@@ -2,15 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  saveStoredToken,
-  getStoredToken,
-} from '../src/store.js';
-import {
-  registerTokenRefresher,
-  getOrRefreshToken,
-  EXPIRY_BUFFER_MS,
-} from '../src/refresh.js';
+import { saveStoredToken, getStoredToken } from '../src/store.js';
+import { registerTokenRefresher, getOrRefreshToken, EXPIRY_BUFFER_MS } from '../src/refresh.js';
 import type { TokenRecord } from '../src/types.js';
 
 describe('@steward/oauth refresh', () => {
