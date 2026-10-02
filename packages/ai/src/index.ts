@@ -112,10 +112,14 @@ export {
   openAIProvider,
   googleProvider,
   openRouterProvider,
+  grokProvider,
+  mistralProvider,
+  githubCopilotProvider,
   openAICompatibleProvider,
   builtinProviders,
   type OpenAICompatibleProviderOptions,
 } from './providers/index.js';
+
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 export { decodeSSE } from './util/sse.js';

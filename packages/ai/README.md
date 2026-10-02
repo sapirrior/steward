@@ -41,7 +41,11 @@ Zero-dependency, pure Web Standards AI streaming inference engine and model orch
 | `openai` | `openai-completions` / `openai-responses` | `https://api.openai.com/v1/chat/completions` | `OPENAI_API_KEY` (`Bearer`) | `reasoning_effort` | Native |
 | `google` | `google-generative-ai` | `https://generativelanguage.googleapis.com` | `GEMINI_API_KEY` / `GOOGLE_API_KEY` (`x-goog-api-key`) | `thinkingConfig.thinkingBudget` | Function Declarations |
 | `openrouter` | `openai-completions` | `https://openrouter.ai/api/v1/chat/completions` | `OPENROUTER_API_KEY` (`Bearer`) | `reasoning.effort` | Native |
+| `grok` | `openai-completions` | `https://api.x.ai/v1/chat/completions` | `XAI_API_KEY` (`Bearer`) | `reasoning_effort` | Native |
+| `mistral` | `openai-completions` | `https://api.mistral.ai/v1/chat/completions` | `MISTRAL_API_KEY` (`Bearer`) | Not supported | Native |
+| `github-copilot` | `openai-completions` | `https://api.individual.githubcopilot.com` | `GITHUB_TOKEN` / `COPILOT_API_KEY` (`Bearer`) | Model-dependent | Native |
 | *Custom* | `openai-completions` / *any* | Configurable | API Key / Bearer | Provider-dependent | Supported |
+
 
 ---
 
@@ -207,11 +211,21 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `openaiResponsesProtocol` | `ProtocolStream` | Wire adapter for OpenAI Responses API (`/v1/responses`). |
 | `googleGenerativeAIProtocol` | `ProtocolStream` | Wire adapter for Google Gemini REST API (`/v1beta/models/...:streamGenerateContent`). |
 
-### 10. `src/util/cost.ts`
+### 10. `src/providers/index.ts`
+
+| Export | Type | Description & Constraints |
+| :--- | :--- | :--- |
+| `builtinProviders` | `() => Provider[]` | Instantiates all 7 built-in providers (`anthropic`, `openai`, `google`, `openrouter`, `grok`, `mistral`, `github-copilot`). |
+| `grokProvider` | `() => Provider` | xAI / Grok provider definition over `openai-completions` protocol. |
+| `mistralProvider` | `() => Provider` | Mistral AI provider definition over `openai-completions` protocol. |
+| `githubCopilotProvider` | `() => Provider` | GitHub Copilot provider definition with dynamic base URL and Copilot headers. |
+
+### 11. `src/util/cost.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
 | `calculateCost` | `(model: Model, usage: TokenUsage) => TokenCost \| undefined` | Calculates exact USD cost breakdown (input, output, cache-read, cache-write, total). |
+
 
 ---
 
