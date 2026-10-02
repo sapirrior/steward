@@ -1,0 +1,28 @@
+{
+  "name": "@steward/oauth",
+  "version": "0.1.0",
+  "description": "Zero-dependency OAuth credential store and authentication flows for Steward",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "files": ["dist", "src", "README.md"],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test ./tests"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2"
+  }
+}
