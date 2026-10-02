@@ -10,8 +10,8 @@ import {
   type ChatMode,
   MODE_NAMES,
 } from '@steward/agent';
-import { createAI } from '@steward/ai';
-import { setupAuth, getToken } from '@steward/oauth';
+import { setupAuth } from '@steward/oauth';
+import { createRuntime } from './runtime.js';
 import pkg from '../package.json' with { type: 'json' };
 
 export const VERSION = pkg.version;
@@ -98,15 +98,11 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<void>
 
   try {
     await setupAuth();
-    const ai = createAI({
-      getApiKey: async (provider) => {
-        return (await getToken(provider)) ?? undefined;
-      },
-    });
-    const session = new AgentSession(undefined, undefined, { ai });
+    const runtime = createRuntime();
+    const session = new AgentSession(undefined, undefined, { ai: runtime.modelPort });
     const app = new TUIApp({
       version: VERSION,
-      ai,
+      ai: runtime.ai,
       initialSession: session,
       cwd: process.cwd(),
       onExit: () => process.exit(0),

@@ -12,6 +12,7 @@ The `@steward/cli` package serves as the application composition root and termin
 | :--- | :--- | :--- | :--- | :--- |
 | `main.ts` | CLI entry point | Script | CLI bootstrapper handling flags (`-v`, `-h`, `-r`, `--config mode`) and bootstrapping `TUIApp`. | Global unhandled rejection and exception handlers initialized before app startup. |
 | `app.ts` | `TUIApp` | Class | Main application orchestrator managing component mounting, user turns, and dock state transitions. | Coordinates `TerminalEngine`, `AgentSession`, `ModalController`, and `PermissionQueue`. |
+| `runtime.ts` | `createRuntime` | Function | Single runtime composition root constructing the AI client with OAuth credentials and verifying structural compatibility with `ModelPort`. | Returns `{ ai, modelPort }`. |
 | `errors/present.ts` | `presentError` | Function | Single source of truth for CLI error presentation; translates structured errors into headlines and actionable hints without substring heuristics. | Returns `PresentedError` with headline, hint, and tone. |
 
 ---

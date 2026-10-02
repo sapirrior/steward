@@ -31,8 +31,8 @@ import {
   formatUserMessage,
 } from './ui/utils/message-formatter.js';
 import { renderTranscript } from './ui/utils/transcript.js';
-import { createAI, type AI } from '@steward/ai';
-import { getToken } from '@steward/oauth';
+import type { AI } from '@steward/ai';
+import { createRuntime } from './runtime.js';
 import { ModalController } from './ui/modal-controller.js';
 import { createAgentEventHandler, type AgentEventState } from './ui/agent-event-router.js';
 import { applyCommandResult } from './commands/handle-command-result.js';
@@ -68,16 +68,11 @@ export class TUIApp {
 
   constructor(options: TUIAppOptions = {}) {
     this.cwd = options.cwd ?? process.cwd();
-    this.ai =
-      options.ai ??
-      options.initialSession?.aiClient ??
-      createAI({
-        getApiKey: async (provider) => {
-          return (await getToken(provider)) ?? undefined;
-        },
-      });
+    const runtime = options.ai ? undefined : createRuntime();
+    this.ai = options.ai ?? (runtime!.ai as AI);
     this.session =
-      options.initialSession ?? new AgentSession(undefined, undefined, { ai: this.ai });
+      options.initialSession ??
+      new AgentSession(undefined, undefined, { ai: runtime?.modelPort ?? (this.ai as any) });
     this.onExitCallback = options.onExit;
     this.engine = new TerminalEngine({
       mouse: true,
