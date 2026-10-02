@@ -24,8 +24,8 @@ export const logoutCommand: SlashCommand = {
         handled: true,
         message:
           clearedCount > 0
-            ? `Logged out of all providers (${clearedCount} credential(s) cleared from ~/steward/auth.json).`
-            : 'No stored credentials found in ~/steward/auth.json.',
+            ? `Logged out of all providers (${clearedCount} credential(s) cleared from ~/.steward/auth.json).`
+            : 'No stored credentials found in ~/.steward/auth.json.',
       };
     }
 
@@ -35,7 +35,7 @@ export const logoutCommand: SlashCommand = {
     if (removed) {
       return {
         handled: true,
-        message: `Logged out of ${providerId} (credentials cleared from ~/steward/auth.json).`,
+        message: `Logged out of ${providerId} (credentials cleared from ~/.steward/auth.json).`,
       };
     }
 

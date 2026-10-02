@@ -46,7 +46,7 @@ export async function performLogin(
 
   if (result.success) {
     const acct = result.account ? ` (${result.account})` : '';
-    return `Successfully logged in to ${result.provider}${acct}! Credentials stored in ~/steward/auth.json.`;
+    return `Successfully logged in to ${result.provider}${acct}! Credentials stored in ~/.steward/auth.json.`;
   }
   return `Login failed for ${providerId}: ${result.error || 'Unknown error'}`;
 }

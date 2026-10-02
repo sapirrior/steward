@@ -48,7 +48,7 @@ The `@steward/cli` package serves as the application composition root and termin
 | `/mode` | `commands/mode/` | Cycles through or sets active chat mode (`normal`, `chat`, `review`, `build`). |
 | `/effort` | `commands/effort/` | Adjusts reasoning effort slider (`none`, `low`, `medium`, `high`). |
 | `/login` | `commands/login/` | Opens interactive OAuth provider login picker dock or logs in to specified provider. |
-| `/logout` | `commands/logout/` | Logs out of a specific provider or clears all credentials from `~/steward/auth.json`. |
+| `/logout` | `commands/logout/` | Logs out of a specific provider or clears all credentials from `~/.steward/auth.json`. |
 | `/sessions` | `commands/sessions/` | Opens SessionMenu dock to browse and switch sessions. |
 | `/rewind` | `commands/rewind/` | Opens RewindMenu dock to roll back workspace mutations. |
 | `/clear` | `commands/clear/` | Clears current terminal history buffer. |

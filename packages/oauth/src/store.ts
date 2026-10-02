@@ -26,13 +26,13 @@ export class AuthStorageError extends Error {
 
 /**
  * Resolves the path to the auth storage file.
- * Defaults to ~/steward/auth.json, configurable via STEWARD_AUTH_FILE.
+ * Defaults to ~/.steward/auth.json, configurable via STEWARD_AUTH_FILE.
  */
 export function getAuthFilePath(): string {
   if (process.env.STEWARD_AUTH_FILE) {
     return process.env.STEWARD_AUTH_FILE;
   }
-  const dir = process.env.STEWARD_AUTH_DIR || join(homedir(), 'steward');
+  const dir = process.env.STEWARD_AUTH_DIR || join(homedir(), '.steward');
   return join(dir, 'auth.json');
 }
 

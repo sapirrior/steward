@@ -10,7 +10,7 @@ Zero-dependency OAuth credential store and authentication flows for Steward.
 
 - **Zero Steward Dependencies:** `@steward/oauth` imports nothing from `@steward/ai`, `@steward/agent`, or `@steward/cli`.
 - **Sole Consumer:** Only `@steward/cli` imports `@steward/oauth` directly.
-- **Secure File Storage:** Manages credentials at `~/steward/auth.json` with owner-only file permissions (`0o600`), atomic rename writes, and concurrency locking.
+- **Secure File Storage:** Manages credentials at `~/.steward/auth.json` with owner-only file permissions (`0o600`), atomic rename writes, and concurrency locking.
 - **Secret Redaction:** Token secrets are strictly redacted from error messages and logs.
 
 ---
@@ -23,7 +23,7 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
-| `setupAuth` | `() => Promise<void>` | Initializes `~/steward` directory with `0o700` permissions. Safe and idempotent. |
+| `setupAuth` | `() => Promise<void>` | Initializes `~/.steward` directory with `0o700` permissions. Safe and idempotent. |
 | `getToken` | `(provider: string) => Promise<string \| null>` | Returns a valid, unexpired access token for the provider. Transparently refreshes expired tokens. |
 | `login` | `(provider: string, options?: LoginOptions) => Promise<LoginResult>` | Initiates interactive OAuth login (browser PKCE or device grant). |
 | `logout` | `(provider: string) => Promise<boolean>` | Removes stored credentials for the specified provider. |
@@ -41,7 +41,7 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
-| `readAuthStore` | `() => Promise<AuthStoreData>` | Reads entire auth store from `~/steward/auth.json`. Returns empty object if missing. |
+| `readAuthStore` | `() => Promise<AuthStoreData>` | Reads entire auth store from `~/.steward/auth.json`. Returns empty object if missing. |
 | `writeAuthStore` | `(data: AuthStoreData) => Promise<void>` | Writes auth data atomically with `0o600` mode via temp file and rename. |
 | `mutateAuthStore` | `(mutator: (data: AuthStoreData) => Promise<...> \| ...) => Promise<T>` | Performs synchronized read-modify-write mutation protected by process lock queue and file lock. |
 | `getStoredToken` | `(provider: string) => Promise<TokenRecord \| null>` | Retrieves stored token record for provider. |
