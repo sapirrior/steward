@@ -27,6 +27,7 @@ The `@steward/cli` package serves as the application composition root and termin
 | `components/docks/FilePermissionDock.tsx` | Component | Interactive modal reviewing file creations, edits, and overwrites with line diffs before applying changes. | Yes / No / Review (F) mode. |
 | `components/docks/BashPermissionDock.tsx` | Component | Interactive modal prompting for approval before executing bash commands. | Yes / No selection with command preview. |
 | `components/docks/ModelPicker.tsx` | Component | Interactive dock for switching LLM models across all configured providers. | Searchable provider list with capability badges. |
+| `components/docks/LoginPicker.tsx` | Component | Interactive dock for authenticating with AI providers via OAuth and Device flows. | Displays connection status and provider metadata. |
 | `components/docks/SessionMenu.tsx` | Component | Interactive dock for browsing, resuming, or deleting saved session transcripts. | Lists past sessions with turn counts. |
 | `components/docks/RewindMenu.tsx` | Component | Interactive dock for rolling back file changes to previous session turns with diff statistics. | Computes accurate `+lines / -lines` per turn. |
 | `components/docks/ShortcutsMenu.tsx` | Component | Help modal displaying all keyboard shortcuts and navigation tips. | Quick-reference keyboard cheat sheet. |
@@ -43,9 +44,11 @@ The `@steward/cli` package serves as the application composition root and termin
 | Command | File | Description |
 | :--- | :--- | :--- |
 | `/help` | `commands/help/` | Opens help manual and keyboard shortcut reference. |
-| `/model` | `commands/model/` | Opens interactive ModelPicker dock. |
+| `/model` | `commands/model/` | Opens interactive ModelPicker dock or switches model directly. |
 | `/mode` | `commands/mode/` | Cycles through or sets active chat mode (`normal`, `chat`, `review`, `build`). |
 | `/effort` | `commands/effort/` | Adjusts reasoning effort slider (`none`, `low`, `medium`, `high`). |
+| `/login` | `commands/login/` | Opens interactive OAuth provider login picker dock or logs in to specified provider. |
+| `/logout` | `commands/logout/` | Logs out of a specific provider or clears all credentials from `~/steward/auth.json`. |
 | `/sessions` | `commands/sessions/` | Opens SessionMenu dock to browse and switch sessions. |
 | `/rewind` | `commands/rewind/` | Opens RewindMenu dock to roll back workspace mutations. |
 | `/clear` | `commands/clear/` | Clears current terminal history buffer. |

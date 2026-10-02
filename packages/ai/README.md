@@ -181,8 +181,9 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
-| `resolveModelSelection` | `(req?, ctx?) => Promise<ModelSelection>` | Resolves requested model or infers best available configured model in priority order: Anthropic $\to$ OpenAI $\to$ Google $\to$ OpenRouter. |
+| `resolveModelSelection` | `(req?, ctx?) => Promise<ModelSelection>` | Resolves requested model or infers best available configured model in priority order: Anthropic $\to$ OpenAI $\to$ Google $\to$ OpenRouter $\to$ Grok $\to$ Mistral $\to$ GitHub Copilot. |
 | `inferProviderFromModelId` | `(modelId: string) => ProviderId \| null` | Heuristically infers provider from model ID prefixes. |
+| `normalizeProviderId` | `(provider?: string) => ProviderId \| undefined` | Normalizes provider ID aliases (e.g. `'gemini'` $\to$ `'google'`). |
 
 ### 7. `src/models/thinking.ts`
 

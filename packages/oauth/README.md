@@ -26,7 +26,8 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `setupAuth` | `() => Promise<void>` | Initializes `~/steward` directory with `0o700` permissions. Safe and idempotent. |
 | `getToken` | `(provider: string) => Promise<string \| null>` | Returns a valid, unexpired access token for the provider. Transparently refreshes expired tokens. |
 | `login` | `(provider: string, options?: LoginOptions) => Promise<LoginResult>` | Initiates interactive OAuth login (browser PKCE or device grant). |
-| `logout` | `(provider: string) => Promise<void>` | Removes stored credentials for the specified provider. |
+| `logout` | `(provider: string) => Promise<boolean>` | Removes stored credentials for the specified provider. |
+| `logoutAll` | `() => Promise<number>` | Removes stored credentials across all providers. |
 | `authStatus` | `() => Promise<AuthStatus>` | Returns safe provider authentication status map without leaking secret tokens. |
 | `launch` | `(url: string) => Promise<void>` | Launches authentication URLs in the default system web browser. |
 | `OAuthProviderId` | `type` | Supported OAuth provider identifier string union. |
@@ -46,6 +47,7 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `getStoredToken` | `(provider: string) => Promise<TokenRecord \| null>` | Retrieves stored token record for provider. |
 | `saveStoredToken` | `(provider: string, token: TokenRecord) => Promise<void>` | Persists token record for provider atomically. |
 | `deleteStoredToken` | `(provider: string) => Promise<boolean>` | Deletes token record for provider atomically. |
+| `clearStoredTokens` | `() => Promise<number>` | Deletes all stored tokens across all providers atomically. |
 | `ensureAuthDir` | `() => Promise<string>` | Ensures auth storage directory exists with `0o700` mode. |
 | `getAuthFilePath` | `() => string` | Resolves canonical path to `auth.json`. |
 | `AuthStorageError` | `class extends Error` | Structured domain error for storage failures without token exposure. |
