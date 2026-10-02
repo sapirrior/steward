@@ -1,5 +1,5 @@
 import { saveSettings } from '@steward/agent';
-import { createAI, type Model, type ProviderId } from '@steward/ai';
+import { normalizeProviderId, type Model, type ProviderId } from '@steward/ai';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
 /**
@@ -13,7 +13,10 @@ export const modelCommand: SlashCommand = {
 
   async execute(args: string[], context: CommandContext): Promise<CommandResult> {
     const current = context.session.getModel();
-    const ai = createAI();
+    const ai = context.session.aiClient;
+
+    // Refresh dynamic models.dev catalog if needed
+    await ai.refreshCatalog().catch(() => {});
 
     // 1. If no args provided, trigger interactive ModelPicker dock
     if (args.length === 0) {
@@ -39,8 +42,9 @@ export const modelCommand: SlashCommand = {
       targetModelId = args[0].trim();
     } else {
       const first = args[0].trim().toLowerCase();
-      if (allProviders.includes(first as ProviderId)) {
-        targetProvider = first;
+      const normalizedFirst = normalizeProviderId(first);
+      if (normalizedFirst && allProviders.includes(normalizedFirst)) {
+        targetProvider = normalizedFirst;
         targetModelId = args.slice(1).join(' ').trim();
       } else {
         targetModelId = args.join(' ').trim();

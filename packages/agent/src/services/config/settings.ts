@@ -108,8 +108,10 @@ export function getSavedModel(): SavedModelSettings | undefined {
     typeof settings.model.provider === 'string' &&
     typeof settings.model.modelId === 'string'
   ) {
+    const rawProvider = settings.model.provider;
+    const provider = (rawProvider === 'gemini' ? 'google' : rawProvider) as ProviderName;
     return {
-      provider: settings.model.provider,
+      provider,
       modelId: settings.model.modelId,
       effort: normalizeReasoningEffort(settings.model.effort),
     };

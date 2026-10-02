@@ -83,6 +83,7 @@ export {
 export {
   resolveModelSelection,
   inferProviderFromModelId,
+  normalizeProviderId,
   PROVIDER_SELECTION_PRIORITY,
   DEFAULT_PROVIDER_MODELS,
   CANONICAL_DEFAULT_EFFORT,

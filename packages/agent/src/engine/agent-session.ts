@@ -157,7 +157,8 @@ export class AgentSession {
       );
     } else {
       const settings = loadSettings();
-      const provider = initialConfig?.provider ?? settings.model?.provider ?? 'gemini';
+      const rawProvider = initialConfig?.provider ?? settings.model?.provider ?? 'google';
+      const provider = (rawProvider === 'gemini' ? 'google' : rawProvider) as any;
       const modelId = initialConfig?.modelId ?? settings.model?.modelId ?? 'gemini-2.5-flash';
       const effort: ReasoningEffort =
         initialConfig?.reasoningEffort ?? settings.model?.effort ?? 'medium';

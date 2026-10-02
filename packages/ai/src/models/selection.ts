@@ -32,6 +32,13 @@ export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
   'github-copilot': 'gpt-4o',
 };
 
+export function normalizeProviderId(provider?: string): ProviderId | undefined {
+  if (!provider) return undefined;
+  const lower = provider.trim().toLowerCase();
+  if (lower === 'gemini') return 'google';
+  return lower as ProviderId;
+}
+
 export function inferProviderFromModelId(modelId: string): ProviderId | null {
   const lower = modelId.trim().toLowerCase();
   if (!lower) return null;
@@ -78,29 +85,30 @@ export async function resolveModelSelection(
 ): Promise<ModelSelection> {
   const effort: ReasoningEffort = requested?.effort ?? CANONICAL_DEFAULT_EFFORT;
   const isConfigured = context?.isConfigured ?? (() => true);
+  const reqProvider = normalizeProviderId(requested?.provider);
 
   // 1. Explicit provider and modelId
-  if (requested?.provider && requested?.modelId) {
-    const configured = await isConfigured(requested.provider);
+  if (reqProvider && requested?.modelId) {
+    const configured = await isConfigured(reqProvider);
     if (!configured) {
-      throw new Error(`Provider "${requested.provider}" was requested, but it is not configured.`);
+      throw new Error(`Provider "${reqProvider}" was requested, but it is not configured.`);
     }
     return {
-      provider: requested.provider,
+      provider: reqProvider,
       modelId: requested.modelId,
       effort,
     };
   }
 
   // 2. Explicit provider with default model
-  if (requested?.provider) {
-    const configured = await isConfigured(requested.provider);
+  if (reqProvider) {
+    const configured = await isConfigured(reqProvider);
     if (!configured) {
-      throw new Error(`Provider "${requested.provider}" was requested, but it is not configured.`);
+      throw new Error(`Provider "${reqProvider}" was requested, but it is not configured.`);
     }
-    const modelId = DEFAULT_PROVIDER_MODELS[requested.provider] ?? 'default';
+    const modelId = DEFAULT_PROVIDER_MODELS[reqProvider] ?? 'default';
     return {
-      provider: requested.provider,
+      provider: reqProvider,
       modelId,
       effort,
     };
@@ -123,13 +131,14 @@ export async function resolveModelSelection(
 
   // 4. Saved preference
   const saved = await context?.getSavedSelection?.();
-  if (saved?.provider) {
-    const configured = await isConfigured(saved.provider);
+  const savedProvider = normalizeProviderId(saved?.provider);
+  if (savedProvider) {
+    const configured = await isConfigured(savedProvider);
     if (configured) {
       return {
-        provider: saved.provider,
-        modelId: saved.modelId || DEFAULT_PROVIDER_MODELS[saved.provider] || 'default',
-        effort: requested?.effort ?? saved.effort ?? CANONICAL_DEFAULT_EFFORT,
+        provider: savedProvider,
+        modelId: saved?.modelId || DEFAULT_PROVIDER_MODELS[savedProvider] || 'default',
+        effort: requested?.effort ?? saved?.effort ?? CANONICAL_DEFAULT_EFFORT,
       };
     }
   }

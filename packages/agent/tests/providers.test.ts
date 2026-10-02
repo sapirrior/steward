@@ -24,6 +24,9 @@ describe('Provider Configuration & Discovery', () => {
       'openai',
       'google',
       'openrouter',
+      'grok',
+      'mistral',
+      'github-copilot',
     ]);
   });
 
