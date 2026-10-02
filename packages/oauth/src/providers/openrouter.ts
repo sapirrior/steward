@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { generatePKCE } from '../utils/pkce.js';
 import { startOAuthCallbackServer } from '../utils/callback-server.js';
+import { launchBrowser } from '../utils/browser.js';
 import { OAuthError } from '../errors.js';
 import type { LoginOptions, TokenRecord } from '../types.js';
 
@@ -72,9 +73,11 @@ export async function loginOpenRouter(options?: LoginOptions): Promise<TokenReco
       code_challenge_method: 'S256',
     }).toString();
 
+    const authUrlStr = authorizeUrl.toString();
     if (options?.onAuthUrl) {
-      options.onAuthUrl(authorizeUrl.toString());
+      options.onAuthUrl(authUrlStr);
     }
+    await launchBrowser(authUrlStr);
 
     const token = await server.wait();
     if (!token) {

@@ -1,5 +1,6 @@
 import { generatePKCE } from '../utils/pkce.js';
 import { startOAuthCallbackServer } from '../utils/callback-server.js';
+import { launchBrowser } from '../utils/browser.js';
 import { OAuthError } from '../errors.js';
 import type { LoginOptions, TokenRecord } from '../types.js';
 
@@ -93,6 +94,7 @@ export async function loginAnthropic(options?: LoginOptions): Promise<TokenRecor
     if (options?.onAuthUrl) {
       options.onAuthUrl(fullAuthUrl);
     }
+    await launchBrowser(fullAuthUrl);
 
     const token = await server.wait();
     if (!token) {

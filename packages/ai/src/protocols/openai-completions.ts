@@ -162,7 +162,16 @@ export async function openAICompletionsProtocol(
 
   // 5. Construct URL & Headers
   const rawBase = (auth.baseUrl || model.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
-  const url = rawBase.endsWith('/v1') ? `${rawBase}/chat/completions` : `${rawBase}/v1/chat/completions`;
+  let url: string;
+  if (rawBase.endsWith('/chat/completions')) {
+    url = rawBase;
+  } else if (rawBase.includes('githubcopilot.com')) {
+    url = `${rawBase}/chat/completions`;
+  } else if (rawBase.endsWith('/v1')) {
+    url = `${rawBase}/chat/completions`;
+  } else {
+    url = `${rawBase}/v1/chat/completions`;
+  }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 import { pollOAuthDeviceCodeFlow } from '../utils/device-poller.js';
+import { launchBrowser } from '../utils/browser.js';
 import { OAuthError } from '../errors.js';
 import type { LoginOptions, TokenRecord } from '../types.js';
 
@@ -61,7 +62,6 @@ export async function loginGitHubCopilot(options?: LoginOptions): Promise<TokenR
 
   const deviceData = (await deviceRes.json()) as DeviceCodeResponse;
   const { device_code, user_code, verification_uri, interval, expires_in } = deviceData;
-
   if (options?.onDeviceCode) {
     options.onDeviceCode({
       userCode: user_code,
@@ -70,6 +70,7 @@ export async function loginGitHubCopilot(options?: LoginOptions): Promise<TokenR
       interval: interval || 5,
     });
   }
+  await launchBrowser(verification_uri);
 
   const githubAccessToken = await pollOAuthDeviceCodeFlow<string>({
     providerName: 'github-copilot',

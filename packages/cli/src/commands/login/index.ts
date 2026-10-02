@@ -10,13 +10,27 @@ const OAUTH_PROVIDERS: { id: string; name: string; description: string }[] = [
 ];
 
 /**
- * Executes login flow for a specific provider.
+ * Executes login flow for a specific provider with UI callbacks.
  */
-export async function performLogin(providerId: string): Promise<string> {
-  const result: LoginResult = await oauthLogin(providerId);
+export async function performLogin(
+  providerId: string,
+  callbacks?: {
+    onDeviceCode?: (info: { userCode: string; verificationUri: string }) => void;
+    onAuthUrl?: (url: string) => void;
+  },
+): Promise<string> {
+  const result: LoginResult = await oauthLogin(providerId, {
+    onDeviceCode: (info) => {
+      callbacks?.onDeviceCode?.(info);
+    },
+    onAuthUrl: (url) => {
+      callbacks?.onAuthUrl?.(url);
+    },
+  });
+
   if (result.success) {
     const acct = result.account ? ` (${result.account})` : '';
-    return `Successfully logged in to ${result.provider}${acct}! Stored in ~/steward/auth.json.`;
+    return `Successfully logged in to ${result.provider}${acct}! Credentials stored in ~/steward/auth.json.`;
   }
   return `Login failed for ${providerId}: ${result.error || 'Unknown error'}`;
 }
@@ -64,10 +78,14 @@ export const loginCommand: SlashCommand = {
       data: {
         showLoginPicker: true,
         providers: items,
-        onSelect: async (item: OAuthProviderItem) => {
-          const resMessage = await performLogin(item.id);
-          // Commit login outcome message via context or logging if needed
-          return resMessage;
+        onSelect: async (
+          item: OAuthProviderItem,
+          callbacks?: {
+            onDeviceCode?: (info: { userCode: string; verificationUri: string }) => void;
+            onAuthUrl?: (url: string) => void;
+          },
+        ) => {
+          return performLogin(item.id, callbacks);
         },
       },
     };
