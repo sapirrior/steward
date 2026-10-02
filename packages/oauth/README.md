@@ -50,3 +50,13 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `getAuthFilePath` | `() => string` | Resolves canonical path to `auth.json`. |
 | `AuthStorageError` | `class extends Error` | Structured domain error for storage failures without token exposure. |
 
+### 3. `src/refresh.ts`
+
+| Export | Type | Description & Constraints |
+| :--- | :--- | :--- |
+| `getOrRefreshToken` | `(provider: string, signal?: AbortSignal) => Promise<string \| null>` | Returns valid token; transparently refreshes if within 5-min buffer and coalesces concurrent calls. |
+| `registerTokenRefresher` | `(provider: string, refresher: ProviderRefresher) => void` | Registers provider-specific token refresh implementation. |
+| `isTokenExpiring` | `(token: TokenRecord) => boolean` | Checks if token expires within the proactive 5-minute buffer. |
+| `EXPIRY_BUFFER_MS` | `number` | Proactive expiration threshold in milliseconds (`300,000` ms / 5 min). |
+
+

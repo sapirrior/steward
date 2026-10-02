@@ -9,12 +9,17 @@ export type {
   AuthStoreData,
 } from './types';
 
+import { ensureAuthDir, deleteStoredToken } from './store.js';
+import { getOrRefreshToken } from './refresh.js';
+
+export { registerTokenRefresher } from './refresh.js';
+
 /**
  * Initializes the auth storage directory with owner-only permissions.
  * Safe and idempotent to call on startup.
  */
 export async function setupAuth(): Promise<void> {
-  // Implemented in subsequent steps
+  await ensureAuthDir();
 }
 
 /**
@@ -22,10 +27,10 @@ export async function setupAuth(): Promise<void> {
  * Automatically refreshes the token if close to expiry.
  * Returns null if no credentials exist or refresh failed.
  */
-export async function getToken(provider: string): Promise<string | null> {
-  // Implemented in subsequent steps
-  return null;
+export async function getToken(provider: string, signal?: AbortSignal): Promise<string | null> {
+  return getOrRefreshToken(provider, signal);
 }
+
 
 /**
  * Initiates interactive OAuth login for the specified provider.
