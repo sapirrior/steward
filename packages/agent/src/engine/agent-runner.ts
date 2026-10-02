@@ -162,11 +162,7 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
           }
 
           case 'error': {
-            options.onEvent?.({
-              type: 'error',
-              error: event.error,
-              isFatal: false,
-            });
+            // Error event from stream — will be handled and packaged into the stepResult / TurnSummary
             break;
           }
         }
@@ -176,13 +172,39 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
       finalFinishReason = stepResult.finishReason;
       accumulatedUsage = accumulateTokenUsage(accumulatedUsage, stepResult.usage);
 
-      // If step ended with error, record partial message if present and throw / break cleanly
+      // If step ended with error, record partial assistant message if present and finish turn cleanly
       if (stepResult.finishReason === 'error' && stepResult.error) {
-        if (stepResult.message.content.length > 0) {
+        if (stepResult.message && stepResult.message.content.length > 0) {
           activeMessages.push(stepResult.message);
           newTurnMessages.push(stepResult.message);
         }
-        throw stepResult.error;
+
+        const isAbort =
+          stepResult.error.code === 'aborted' || Boolean(options.abortSignal?.aborted);
+        const stopReason: TurnStopReason = isAbort ? 'aborted' : 'error';
+        const turnFinishedAt = new Date().toISOString();
+        const turnDurationMs = Math.max(0, Math.round(performance.now() - turnStartMonotonic));
+
+        const summary: TurnSummary = {
+          text: accumulatedText,
+          reasoning: accumulatedReasoning || undefined,
+          toolCalls: toolResults,
+          usage: accumulatedUsage,
+          finishReason: finalFinishReason,
+          stopReason,
+          error: stepResult.error,
+          rawMessages: newTurnMessages,
+          durationMs: turnDurationMs,
+          startedAt: turnStartedAt,
+          finishedAt: turnFinishedAt,
+        };
+
+        options.onEvent?.({
+          type: 'turn-complete',
+          summary,
+        });
+
+        return summary;
       }
 
       // Append assistant message to history
@@ -271,12 +293,35 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
 
     return summary;
   } catch (err) {
-    const error = err instanceof Error ? err : new Error(String(err));
+    const turnFinishedAt = new Date().toISOString();
+    const turnDurationMs = Math.max(0, Math.round(performance.now() - turnStartMonotonic));
+    const wasAborted = Boolean(options.abortSignal?.aborted);
+    const stopReason: TurnStopReason = wasAborted ? 'aborted' : 'error';
+    const errObj = err instanceof Error ? err : new Error(String(err));
+
+    const summary: TurnSummary = {
+      text: accumulatedText,
+      reasoning: accumulatedReasoning || undefined,
+      toolCalls: toolResults,
+      usage: accumulatedUsage,
+      finishReason: 'error',
+      stopReason,
+      error: {
+        name: errObj.name,
+        message: errObj.message,
+        code: wasAborted ? 'aborted' : 'unknown',
+      },
+      rawMessages: newTurnMessages,
+      durationMs: turnDurationMs,
+      startedAt: turnStartedAt,
+      finishedAt: turnFinishedAt,
+    };
+
     options.onEvent?.({
-      type: 'error',
-      error,
-      isFatal: true,
+      type: 'turn-complete',
+      summary,
     });
-    throw error;
+
+    return summary;
   }
 }

@@ -130,27 +130,28 @@ export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventL
         const finishedAt = event.summary.finishedAt
           ? new Date(event.summary.finishedAt)
           : new Date();
-        engine.commit(
-          ['', formatTurnStatus(totalDurationMs, finishedAt, event.summary.statusVerb)],
-          { tag: 'system' },
-        );
 
-        if (event.summary.stopReason === 'step-limit') {
-          engine.commit(formatSystemMessage('Step budget reached. Generation stopped early.'), {
-            tag: 'system',
-          });
+        if (event.summary.stopReason === 'error') {
+          streamingView.reset();
+          const errToFormat = event.summary.error ?? new Error('Turn ended with error');
+          const structured = classifyError(errToFormat);
+          engine.commit(formatErrorBadge(structured), { tag: 'system' });
+        } else {
+          engine.commit(
+            ['', formatTurnStatus(totalDurationMs, finishedAt, event.summary.statusVerb)],
+            { tag: 'system' },
+          );
+
+          if (event.summary.stopReason === 'step-limit') {
+            engine.commit(formatSystemMessage('Step budget reached. Generation stopped early.'), {
+              tag: 'system',
+            });
+          }
         }
         break;
       }
       case 'error': {
-        streamingView.reset();
-        deps.logError(event.error, {
-          sessionId: deps.getSessionId(),
-          source: 'stream-error-event',
-          isFatal: event.isFatal,
-        });
-        const structured = classifyError(event.error);
-        engine.commit(formatErrorBadge(structured), { tag: 'system' });
+        // Handled via TurnSummary in turn-complete
         break;
       }
     }

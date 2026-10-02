@@ -360,14 +360,23 @@ export class AgentSession {
         responseMessages.push(assistantMsg);
       }
 
+      let turnStatus: 'complete' | 'interrupted' | 'errored' = 'complete';
+      if (summary.stopReason === 'aborted') {
+        turnStatus = 'interrupted';
+      } else if (summary.stopReason === 'error') {
+        turnStatus = 'errored';
+      }
+
       await this.finalizeTurn({
         turnId: prep.turnId,
         turnStartMonotonic: prep.turnStartMonotonic,
         userMessage: prep.userMessage,
         responseMessages,
         summary,
-        status: 'complete',
+        status: turnStatus,
         tracker: prep.tracker,
+        error: summary.error,
+        errorMessage: summary.error?.message,
       });
 
       return summary;
@@ -379,15 +388,16 @@ export class AgentSession {
       });
 
       const responseMessages: Message[] = summary?.rawMessages ?? [];
+      const errMessage = err instanceof Error ? err.message : String(err);
       await this.finalizeTurn({
         turnId: prep.turnId,
         turnStartMonotonic: prep.turnStartMonotonic,
         userMessage: prep.userMessage,
         responseMessages,
         summary,
-        status: summary ? 'interrupted' : 'errored',
+        status: summary?.stopReason === 'aborted' ? 'interrupted' : 'errored',
         tracker: prep.tracker,
-        errorMessage: err instanceof Error ? err.message : String(err),
+        errorMessage: errMessage,
       });
 
       throw err;
@@ -405,6 +415,7 @@ export class AgentSession {
     summary: TurnSummary | undefined;
     status: 'complete' | 'interrupted' | 'errored';
     tracker: MutationCheckpointTracker;
+    error?: import('../ports/model.js').PortError;
     errorMessage?: string;
   }): Promise<void> {
     const {
@@ -415,6 +426,7 @@ export class AgentSession {
       summary,
       status,
       tracker,
+      error,
       errorMessage,
     } = params;
 
@@ -428,8 +440,8 @@ export class AgentSession {
       summary.statusVerb = statusVerb;
     }
 
-    const turnMessages: Message[] =
-      status === 'errored' ? [userMessage] : [userMessage, ...responseMessages];
+    // Always preserve all conversation messages (including tool results & partial assistant turns)
+    const turnMessages: Message[] = [userMessage, ...responseMessages];
 
     const usage: TokenUsage = summary ? summary.usage : { input: 0, output: 0, total: 0 };
 
@@ -455,6 +467,15 @@ export class AgentSession {
       stopReason: summary?.stopReason,
       finishReason: summary?.finishReason,
       errorMessage,
+      error: error
+        ? {
+            code: error.code,
+            status: error.status,
+            provider: error.provider,
+            message: error.message,
+            providerType: error.providerType,
+          }
+        : undefined,
     });
   }
 

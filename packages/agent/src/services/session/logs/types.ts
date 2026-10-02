@@ -50,6 +50,13 @@ export interface TurnEndLogEvent extends SessionLogBase {
   stopReason?: string;
   finishReason?: string;
   errorMessage?: string;
+  error?: {
+    code?: string;
+    status?: number;
+    provider?: string;
+    message: string;
+    providerType?: string;
+  };
 }
 
 export type TurnPresentationEnd = TurnEndLogEvent;

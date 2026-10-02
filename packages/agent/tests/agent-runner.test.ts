@@ -116,4 +116,122 @@ describe('runAgentTurn Integration', () => {
     expect(summary.usage.total).toBe(35);
     expect(summary.toolCalls.length).toBe(1);
   });
+
+  it('preserves completed tool steps and returns error summary without throwing when step N fails', async () => {
+    let callCount = 0;
+
+    const mockAI: ModelPort = {
+      stream(_request: PortRequest): PortStream {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            async *[Symbol.asyncIterator]() {
+              yield {
+                type: 'tool-call-end',
+                toolCall: {
+                  type: 'tool-call',
+                  id: 'call_edit_1',
+                  name: 'edit_file',
+                  arguments: { path: 'file.txt' },
+                },
+              };
+            },
+            async result() {
+              return {
+                message: {
+                  role: 'assistant',
+                  content: [
+                    {
+                      type: 'tool-call',
+                      id: 'call_edit_1',
+                      name: 'edit_file',
+                      arguments: { path: 'file.txt' },
+                    },
+                  ],
+                },
+                usage: { input: 10, output: 5, total: 15 },
+                finishReason: 'tool-use',
+              };
+            },
+          };
+        } else {
+          // Model call fails on step 2
+          return {
+            async *[Symbol.asyncIterator]() {},
+            async result() {
+              return {
+                message: { role: 'assistant', content: [] },
+                usage: { input: 20, output: 0, total: 20 },
+                finishReason: 'error',
+                error: {
+                  name: 'PortError',
+                  code: 'rate-limit',
+                  status: 429,
+                  message: 'Rate limit reached',
+                },
+              };
+            },
+          };
+        }
+      },
+    };
+
+    const summary = await runAgentTurn({
+      ai: mockAI,
+      model: { provider: 'anthropic', modelId: 'claude-3-7-sonnet', effort: 'medium' },
+      messages: [{ role: 'user', content: 'Edit file.txt' }],
+      toolExecutor: async (call) => ({
+        id: call.id,
+        name: call.name,
+        args: call.arguments,
+        result: { modified: true },
+        isError: false,
+      }),
+    });
+
+    expect(summary.stopReason).toBe('error');
+    expect(summary.error?.code).toBe('rate-limit');
+    expect(summary.error?.status).toBe(429);
+    // Preserves assistant tool call message + tool result message from step 1!
+    expect(summary.rawMessages?.length).toBe(2);
+    expect(summary.rawMessages?.[0]?.role).toBe('assistant');
+    expect(summary.rawMessages?.[1]?.role).toBe('tool');
+    expect(summary.toolCalls.length).toBe(1);
+    expect(summary.toolCalls[0]?.name).toBe('edit_file');
+  });
+
+  it('returns stopReason aborted without throwing when aborted signal fires', async () => {
+    const ac = new AbortController();
+    ac.abort();
+
+    const mockAI: ModelPort = {
+      stream(_request: PortRequest): PortStream {
+        return {
+          async *[Symbol.asyncIterator]() {},
+          async result() {
+            return {
+              message: { role: 'assistant', content: [] },
+              usage: { input: 0, output: 0, total: 0 },
+              finishReason: 'aborted',
+              error: {
+                name: 'AbortError',
+                code: 'aborted',
+                message: 'Aborted',
+              },
+            };
+          },
+        };
+      },
+    };
+
+    const summary = await runAgentTurn({
+      ai: mockAI,
+      model: { provider: 'openai', modelId: 'gpt-4o', effort: 'medium' },
+      messages: [{ role: 'user', content: 'hello' }],
+      abortSignal: ac.signal,
+    });
+
+    expect(summary.stopReason).toBe('aborted');
+  });
 });
+

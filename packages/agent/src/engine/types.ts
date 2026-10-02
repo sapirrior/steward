@@ -1,7 +1,7 @@
-import type { ProviderId, ReasoningEffort, ModelSelection, TokenUsage, Message } from '../ports/model.js';
+import type { ProviderId, ReasoningEffort, ModelSelection, TokenUsage, Message, PortError } from '../ports/model.js';
 
 export type ProviderName = ProviderId;
-export type { ProviderId, ReasoningEffort, ModelSelection, TokenUsage, Message };
+export type { ProviderId, ReasoningEffort, ModelSelection, TokenUsage, Message, PortError };
 
 /**
  * Information describing a tool call requested by the model.
@@ -55,6 +55,7 @@ export interface TurnSummary {
   finishReason: string;
   stopReason?: TurnStopReason;
   rawMessages?: Message[];
+  error?: PortError;
   durationMs?: number;
   startedAt?: string;
   finishedAt?: string;
