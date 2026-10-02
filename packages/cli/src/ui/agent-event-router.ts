@@ -148,6 +148,13 @@ export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventL
         }
         break;
       }
+      case 'retry': {
+        const countdownSec = Math.max(1, Math.ceil(event.delayMs / 1000));
+        streamingView.setStatus(
+          `Retrying in ${countdownSec}s (attempt ${event.attempt}/${event.maxAttempts})`,
+        );
+        break;
+      }
       case 'error': {
         // Handled via TurnSummary in turn-complete
         break;

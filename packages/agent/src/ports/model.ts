@@ -108,6 +108,7 @@ export type PortEvent =
   | { type: 'tool-call-start'; id: string; name: string }
   | { type: 'tool-call-delta'; id: string; delta: string }
   | { type: 'tool-call-end'; toolCall: ToolCallContent }
+  | { type: 'retry'; attempt: number; maxAttempts: number; delayMs: number; error: PortError }
   | { type: 'done'; message: AssistantMessage; usage: TokenUsage; finishReason: string }
   | { type: 'error'; error: PortError; partial?: AssistantMessage };
 

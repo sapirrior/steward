@@ -27,6 +27,13 @@ export type AgentEvent =
       usage?: TokenUsage;
     }
   | {
+      type: 'retry';
+      attempt: number;
+      maxAttempts: number;
+      delayMs: number;
+      error: Error | import('../ports/model.js').PortError;
+    }
+  | {
       type: 'turn-complete';
       summary: TurnSummary;
     }

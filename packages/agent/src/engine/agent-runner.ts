@@ -161,6 +161,17 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
             break;
           }
 
+          case 'retry': {
+            options.onEvent?.({
+              type: 'retry',
+              attempt: event.attempt,
+              maxAttempts: event.maxAttempts,
+              delayMs: event.delayMs,
+              error: event.error,
+            });
+            break;
+          }
+
           case 'error': {
             // Error event from stream — will be handled and packaged into the stepResult / TurnSummary
             break;

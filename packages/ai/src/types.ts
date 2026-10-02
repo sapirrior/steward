@@ -219,12 +219,20 @@ export interface InferenceRequest {
   abortSignal?: AbortSignal;
 }
 
+export interface RetryEventData {
+  attempt: number;
+  maxAttempts: number;
+  delayMs: number;
+  error: AIError;
+}
+
 export type InferenceEvent =
   | { type: 'text-delta'; delta: string }
   | { type: 'reasoning-delta'; delta: string }
   | { type: 'tool-call-start'; id: string; name: string }
   | { type: 'tool-call-delta'; id: string; delta: string }
   | { type: 'tool-call-end'; toolCall: ToolCallContent }
+  | { type: 'retry'; attempt: number; maxAttempts: number; delayMs: number; error: AIError }
   | { type: 'done'; message: AssistantMessage; usage: TokenUsage; finishReason: FinishReason }
   | { type: 'error'; error: AIError; partial?: AssistantMessage };
 

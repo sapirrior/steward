@@ -131,4 +131,32 @@ describe('util/retry — withRetry', () => {
 
     expect(calls).toBeLessThanOrEqual(2);
   });
+
+  it('notifies onRetry callback with attempt, maxAttempts, and delay details', async () => {
+    let calls = 0;
+    const retryEvents: any[] = [];
+
+    const result = await withRetry(
+      async () => {
+        calls++;
+        if (calls < 3) throw makeHttpError(503);
+        return 'success';
+      },
+      {
+        maxRetries: 5,
+        maxDelayMs: 0,
+        onRetry: (info) => {
+          retryEvents.push(info);
+        },
+      },
+    );
+
+    expect(result).toBe('success');
+    expect(calls).toBe(3);
+    expect(retryEvents.length).toBe(2);
+    expect(retryEvents[0].attempt).toBe(1);
+    expect(retryEvents[0].maxAttempts).toBe(6);
+    expect(retryEvents[1].attempt).toBe(2);
+  });
 });
+

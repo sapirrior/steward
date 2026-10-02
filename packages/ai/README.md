@@ -222,6 +222,20 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | :--- | :--- | :--- |
 | `calculateCost` | `(model: Model, usage: TokenUsage) => TokenCost \| undefined` | Calculates exact USD cost breakdown (input, output, cache-read, cache-write, total). |
 
+### 12. `src/util/retry.ts`
+
+| Export | Type | Description & Constraints |
+| :--- | :--- | :--- |
+| `withRetry` | `<T>(request: RetryableRequest<T>, options?: RetryOptions) => Promise<T>` | Wraps fetch requests with exponential backoff (10 max retries, 1.5x multiplier), per-attempt timeout, and `onRetry` events. |
+| `RetryPolicy` | Interface | Configuration options for retry backoff, timeout, and notification callbacks. |
+
+### 13. `src/util/error-body.ts`
+
+| Export | Type | Description & Constraints |
+| :--- | :--- | :--- |
+| `readErrorBody` | `(res: Response) => Promise<string \| undefined>` | Safely reads and redacts sensitive tokens/keys from HTTP error responses. |
+| `parseProviderError` | `(bodyText: string) => ParsedProviderError` | Extracts structured error fields (`type`, `code`, `message`) from provider JSON envelopes. |
+
 
 ---
 

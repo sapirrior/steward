@@ -198,12 +198,12 @@ export async function openAICompletionsProtocol(
   let response: Response;
   try {
     response = await withRetry(
-      async () => {
+      async (attemptSignal) => {
         const res = await fetchFn(url, {
           method: 'POST',
           headers,
           body: JSON.stringify(body),
-          signal: request.abortSignal,
+          signal: attemptSignal ?? request.abortSignal,
         });
 
         if (!res.ok) {
@@ -218,7 +218,23 @@ export async function openAICompletionsProtocol(
         }
         return res;
       },
-      { signal: request.abortSignal },
+      {
+        signal: request.abortSignal,
+        onRetry: (info) => {
+          const httpErr = info.error as HttpError & { detail?: string };
+          const aiErr = httpErr.status
+            ? classifyHttpError(httpErr.status, httpErr.detail, model.provider, info.error)
+            : new AIError(info.error.message, { code: 'network', provider: model.provider, cause: info.error });
+
+          stream.push({
+            type: 'retry',
+            attempt: info.attempt,
+            maxAttempts: info.maxAttempts,
+            delayMs: info.delayMs,
+            error: aiErr,
+          });
+        },
+      },
     );
   } catch (err) {
     const isAbort = request.abortSignal?.aborted;
