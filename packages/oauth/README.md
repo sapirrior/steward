@@ -59,4 +59,22 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `isTokenExpiring` | `(token: TokenRecord) => boolean` | Checks if token expires within the proactive 5-minute buffer. |
 | `EXPIRY_BUFFER_MS` | `number` | Proactive expiration threshold in milliseconds (`300,000` ms / 5 min). |
 
+### 4. `src/providers/`
+
+| File | Export | Type | Description & Constraints |
+| :--- | :--- | :--- | :--- |
+| `anthropic.ts` | `loginAnthropic` / `refreshAnthropic` | Functions | PKCE OAuth login and proactive token refresh via `claude.ai` and `platform.claude.com`. |
+| `openrouter.ts` | `loginOpenRouter` / `refreshOpenRouter` | Functions | PKCE OAuth login minting permanent API keys via `openrouter.ai`. |
+| `github-copilot.ts` | `loginGitHubCopilot` / `refreshGitHubCopilot` | Functions | RFC 8628 Device Code flow and session token management for GitHub Copilot. |
+| `index.ts` | `executeProviderLogin` | Function | Dispatches provider login handler and stores resulting credentials. |
+
+### 5. `src/utils/`
+
+| File | Export | Type | Description & Constraints |
+| :--- | :--- | :--- | :--- |
+| `pkce.ts` | `generatePKCE` | Function | Generates standard cryptographic PKCE verifier and S256 challenge. |
+| `callback-server.ts` | `startOAuthCallbackServer` | Function | Runs local loopback HTTP server with formatted status responses and cancellation support. |
+| `device-poller.ts` | `pollOAuthDeviceCodeFlow` | Function | Robust RFC 8628 interval-aware polling helper with `slow_down` throttling. |
+
+
 

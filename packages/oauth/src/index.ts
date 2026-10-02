@@ -32,20 +32,25 @@ export async function getToken(provider: string, signal?: AbortSignal): Promise<
 }
 
 
+import { executeProviderLogin } from './providers/index.js';
+
 /**
  * Initiates interactive OAuth login for the specified provider.
  */
-export async function login(provider: string, options?: import('./types').LoginOptions): Promise<import('./types').LoginResult> {
-  // Implemented in subsequent steps
-  return { provider, success: false, error: 'Not implemented' };
+export async function login(
+  provider: string,
+  options?: import('./types').LoginOptions,
+): Promise<import('./types').LoginResult> {
+  return executeProviderLogin(provider, options);
 }
 
 /**
  * Logs out and removes credentials for the specified provider.
  */
 export async function logout(provider: string): Promise<void> {
-  // Implemented in subsequent steps
+  await deleteStoredToken(provider);
 }
+
 
 /**
  * Returns safe public authentication status for all configured providers.
