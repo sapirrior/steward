@@ -67,4 +67,27 @@ describe('auth — resolveApiKey priority order', () => {
       expect((err as AIError).message).toContain('ANTHROPIC_API_KEY');
     }
   });
+
+  it('createAI resolves dynamically with external token provider callback', async () => {
+    const { createAI } = await import('../src/client.ts');
+    
+    // External token source (mocking an external OAuth store)
+    const externalTokens: Record<string, string | null> = {
+      anthropic: 'external-oauth-token-abc',
+      openai: null,
+    };
+
+    const ai = createAI({
+      getApiKey: async (providerId) => externalTokens[providerId] ?? undefined,
+      env: () => undefined, // No env vars
+    });
+
+    expect(await ai.isConfigured('anthropic')).toBe(true);
+    expect(await ai.isConfigured('openai')).toBe(false);
+
+    const status = await ai.authStatus('anthropic');
+    expect(status.configured).toBe(true);
+    expect(status.source).toBe('callback');
+  });
 });
+
