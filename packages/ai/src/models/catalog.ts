@@ -2,7 +2,6 @@
  * @steward/ai - Model Catalog & Query Engine
  */
 
-import { MODELS, PROVIDER_PRESETS, type ProviderPreset } from './catalog.generated.js';
 import {
   parseModelsDevModel,
   inferProtocolForModel,
@@ -13,12 +12,9 @@ import {
 import type { Model, ProviderId } from '../types.js';
 
 export {
-  MODELS,
-  PROVIDER_PRESETS,
   parseModelsDevModel,
   inferProtocolForModel,
   supportsReasoning,
-  type ProviderPreset,
   type ModelsDevApiResponse,
   type ModelsDevRawModel,
 };

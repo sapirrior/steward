@@ -17,6 +17,9 @@ export const PROVIDER_SELECTION_PRIORITY: readonly ProviderId[] = [
   'openai',
   'google',
   'openrouter',
+  'grok',
+  'mistral',
+  'github-copilot',
 ] as const;
 
 export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
@@ -24,6 +27,9 @@ export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
   openai: 'gpt-5.4',
   google: 'gemini-3.5-flash',
   openrouter: 'anthropic/claude-sonnet-4.5',
+  grok: 'grok-2-latest',
+  mistral: 'mistral-large-latest',
+  'github-copilot': 'gpt-4o',
 };
 
 export function inferProviderFromModelId(modelId: string): ProviderId | null {
@@ -36,6 +42,17 @@ export function inferProviderFromModelId(modelId: string): ProviderId | null {
   if (lower.startsWith('claude-')) {
     return 'anthropic';
   }
+  if (lower.startsWith('grok-')) {
+    return 'grok';
+  }
+  if (
+    lower.startsWith('mistral-') ||
+    lower.startsWith('codestral-') ||
+    lower.startsWith('pixtral-') ||
+    lower.startsWith('ministral-')
+  ) {
+    return 'mistral';
+  }
   if (lower.startsWith('gpt-') || lower.startsWith('chatgpt-') || /^o[1-9]($|-)/.test(lower)) {
     return 'openai';
   }
@@ -45,6 +62,7 @@ export function inferProviderFromModelId(modelId: string): ProviderId | null {
 
   return null;
 }
+
 
 export interface ModelResolutionContext {
   isConfigured: (provider: ProviderId) => boolean | Promise<boolean>;

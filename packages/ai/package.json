@@ -25,9 +25,9 @@
     "build": "bun build ./src/index.ts ./src/testing/faux.ts --outdir ./dist --target node",
     "typecheck": "tsc --noEmit",
     "test": "bun test ./tests",
-    "chat": "bun run examples/chat.ts",
-    "catalog:update": "bun run scripts/generate-catalog.ts"
+    "chat": "bun run examples/chat.ts"
   },
+
   "engines": {
     "node": ">=22.19.0"
   },

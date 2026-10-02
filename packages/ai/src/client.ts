@@ -16,7 +16,6 @@ import {
 import { AssistantMessageStream } from './event-stream.js';
 import { AIError } from './errors.js';
 import {
-  MODELS,
   filterModels,
   parseModelsDevModel,
   inferProtocolForModel,
@@ -110,6 +109,10 @@ export interface CreateAIOptions {
   models?: readonly Model[];
   /** Injectable fetch — defaults to globalThis.fetch. Used for tests and proxies. */
   fetch?: typeof globalThis.fetch;
+  /** Custom endpoint for dynamic models.dev metadata (default: 'https://models.dev/api.json') */
+  modelsDevUrl?: string;
+  /** Disable dynamic models.dev fetching */
+  disableModelsDev?: boolean;
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -118,6 +121,8 @@ export function createAI(opts: CreateAIOptions = {}): AI {
   const providersMap = new Map<ProviderId, Provider>();
   const modelsMap = new Map<string, Model>();
   const fetchFn = opts.fetch ?? globalThis.fetch;
+  const modelsDevUrl = opts.modelsDevUrl ?? 'https://models.dev/api.json';
+  const disableModelsDev = opts.disableModelsDev ?? false;
 
   let catalogEtag: string | undefined;
   let catalogFetchedAt = 0;
@@ -129,15 +134,11 @@ export function createAI(opts: CreateAIOptions = {}): AI {
     providersMap.set(p.id, p);
   }
 
-  // Seed models from static catalog
-  for (const m of MODELS) {
-    modelsMap.set(`${m.provider}/${m.id}`, m);
-  }
-
   // Override/add user-provided models
   for (const m of opts.models ?? []) {
     modelsMap.set(`${m.provider}/${m.id}`, m);
   }
+
 
   const authOptions: AuthOptions = {
     apiKeys: opts.apiKeys,
@@ -185,6 +186,10 @@ export function createAI(opts: CreateAIOptions = {}): AI {
     },
 
     async refreshCatalog(refreshOpts?: RefreshCatalogOptions): Promise<{ updated: number }> {
+      if (disableModelsDev) {
+        return { updated: 0 };
+      }
+
       const now = Date.now();
       if (!refreshOpts?.force && catalogFetchedAt && now - catalogFetchedAt < CATALOG_TTL_MS) {
         return { updated: 0 };
@@ -194,7 +199,7 @@ export function createAI(opts: CreateAIOptions = {}): AI {
       if (catalogEtag) headers['If-None-Match'] = catalogEtag;
 
       try {
-        const res = await fetchFn('https://models.dev/api.json', {
+        const res = await fetchFn(modelsDevUrl, {
           method: 'GET',
           headers,
           signal: refreshOpts?.signal,
@@ -272,11 +277,16 @@ export function createAI(opts: CreateAIOptions = {}): AI {
       for (const p of providersMap.values()) {
         if (await ai.isConfigured(p.id)) {
           const providerModels = ai.models(p.id);
-          available.push(...providerModels);
+          if (providerModels.length > 0) {
+            available.push(...providerModels);
+          } else if (p.defaultModelId) {
+            available.push(syntheticModel(p.id, p.defaultModelId, p));
+          }
         }
       }
       return filterModels(available, normalizeFilter(filter));
     },
+
 
     async resolveModel(request?: ModelSelectionRequest): Promise<ModelSelection> {
       return resolveModelSelection(request, {

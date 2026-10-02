@@ -25,8 +25,9 @@ Zero-dependency, pure Web Standards AI streaming inference engine and model orch
 
 - **Zero External AI SDKs:** No `@ai-sdk/*`, `openai`, `@anthropic-ai/sdk`, or `langchain`. Direct, high-performance streaming over standard Web `fetch` and `ReadableStream`.
 - **Pure Web Standards:** Built entirely on standard JavaScript/TypeScript primitives (`fetch`, `Headers`, `ReadableStream`, `TextDecoder`). Works natively in Bun, Node.js 22+, Deno, and edge runtimes.
-- **Offline-First Seeded Catalog:** Ships with a static, pre-generated catalog of over 400+ frontier and open-source models parsed from `models.dev`, with live on-demand refresh support.
+- **Dynamic Runtime Catalog:** Lightweight on-demand discovery from `models.dev` with in-memory caching (TTL & ETag) and zero bundled static catalog bloat.
 - **OpenRouter Standardized:** Seamless OpenRouter integration via OpenAI Chat Completions protocol (`https://openrouter.ai/api/v1/chat/completions`).
+
 - **Canonical Reasoning Scale:** 5-tier reasoning effort scale (`'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`) with automatic fallback clamping and Anthropic token budget calculation.
 - **Cross-Model Handoff:** Seamlessly re-routes conversation history across OpenAI, Anthropic, Google, and OpenRouter—automatically normalizing tool IDs, synthesizing orphaned tool call results, and preserving or converting thinking blocks.
 - **Resilient Error Classification:** Automatic classification of HTTP errors (`rate-limit`, `auth`, `context-overflow`, `invalid-request`, `provider`, `network`, `aborted`) with silent exponential backoff before the first byte.
@@ -128,14 +129,9 @@ const stream = ai.stream({
 
 `@steward/ai` uses metadata from [`models.dev`](https://models.dev) to provide accurate token limits, pricing, context windows, and reasoning capabilities:
 
-- **Offline Seeded:** 400+ models bundled in `src/models/catalog.generated.ts`.
-- **OpenRouter Support:** Fully captures OpenRouter's catalog including free models (`openrouter/free`, `google/gemma-4-26b-a4b-it:free`, etc.).
-- **Live Refresh:** `ai.refreshCatalog()` dynamically updates the cache when online with ETag support.
-
-To re-generate the static bundled catalog:
-```bash
-bun run catalog:update
-```
+- **Zero Bundled Bloat:** No static generated catalog files; dynamic models are fetched on-demand and kept purely in-memory.
+- **In-Memory Caching:** `ai.refreshCatalog()` dynamically updates the cache when online with ETag and TTL support.
+- **Resilient Fallbacks:** When offline or when `models.dev` is unreachable, explicit model inference and configured default provider models continue to operate smoothly.
 
 ---
 
@@ -155,7 +151,7 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
-| `createAI` | `(opts?: CreateAIOptions) => AI` | Creates the central AI runtime object. Seeds builtin providers and static model catalog. |
+| `createAI` | `(opts?: CreateAIOptions) => AI` | Creates the central AI runtime object. Seeds builtin providers and manages dynamic runtime model discovery. |
 | `AI` | `interface` | Core interface providing `.stream()`, `.complete()`, `.models()`, `.availableModels()`, `.resolveModel()`, and `.refreshCatalog()`. |
 | `Provider` | `interface` | Provider descriptor holding ID, protocol streams map, base URL, and auth rules. |
 
@@ -176,11 +172,10 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
-| `MODELS` | `readonly Model[]` | Pre-generated catalog of frontier and open-source models. |
-| `PROVIDER_PRESETS` | `readonly ProviderPreset[]` | Third-party provider presets (DeepSeek, Groq, xAI, Mistral, Ollama, LM Studio). |
 | `parseModelsDevModel` | `(providerId, raw) => Model` | Parses raw `models.dev` API model definition into canonical `Model`. |
 | `supportsReasoning` | `(model: Model) => boolean` | Checks if model supports reasoning / thinking. |
 | `filterModels` | `(models: readonly Model[], filter: ModelFilter) => Model[]` | Filters models by provider, query string, or reasoning support. |
+
 
 ### 6. `src/models/selection.ts`
 

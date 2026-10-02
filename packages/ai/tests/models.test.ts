@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, mock } from 'bun:test';
 import {
   clampThinkingEffort,
   getSupportedEfforts,
@@ -9,9 +9,9 @@ import {
   inferProtocolForModel,
   supportsReasoning,
   filterModels,
-  MODELS,
 } from '../src/models/catalog.ts';
 import { resolveModelSelection, inferProviderFromModelId } from '../src/models/selection.ts';
+import { createAI } from '../src/client.ts';
 import type { Model } from '../src/types.ts';
 
 describe('models/thinking — clampThinkingEffort & getSupportedEfforts', () => {
@@ -155,29 +155,102 @@ describe('models/catalog — parseModelsDevModel & inferProtocolForModel', () =>
     expect(inferProtocolForModel('openrouter', 'meta-llama-3')).toBe('openai-completions');
   });
 
-  it('static MODELS catalog is populated offline with valid context windows', () => {
-    expect(MODELS.length).toBeGreaterThan(0);
-    for (const m of MODELS) {
-      expect(m.contextWindow).toBeGreaterThan(0);
-      expect(m.maxOutputTokens).toBeGreaterThan(0);
-      expect(m.input).toContain('text');
-      expect(m.baseUrl).toBeTruthy();
-    }
+  it('filterModels applies structured filters correctly', () => {
+    const sampleModels: Model[] = [
+      {
+        id: 'claude-sonnet-4-5',
+        name: 'Sonnet',
+        provider: 'anthropic',
+        protocol: 'anthropic-messages',
+        reasoning: true,
+        input: ['text'],
+        contextWindow: 200000,
+        maxOutputTokens: 8192,
+        temperature: true,
+      },
+      {
+        id: 'gpt-4o',
+        name: 'GPT-4o',
+        provider: 'openai',
+        protocol: 'openai-responses',
+        reasoning: false,
+        input: ['text'],
+        contextWindow: 128000,
+        maxOutputTokens: 4096,
+        temperature: true,
+      },
+    ];
+
+    const anthropicModels = filterModels(sampleModels, { provider: 'anthropic' });
+    expect(anthropicModels.length).toBe(1);
+    expect(anthropicModels[0]?.provider).toBe('anthropic');
+
+    const reasoningModels = filterModels(sampleModels, { reasoning: true });
+    expect(reasoningModels.length).toBe(1);
+    expect(reasoningModels[0]?.id).toBe('claude-sonnet-4-5');
+  });
+});
+
+describe('models.dev live runtime catalog & resilience', () => {
+  it('refreshes models in-memory from models.dev endpoint', async () => {
+    const mockFetch = mock(async () => {
+      return new Response(
+        JSON.stringify({
+          anthropic: {
+            api: 'https://api.anthropic.com',
+            models: {
+              'claude-sonnet-4-5': {
+                id: 'claude-sonnet-4-5',
+                name: 'Claude Sonnet 4.5',
+                tool_call: true,
+                limit: { context: 200000, output: 8192 },
+              },
+            },
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }) as any;
+
+    const ai = createAI({ fetch: mockFetch });
+    const res = await ai.refreshCatalog({ force: true });
+    expect(res.updated).toBe(1);
+
+    const model = ai.model('anthropic', 'claude-sonnet-4-5');
+    expect(model).toBeDefined();
+    expect(model?.name).toBe('Claude Sonnet 4.5');
   });
 
-  it('filterModels applies structured filters correctly', () => {
-    const anthropicModels = filterModels(MODELS, { provider: 'anthropic' });
-    expect(anthropicModels.length).toBeGreaterThan(0);
-    expect(anthropicModels.every((m) => m.provider === 'anthropic')).toBe(true);
+  it('respects disableModelsDev option', async () => {
+    let fetchCalled = false;
+    const mockFetch = mock(async () => {
+      fetchCalled = true;
+      return new Response('{}');
+    }) as any;
 
-    const reasoningModels = filterModels(MODELS, { reasoning: true });
-    expect(reasoningModels.every((m) => m.reasoning === true)).toBe(true);
+    const ai = createAI({ fetch: mockFetch, disableModelsDev: true });
+    const res = await ai.refreshCatalog({ force: true });
+    expect(res.updated).toBe(0);
+    expect(fetchCalled).toBe(false);
+  });
+
+  it('provides availableModels with fallback defaults when offline / unrefreshed', async () => {
+    const ai = createAI({
+      apiKeys: { anthropic: 'test-key' },
+      env: () => undefined,
+    });
+
+    const models = await ai.availableModels();
+    expect(models.length).toBeGreaterThan(0);
+    expect(models[0]?.provider).toBe('anthropic');
   });
 });
 
 describe('models/selection — resolveModelSelection', () => {
   it('infers provider from modelId', () => {
     expect(inferProviderFromModelId('claude-sonnet-4-5')).toBe('anthropic');
+    expect(inferProviderFromModelId('grok-2-latest')).toBe('grok');
+    expect(inferProviderFromModelId('mistral-large-latest')).toBe('mistral');
     expect(inferProviderFromModelId('gpt-5.4')).toBe('openai');
     expect(inferProviderFromModelId('gemini-3.5-flash')).toBe('google');
     expect(inferProviderFromModelId('anthropic/claude-sonnet-4.5')).toBe('openrouter');

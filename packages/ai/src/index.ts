@@ -63,17 +63,15 @@ export { AIError, type AIErrorCode, type AIErrorOptions } from './errors.js';
 
 // ─── Models & Catalog ─────────────────────────────────────────────────────────
 export {
-  MODELS,
-  PROVIDER_PRESETS,
   parseModelsDevModel,
   inferProtocolForModel,
   supportsReasoning,
   filterModels,
-  type ProviderPreset,
   type ModelFilter,
   type ModelsDevApiResponse,
   type ModelsDevRawModel,
 } from './models/catalog.js';
+
 
 export {
   getSupportedEfforts,

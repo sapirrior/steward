@@ -10,16 +10,20 @@ import {
 import { resolveApiKey } from '../src/auth.ts';
 
 describe('providers/index — builtinProviders', () => {
-  it('instantiates all 4 built-in providers with valid IDs', () => {
+  it('instantiates all 7 built-in providers with valid IDs', () => {
     const providers = builtinProviders();
-    expect(providers).toHaveLength(4);
+    expect(providers).toHaveLength(7);
 
     const ids = providers.map((p) => p.id);
     expect(ids).toContain('anthropic');
     expect(ids).toContain('openai');
     expect(ids).toContain('google');
     expect(ids).toContain('openrouter');
+    expect(ids).toContain('grok');
+    expect(ids).toContain('mistral');
+    expect(ids).toContain('github-copilot');
   });
+
 
   it('declares protocol streams for each provider', () => {
     const anthropic = anthropicProvider();
