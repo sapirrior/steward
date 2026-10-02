@@ -12,7 +12,7 @@
     "test": "bun test",
     "format": "bun ./node_modules/prettier/bin/prettier.cjs --check \"packages/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/tests/**/*.{ts,tsx,js,jsx}\"",
     "format:fix": "bun ./node_modules/prettier/bin/prettier.cjs --write \"packages/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/tests/**/*.{ts,tsx,js,jsx}\"",
-    "lint:boundaries": "bun test packages/cli/tests/tui/boundary-lint.test.ts",
+    "lint:boundaries": "bun test packages/cli/tests/boundary-lint.test.ts",
     "typecheck": "tsc -b packages/ai packages/tui packages/agent packages/cli"
   },
   "devDependencies": {

@@ -245,11 +245,38 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
 
       for (const call of stepToolCalls) {
         if (options.abortSignal?.aborted) {
-          break;
+          const abortedResult: ToolResultInfo = {
+            id: call.id,
+            name: call.name,
+            args: call.arguments,
+            result: 'Aborted by user',
+            isError: true,
+          };
+          toolResults.push(abortedResult);
+          toolResultsForStep.push({
+            type: 'tool-result',
+            toolCallId: call.id,
+            toolName: call.name,
+            output: 'Aborted by user',
+            isError: true,
+          });
+          continue;
         }
 
         if (options.toolExecutor) {
-          const resultInfo = await options.toolExecutor(call);
+          let resultInfo: ToolResultInfo;
+          try {
+            resultInfo = await options.toolExecutor(call);
+          } catch (toolErr) {
+            resultInfo = {
+              id: call.id,
+              name: call.name,
+              args: call.arguments,
+              result: toolErr instanceof Error ? toolErr.message : String(toolErr),
+              isError: true,
+            };
+          }
+
           toolResults.push(resultInfo);
           options.onEvent?.({
             type: 'tool-result',

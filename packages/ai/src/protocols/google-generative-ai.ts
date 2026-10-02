@@ -254,7 +254,11 @@ export async function googleGenerativeAIProtocol(
           const httpErr = info.error as HttpError & { detail?: string };
           const aiErr = httpErr.status
             ? classifyHttpError(httpErr.status, httpErr.detail, model.provider, info.error)
-            : new AIError(info.error.message, { code: 'network', provider: model.provider, cause: info.error });
+            : new AIError(info.error.message, {
+                code: 'network',
+                provider: model.provider,
+                cause: info.error,
+              });
 
           stream.push({
             type: 'retry',

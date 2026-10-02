@@ -159,4 +159,3 @@ describe('util/retry — withRetry', () => {
     expect(retryEvents[1].attempt).toBe(2);
   });
 });
-

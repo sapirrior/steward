@@ -27,9 +27,7 @@ describe('cli/ui/utils/transcript — Session Transcript Replay', () => {
           id: 'turn-err-1',
           status: 'errored',
           usage: { input: 10, output: 5, total: 15 },
-          messages: [
-            { role: 'user', content: 'Do something that fails' },
-          ],
+          messages: [{ role: 'user', content: 'Do something that fails' }],
         },
       ],
     };
@@ -63,9 +61,7 @@ describe('cli/ui/utils/transcript — Session Transcript Replay', () => {
           id: 'turn-abort-1',
           status: 'interrupted',
           usage: { input: 0, output: 0, total: 0 },
-          messages: [
-            { role: 'user', content: 'Run long command' },
-          ],
+          messages: [{ role: 'user', content: 'Run long command' }],
         },
       ],
     };
