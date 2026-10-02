@@ -26,6 +26,7 @@ export interface SlashCommandHandlerCtx {
   modals: {
     openRewindMenu(): void;
     openModelPicker(models: any[]): void;
+    openLoginPicker?(providers: any[], onSelect: (p: any) => void): void;
     openEffortPicker(): void;
     switchToSession(s: any): void;
     openSessionMenu(sessions: any[]): void;
@@ -68,6 +69,15 @@ export async function handleSlashCommandResult(
     ctx.modals.openModelPicker(cmdResult.data.models ?? []);
     return true;
   }
+
+  if (cmdResult.data?.showLoginPicker && ctx.modals.openLoginPicker) {
+    ctx.modals.openLoginPicker(
+      cmdResult.data.providers ?? [],
+      cmdResult.data.onSelect ?? (() => {}),
+    );
+    return true;
+  }
+
 
   if (cmdResult.data?.modeSwitched && cmdResult.data?.selectedMode) {
     ctx.statusBar.setMode(cmdResult.data.selectedMode.name);

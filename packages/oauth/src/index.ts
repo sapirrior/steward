@@ -9,7 +9,7 @@ export type {
   AuthStoreData,
 } from './types';
 
-import { ensureAuthDir, deleteStoredToken } from './store.js';
+import { ensureAuthDir, deleteStoredToken, clearStoredTokens } from './store.js';
 import { getOrRefreshToken } from './refresh.js';
 
 export { registerTokenRefresher } from './refresh.js';
@@ -47,8 +47,15 @@ export async function login(
 /**
  * Logs out and removes credentials for the specified provider.
  */
-export async function logout(provider: string): Promise<void> {
-  await deleteStoredToken(provider);
+export async function logout(provider: string): Promise<boolean> {
+  return deleteStoredToken(provider);
+}
+
+/**
+ * Logs out and removes credentials for all providers.
+ */
+export async function logoutAll(): Promise<number> {
+  return clearStoredTokens();
 }
 
 

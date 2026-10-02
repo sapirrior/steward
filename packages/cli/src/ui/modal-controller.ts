@@ -9,6 +9,7 @@ import {
 } from '@steward/agent';
 import type { Model, ProviderId } from '@steward/ai';
 import ModelPicker from './components/docks/ModelPicker.js';
+import LoginPicker, { type OAuthProviderItem } from './components/docks/LoginPicker.js';
 import SessionMenu from './components/docks/SessionMenu.js';
 import ShortcutsMenu from './components/docks/ShortcutsMenu.js';
 import EffortPicker from './components/docks/EffortPicker.js';
@@ -40,6 +41,7 @@ export interface ModalControllerDeps {
 
 type AnyModal =
   | ModelPicker
+  | LoginPicker
   | SessionMenu
   | ShortcutsMenu
   | EffortPicker
@@ -141,6 +143,30 @@ export class ModalController {
     engine.mount(picker);
     engine.mount(statusBar);
   }
+
+  public openLoginPicker(
+    providers: readonly OAuthProviderItem[],
+    onSelect: (provider: OAuthProviderItem) => void,
+  ): void {
+    const { engine, promptInput, statusBar } = this.deps;
+    if (this.activeModal) this.closeModal();
+    engine.unmount(promptInput);
+    engine.unmount(statusBar);
+
+    const picker = new LoginPicker({
+      providers,
+      onSelect: (item) => {
+        this.closeModal();
+        onSelect(item);
+      },
+      onCancel: () => this.closeModal(),
+    });
+
+    this.activeModal = picker;
+    engine.mount(picker);
+    engine.mount(statusBar);
+  }
+
 
   public switchToSession(selected: SessionData): void {
     const { engine, promptInput, statusBar, header, streamingView, cwd } = this.deps;

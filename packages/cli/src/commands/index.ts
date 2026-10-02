@@ -13,4 +13,7 @@ export * from './rename/index.js';
 export * from './rewind/index.js';
 export * from './skills/index.js';
 export * from './mode/index.js';
+export * from './login/index.js';
+export * from './logout/index.js';
 export * from './registry.js';
+

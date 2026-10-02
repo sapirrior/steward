@@ -255,3 +255,14 @@ export async function deleteStoredToken(provider: string): Promise<boolean> {
     return { data, result: false };
   });
 }
+
+/**
+ * Deletes all credentials across all providers.
+ */
+export async function clearStoredTokens(): Promise<number> {
+  return mutateAuthStore((data) => {
+    const count = Object.keys(data).length;
+    return { data: {}, result: count };
+  });
+}
+
