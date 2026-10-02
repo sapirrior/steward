@@ -6,7 +6,6 @@ import {
   buildSessionPresentationProjection,
   type TurnPresentationEnd,
   rehydrateSessionHistory,
-  classifyError,
   defaultToolCatalog,
   summarizeToolResult,
   summarizeToolArgs,
@@ -46,10 +45,10 @@ export function formatTurnFooter(
     }
   } else if (
     (turnPresentationEnd.status === 'errored' || turnPresentationEnd.status === 'interrupted') &&
-    turnPresentationEnd.errorMessage
+    (turnPresentationEnd.error || turnPresentationEnd.errorMessage)
   ) {
-    const structured = classifyError(new Error(turnPresentationEnd.errorMessage));
-    engine.commit(formatErrorBadge(structured), { tag: 'system' });
+    const errToFormat = turnPresentationEnd.error ?? new Error(turnPresentationEnd.errorMessage!);
+    engine.commit(formatErrorBadge(errToFormat), { tag: 'system' });
   }
 }
 

@@ -10,11 +10,11 @@ import {
 import { wrapVisualLine } from 'stitchable';
 import type { ToolExecutionStatus } from '../types.js';
 import {
-  type StructuredError,
   type ToolSummary,
   chooseTurnStatusVerb,
   STATUS_VERBS,
 } from '@steward/agent';
+import { presentError, type PresentedError } from '../../errors/present.js';
 import { renderToolDetail } from './tool-detail.js';
 
 export function formatUserMessage(content: string, targetWidth?: number): string[] {
@@ -194,26 +194,32 @@ export function formatToolStatus(options: {
 }
 
 export function formatErrorBadge(
-  error: StructuredError,
+  error: PresentedError | unknown,
   retryInfo?: { attempt: number; maxAttempts: number; countdownSec: number },
 ): string[] {
-  const ast = c.error(figures.asterisk);
+  const presented: PresentedError =
+    typeof error === 'object' && error !== null && 'headline' in error
+      ? (error as PresentedError)
+      : presentError(error);
+
+  const isInfo = presented.tone === 'info';
+  const isWarning = presented.tone === 'warning';
+  const icon = isInfo ? c.muted(figures.info) : isWarning ? c.warning(figures.warning) : c.error(figures.asterisk);
   const midDot = c.muted(` ${figures.bullet} `);
 
-  let msg = error.shortMessage;
+  let msg = isInfo ? c.muted(presented.headline) : isWarning ? c.warning(presented.headline) : c.error(presented.headline);
+
   if (retryInfo) {
     const retryStr = c.muted(
       `Retrying in ${retryInfo.countdownSec}s · attempt ${retryInfo.attempt}/${retryInfo.maxAttempts}`,
     );
-    msg = `${c.error(error.shortMessage)}${midDot}${retryStr}`;
-  } else {
-    msg = c.error(error.shortMessage);
+    msg = `${msg}${midDot}${retryStr}`;
   }
 
-  const lines: string[] = [`${ast} ${msg}`];
+  const lines: string[] = [`${icon} ${msg}`];
 
-  if (error.suggestedAction) {
-    lines.push(`  ${c.muted('└ ')}${c.muted(error.suggestedAction)}`);
+  if (presented.hint) {
+    lines.push(`  ${c.muted('└ ')}${c.muted(presented.hint)}`);
   }
 
   return lines;

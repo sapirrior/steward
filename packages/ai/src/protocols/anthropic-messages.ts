@@ -513,9 +513,23 @@ export async function anthropicMessagesProtocol(
       finishReason,
     });
   } catch (err) {
+    if (request.abortSignal?.aborted) {
+      stream.push({
+        type: 'error',
+        error: new AIError('Inference request aborted.', {
+          code: 'aborted',
+          provider: model.provider,
+          cause: err,
+        }),
+      });
+      return;
+    }
     stream.push({
       type: 'error',
-      error: new AIError(String(err), { code: 'provider', provider: model.provider, cause: err }),
+      error:
+        err instanceof AIError
+          ? err
+          : new AIError(String(err), { code: 'provider', provider: model.provider, cause: err }),
     });
   }
 }

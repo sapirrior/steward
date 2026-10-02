@@ -8,7 +8,6 @@ import {
   getSessionLogPath,
   isFolderTrusted,
   trustFolder,
-  classifyError,
   logError,
   cycleMode,
   setActiveMode,
@@ -482,14 +481,13 @@ export class TUIApp {
       });
     } catch (err: any) {
       this.streamingView.reset();
-      const structured = classifyError(err);
       if (eventState.accumulatedText.trim()) {
         this.engine.commit(formatAssistantMessage(eventState.accumulatedText), {
           tag: 'assistant-message',
           hangingIndent: 2,
         });
       }
-      this.engine.commit(formatErrorBadge(structured), { tag: 'system' });
+      this.engine.commit(formatErrorBadge(err), { tag: 'system' });
     } finally {
       if (this.modals.getActiveModal()) {
         this.modals.closeModal();

@@ -1,4 +1,3 @@
-import { classifyError } from './classifier.js';
 import { logError } from './logger.js';
 
 /**
@@ -50,13 +49,8 @@ export function setupGlobalErrorHandlers(): void {
     const logPath = logError(error, { source: 'uncaughtException', fatal: true });
     emergencyRestoreTerminal();
 
-    const classified = classifyError(error);
-
-    process.stderr.write(`\n\x1b[31m✖ Fatal error in Steward:\x1b[0m ${classified.shortMessage}\n`);
-
-    if (classified.suggestedAction) {
-      process.stderr.write(`\x1b[36mℹ ${classified.suggestedAction}\x1b[0m\n`);
-    }
+    const msg = error.message || String(error);
+    process.stderr.write(`\n\x1b[31m✖ Fatal error in Steward:\x1b[0m ${msg}\n`);
 
     if (error.stack) {
       process.stderr.write(`\n\x1b[90mTechnical details:\n${error.stack}\x1b[0m\n`);
@@ -73,15 +67,8 @@ export function setupGlobalErrorHandlers(): void {
     const logPath = logError(reason, { source: 'unhandledRejection', fatal: true });
     emergencyRestoreTerminal();
 
-    const classified = classifyError(reason);
-
-    process.stderr.write(
-      `\n\x1b[31m✖ Unhandled asynchronous rejection:\x1b[0m ${classified.shortMessage}\n`,
-    );
-
-    if (classified.suggestedAction) {
-      process.stderr.write(`\x1b[36mℹ ${classified.suggestedAction}\x1b[0m\n`);
-    }
+    const msg = reason instanceof Error ? reason.message : String(reason);
+    process.stderr.write(`\n\x1b[31m✖ Unhandled asynchronous rejection:\x1b[0m ${msg}\n`);
 
     if (reason instanceof Error && reason.stack) {
       process.stderr.write(`\n\x1b[90mTechnical details:\n${reason.stack}\x1b[0m\n`);

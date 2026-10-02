@@ -1,7 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getLogsDir } from '../paths.js';
-import { classifyError } from './classifier.js';
 
 const SENSITIVE_KEY_REGEX = /api[_-]?key|token|secret|password|auth|credential|bearer/i;
 
@@ -133,18 +132,16 @@ export function logError(error: unknown, contextInfo?: Record<string, unknown>):
     }
 
     const logPath = join(dateDir, `${time}.log`);
-    const structured = classifyError(error);
-
     const mem = process.memoryUsage ? process.memoryUsage() : undefined;
+    const serializedErr = serializeError(error);
 
     const logEntry = {
       timestamp: new Date().toISOString(),
-      category: structured.category,
-      statusCode: structured.statusCode,
-      code: structured.code,
-      message: structured.shortMessage,
-      isRetryable: structured.isRetryable,
-      suggestedAction: structured.suggestedAction,
+      code: (error as any)?.code ?? serializedErr.code,
+      status: (error as any)?.status ?? (error as any)?.statusCode ?? serializedErr.statusCode,
+      provider: (error as any)?.provider,
+      providerType: (error as any)?.providerType,
+      message: error instanceof Error ? error.message : String(error),
       runtime: {
         engine: typeof (globalThis as any).Bun !== 'undefined' ? 'bun' : 'node',
         version:
@@ -157,7 +154,7 @@ export function logError(error: unknown, contextInfo?: Record<string, unknown>):
         memoryUsageMB: mem ? Math.round(mem.rss / 1024 / 1024) : undefined,
       },
       context: sanitizeContext(contextInfo),
-      error: serializeError(error),
+      error: serializedErr,
     };
 
     const formatted =

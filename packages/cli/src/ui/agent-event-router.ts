@@ -4,7 +4,6 @@ import {
   defaultToolCatalog,
   summarizeToolResult,
   summarizeToolArgs,
-  classifyError,
   logError,
 } from '@steward/agent';
 import {
@@ -134,8 +133,7 @@ export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventL
         if (event.summary.stopReason === 'error') {
           streamingView.reset();
           const errToFormat = event.summary.error ?? new Error('Turn ended with error');
-          const structured = classifyError(errToFormat);
-          engine.commit(formatErrorBadge(structured), { tag: 'system' });
+          engine.commit(formatErrorBadge(errToFormat), { tag: 'system' });
         } else {
           engine.commit(
             ['', formatTurnStatus(totalDurationMs, finishedAt, event.summary.statusVerb)],

@@ -79,7 +79,7 @@ Every tool has an implementation file in `src/tools/` and a corresponding schema
 | `tasks/manager.ts` | `TaskManager` | Class | Manages background shell tasks, streaming tail buffers, and process lifecycle. | Bounded ring buffer for task output streaming. |
 | `config/settings.ts` | `loadSettings` / `saveSettings` | Function | Reads and writes user preferences in `~/.steward/settings.json`. | Stores default model, theme, effort, and mode. |
 | `config/trust.ts` | `isFolderTrusted` / `trustFolder` | Function | Manages trusted workspace folder list in `~/.steward/trusted-folders.json`. | Restricts operations in untrusted paths. |
-| `logging/error-logger.ts` | `logError` / `classifyError` | Function | Classifies runtime errors and appends structured error logs to `~/.steward/errors.jsonl`. | Categorizes errors into system, permission, model, and network. |
+| `errors/logger.ts` | `logError` | Function | Appends structured diagnostic error logs to `~/.steward/logs/`. | Serializes error codes, status, and redacted context. |
 
 ---
 
