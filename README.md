@@ -21,6 +21,7 @@ Instead of heavy framework abstractions or sprawling plugin layers, Steward deli
 ┌─────────────────────────────────────────────────────────────┐
 │ ✦ Fast, zero-lag Alternate-Screen TUI (Synchronized Mode 2026)│
 │ ✦ Zero-dependency native AI engine with automatic retry     │
+│ ✦ Ultra-lean system prompt (~450 tokens) & lazy skill loading│
 │ ✦ 15 native tools: search, read, edit, bash, tasks, fetch   │
 │ ✦ Content-addressed checkpoints & atomic rewind undo        │
 │ ✦ 11 providers: Anthropic, OpenAI, Gemini, OpenRouter, etc. │
@@ -70,6 +71,9 @@ Connect your provider in seconds using `/login` (Anthropic, OpenRouter, GitHub C
 
 ### 🎯 Pure & Focused from Day One
 Steward is engineered to be clean and immediately productive without setup friction. You don't need to configure complex plugin trees, manage external SDK wrappers, or debug fragile hook pipelines. Everything you need to inspect, edit, test, and ship code is built directly into the core runtime.
+
+### 🪶 Ultra-Lean System Prompt & Smart Lazy Loading
+Rather than burning thousands of tokens on monolithic boilerplate prompts or dumping entire skill libraries into upfront context, Steward uses a razor-sharp base system prompt (~450 tokens). Context rules and domain capabilities are discovered and loaded on demand through native catalog tools (`skill_list`, `skill_read`), preserving maximum model attention and context window budget for your code.
 
 ### 🛡️ Safe by Default, Fearless by Design
 - **Permission Gated:** Destructive file modifications and shell commands always ask for your explicit approval with line-by-line diff previews.
