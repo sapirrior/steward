@@ -310,7 +310,22 @@ export async function openAIResponsesProtocol(
           }
           stream.push({ type: 'reasoning-delta', delta });
         }
-      } else if (eventType === 'response.completed' || eventType === 'response.done') {
+      } else if (eventType === 'error') {
+        const err = eventData.error as Record<string, unknown> | undefined;
+        const errMsg = typeof err?.message === 'string' ? err.message : 'OpenAI Responses stream error';
+        const errCode = typeof err?.code === 'string' ? err.code : undefined;
+        const errType = typeof err?.type === 'string' ? err.type : undefined;
+
+        stream.push({
+          type: 'error',
+          error: new AIError(errMsg, {
+            code: errCode === 'insufficient_quota' ? 'rate-limit' : 'provider',
+            provider: model.provider,
+            providerType: errType ?? errCode,
+          }),
+        });
+        return;
+      } else if (eventType === 'response.completed' || eventType === 'response.done' || eventType === 'response.failed') {
         const resp = eventData.response as Record<string, unknown> | undefined;
         if (resp?.usage && typeof resp.usage === 'object') {
           const u = resp.usage as Record<string, unknown>;
@@ -329,8 +344,26 @@ export async function openAIResponsesProtocol(
         if (typeof resp?.status === 'string') {
           if (resp.status === 'completed') {
             if (finishReason !== 'tool-use') finishReason = 'stop';
-          } else if (resp.status === 'incomplete') finishReason = 'length';
-          else if (resp.status === 'failed') finishReason = 'error';
+          } else if (resp.status === 'incomplete') {
+            finishReason = 'length';
+          } else if (resp.status === 'failed' || eventType === 'response.failed') {
+            finishReason = 'error';
+            const respError = resp.error as Record<string, unknown> | undefined;
+            const errMsg =
+              typeof respError?.message === 'string'
+                ? respError.message
+                : 'OpenAI Responses generation failed';
+            const errCode = typeof respError?.code === 'string' ? respError.code : undefined;
+            stream.push({
+              type: 'error',
+              error: new AIError(errMsg, {
+                code: errCode === 'insufficient_quota' ? 'rate-limit' : 'provider',
+                provider: model.provider,
+                providerType: errCode,
+              }),
+            });
+            return;
+          }
         }
       }
     }

@@ -211,4 +211,53 @@ describe('protocols/openai-responses', () => {
       arguments: { command: 'ls' },
     });
   });
+
+  it('captures in-stream error event properly', async () => {
+    const sse = [
+      'data: {"type":"response.output_text.delta","delta":"Partial start"}',
+      'data: {"type":"error","error":{"message":"Model execution failed","type":"server_error","code":"server_error"}}',
+    ];
+
+    const stream = new AssistantMessageStream();
+    const fetchFn = createMockFetch(sse);
+
+    await openAIResponsesProtocol(
+      model,
+      req,
+      { apiKey: 'sk-resp-test', source: 'test' },
+      fetchFn,
+      stream,
+    );
+    const res = await stream.result();
+
+    expect(res.finishReason).toBe('error');
+    expect(res.error).toBeDefined();
+    expect(res.error?.message).toBe('Model execution failed');
+    expect(res.error?.code).toBe('provider');
+    expect(res.error?.providerType).toBe('server_error');
+  });
+
+  it('captures response.failed event and extracts response.error', async () => {
+    const sse = [
+      'data: {"type":"response.failed","response":{"status":"failed","error":{"message":"Content policy violation","code":"content_policy"}}}',
+    ];
+
+    const stream = new AssistantMessageStream();
+    const fetchFn = createMockFetch(sse);
+
+    await openAIResponsesProtocol(
+      model,
+      req,
+      { apiKey: 'sk-resp-test', source: 'test' },
+      fetchFn,
+      stream,
+    );
+    const res = await stream.result();
+
+    expect(res.finishReason).toBe('error');
+    expect(res.error).toBeDefined();
+    expect(res.error?.message).toBe('Content policy violation');
+    expect(res.error?.providerType).toBe('content_policy');
+  });
 });
+
