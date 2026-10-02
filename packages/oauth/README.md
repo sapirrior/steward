@@ -34,3 +34,19 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `LoginResult` | `interface` | Outcome descriptor for login operations (`provider`, `success`, `account`, `error`). |
 | `AuthStatus` | `type` | Map of provider IDs to `ProviderAuthStatus` records. |
 | `TokenRecord` | `interface` | Internal storage representation of OAuth and API-key credentials. |
+
+### 2. `src/store.ts`
+
+
+| Export | Type | Description & Constraints |
+| :--- | :--- | :--- |
+| `readAuthStore` | `() => Promise<AuthStoreData>` | Reads entire auth store from `~/steward/auth.json`. Returns empty object if missing. |
+| `writeAuthStore` | `(data: AuthStoreData) => Promise<void>` | Writes auth data atomically with `0o600` mode via temp file and rename. |
+| `mutateAuthStore` | `(mutator: (data: AuthStoreData) => Promise<...> \| ...) => Promise<T>` | Performs synchronized read-modify-write mutation protected by process lock queue and file lock. |
+| `getStoredToken` | `(provider: string) => Promise<TokenRecord \| null>` | Retrieves stored token record for provider. |
+| `saveStoredToken` | `(provider: string, token: TokenRecord) => Promise<void>` | Persists token record for provider atomically. |
+| `deleteStoredToken` | `(provider: string) => Promise<boolean>` | Deletes token record for provider atomically. |
+| `ensureAuthDir` | `() => Promise<string>` | Ensures auth storage directory exists with `0o700` mode. |
+| `getAuthFilePath` | `() => string` | Resolves canonical path to `auth.json`. |
+| `AuthStorageError` | `class extends Error` | Structured domain error for storage failures without token exposure. |
+
