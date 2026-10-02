@@ -1,9 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
-import type { ProviderName } from './env.js';
-import type { ChatMode, ReasoningEffort } from '../contracts.js';
+import type { ChatMode } from '../../policy/modes.js';
+import type { ProviderId, ReasoningEffort } from '../../ports/model.js';
 
+export type ProviderName = ProviderId;
 export type { ReasoningEffort };
 
 export interface SavedModelSettings {

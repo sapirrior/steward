@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Message, ToolSpec } from '@steward/ai';
+import type { Message, ToolSpec } from '../ports/model.js';
 import { SessionLogWriter } from '../services/session/index.js';
 import {
   MutationCheckpointTracker,

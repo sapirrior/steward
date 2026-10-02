@@ -1,4 +1,3 @@
-export * from './contracts.js';
 export * from './paths.js';
 
 // Session subsystem

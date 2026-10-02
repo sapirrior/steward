@@ -4,14 +4,13 @@
 
 import { randomUUID } from 'node:crypto';
 import type {
-  AI,
+  ModelPort,
   Message,
   ModelSelection,
   ReasoningEffort,
   TokenUsage,
   ToolCallContent,
-} from '@steward/ai';
-import { createAI } from '@steward/ai';
+} from '../ports/model.js';
 import {
   createSession,
   getCurrentDateString,
@@ -101,7 +100,7 @@ export function accumulateUsage(current: TokenUsage, delta?: TokenUsage): TokenU
 }
 
 export interface AgentSessionDeps {
-  ai?: AI;
+  ai: ModelPort;
 }
 
 /**
@@ -109,7 +108,7 @@ export interface AgentSessionDeps {
  * active model configuration, abort controls, and turn execution.
  */
 export class AgentSession {
-  private readonly ai: AI;
+  private readonly ai: ModelPort;
   private config: SessionConfig;
   private messages: Message[] = [];
   private sessionData: SessionData;
@@ -129,9 +128,9 @@ export class AgentSession {
   constructor(
     initialConfig?: Partial<SessionConfig>,
     existingSession?: SessionData,
-    deps?: AgentSessionDeps,
+    deps: AgentSessionDeps,
   ) {
-    this.ai = deps?.ai ?? createAI();
+    this.ai = deps.ai;
 
     if (existingSession) {
       this.sessionData = existingSession;
@@ -184,7 +183,7 @@ export class AgentSession {
     }
   }
 
-  public static resume(sessionData: SessionData, deps?: AgentSessionDeps): AgentSession {
+  public static resume(sessionData: SessionData, deps: AgentSessionDeps): AgentSession {
     return new AgentSession(undefined, sessionData, deps);
   }
 
@@ -192,7 +191,7 @@ export class AgentSession {
     return this.sessionData;
   }
 
-  public get aiClient(): AI {
+  public get aiClient(): ModelPort {
     return this.ai;
   }
 

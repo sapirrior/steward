@@ -21,7 +21,6 @@
     "test": "bun test ./tests"
   },
   "dependencies": {
-    "@steward/ai": "*",
     "zod": "4.6.1"
   },
   "devDependencies": {

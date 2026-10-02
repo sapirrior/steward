@@ -6,6 +6,22 @@ import { taskReadTool } from '../../src/tools/task-read/index.js';
 import { taskSendInputTool } from '../../src/tools/task-send-input/index.js';
 import { taskKillTool } from '../../src/tools/task-kill/index.js';
 import { AgentSession } from '../../src/engine/agent-session.js';
+import type { ModelPort } from '../../src/ports/model.js';
+
+const mockAI: ModelPort = {
+  stream() {
+    return {
+      async *[Symbol.asyncIterator]() {},
+      async result() {
+        return {
+          message: { role: 'assistant', content: [] },
+          usage: {},
+          finishReason: 'stop',
+        };
+      },
+    };
+  },
+};
 
 describe('Shell Tasks Subsystem', () => {
   const cwd = process.cwd();
@@ -235,8 +251,8 @@ describe('Shell Tasks Subsystem', () => {
   });
 
   it('K. Session isolation guarantees tasks do not cross session boundaries', async () => {
-    const session1 = new AgentSession();
-    const session2 = new AgentSession();
+    const session1 = new AgentSession(undefined, undefined, { ai: mockAI });
+    const session2 = new AgentSession(undefined, undefined, { ai: mockAI });
 
     const task1 = session1.tasks.createExecution({
       command: 'sleep 5',
@@ -253,7 +269,7 @@ describe('Shell Tasks Subsystem', () => {
   });
 
   it('L. /clear and session reset shuts down running tasks', async () => {
-    const session = new AgentSession();
+    const session = new AgentSession(undefined, undefined, { ai: mockAI });
     const task = session.tasks.createExecution({
       command: 'sleep 10',
       cwd,

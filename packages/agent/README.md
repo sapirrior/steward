@@ -1,18 +1,28 @@
 # @steward/agent
 
-The `@steward/agent` package provides the agent loop, tool catalog and execution, chat modes and policy, skill discovery, and core session, CAS checkpoint, rewind, background tasks, and settings services for Steward using `@steward/ai`.
+The `@steward/agent` package provides the agent loop, tool catalog and execution, chat modes and policy, skill discovery, and core session, CAS checkpoint, rewind, background tasks, and settings services for Steward. It owns its own ports (`ports/model.ts`) and has zero dependencies on `@steward/ai` or any sibling packages.
 
 ---
 
 ## File & Function Breakdown
 
+### Ports (`src/ports/`)
+
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `model.ts` | `ModelPort` | Interface | Canonical port interface that the agent runner and session depend on to stream model responses. | Implemented structurally by CLI runtime; agent never imports `@steward/ai`. |
+| `model.ts` | `PortStream` / `PortResult` / `PortEvent` / `PortError` | Interface / Type | Async stream, result, error, and event contracts surfaced through `ModelPort`. | Structured error and event contracts. |
+| `model.ts` | `Message` / `ToolSpec` / `JsonSchema` / `TokenUsage` / `ModelSelection` | Interface / Type | Pure message and model configuration types owned by agent. | Matches session schema and tool contracts. |
+
+---
+
 ### Engine Modules (`src/engine/`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, turn execution, and session persistence. | Injected with `@steward/ai` `AI` (`createAI()`) instance. |
+| `agent-session.ts` | `AgentSession` | Class | Manages in-memory agent lifecycle, model selection, reasoning effort, turn execution, and session persistence. | Injected with `ModelPort` (`deps: { ai: ModelPort }`). |
 | `turn-context.ts` | `prepareTurn` | Function | Prepares execution environment, checkpoint tracker, and event logging for a turn. | Builds canonical `Message` and plain `ToolSpec` array. |
-| `agent-runner.ts` | `runAgentTurn` | Function | Executes deterministic multi-step agent turn loop, dispatching tool calls, consuming stream events and `InferenceResult.error` without uncaught exceptions, and accumulating canonical token usage. | Pure multi-step loop over `@steward/ai` stream with callback seams. |
+| `agent-runner.ts` | `runAgentTurn` | Function | Executes deterministic multi-step agent turn loop, dispatching tool calls, consuming stream events and `PortResult` without uncaught exceptions, and accumulating canonical token usage. | Pure multi-step loop over `ModelPort.stream` with callback seams. |
 | `system-prompt.ts` | `buildSystemPrompt` / `buildSystemPromptSections` / `diffSystemPromptSections` | Function | Assembles dynamic, modular system instructions, sections, and diff patches including workspace context, mode policy, and skills. | Injects mode rules and deduplicated guidelines. |
 | `events.ts` | `AgentEvent` | Type | Discriminated union of streaming events (`text-delta`, `reasoning-delta`, `tool-call`, `tool-result`, `step-end`, `turn-complete`, `error`). | Typed event contract for UI rendering. |
 
@@ -75,7 +85,7 @@ Every tool has an implementation file in `src/tools/` and a corresponding schema
 
 ## Agent Invariants & Safety
 
-1. **Pure Agent Loop**: Completely decoupled from provider implementations via `@steward/ai` zero-dependency contracts.
+1. **Zero Sibling Dependencies**: `@steward/agent` defines its own ports in `ports/model.ts` and never imports `@steward/ai` or any sibling package.
 2. **Permission Gating**: Destructive mutations (`write_file`, `edit_file`, `bash`) require explicit human-in-the-loop permission callback approval before modifying the workspace.
 3. **Sequential Tool Execution**: Multiple tool calls in a turn execute sequentially in model order to prevent permission and checkpoint races.
 4. **Checkpoint Integration**: `write_file` and `edit_file` automatically record pre-mutation CAS hashes to enable lossless rewind.

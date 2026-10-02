@@ -15,7 +15,7 @@ import {
 } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
-import type { ModelSelection } from '../services/contracts.js';
+import type { ModelSelection } from '../../ports/model.js';
 import {
   SESSION_SCHEMA_VERSION,
   type SessionData,

@@ -1,8 +1,17 @@
-import { AIError } from '@steward/ai';
 import type { StructuredError } from './types.js';
 
+/** Duck-type check for AIError / PortError — avoids importing @steward/ai. */
+function isAIError(err: unknown): err is { code: string; status?: number; message: string; retryable?: boolean } {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    typeof (err as Record<string, unknown>).code === 'string' &&
+    typeof (err as Record<string, unknown>).message === 'string'
+  );
+}
+
 /**
- * Classifies raw exceptions from @steward/ai, providers, and tools
+ * Classifies raw exceptions from the AI provider and tools
  * into actionable, structured error objects.
  */
 export function classifyError(error: unknown): StructuredError {
@@ -19,7 +28,7 @@ export function classifyError(error: unknown): StructuredError {
     (error as any)?.name === 'AbortError' ||
     (error as any)?.message?.includes('aborted') ||
     (error as any)?.message?.includes('AbortError') ||
-    (error instanceof AIError && error.code === 'aborted')
+    (isAIError(error) && error.code === 'aborted')
   ) {
     return {
       category: 'aborted',
@@ -30,8 +39,8 @@ export function classifyError(error: unknown): StructuredError {
     };
   }
 
-  // 2. AIError from @steward/ai
-  if (error instanceof AIError) {
+  // 2. Structured AI error (AIError / PortError — duck-typed)
+  if (isAIError(error)) {
     const status = error.status;
     const code = error.code;
 

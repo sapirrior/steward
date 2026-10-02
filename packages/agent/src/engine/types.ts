@@ -1,4 +1,4 @@
-import type { ProviderId, ReasoningEffort, ModelSelection, TokenUsage, Message } from '@steward/ai';
+import type { ProviderId, ReasoningEffort, ModelSelection, TokenUsage, Message } from '../ports/model.js';
 
 export type ProviderName = ProviderId;
 export type { ProviderId, ReasoningEffort, ModelSelection, TokenUsage, Message };

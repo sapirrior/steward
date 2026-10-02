@@ -3,21 +3,21 @@
  */
 
 import type {
-  AI,
-  InferenceRequest,
+  ModelPort,
+  PortRequest,
   Message,
   ModelSelection,
   ReasoningEffort,
   TokenUsage,
   ToolCallContent,
   ToolSpec,
-} from '@steward/ai';
+} from '../ports/model.js';
 import { SAFETY_STEP_CEILING } from './constants.js';
 import type { AgentEventListener } from './events.js';
 import type { ToolResultInfo, TurnStopReason, TurnSummary } from './types.js';
 
 export interface RunAgentTurnOptions {
-  ai: AI;
+  ai: ModelPort;
   model: ModelSelection;
   messages: Message[];
   instructions?: string;
@@ -102,7 +102,7 @@ export async function runAgentTurn(options: RunAgentTurnOptions): Promise<TurnSu
         break;
       }
 
-      const inferenceRequest: InferenceRequest = {
+      const inferenceRequest: PortRequest = {
         model: {
           ...options.model,
           effort: options.reasoningEffort ?? options.model.effort ?? 'medium',

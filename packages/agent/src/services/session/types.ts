@@ -1,4 +1,4 @@
-import type { ModelSelection } from '../services/contracts.js';
+import type { ModelSelection } from '../../ports/model.js';
 import type { SessionDocument } from './schema.js';
 
 export { SESSION_SCHEMA_VERSION, type SessionDocument, type SessionTurn } from './schema.js';

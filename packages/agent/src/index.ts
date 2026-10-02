@@ -1,3 +1,6 @@
+// Ports and contracts
+export * from './ports/model.js';
+
 // Policy and modes
 export * from './policy/modes.js';
 
@@ -9,9 +12,6 @@ export * from './tools/index.js';
 
 // Skills discovery
 export * from './skills/index.js';
-
-// Models discovery & helpers
-export * from './models/index.js';
 
 // Persistent infrastructure & services
 export * from './services/index.js';

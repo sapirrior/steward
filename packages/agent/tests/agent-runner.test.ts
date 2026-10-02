@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import { runAgentTurn } from '../src/engine/agent-runner.js';
-import type { AI, InferenceRequest, InferenceStream } from '@steward/ai';
+import type { ModelPort, PortRequest, PortStream } from '../src/ports/model.js';
 
 describe('runAgentTurn Integration', () => {
   it('executes a single step turn without tools', async () => {
-    const mockAI: AI = {
-      auth: {} as any,
-      async resolveModel() {
-        return { provider: 'openai', modelId: 'gpt-4o-mini', effort: 'medium' };
-      },
-      stream(request: InferenceRequest): InferenceStream {
+    const mockAI: ModelPort = {
+      stream(_request: PortRequest): PortStream {
         return {
           async *[Symbol.asyncIterator]() {
             yield { type: 'text-delta', delta: 'Hello from mock AI!' };
@@ -42,12 +38,8 @@ describe('runAgentTurn Integration', () => {
   it('executes tool call and continues turn sequentially', async () => {
     let callCount = 0;
 
-    const mockAI: AI = {
-      auth: {} as any,
-      async resolveModel() {
-        return { provider: 'openai', modelId: 'gpt-4o-mini', effort: 'medium' };
-      },
-      stream(request: InferenceRequest): InferenceStream {
+    const mockAI: ModelPort = {
+      stream(_request: PortRequest): PortStream {
         callCount++;
         if (callCount === 1) {
           // Model requests tool call

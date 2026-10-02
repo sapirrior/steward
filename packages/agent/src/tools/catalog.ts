@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import type { JsonSchema, ToolSpec } from '@steward/ai';
+import type { JsonSchema, ToolSpec } from '../ports/model.js';
 import { isAllowed, MODES, type ChatMode } from '../policy/modes.js';
 import type { ToolContext, ToolDefinition } from './types.js';
 

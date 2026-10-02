@@ -9,34 +9,32 @@ process.env.STEWARD_SETTINGS_DIR = join(testDir, 'settings');
 process.env.STEWARD_SESSIONS_DIR = join(testDir, 'sessions');
 process.env.STEWARD_LOGS_DIR = join(testDir, 'logs');
 
-import { getAvailableProviders, hasProviderConfig } from '../src/services/config/index.js';
-import { PROVIDER_SELECTION_PRIORITY, resolveModelSelection, createAI } from '@steward/ai';
 import { AgentSession } from '../src/engine/agent-session.js';
 import { parseSessionDocument } from '../src/services/session/validate.js';
+import type { ModelPort } from '../src/ports/model.js';
+
+const mockAI: ModelPort = {
+  stream() {
+    return {
+      async *[Symbol.asyncIterator]() {},
+      async result() {
+        return {
+          message: { role: 'assistant', content: [] },
+          usage: {},
+          finishReason: 'stop',
+        };
+      },
+    };
+  },
+};
 
 describe('Provider Configuration & Discovery', () => {
-  it('should verify canonical provider priority list in @steward/ai', () => {
-    expect(PROVIDER_SELECTION_PRIORITY).toEqual([
-      'anthropic',
-      'openai',
-      'google',
-      'openrouter',
-      'grok',
-      'mistral',
-      'github-copilot',
-    ]);
-  });
-
-  it('should accurately detect configured providers via hasProviderConfig and getAvailableProviders', async () => {
-    process.env['OPENROUTER_API_KEY'] = 'or-test-key';
-    expect(await hasProviderConfig('openrouter')).toBe(true);
-  });
-
   it('should update sessionData.model when setModel is called on AgentSession', async () => {
-    process.env['OPENAI_API_KEY'] = 'sk-mock-key';
-    process.env['GEMINI_API_KEY'] = 'mock-gemini-key';
-
-    const session = new AgentSession({ provider: 'openai', modelId: 'gpt-4o-mini' });
+    const session = new AgentSession(
+      { provider: 'openai', modelId: 'gpt-4o-mini' },
+      undefined,
+      { ai: mockAI },
+    );
 
     expect(session.getModel().provider).toBe('openai');
     expect(session.session.model.provider).toBe('openai');
@@ -52,9 +50,11 @@ describe('Provider Configuration & Discovery', () => {
   });
 
   it('should update reasoning effort on AgentSession and sessionData.model', async () => {
-    process.env['OPENAI_API_KEY'] = 'sk-mock-key';
-
-    const session = new AgentSession({ provider: 'openai', modelId: 'gpt-4o-mini' });
+    const session = new AgentSession(
+      { provider: 'openai', modelId: 'gpt-4o-mini' },
+      undefined,
+      { ai: mockAI },
+    );
 
     expect(session.getEffort()).toBe('medium');
     expect(session.session.model.effort).toBe('medium');

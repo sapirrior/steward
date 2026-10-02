@@ -45,18 +45,13 @@ function extractImports(filePath: string): ImportStatement[] {
 }
 
 describe('Monorepo Package Boundary Rules', () => {
-  const rootDir = join(import.meta.dir, '../../../..');
+  const rootDir = join(import.meta.dir, '../../..');
   const tuiRoot = join(rootDir, 'packages/tui/src');
   const tuiPackageRoot = join(rootDir, 'packages/tui');
   const uiRoot = join(rootDir, 'packages/cli/src/ui');
-  const cliRoot = join(rootDir, 'packages/cli/src');
-  const agentRoot = join(rootDir, 'packages/agent/src');
-  const aiRoot = join(rootDir, 'packages/ai/src');
 
   const allTuiFiles = getAllTsFiles(tuiRoot);
   const allUiFiles = getAllTsFiles(uiRoot);
-  const allAgentFiles = getAllTsFiles(agentRoot);
-  const allAiFiles = getAllTsFiles(aiRoot);
 
   it('Rule 1: Layer 0 (engine, layout) and Layer 1 (primitives) must never import Layer 2 (components)', () => {
     const violations: string[] = [];
@@ -132,20 +127,32 @@ describe('Monorepo Package Boundary Rules', () => {
     expect(content).toContain('STEWARD TUI — MASTER RULES');
   });
 
-  it('Rule 5: Cross-package architecture - @steward/ai must never import from agent, tui, or cli', () => {
+  it('Rule 5: Generic sibling isolation — {ai, agent, oauth, tui} must not import each other or cli', () => {
+    const packages: Array<{ name: string; dirName: string; selfNames: string[] }> = [
+      { name: '@steward/ai', dirName: 'ai', selfNames: ['@steward/ai'] },
+      { name: '@steward/agent', dirName: 'agent', selfNames: ['@steward/agent'] },
+      { name: '@steward/oauth', dirName: 'oauth', selfNames: ['@steward/oauth'] },
+      { name: 'stitchable', dirName: 'tui', selfNames: ['stitchable', '@steward/tui'] },
+    ];
+
+    const allPkgIdentities = ['@steward/ai', '@steward/agent', '@steward/oauth', '@steward/cli', '@steward/tui', 'stitchable'];
     const violations: string[] = [];
 
-    for (const file of allAiFiles) {
-      const rel = relative(aiRoot, file);
-      const imports = extractImports(file);
-      for (const imp of imports) {
-        if (
-          imp.source.includes('@steward/agent') ||
-          imp.source.includes('@steward/tui') ||
-          imp.source.includes('stitchable') ||
-          imp.source.includes('@steward/cli')
-        ) {
-          violations.push(`${rel}:${imp.line} -> ${imp.source}`);
+    for (const pkg of packages) {
+      const pkgSrc = join(rootDir, 'packages', pkg.dirName, 'src');
+      const files = getAllTsFiles(pkgSrc);
+
+      for (const file of files) {
+        const rel = relative(pkgSrc, file);
+        const imports = extractImports(file);
+
+        for (const imp of imports) {
+          for (const ident of allPkgIdentities) {
+            if (pkg.selfNames.includes(ident)) continue;
+            if (imp.source === ident || imp.source.startsWith(`${ident}/`)) {
+              violations.push(`${pkg.dirName}/src/${rel}:${imp.line} imports forbidden sibling '${imp.source}'`);
+            }
+          }
         }
       }
     }
@@ -153,39 +160,27 @@ describe('Monorepo Package Boundary Rules', () => {
     expect(violations).toEqual([]);
   });
 
-  it('Rule 6: Cross-package architecture - @steward/tui must never import from agent, ai, or cli', () => {
+  it('Rule 6: Package manifest dependencies — {ai, agent, oauth, tui} must have no sibling dependencies in package.json', () => {
+    const packages = [
+      { dirName: 'ai', selfNames: ['@steward/ai'] },
+      { dirName: 'agent', selfNames: ['@steward/agent'] },
+      { dirName: 'oauth', selfNames: ['@steward/oauth'] },
+      { dirName: 'tui', selfNames: ['stitchable', '@steward/tui'] },
+    ];
+
+    const allPkgIdentities = ['@steward/ai', '@steward/agent', '@steward/oauth', '@steward/cli', '@steward/tui', 'stitchable'];
     const violations: string[] = [];
 
-    for (const file of allTuiFiles) {
-      const rel = relative(tuiRoot, file);
-      const imports = extractImports(file);
-      for (const imp of imports) {
-        if (
-          imp.source.includes('@steward/agent') ||
-          imp.source.includes('@steward/ai') ||
-          imp.source.includes('@steward/cli')
-        ) {
-          violations.push(`${rel}:${imp.line} -> ${imp.source}`);
-        }
-      }
-    }
+    for (const pkg of packages) {
+      const manifestPath = join(rootDir, 'packages', pkg.dirName, 'package.json');
+      if (!existsSync(manifestPath)) continue;
 
-    expect(violations).toEqual([]);
-  });
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+      const deps = Object.keys(manifest.dependencies ?? {});
 
-  it('Rule 7: Cross-package architecture - @steward/agent must never import from cli', () => {
-    const violations: string[] = [];
-
-    for (const file of allAgentFiles) {
-      const rel = relative(agentRoot, file);
-      const imports = extractImports(file);
-      for (const imp of imports) {
-        if (
-          imp.source.includes('@steward/cli') ||
-          imp.source.includes('/cli/') ||
-          imp.source.includes('/app/')
-        ) {
-          violations.push(`${rel}:${imp.line} -> ${imp.source}`);
+      for (const dep of deps) {
+        if (allPkgIdentities.includes(dep) && !pkg.selfNames.includes(dep)) {
+          violations.push(`${pkg.dirName}/package.json lists sibling dependency '${dep}'`);
         }
       }
     }

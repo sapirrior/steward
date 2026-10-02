@@ -1,5 +1,5 @@
 import { MODES, type ChatMode } from './mode.js';
-import type { ToolSpec } from '@steward/ai';
+import type { ToolSpec } from '../ports/model.js';
 
 export interface SystemPromptOptions {
   cwd?: string;

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Message, ModelSelection, TokenUsage } from '@steward/ai';
+import type { Message, ModelSelection, TokenUsage } from '../../ports/model.js';
 
 export const SESSION_SCHEMA_VERSION = 1;
 
