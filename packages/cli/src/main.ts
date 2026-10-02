@@ -10,6 +10,8 @@ import {
   type ChatMode,
   MODE_NAMES,
 } from '@steward/agent';
+import { createAI } from '@steward/ai';
+import { setupAuth, getToken } from '@steward/oauth';
 import pkg from '../package.json' with { type: 'json' };
 
 export const VERSION = pkg.version;
@@ -95,15 +97,23 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<void>
   }
 
   try {
-    const session = new AgentSession();
+    await setupAuth();
+    const ai = createAI({
+      getApiKey: async (provider) => {
+        return (await getToken(provider)) ?? undefined;
+      },
+    });
+    const session = new AgentSession(undefined, undefined, { ai });
     const app = new TUIApp({
       version: VERSION,
+      ai,
       initialSession: session,
       cwd: process.cwd(),
       onExit: () => process.exit(0),
     });
     await app.start();
   } catch (err) {
+
     logError(err, { phase: 'initialization' });
     console.error(
       'Failed to initialize steward:',

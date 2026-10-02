@@ -32,6 +32,8 @@ import {
   formatUserMessage,
 } from './ui/utils/message-formatter.js';
 import { renderTranscript } from './ui/utils/transcript.js';
+import { createAI, type AI } from '@steward/ai';
+import { getToken } from '@steward/oauth';
 import { ModalController } from './ui/modal-controller.js';
 import { createAgentEventHandler, type AgentEventState } from './ui/agent-event-router.js';
 import { applyCommandResult } from './commands/handle-command-result.js';
@@ -39,6 +41,7 @@ import { executeDirectBash } from './utils/bash.js';
 
 export interface TUIAppOptions {
   version?: string;
+  ai?: AI;
   initialSession?: AgentSession;
   cwd?: string;
   onExit?: () => void;
@@ -46,6 +49,7 @@ export interface TUIAppOptions {
 
 export class TUIApp {
   private engine: TerminalEngine;
+  private ai: AI;
   private session: AgentSession;
   private cwd: string;
   private onExitCallback?: () => void;
@@ -65,13 +69,24 @@ export class TUIApp {
 
   constructor(options: TUIAppOptions = {}) {
     this.cwd = options.cwd ?? process.cwd();
-    this.session = options.initialSession ?? new AgentSession();
+    this.ai =
+      options.ai ??
+      options.initialSession?.aiClient ??
+      createAI({
+        getApiKey: async (provider) => {
+          return (await getToken(provider)) ?? undefined;
+        },
+      });
+    this.session =
+      options.initialSession ??
+      new AgentSession(undefined, undefined, { ai: this.ai });
     this.onExitCallback = options.onExit;
     this.engine = new TerminalEngine({
       mouse: true,
       scrollKeys: true,
       onError: (err) => logError(err),
     });
+
 
     const savedMode = getSavedMode();
     if (savedMode) {

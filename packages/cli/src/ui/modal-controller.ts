@@ -146,9 +146,11 @@ export class ModalController {
     const { engine, promptInput, statusBar, header, streamingView, cwd } = this.deps;
     const session = this.deps.getSession();
     recoverPendingCheckpoint(cwd, selected.id).catch(() => {});
+    const sharedAi = session.aiClient;
     session.shutdown().catch(() => {});
-    const newSession = AgentSession.resume(selected);
+    const newSession = AgentSession.resume(selected, { ai: sharedAi });
     this.deps.setSession(newSession);
+
     const model = newSession.getModel();
     header.props.model = model;
     statusBar.update({ model });

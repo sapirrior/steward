@@ -191,6 +191,11 @@ export class AgentSession {
     return this.sessionData;
   }
 
+  public get aiClient(): AI {
+    return this.ai;
+  }
+
+
   public setModel(selection: ModelSelection, persist = true): ModelSelection {
     this.config.provider = selection.provider;
     this.config.modelId = selection.modelId;
