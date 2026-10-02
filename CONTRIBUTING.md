@@ -1,115 +1,161 @@
 # Contributing to Steward
 
-Thank you for your interest in contributing to `steward`, the terminal engineering agent! This guide covers everything you need to get started.
+Thank you for your interest in contributing to **Steward**, the interactive AI engineering assistant for the terminal!
+
+This guide outlines our development workflow, architectural standards, and contribution guidelines to make contributing as straightforward, safe, and productive as possible.
 
 ---
 
-## Getting Started
+## 1. Getting Started
 
 ### Prerequisites
 
-- **Bun** >= 1.0 — [Install Bun](https://bun.sh/docs/installation)
+- **[Bun](https://bun.sh)** >= 1.1 (native runtime, package manager, and test runner)
+- **Node.js** >= 20.0 (optional, for cross-runtime verification)
+- **Git**
 
-### Setup
+### Initial Setup
 
 ```bash
-# Clone the repo
+# 1. Clone the repository
 git clone https://github.com/sapirrior/steward.git
 cd steward
 
-# Install dependencies
+# 2. Install workspace dependencies
 bun install
 
-# Run in development (watch mode)
+# 3. Verify the installation by running the test suite
+bun test
+
+# 4. Start Steward in local watch mode
 bun run dev
 ```
 
 ---
 
-## Project Structure
+## 2. Monorepo Architecture & Modular Packages
+
+Steward is built as a strict, zero-dependency monorepo structured across 5 isolated workspaces in `packages/`:
 
 ```
-src/
-├── app/                  # Application orchestrator, main entry, UI components, commands
-│   ├── commands/         # Slash command handlers (/model, /mode, /theme, /effort, /login, etc.)
-│   ├── ui/               # Domain UI components (Header, StatusBar, PromptInput, Docks)
-│   ├── app.ts            # TUI orchestrator wiring all packages
-│   └── main.ts           # CLI entry point
-│
-└── packages/             # Internal modular packages
-    ├── ai/               # Zero-dependency AI runtime, wire adapters (11 providers), OAuth & discovery
-    ├── agents/           # Agent session runner, tools catalog (15 tools), chat modes & policy
-    ├── services/         # Persistent infrastructure (Sessions v1, CAS Checkpoints, Tasks, Config)
-    └── tui/              # Minimal-diff terminal rendering engine, layout math, primitives, themes
+steward/
+├── packages/
+│   ├── ai/          # @steward/ai — Zero-dependency streaming inference engine, wire protocols (Anthropic, Gemini, OpenAI Completions/Responses), and model discovery.
+│   ├── tui/         # stitchable (@steward/tui) — Alternate-screen diff rendering engine (Mode 2026), layout math, primitives, and JSX runtime.
+│   ├── agent/       # @steward/agent — Agent loop, turn runner, model ports, tool catalog (15 tools), policy/chat modes, session persistence, and CAS checkpoints.
+│   ├── oauth/       # @steward/oauth — Zero-dependency OAuth credential store, PKCE/Device flows, and token lifecycle management.
+│   └── cli/         # @steward/cli — Composition root (main.ts, runtime.ts), application orchestrator (app.ts), slash commands, and domain UI components.
+└── .agents/         # System skills and prompt rules (Human-managed only).
 ```
+
+### Architectural Boundaries & Hard Rules
+
+1. **Strict Monorepo Hierarchy:**
+   - **`@steward/cli`** is the only package permitted to import sibling packages (`ai`, `agent`, `tui`, `oauth`).
+   - Non-CLI packages (`ai`, `agent`, `tui`, `oauth`) **must never import each other** or `@steward/cli`.
+   - `@steward/agent` owns its own ports in `src/ports/model.ts` and interacts with inference purely through interfaces.
+2. **Zero External AI SDKs:** All LLM communication, streaming parsers, and tool execution runtimes are maintained natively within `@steward/ai`. Do not introduce external LLM SDK wrappers (`ai`, `@ai-sdk/*`, `langchain`, etc.).
+3. **Strict Boundaries:** Never edit, delete, or generate files in `.agents/`. These are human-managed.
+4. **Secrets Policy:** Never commit secrets, API keys, credentials, or `.env*` files.
 
 ---
 
-## Development Scripts
+## 3. Standard Development Scripts
+
+Run these scripts from the repository root:
 
 | Command | Description |
 | :--- | :--- |
-| `bun run dev` | Run from source in watch mode |
-| `bun run start` | Run the CLI directly |
-| `bun run build` | Bundle to `./dist/cli.js` |
-| `bun run compile` | Compile to standalone binary `./dist/steward` |
-| `bun run format` | Check formatting with Prettier |
-| `bun run format:fix` | Auto-fix formatting |
-| `bun run lint:boundaries` | Check TUI 3-layer boundary rules |
-| `bun test` | Run tests (including headless golden snapshot suite) |
+| `bun run dev` | Run the CLI directly from source in live watch mode |
+| `bun run start` | Run the CLI directly from source |
+| `bun run build` | Bundle CLI into `./packages/cli/dist/cli.js` (Node-compatible) |
+| `bun run compile` | Compile CLI into a standalone binary `./packages/cli/dist/steward` |
+| `bun run format` | Check formatting with Prettier across all packages |
+| `bun run format:fix` | Auto-fix formatting across all packages |
+| `bun run lint:boundaries` | Enforce monorepo package boundary and layer rules |
+| `bun run typecheck` | Run TypeScript type checking across all workspace packages |
+| `bun test` | Execute the full test suite across all workspace packages |
 
 ---
 
-## Code Standards
+## 4. Coding Standards & Invariants
 
-### TypeScript
-- Strict mode is enforced. Avoid `any` — if unavoidable, add an explanatory comment.
-- Bun is the runtime; no compilation step required for development.
+### Package README Invariant
+Whenever modifying, adding, or refactoring code inside any package (`packages/ai`, `packages/tui`, `packages/agent`, `packages/cli`, `packages/oauth`), you **MUST update that package's `README.md`** with accurate function, export, and tool breakdowns following the Sonnet convention:
+$$\text{File} \longrightarrow \text{Export} \longrightarrow \text{Type} \longrightarrow \text{Description \& Constraints}$$
 
-### Formatting
-- **Prettier** handles all formatting.
-- Run `bun run format:fix` before committing.
+### TUI Layering Rules (`packages/tui/`)
+All terminal user interface code adheres strictly to the 3-layer architecture:
+- **Layer 0 (Engine & Layout):** Frozen core (`TerminalEngine`, `DocumentTree`, `StateRenderer`, `cell-layout.ts`). Content-blind physical cell math and Mode 2026 synchronized output.
+- **Layer 1 (Primitives):** Generic layout building blocks (`Box`, `Text`, `Columns`, `Divider`).
+- **Layer 2 (Domain UI Components):** UI components in `packages/cli/src/ui/components/` (`Header.tsx`, `StatusBar.tsx`, `PromptInput.tsx`, `StreamingView.tsx`, Modal Docks).
+- **Golden Snapshots:** Visual characterization tests (`packages/tui/tests/char/`) ensure line-exact rendering.
 
-### Package Documentation Invariant
-- Whenever you modify or add code inside a package (`ai`, `agents`, `services`, `tui`, or `app`), **you must update its corresponding `README.md`**.
-
-### TUI Architecture & Rules
-- All code under `src/packages/tui/` and `src/app/ui/` must strictly adhere to [`src/packages/tui/Rules.txt`](src/packages/tui/Rules.txt).
-- **Layer 0 (Core/Layout):** Frozen engine (`TerminalEngine`, `DocumentTree`, `StateRenderer`, `cell-layout.ts`). Content-blind, handles cells and Mode 2026 synchronized output.
-- **Layer 1 (Primitives):** Generic composition blocks (`Box`, `Text`, `Columns`, `Divider`, `KeypressParser`).
-- **Layer 2 (Components):** Domain UI components (`Header.tsx`, `StatusBar.tsx`, `PromptInput.tsx`, `StreamingView.tsx`, `ModelPicker.tsx`, `SessionMenu.tsx`, `RewindMenu.tsx`).
-- **Declarative JSX:** Components use `.tsx` with our lightweight zero-dependency JSX runtime (`<Box>`, `<Text>`).
-- **Headless Snapshots:** All visual frames are protected by golden snapshot tests (`tests/tui/engine-snapshots.test.ts`). Run `UPDATE_GOLDENS=1 bun test` only when intentionally making approved UI changes.
+### Error Presentation & Resilience
+- Errors from providers or tools are parsed into structured contracts and presented via `packages/cli/src/errors/present.ts`.
+- The agent loop (`runAgentTurn`) returns a structured `TurnSummary` without throwing on model errors, preserving previous conversation history and tool outputs.
 
 ---
 
-## Commit Messages
+## 5. Testing & Verification
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
+We maintain a fast, comprehensive test suite. Before submitting any changes, ensure all tests pass:
+
+```bash
+# 1. Run all tests
+bun test
+
+# 2. Check architecture boundaries
+bun run lint:boundaries
+
+# 3. Check types
+bun run typecheck
+
+# 4. Check formatting
+bun run format
+```
+
+### Adding New Tests
+- Place tests in `tests/` alongside the relevant package source code.
+- Use `bun:test` primitives (`describe`, `it`, `expect`).
+- Use mock transports for network calls (`createMockFetch`, fake SSE streams) so tests remain deterministic and run offline.
+
+---
+
+## 6. Commit Message Guidelines
+
+We enforce [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-<type>(<scope>): <description>
+<type>(<scope>): <short description>
+
+[optional body with details]
 ```
 
-### Types
+### Common Types:
+- `feat`: New feature or capability
+- `fix`: Bug fix
+- `refactor`: Code change that neither fixes a bug nor adds a feature
+- `style`: Formatting, whitespace, or style changes
+- `test`: Adding or updating test suites
+- `docs`: Documentation updates
+- `chore`: Tooling, build scripts, or dependency maintenance
 
-| Type | When to use |
-| :--- | :--- |
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation only |
-| `style` | Formatting, no logic change |
-| `refactor` | Refactor without feature/fix |
-| `test` | Adding or updating tests |
-| `chore` | Build, deps, tooling |
-| `build` | Build system or scripts |
+### Examples:
+- `feat(ai): add support for reasoning effort token budget in anthropic protocol`
+- `fix(agent): preserve partial turn history on mid-stream abort`
+- `refactor(cli): create runtime composition root in runtime.ts`
 
 ---
 
-## Pull Requests
+## 7. Pull Request Process
 
-1. **Branch** from `main` using a descriptive name: `feat/tool-name` or `fix/issue-description`.
-2. **Keep PRs focused** — one feature or fix per PR.
-3. **Describe your changes** — what changed, why, and how to verify.
-4. **Ensure** `bun run format`, `bun run lint:boundaries`, and `bun test` pass before opening a PR.
-5. **Target** `main` for all PRs.
+1. **Branch Naming:** Create a feature or fix branch from `main`:
+   - `feat/add-new-provider`
+   - `fix/error-badge-rendering`
+2. **Focused Scope:** Keep pull requests focused on a single concern.
+3. **Verification:** Verify that `bun test`, `bun run lint:boundaries`, and `bun run format` pass locally.
+4. **Documentation:** Ensure package `README.md` files are updated if you added or modified exported APIs or tools.
+5. **Open PR:** Submit your pull request to the `main` branch with a clear description of the problem solved, approach taken, and testing performed.
+
+Thank you for helping make Steward the most resilient, powerful AI engineering terminal assistant!
