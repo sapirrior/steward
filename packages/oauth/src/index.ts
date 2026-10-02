@@ -52,18 +52,21 @@ export async function logout(provider: string): Promise<void> {
 }
 
 
+import { getAuthStatus } from './status.js';
+import { launchBrowser } from './utils/browser.js';
+
 /**
  * Returns safe public authentication status for all configured providers.
  * Guaranteed never to expose token secrets.
  */
 export async function authStatus(): Promise<import('./types').AuthStatus> {
-  // Implemented in subsequent steps
-  return {};
+  return getAuthStatus();
 }
 
 /**
  * Cross-platform helper to launch authorization URLs in the user's default browser.
  */
 export async function launch(url: string): Promise<void> {
-  // Implemented in subsequent steps
+  await launchBrowser(url);
 }
+
