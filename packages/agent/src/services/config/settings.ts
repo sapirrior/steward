@@ -94,8 +94,8 @@ export function normalizeReasoningEffort(val?: string | null): ReasoningEffort {
   if (lower === 'none' || lower === 'off' || lower === '0') return 'none';
   if (lower === 'low' || lower === 'minimal' || lower === '1' || lower === '2' || lower === '3')
     return 'low';
-  if (lower === 'high' || lower === 'xhigh' || lower === 'max' || lower === '5' || lower === '6')
-    return 'high';
+  if (lower === 'xhigh' || lower === 'max' || lower === '6') return 'xhigh';
+  if (lower === 'high' || lower === '5') return 'high';
   return 'medium';
 }
 

@@ -69,7 +69,7 @@ Every tool has an implementation file in `src/tools/` and a corresponding schema
 
 | File / Subsystem | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `session/schema.ts` | `SessionDocument` / `SessionTurn` / `SESSION_SCHEMA_VERSION` | Types / Schema | Defines Session Document schema v1 with canonical `TokenUsage` (`input`, `output`, `total`, `reasoning`, `cacheRead`, `cacheWrite`) and backwards compatibility for legacy fields. | Immutable `schemaVersion: 1`. |
+| `session/schema.ts` | `SessionDocument` / `SessionTurn` / `SESSION_SCHEMA_VERSION` | Types / Schema | Defines Session Document schema v1 with canonical `TokenUsage` (`input`, `output`, `total`, `reasoning`, `cacheRead`, `cacheWrite`), tolerant reasoning effort coercion, and nullable legacy token field compatibility. | Immutable `schemaVersion: 1`. |
 | `session/store.ts` | `listSessions` / `loadSession` / `saveSession` / `createSession` | Function | Manages Session persistence in `~/.steward/sessions/`. | Validates schema with Zod; supports atomic JSON writes and quarantine on invalid documents. |
 | `session/logs/store.ts` | `SessionLogWriter` / `loadSessionLog` | Class / Fn | Writes and loads structured JSONL presentation scrollback logs (`~/.steward/session-logs/<date>/<id>.jsonl`). | Appends streaming presentation events per turn. |
 | `checkpoint/cas.ts` | `ContentAddressedStore` | Class | Content-addressed storage for file pre-images and content hashes. | SHA-256 keyed blob storage in `~/.steward/checkpoints/cas/`. |
@@ -77,7 +77,7 @@ Every tool has an implementation file in `src/tools/` and a corresponding schema
 | `checkpoint/lock.ts` | `MutationLockManager` | Class | Manages deterministic fine-grained file mutation locks. | Lexicographical lock acquisition to avoid deadlocks. |
 | `checkpoint/rewind.ts` | `executeRewind` | Function | Performs atomic workspace rollback and history truncation to previous turns. | Restores pre-images, recalculates usage, and truncates session turns atomically. |
 | `tasks/manager.ts` | `TaskManager` | Class | Manages background shell tasks, streaming tail buffers, and process lifecycle. | Bounded ring buffer for task output streaming. |
-| `config/settings.ts` | `loadSettings` / `saveSettings` | Function | Reads and writes user preferences in `~/.steward/settings.json`. | Stores default model, theme, effort, and mode. |
+| `config/settings.ts` | `loadSettings` / `saveSettings` / `normalizeReasoningEffort` | Function | Reads and writes user preferences in `~/.steward/settings.json` and normalizes effort scale values. | Stores default model, theme, effort, and mode; normalizes legacy and arbitrary effort strings to canonical tiers. |
 | `config/trust.ts` | `isFolderTrusted` / `trustFolder` | Function | Manages trusted workspace folder list in `~/.steward/trusted-folders.json`. | Restricts operations in untrusted paths. |
 | `errors/logger.ts` | `logError` | Function | Appends structured diagnostic error logs to `~/.steward/logs/`. | Serializes error codes, status, and redacted context. |
 

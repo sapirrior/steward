@@ -25,7 +25,7 @@ import {
 import type { MutationCheckpointTracker } from '../services/checkpoint/index.js';
 import { defaultToolCatalog, summarizeToolResult, formatPlainToolSummary } from '../tools/index.js';
 import { ShellTaskManager } from '../services/tasks/manager.js';
-import { loadSettings, saveSettings } from '../services/config/index.js';
+import { loadSettings, saveSettings, normalizeReasoningEffort } from '../services/config/index.js';
 import { logError } from '../services/errors/index.js';
 import { runAgentTurn, accumulateTokenUsage } from './agent-runner.js';
 import { SAFETY_STEP_CEILING } from './constants.js';
@@ -160,7 +160,8 @@ export class AgentSession {
       const provider = (rawProvider === 'gemini' ? 'google' : rawProvider) as any;
       const modelId = initialConfig?.modelId ?? settings.model?.modelId ?? 'gemini-2.5-flash';
       const effort: ReasoningEffort =
-        initialConfig?.reasoningEffort ?? settings.model?.effort ?? 'medium';
+        initialConfig?.reasoningEffort ??
+        (settings.model?.effort ? normalizeReasoningEffort(settings.model.effort) : 'medium');
 
       const selection: ModelSelection = {
         provider,
