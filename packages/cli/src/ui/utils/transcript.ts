@@ -23,32 +23,41 @@ import { c } from '../../theme/style.js';
 export function formatTurnFooter(
   engine: TerminalEngine,
   turnPresentationEnd?: TurnPresentationEnd,
+  fallbackTurn?: { status?: string },
 ): void {
-  if (!turnPresentationEnd) return;
-
-  if (turnPresentationEnd.status === 'complete') {
-    engine.commit(
-      [
-        '',
-        formatTurnStatus(
-          turnPresentationEnd.durationMs,
-          new Date(turnPresentationEnd.finishedAt),
-          turnPresentationEnd.statusVerb,
-        ),
-      ],
-      { tag: 'system' },
-    );
-    if (turnPresentationEnd.stopReason === 'step-limit') {
-      engine.commit(formatSystemMessage('Step budget reached. Generation stopped early.'), {
-        tag: 'system',
-      });
+  if (turnPresentationEnd) {
+    if (turnPresentationEnd.status === 'complete') {
+      engine.commit(
+        [
+          '',
+          formatTurnStatus(
+            turnPresentationEnd.durationMs,
+            new Date(turnPresentationEnd.finishedAt),
+            turnPresentationEnd.statusVerb,
+          ),
+        ],
+        { tag: 'system' },
+      );
+      if (turnPresentationEnd.stopReason === 'step-limit') {
+        engine.commit(formatSystemMessage('Step budget reached. Generation stopped early.'), {
+          tag: 'system',
+        });
+      }
+    } else if (
+      (turnPresentationEnd.status === 'errored' || turnPresentationEnd.status === 'interrupted') &&
+      (turnPresentationEnd.error || turnPresentationEnd.errorMessage)
+    ) {
+      const errToFormat = turnPresentationEnd.error ?? new Error(turnPresentationEnd.errorMessage!);
+      engine.commit(formatErrorBadge(errToFormat), { tag: 'system' });
     }
-  } else if (
-    (turnPresentationEnd.status === 'errored' || turnPresentationEnd.status === 'interrupted') &&
-    (turnPresentationEnd.error || turnPresentationEnd.errorMessage)
-  ) {
-    const errToFormat = turnPresentationEnd.error ?? new Error(turnPresentationEnd.errorMessage!);
-    engine.commit(formatErrorBadge(errToFormat), { tag: 'system' });
+    return;
+  }
+
+  // Fallback if presentation logs were not present
+  if (fallbackTurn?.status === 'errored') {
+    engine.commit(formatErrorBadge(new Error('Turn failed with error')), { tag: 'system' });
+  } else if (fallbackTurn?.status === 'interrupted') {
+    engine.commit(formatErrorBadge({ code: 'aborted', message: 'Interrupted' }), { tag: 'system' });
   }
 }
 
@@ -65,13 +74,19 @@ export function renderTranscript(
   const projection = log ? buildSessionPresentationProjection(log.events) : null;
   const items = rehydrateSessionHistory(sessionData, projection);
 
+  const turnMap = new Map<string, (typeof sessionData.turns)[0]>();
+  for (const t of sessionData.turns) {
+    turnMap.set(t.id, t);
+  }
+
   let currentTurnId: string | undefined = undefined;
 
   for (const item of items) {
     if (item.turnId && item.turnId !== currentTurnId) {
-      if (currentTurnId && projection) {
-        const prevTurnPresentation = projection.turns.get(currentTurnId)?.end;
-        formatTurnFooter(engine, prevTurnPresentation);
+      if (currentTurnId) {
+        const prevTurnPresentation = projection?.turns.get(currentTurnId)?.end;
+        const prevFallbackTurn = turnMap.get(currentTurnId);
+        formatTurnFooter(engine, prevTurnPresentation, prevFallbackTurn);
       }
       currentTurnId = item.turnId;
     }
@@ -147,8 +162,9 @@ export function renderTranscript(
     }
   }
 
-  if (currentTurnId && projection) {
-    const lastTurnPresentation = projection.turns.get(currentTurnId)?.end;
-    formatTurnFooter(engine, lastTurnPresentation);
+  if (currentTurnId) {
+    const lastTurnPresentation = projection?.turns.get(currentTurnId)?.end;
+    const lastFallbackTurn = turnMap.get(currentTurnId);
+    formatTurnFooter(engine, lastTurnPresentation, lastFallbackTurn);
   }
 }
