@@ -7,6 +7,7 @@
  */
 
 const MAX_ERROR_BODY_CHARS = 4_000;
+const MAX_MESSAGE_EXCERPT = 200;
 
 /** Patterns that look like secrets — redacted before storing in detail */
 const SECRET_PATTERNS = [
@@ -27,6 +28,67 @@ function redactSecrets(text: string): string {
 function truncate(text: string): string {
   if (text.length <= MAX_ERROR_BODY_CHARS) return text;
   return `${text.slice(0, MAX_ERROR_BODY_CHARS)}… [truncated ${text.length - MAX_ERROR_BODY_CHARS} chars]`;
+}
+
+export interface ParsedProviderError {
+  /** Provider-specific error type string, e.g. "overloaded_error", "rate_limit_error" */
+  type?: string;
+  /** Provider error code string, e.g. "insufficient_quota" */
+  code?: string;
+  /** Human-readable message extracted from the provider envelope */
+  message?: string;
+}
+
+/**
+ * Parses a raw provider error body string into a structured object.
+ * Handles Anthropic, OpenAI/OpenAI-compatible (incl. Google, OpenRouter) envelopes.
+ * Falls back to a trimmed single-line excerpt (max ~200 chars) when no JSON envelope matches.
+ * Never throws.
+ */
+export function parseProviderError(bodyText: string): ParsedProviderError {
+  const trimmed = bodyText.trim();
+  if (!trimmed) return {};
+
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+
+    // Anthropic: { "type": "error", "error": { "type": "overloaded_error", "message": "..." } }
+    if (parsed.type === 'error' && parsed.error && typeof parsed.error === 'object') {
+      const inner = parsed.error as Record<string, unknown>;
+      return {
+        type: typeof inner.type === 'string' ? inner.type : undefined,
+        message: typeof inner.message === 'string' ? inner.message : undefined,
+      };
+    }
+
+    // OpenAI / OpenAI-compatible: { "error": { "message": "...", "type": "...", "code": "..." } }
+    // Also covers Google: { "error": { "code": 429, "message": "...", "status": "..." } }
+    // Also covers OpenRouter: { "error": { "message": "...", "metadata": { "raw": "..." } } }
+    if (parsed.error && typeof parsed.error === 'object') {
+      const inner = parsed.error as Record<string, unknown>;
+      return {
+        type: typeof inner.type === 'string' ? inner.type : undefined,
+        code: typeof inner.code === 'string' ? inner.code : undefined,
+        message: typeof inner.message === 'string' ? inner.message : undefined,
+      };
+    }
+
+    // Top-level message field (some providers)
+    if (typeof parsed.message === 'string') {
+      return { message: parsed.message };
+    }
+  } catch {
+    // Not JSON — fall through to excerpt
+  }
+
+  // Fallback: single-line trimmed excerpt, never raw multi-line JSON
+  const oneLine = trimmed.replace(/\s+/g, ' ');
+  return {
+    message:
+      oneLine.length <= MAX_MESSAGE_EXCERPT
+        ? oneLine
+        : `${oneLine.slice(0, MAX_MESSAGE_EXCERPT)}…`,
+  };
 }
 
 /**

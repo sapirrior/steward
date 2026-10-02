@@ -17,7 +17,7 @@ import { readErrorBody } from '../util/error-body.js';
 import { withRetry, type HttpError } from '../util/retry.js';
 import { calculateAnthropicBudgetTokens, clampThinkingEffort } from '../models/thinking.js';
 import { transformMessages } from '../transform/messages.js';
-import { AIError, classifyHttpError } from '../errors.js';
+import { AIError, classifyHttpError, type AIErrorCode } from '../errors.js';
 import type {
   AssistantContent,
   FinishReason,
@@ -452,10 +452,31 @@ export async function anthropicMessagesProtocol(
 
         case 'error': {
           const err = eventData.error as Record<string, unknown> | undefined;
-          const errMsg = typeof err?.message === 'string' ? err.message : 'Anthropic error';
+          const errType = typeof err?.type === 'string' ? err.type : undefined;
+          const errMsg = typeof err?.message === 'string' ? err.message : 'Anthropic stream error';
+
+          let errCode: AIErrorCode = 'provider';
+          let errRetryable = false;
+
+          if (errType === 'overloaded_error' || errType === 'api_error') {
+            errCode = 'provider';
+            errRetryable = true;
+          } else if (errType === 'rate_limit_error') {
+            errCode = 'rate-limit';
+            errRetryable = true;
+          } else if (errType === 'invalid_request_error') {
+            errCode = 'invalid-request';
+            errRetryable = false;
+          }
+
           stream.push({
             type: 'error',
-            error: new AIError(errMsg, { code: 'provider', provider: model.provider }),
+            error: new AIError(errMsg, {
+              code: errCode,
+              provider: model.provider,
+              providerType: errType,
+              retryable: errRetryable,
+            }),
           });
           return;
         }
