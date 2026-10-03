@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import { resolveApiKey } from '../src/auth.ts';
-import { anthropicProvider, openAICompatibleProvider } from '../src/providers/index.ts';
-import { AIError } from '../src/errors.ts';
+import { resolveApiKey } from '../src/auth.js';
+import { anthropicProvider, openAICompatibleProvider } from '../src/provider/index.js';
+import { AIError } from '../src/errors.js';
 
 describe('auth — resolveApiKey priority order', () => {
   const anthropic = anthropicProvider();

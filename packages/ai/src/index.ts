@@ -90,17 +90,6 @@ export {
   type ModelResolutionContext,
 } from './models/selection.js';
 
-// ─── Message Transformations ──────────────────────────────────────────────────
-export { transformMessages, defaultNormalizeToolCallId } from './transform/messages.js';
-
-// ─── Protocols ────────────────────────────────────────────────────────────────
-export {
-  anthropicMessagesProtocol,
-  openAICompletionsProtocol,
-  openAIResponsesProtocol,
-  googleGenerativeAIProtocol,
-} from './protocols/index.js';
-
 // ─── Providers ────────────────────────────────────────────────────────────────
 export {
   anthropicProvider,
@@ -118,8 +107,10 @@ export {
   type OpenAICompatibleProviderOptions,
 } from './provider/index.js';
 
+// ─── Transformer ─────────────────────────────────────────────────────────────
+export * from './transformer/index.js';
+
 // ─── Utilities ────────────────────────────────────────────────────────────────
-export { decodeSSE } from './util/sse.js';
 export { parseJson, parseStreamingJson } from './util/json.js';
 export { sanitizeSurrogates } from './util/sanitize.js';
 export { readErrorBody } from './util/error-body.js';

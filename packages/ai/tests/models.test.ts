@@ -271,6 +271,6 @@ describe('models/selection — resolveModelSelection', () => {
   it('resolves provider default when modelId is omitted', async () => {
     const sel = await resolveModelSelection({ provider: 'openai' }, { isConfigured: () => true });
     expect(sel.provider).toBe('openai');
-    expect(sel.modelId).toBe('gpt-5.4');
+    expect(sel.modelId).toBe('gpt-4o');
   });
 });

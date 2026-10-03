@@ -34,7 +34,7 @@ function definitionToProvider(def: ProviderDefinition): Provider {
     defaultModelId: def.defaultModelId,
     envVars: [...def.envVars],
     keyless: def.keyless ?? false,
-    authScheme: 'bearer',
+    authScheme: def.authScheme ?? 'bearer',
     namespace: def.namespace,
     // Additive: SDK language model factory hook (plan.md D2)
     languageModel(modelId: string, auth: ResolvedAuth, fetchFn?: FetchFn) {

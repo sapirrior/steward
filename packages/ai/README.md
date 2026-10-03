@@ -1,20 +1,19 @@
 # @steward/ai
 
-Zero-dependency, pure Web Standards AI streaming inference engine and model orchestrator for terminal engineering assistants and agent runtimes.
+AI streaming inference engine and model orchestrator for terminal engineering assistants and agent runtimes, powered by AI SDK v7.
 
-`@steward/ai` connects directly to frontier LLM APIs over raw `fetch` and Server-Sent Events (SSE) with **zero runtime dependencies**. It provides unified streaming, tool calling, reasoning/thinking controls, cross-model message translation, dynamic `models.dev` catalog discovery, and resilient error recovery.
+`@steward/ai` provides a unified streaming abstraction, tool calling, reasoning/thinking controls, cross-model message translation, dynamic `models.dev` catalog discovery, and resilient error recovery across 10 built-in LLM providers and custom OpenAI-compatible endpoints.
 
 ---
 
 ## Table of Contents
 
 - [Features](#features)
-- [Supported Providers & Protocols](#supported-providers--protocols)
+- [Supported Providers](#supported-providers)
 - [Quick Start](#quick-start)
 - [Streaming & Event Handling](#streaming--event-handling)
 - [Tool Calling](#tool-calling)
 - [Thinking & Reasoning](#thinking--reasoning)
-- [Cross-Model Message Transformation](#cross-model-message-transformation)
 - [models.dev Dynamic Catalog](#modelsdev-dynamic-catalog)
 - [Package API Reference (Sonnet Convention)](#package-api-reference)
 - [Architectural Invariants](#architectural-invariants)
@@ -23,30 +22,30 @@ Zero-dependency, pure Web Standards AI streaming inference engine and model orch
 
 ## Features
 
-- **Zero External AI SDKs:** No `@ai-sdk/*`, `openai`, `@anthropic-ai/sdk`, or `langchain`. Direct, high-performance streaming over standard Web `fetch` and `ReadableStream`.
-- **Pure Web Standards:** Built entirely on standard JavaScript/TypeScript primitives (`fetch`, `Headers`, `ReadableStream`, `TextDecoder`). Works natively in Bun, Node.js 22+, Deno, and edge runtimes.
-- **Dynamic Runtime Catalog:** Lightweight on-demand discovery from `models.dev` with in-memory caching (TTL & ETag) and zero bundled static catalog bloat.
-- **OpenRouter Standardized:** Seamless OpenRouter integration via OpenAI Chat Completions protocol (`https://openrouter.ai/api/v1/chat/completions`).
-
-- **Canonical Reasoning Scale:** 5-tier reasoning effort scale (`'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`) with automatic fallback clamping and Anthropic token budget calculation.
-- **Cross-Model Handoff:** Seamlessly re-routes conversation history across OpenAI, Anthropic, Google, and OpenRouter—automatically normalizing tool IDs, synthesizing orphaned tool call results, and preserving or converting thinking blocks.
-- **Resilient Error Classification:** Automatic classification of HTTP errors (`rate-limit`, `auth`, `context-overflow`, `invalid-request`, `provider`, `network`, `aborted`) with silent exponential backoff before the first byte.
+- **Production-Grade Multi-Provider Inference:** Unified streaming inference across OpenAI, Anthropic, Google Gemini, DeepSeek, Groq, Mistral, xAI Grok, OpenRouter, Ollama, and GitHub Copilot.
+- **Configurable Transformer Architecture:** Decoupled translation seam between domain types and underlying model streaming protocol.
+- **Dynamic Runtime Catalog:** Lightweight on-demand discovery from `models.dev` with in-memory caching (TTL & ETag).
+- **Accurate Token Usage & Cost:** Uncached input token resolution (`noCacheTokens`) preventing cached token double-counting.
+- **Canonical Reasoning Scale:** 5-tier reasoning effort scale (`'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`) with automatic clamping and provider-native thinking replay.
+- **Resilient Error Classification:** Standardized `AIError` taxonomy (`auth`, `rate-limit`, `context-overflow`, `invalid-request`, `provider`, `network`, `aborted`, `parse`).
 
 ---
 
-## Supported Providers & Protocols
+## Supported Providers
 
-| Provider ID | Protocol | Endpoint | Auth Env Var / Scheme | Thinking / Reasoning | Tool Calling |
+| Provider ID | Implementation Package | Default Model | Auth Env Var / Scheme | Thinking / Reasoning | Tool Calling |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `anthropic` | `anthropic-messages` | `https://api.anthropic.com/v1/messages` | `ANTHROPIC_API_KEY` (`x-api-key` / `Bearer` for OAuth) | `thinking.budget_tokens` | Native |
-| `openai` | `openai-completions` / `openai-responses` | `https://api.openai.com/v1/chat/completions` | `OPENAI_API_KEY` (`Bearer`) | `reasoning_effort` | Native |
-| `google` | `google-generative-ai` | `https://generativelanguage.googleapis.com` | `GEMINI_API_KEY` / `GOOGLE_API_KEY` (`x-goog-api-key`) | `thinkingConfig.thinkingBudget` | Function Declarations |
-| `openrouter` | `openai-completions` | `https://openrouter.ai/api/v1/chat/completions` | `OPENROUTER_API_KEY` (`Bearer`) | `reasoning.effort` | Native |
-| `grok` | `openai-completions` | `https://api.x.ai/v1/chat/completions` | `XAI_API_KEY` (`Bearer`) | `reasoning_effort` | Native |
-| `mistral` | `openai-completions` | `https://api.mistral.ai/v1/chat/completions` | `MISTRAL_API_KEY` (`Bearer`) | Not supported | Native |
-| `github-copilot` | `openai-completions` | `https://api.individual.githubcopilot.com` | `GITHUB_TOKEN` / `COPILOT_API_KEY` (`Bearer`) | Model-dependent | Native |
-| *Custom* | `openai-completions` / *any* | Configurable | API Key / Bearer | Provider-dependent | Supported |
-
+| `anthropic` | `@ai-sdk/anthropic` | `claude-sonnet-4-5` | `ANTHROPIC_API_KEY` (`x-api-key`) | Native | Native |
+| `openai` | `@ai-sdk/openai` | `gpt-4o` | `OPENAI_API_KEY` (`Bearer`) | Native | Native |
+| `google` | `@ai-sdk/google` | `gemini-2.5-flash` | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | Native | Native |
+| `deepseek` | `@ai-sdk/deepseek` | `deepseek-chat` | `DEEPSEEK_API_KEY` (`Bearer`) | Native | Native |
+| `groq` | `@ai-sdk/groq` | `llama-3.3-70b-versatile` | `GROQ_API_KEY` (`Bearer`) | Native | Native |
+| `openrouter` | `@ai-sdk/openai-compatible` | `anthropic/claude-sonnet-4-5` | `OPENROUTER_API_KEY` (`Bearer`) | Native | Native |
+| `grok` | `@ai-sdk/xai` | `grok-3` | `XAI_API_KEY` (`Bearer`) | Native | Native |
+| `mistral` | `@ai-sdk/mistral` | `mistral-large-latest` | `MISTRAL_API_KEY` (`Bearer`) | Native | Native |
+| `ollama` | `@ai-sdk/openai-compatible` | `llama3.2` | Keyless / local | Native | Native |
+| `github-copilot` | `@ai-sdk/openai-compatible` | `gpt-4o` | `GITHUB_TOKEN` / `COPILOT_API_KEY` | Model-dependent | Native |
+| *Custom* | `@ai-sdk/openai-compatible` | Configurable | API Key / Bearer / Keyless | Configurable | Native |
 
 ---
 
@@ -60,7 +59,7 @@ const ai = createAI();
 
 // 2. Stream inference with auto-resolved model or explicit selection
 const stream = ai.stream({
-  model: { provider: 'anthropic', modelId: 'claude-3-5-sonnet-20241022', effort: 'medium' },
+  model: { provider: 'anthropic', modelId: 'claude-sonnet-4-5', effort: 'medium' },
   messages: [
     { role: 'user', content: 'Explain distributed consensus in two sentences.' },
   ],
@@ -127,11 +126,11 @@ const stream = ai.stream({
 
 ## models.dev Dynamic Catalog
 
-`@steward/ai` uses metadata from [`models.dev`](https://models.dev) to provide accurate token limits, pricing, context windows, and reasoning capabilities:
+`@steward/ai` uses metadata from [`models.dev`](https://models.dev) to provide token limits, pricing, context windows, and reasoning capabilities:
 
 - **Zero Bundled Bloat:** No static generated catalog files; dynamic models are fetched on-demand and kept purely in-memory.
 - **In-Memory Caching:** `ai.refreshCatalog()` dynamically updates the cache when online with ETag and TTL support.
-- **Resilient Fallbacks:** When offline or when `models.dev` is unreachable, explicit model inference and configured default provider models continue to operate smoothly.
+- **Resilient Fallbacks:** When offline or when `models.dev` is unreachable, explicit model inference and configured default provider models operate seamlessly.
 
 ---
 
@@ -143,7 +142,7 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
-| `resolveApiKey` | `(provider: string, opts?: AuthOptions) => Promise<ResolvedAuth>` | Resolves API keys with pure priority order: `opts.apiKey` $\to$ `opts.apiKeys[provider]` $\to$ `opts.getApiKey()` $\to$ environment variables. Throws `AIError('auth')` if missing and not keyless. |
+| `resolveApiKey` | `(provider: Provider, opts?: AuthOptions, requestApiKey?: string) => Promise<ResolvedAuth>` | Resolves API keys with pure priority order: `requestApiKey` $\to$ `opts.apiKeys[provider]` $\to$ `opts.getApiKey()` $\to$ environment variables. Throws `AIError('auth')` if unconfigured and not keyless. |
 | `defaultEnvGetter` | `AuthEnvGetter` | Default environment variable reader accessing `process.env`. |
 | `ResolvedAuth` | `interface` | Result object containing resolved `apiKey`, `source`, and `scheme`. |
 
@@ -153,7 +152,7 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | :--- | :--- | :--- |
 | `createAI` | `(opts?: CreateAIOptions) => AI` | Creates the central AI runtime object. Seeds builtin providers and manages dynamic runtime model discovery. |
 | `AI` | `interface` | Core interface providing `.stream()`, `.complete()`, `.models()`, `.availableModels()`, `.resolveModel()`, and `.refreshCatalog()`. |
-| `Provider` | `interface` | Provider descriptor holding ID, protocol streams map, base URL, and auth rules. |
+| `Provider` | `interface` | Provider descriptor holding ID, name, languageModel factory hook, base URL, and auth rules. |
 
 ### 3. `src/event-stream.ts`
 
@@ -165,10 +164,31 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
-| `AIError` | `class extends Error` | Standardized domain error with `code: AIErrorCode` (`auth`, `rate-limit`, `context-overflow`, `invalid-request`, `provider`, `network`, `aborted`, `tool-call`). |
+| `AIError` | `class extends Error` | Standardized domain error with `code: AIErrorCode` (`auth`, `rate-limit`, `context-overflow`, `invalid-request`, `provider`, `network`, `aborted`, `parse`). |
 | `classifyHttpError` | `(status: number, detail?: string, provider?: ProviderId, cause?: unknown) => AIError` | Classifies HTTP status codes into canonical `AIError` domains. |
 
-### 5. `src/models/catalog.ts` & `src/models/models-dev.ts`
+### 5. `src/provider/index.ts` & `src/provider/definitions.ts`
+
+| Export | Type | Description & Constraints |
+| :--- | :--- | :--- |
+| `builtinProviders` | `() => Provider[]` | Instantiates all 10 built-in providers wired to their AI SDK language model factories. |
+| `openAICompatibleProvider` | `(opts: OpenAICompatibleProviderOptions) => Provider` | Creates a custom OpenAI-compatible provider definition for local servers or proxies. |
+| `PROVIDER_DEFINITIONS` | `readonly ProviderDefinition[]` | Declarative table of all built-in provider descriptors and factories. |
+
+### 6. `src/transformer/index.ts`
+
+| Export | Type | Description & Constraints |
+| :--- | :--- | :--- |
+| `normalizeMessages` | `(messages: readonly Message[]) => NormalizedMessagesResult` | Converts Steward messages to AI SDK `instructions` and `ModelMessage[]`. |
+| `normalizeOptions` | `(request: InferenceRequest, model: Model, config: NamespaceConfig) => NormalizedCallParams` | Translates request parameters, reasoning effort, and temperature clamping. |
+| `normalizeTools` | `(tools?: readonly ToolSpec[]) => ToolSet \| undefined` | Converts Steward tool specifications to AI SDK `ToolSet` via `jsonSchema()`. |
+| `normalizeUsage` | `(sdkUsage: LanguageModelUsage) => TokenUsage` | Maps SDK usage to Steward `TokenUsage`, prioritizing `noCacheTokens`. |
+| `normalizeFinishReason`| `(sdkReason?: string, hasToolCalls?: boolean) => FinishReason` | Maps SDK finish reasons to canonical Steward finish reasons. |
+| `normalizeError` | `(err: unknown, providerId: ProviderId) => AIError` | Maps SDK and network errors to standardized `AIError`. |
+| `pumpSdkStream` | `(sdkStream, stream, model, request) => Promise<void>` | Consumes `fullStream` and translates events into Steward `InferenceEvents`. |
+| `MessageBuilder` | `class` | Incrementally accumulates stream parts into final `AssistantMessage`. |
+
+### 7. `src/models/catalog.ts` & `src/models/models-dev.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
@@ -176,72 +196,32 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `supportsReasoning` | `(model: Model) => boolean` | Checks if model supports reasoning / thinking. |
 | `filterModels` | `(models: readonly Model[], filter: ModelFilter) => Model[]` | Filters models by provider, query string, or reasoning support. |
 
-
-### 6. `src/models/selection.ts`
+### 8. `src/models/selection.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
-| `resolveModelSelection` | `(req?, ctx?) => Promise<ModelSelection>` | Resolves requested model or infers best available configured model in priority order: Anthropic $\to$ OpenAI $\to$ Google $\to$ OpenRouter $\to$ Grok $\to$ Mistral $\to$ GitHub Copilot. |
+| `resolveModelSelection` | `(req?, ctx?) => Promise<ModelSelection>` | Resolves requested model or infers best available configured model in priority order. |
 | `inferProviderFromModelId` | `(modelId: string) => ProviderId \| null` | Heuristically infers provider from model ID prefixes. |
-| `normalizeProviderId` | `(provider?: string) => ProviderId \| undefined` | Normalizes provider ID aliases (e.g. `'gemini'` $\to$ `'google'`). |
+| `normalizeProviderId` | `(provider?: string) => ProviderId \| undefined` | Normalizes provider ID aliases (e.g. `'gemini'` $\to$ `'google'`, `'xai'` $\to$ `'grok'`). |
 
-### 7. `src/models/thinking.ts`
+### 9. `src/models/thinking.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
 | `clampThinkingEffort` | `(model: Model, requested: ReasoningEffort) => ReasoningEffort` | Clamps reasoning effort to model's supported levels. |
 | `calculateAnthropicBudgetTokens` | `(effort: ReasoningEffort, maxOutputTokens: number) => number \| undefined` | Computes token budget for Anthropic thinking models. |
 
-### 8. `src/transform/messages.ts`
-
-| Export | Type | Description & Constraints |
-| :--- | :--- | :--- |
-| `transformMessages` | `(messages: readonly Message[], targetModel: Model) => Message[]` | Normalizes message history for cross-model handoff. Converts foreign thinking blocks, drops redacted blocks, normalizes tool call IDs to `^[a-zA-Z0-9_-]{1,64}$`, and fixes orphaned tool calls. |
-
-### 9. `src/protocols/index.ts`
-
-| Export | Type | Description & Constraints |
-| :--- | :--- | :--- |
-| `anthropicMessagesProtocol` | `ProtocolStream` | Wire adapter for Anthropic Messages API (`/v1/messages`). Used by Anthropic. |
-| `openaiCompletionsProtocol` | `ProtocolStream` | Wire adapter for OpenAI Chat Completions API (`/v1/chat/completions`). Used by OpenAI and OpenRouter. |
-| `openaiResponsesProtocol` | `ProtocolStream` | Wire adapter for OpenAI Responses API (`/v1/responses`). |
-| `googleGenerativeAIProtocol` | `ProtocolStream` | Wire adapter for Google Gemini REST API (`/v1beta/models/...:streamGenerateContent`). |
-
-### 10. `src/providers/index.ts`
-
-| Export | Type | Description & Constraints |
-| :--- | :--- | :--- |
-| `builtinProviders` | `() => Provider[]` | Instantiates all 7 built-in providers (`anthropic`, `openai`, `google`, `openrouter`, `grok`, `mistral`, `github-copilot`). |
-| `grokProvider` | `() => Provider` | xAI / Grok provider definition over `openai-completions` protocol. |
-| `mistralProvider` | `() => Provider` | Mistral AI provider definition over `openai-completions` protocol. |
-| `githubCopilotProvider` | `() => Provider` | GitHub Copilot provider definition with dynamic base URL and Copilot headers. |
-
-### 11. `src/util/cost.ts`
+### 10. `src/util/cost.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
 | `calculateCost` | `(model: Model, usage: TokenUsage) => TokenCost \| undefined` | Calculates exact USD cost breakdown (input, output, cache-read, cache-write, total). |
 
-### 12. `src/util/retry.ts`
-
-| Export | Type | Description & Constraints |
-| :--- | :--- | :--- |
-| `withRetry` | `<T>(request: RetryableRequest<T>, options?: RetryOptions) => Promise<T>` | Wraps fetch requests with exponential backoff (10 max retries, 1.5x multiplier), per-attempt timeout, and `onRetry` events. |
-| `RetryPolicy` | Interface | Configuration options for retry backoff, timeout, and notification callbacks. |
-
-### 13. `src/util/error-body.ts`
-
-| Export | Type | Description & Constraints |
-| :--- | :--- | :--- |
-| `readErrorBody` | `(res: Response) => Promise<string \| undefined>` | Safely reads and redacts sensitive tokens/keys from HTTP error responses. |
-| `parseProviderError` | `(bodyText: string) => ParsedProviderError` | Extracts structured error fields (`type`, `code`, `message`) from provider JSON envelopes. |
-
-
 ---
 
 ## Architectural Invariants
 
-1. **Zero External AI Dependencies:** All LLM communication, SSE parsers, and wire protocols remain strictly within `@steward/ai` using native Web Standards.
+1. **Pluggable Transformer Seam:** The transformer layer (`src/transformer/`) remains strictly pure schema translation, allowing runtime model providers to be swapped with zero changes to agent orchestration.
 2. **Never Throw in Streaming:** `ai.stream()` never throws synchronously; errors are delivered as `{ type: 'error' }` events, ensuring agent turn loops remain resilient.
-3. **OpenRouter Protocol:** OpenRouter communicates over `openai-completions` protocol.
-4. **Offline Resilience:** All essential models and providers operate offline with the bundled static catalog.
+3. **Canonical Token Usage:** Token accounting uses `noCacheTokens` to prevent cache read double-counting across turns.
+4. **Offline Resilience:** All essential models and providers operate offline with fallback default provider models.

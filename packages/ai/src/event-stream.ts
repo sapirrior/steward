@@ -23,6 +23,7 @@ import type {
   InferenceEvent,
   InferenceResult,
   InferenceStream,
+  JsonObject,
   Model,
   TextContent,
   ThinkingContent,

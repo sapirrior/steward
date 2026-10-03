@@ -65,7 +65,12 @@ function runScript(
           stream.push({ type: 'tool-call-delta', id: step.id, delta: JSON.stringify(step.args) });
           stream.push({
             type: 'tool-call-end',
-            toolCall: { type: 'tool-call', id: step.id, name: step.name, arguments: step.args },
+            toolCall: {
+              type: 'tool-call',
+              id: step.id,
+              name: step.name,
+              arguments: step.args as import('../types.js').JsonObject,
+            },
           });
         } else if (step.type === 'error') {
           stream.push({
@@ -144,7 +149,6 @@ export function createFauxProvider(
     id: FAUX_PROVIDER_ID,
     name: 'Faux Provider',
     keyless: true,
-    models: () => [FAUX_MODEL],
     streams: {
       'openai-completions': fauxStream,
     },

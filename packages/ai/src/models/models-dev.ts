@@ -164,9 +164,10 @@ export function parseModelsDevModel(
             ? 'https://openrouter.ai/api/v1'
             : 'https://api.openai.com/v1');
 
+  const rawField = raw.interleaved?.field;
   const interleavedField =
-    raw.interleaved?.field === 'reasoning_content' || raw.interleaved?.field === 'reasoning_details'
-      ? raw.interleaved.field
+    rawField === 'reasoning_content' || rawField === 'reasoning_details'
+      ? (rawField as 'reasoning_content' | 'reasoning_details')
       : undefined;
 
   const status = raw.status === 'alpha' || raw.status === 'beta' ? raw.status : undefined;

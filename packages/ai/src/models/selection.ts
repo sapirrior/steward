@@ -16,19 +16,25 @@ export const PROVIDER_SELECTION_PRIORITY: readonly ProviderId[] = [
   'anthropic',
   'openai',
   'google',
+  'deepseek',
+  'groq',
   'openrouter',
   'grok',
   'mistral',
+  'ollama',
   'github-copilot',
 ] as const;
 
 export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
   anthropic: 'claude-sonnet-4-5',
-  openai: 'gpt-5.4',
-  google: 'gemini-3.5-flash',
-  openrouter: 'anthropic/claude-sonnet-4.5',
-  grok: 'grok-2-latest',
+  openai: 'gpt-4o',
+  google: 'gemini-2.5-flash',
+  deepseek: 'deepseek-chat',
+  groq: 'llama-3.3-70b-versatile',
+  openrouter: 'anthropic/claude-sonnet-4-5',
+  grok: 'grok-3',
   mistral: 'mistral-large-latest',
+  ollama: 'llama3.2',
   'github-copilot': 'gpt-4o',
 };
 
@@ -36,6 +42,7 @@ export function normalizeProviderId(provider?: string): ProviderId | undefined {
   if (!provider) return undefined;
   const lower = provider.trim().toLowerCase();
   if (lower === 'gemini') return 'google';
+  if (lower === 'xai') return 'grok';
   return lower as ProviderId;
 }
 
@@ -51,6 +58,9 @@ export function inferProviderFromModelId(modelId: string): ProviderId | null {
   }
   if (lower.startsWith('grok-')) {
     return 'grok';
+  }
+  if (lower.startsWith('deepseek-')) {
+    return 'deepseek';
   }
   if (
     lower.startsWith('mistral-') ||

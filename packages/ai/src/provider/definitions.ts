@@ -72,6 +72,8 @@ export interface ProviderDefinition {
   envVars: readonly string[];
   /** Whether this provider works without an API key (e.g. Ollama local) */
   keyless?: boolean;
+  /** Auth scheme used by this provider (default: 'bearer') */
+  authScheme?: import('../auth.js').AuthScheme;
   /**
    * Legacy protocol label kept for session `isSameModel` continuity.
    * DO NOT change — existing persisted sessions compare meta.protocol.
@@ -95,6 +97,7 @@ export const PROVIDER_DEFINITIONS: readonly ProviderDefinition[] = [
     namespace: 'anthropic',
     modelsDevId: 'anthropic',
     envVars: ['ANTHROPIC_API_KEY'],
+    authScheme: 'x-api-key',
     protocolLabel: 'anthropic-messages',
     defaultModelId: 'claude-sonnet-4-5',
     factory(modelId, auth, fetchFn) {
