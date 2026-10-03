@@ -86,4 +86,45 @@ describe('PromptInput Interaction & Typing', () => {
 
     engine.cleanupSync();
   });
+
+  it('allows drafting text during disabled/busy state and blocks Enter submission', () => {
+    let submitted = '';
+    let aborted = false;
+    const engine = new TerminalEngine();
+    const prompt = new PromptInput({
+      onSubmit: (text) => {
+        submitted = text;
+      },
+      onAbort: () => {
+        aborted = true;
+      },
+    });
+
+    engine.mount(prompt);
+    prompt.setDisabled(true);
+
+    // Typing while disabled should update the prompt input state
+    for (const char of 'drafting my next question') {
+      process.stdin.emit('data', Buffer.from(char));
+    }
+    expect(prompt.state.value).toBe('drafting my next question');
+    expect(prompt.state.cursorPos).toBe('drafting my next question'.length);
+
+    // Pressing Enter while disabled should NOT submit
+    process.stdin.emit('data', Buffer.from('\r'));
+    expect(submitted).toBe('');
+    expect(prompt.state.value).toBe('drafting my next question');
+
+    // Pressing Escape should trigger onAbort
+    process.stdin.emit('data', Buffer.from('\x1b'));
+    expect(aborted).toBe(true);
+
+    // Once re-enabled, pressing Enter submits the drafted prompt
+    prompt.setDisabled(false);
+    process.stdin.emit('data', Buffer.from('\r'));
+    expect(submitted).toBe('drafting my next question');
+    expect(prompt.state.value).toBe('');
+
+    engine.cleanupSync();
+  });
 });

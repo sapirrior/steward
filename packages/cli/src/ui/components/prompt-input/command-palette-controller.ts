@@ -28,8 +28,9 @@ export class CommandPaletteController {
     this.dismissed = false;
   }
 
-  public dismiss(): boolean {
+  public dismiss(value?: string): boolean {
     if (this.dismissed) return false;
+    if (value !== undefined && !this.isSlashMode(value)) return false;
     this.dismissed = true;
     return true;
   }

@@ -79,13 +79,18 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
       for (const ev of events) {
         const k = ev.key;
 
-        // 1. Generation in progress: Escape aborts
-        if (this.state.disabled) {
-          if (k.escape) {
-            this.props.onAbort?.();
+        // 1. Generation in progress: Escape aborts if no autocomplete/palette is open
+        if (this.state.disabled && k.escape) {
+          if (this.autocomplete.onEscape()) {
+            this.setState({ fileMatches: [] });
             return true;
           }
-          return false;
+          if (this.commandPalette.dismiss(this.state.value)) {
+            this.markDirty();
+            return true;
+          }
+          this.props.onAbort?.();
+          return true;
         }
 
         // 2. Escape: dismiss completions or double-tap to clear
@@ -94,7 +99,7 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
             this.setState({ fileMatches: [] });
             return true;
           }
-          if (this.commandPalette.dismiss()) {
+          if (this.commandPalette.dismiss(this.state.value)) {
             this.markDirty();
             return true;
           }
@@ -162,6 +167,9 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
 
           const cmdResult = this.commandPalette.onSubmit(this.state.value);
           if (cmdResult.handled && cmdResult.chosenCommand) {
+            if (this.state.disabled) {
+              return true;
+            }
             this.historyController.add(cmdResult.chosenCommand);
             this.setState({ value: '', cursorPos: 0, fileMatches: [] });
             this.autocomplete.clear();
@@ -173,6 +181,10 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
             const before = this.state.value.slice(0, this.state.cursorPos - 1);
             const after = this.state.value.slice(this.state.cursorPos);
             this.updateValueAndCheckCompletions(`${before}\n${after}`, this.state.cursorPos);
+            return true;
+          }
+
+          if (this.state.disabled) {
             return true;
           }
 
@@ -482,14 +494,6 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
 
     const isBashMode = value.startsWith('!');
     const borderColor = isBashMode ? c.permission : disabled ? c.subtle : c.promptBorder;
-
-    // 1. Disabled (generating) state
-    if (disabled) {
-      lines.push(borderColor(figures.horizontalLine.repeat(dividerWidth)));
-      lines.push(truncateToWidth(`  ${c.muted('Esc to stop')}`, maxCols));
-      lines.push(borderColor(figures.horizontalLine.repeat(dividerWidth)));
-      return { lines, cursor: null };
-    }
 
     // Top Border
     if (historyIndex !== -1 && history.length > 0) {
