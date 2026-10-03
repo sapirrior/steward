@@ -10,11 +10,20 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { Provider } from '../client.js';
 
+function normalizeBaseUrl(url: string): string {
+  const trimmed = url.trim().replace(/\/+$/, '');
+  if (!trimmed.endsWith('/v1') && !trimmed.includes('/v1/')) {
+    return `${trimmed}/v1`;
+  }
+  return trimmed;
+}
+
 export function customProvider(): Provider {
-  const baseUrl =
+  const rawBaseUrl =
     (typeof process !== 'undefined' &&
       (process.env.CUSTOM_API_URL || process.env.CUSTOM_BASE_URL)) ||
     'http://localhost:8000/v1';
+  const baseUrl = normalizeBaseUrl(rawBaseUrl);
 
   const defaultModelId =
     (typeof process !== 'undefined' &&
