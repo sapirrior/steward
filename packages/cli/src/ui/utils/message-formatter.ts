@@ -49,7 +49,7 @@ export { chooseTurnStatusVerb, STATUS_VERBS };
 
 export function formatSlashCommandOutput(content: string): string[] {
   const rawLines = content.split('\n');
-  return rawLines.map((l, i) => (i === 0 ? `  ${c.muted('└ ')}${l}` : `    ${l}`));
+  return rawLines.map((l, i) => (i === 0 ? `  ${c.muted('└ ')}${c.text(l)}` : `    ${c.text(l)}`));
 }
 
 export const formatSystemMessage = formatSlashCommandOutput;
