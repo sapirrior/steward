@@ -23,20 +23,20 @@ export const NON_CHAT_MODEL_REGEX =
 const DEFAULT_TIMEOUT_MS = 5000;
 
 export interface ProviderDiscoveryConfig {
-  url: string;
+  url?: string;
+  getUrl?: (auth: ResolvedAuth) => string;
   headers?: (auth: ResolvedAuth) => Record<string, string>;
   filter?: (id: string, raw?: any) => boolean;
 }
 
+import { getCopilotBaseUrl, COPILOT_HEADERS } from '../provider/github-copilot.js';
+
 export const DISCOVERY_CONFIGS: Partial<Record<ProviderId, ProviderDiscoveryConfig>> = {
   'github-copilot': {
-    url: 'https://api.individual.githubcopilot.com/models',
+    getUrl: (auth) => `${getCopilotBaseUrl(auth.apiKey)}/models`,
     headers: (auth) => ({
+      ...COPILOT_HEADERS,
       Authorization: `Bearer ${auth.apiKey}`,
-      'User-Agent': 'GitHubCopilotChat/0.35.0',
-      'Editor-Version': 'vscode/1.99.0',
-      'Copilot-Integration-Id': 'vscode-chat',
-      'X-GitHub-Api-Version': '2026-06-01',
     }),
     filter: (_id, raw) => raw?.capabilities?.supports?.tool_calls !== false,
   },
@@ -93,11 +93,12 @@ export async function discoverProviderModels(
     headers: (a) => (a.apiKey ? { Authorization: `Bearer ${a.apiKey}` } : {}),
   };
 
-  if (!config.url) return [];
+  const endpointUrl = config.getUrl ? config.getUrl(auth) : config.url;
+  if (!endpointUrl) return [];
 
   try {
     const customHeaders = config.headers ? config.headers(auth) : {};
-    const res = await fetchFn(config.url, {
+    const res = await fetchFn(endpointUrl, {
       method: 'GET',
       headers: {
         Accept: 'application/json',

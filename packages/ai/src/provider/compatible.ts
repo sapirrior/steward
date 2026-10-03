@@ -25,6 +25,8 @@ export interface OpenAICompatibleProviderOptions {
   keyless?: boolean;
 }
 
+import type { Provider } from '../client.js';
+
 /**
  * Builds a custom OpenAI-compatible provider.
  * Used by callers who supply their own endpoint (e.g. self-hosted LLM servers).
@@ -43,4 +45,21 @@ export function buildOpenAICompatibleModel(
     fetch: fetchFn,
   });
   return provider(modelId);
+}
+
+export function openAICompatibleProvider(opts: OpenAICompatibleProviderOptions): Provider {
+  return {
+    id: opts.id as any,
+    name: opts.name,
+    baseUrl: opts.baseUrl,
+    defaultModelId: opts.defaultModelId,
+    envVars: opts.envVars ? [...opts.envVars] : [],
+    keyless: opts.keyless ?? false,
+    authScheme: 'bearer',
+    namespace: opts.name,
+    languageModel(modelId, auth, fetchFn) {
+      return buildOpenAICompatibleModel(opts, modelId, auth, fetchFn);
+    },
+    streams: {},
+  };
 }

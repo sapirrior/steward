@@ -1,115 +1,58 @@
 /**
- * @steward/ai — Provider Index
+ * @steward/ai — Provider Registry Entry Point
  *
- * Exports:
- * - builtinProviders(): builds the Provider[] list wiring SDK factories into the legacy Provider shape
- * - Legacy factory function names preserved for public API compatibility (G1 gate)
- * - openAICompatibleProvider() for custom/self-hosted endpoints
+ * Re-exports individual provider modules and gathers built-in providers.
  */
 
 import type { Provider } from '../client.js';
-import type { ProtocolId } from '../types.js';
-import {
-  PROVIDER_DEFINITIONS,
-  getProviderDefinition,
-  type ProviderDefinition,
-  type FetchFn,
-  type ResolvedAuth,
-} from './definitions.js';
-import {
+
+export { anthropicProvider, createAnthropicLanguageModel } from './anthropic.js';
+export { openAIProvider, createOpenAILanguageModel } from './openai.js';
+export { googleProvider, createGoogleLanguageModel } from './google.js';
+export { deepseekProvider, createDeepSeekLanguageModel } from './deepseek.js';
+export { groqProvider, createGroqLanguageModel } from './groq.js';
+export { mistralProvider, createMistralLanguageModel } from './mistral.js';
+export { grokProvider, createGrokLanguageModel } from './grok.js';
+export { openRouterProvider, createOpenRouterLanguageModel } from './openrouter.js';
+export { ollamaProvider, createOllamaLanguageModel } from './ollama.js';
+export {
+  githubCopilotProvider,
+  createCopilotLanguageModel,
+  getCopilotBaseUrl,
+  COPILOT_HEADERS,
+  COPILOT_DEFAULT_BASE_URL,
+} from './github-copilot.js';
+export {
+  openAICompatibleProvider,
   buildOpenAICompatibleModel,
   type OpenAICompatibleProviderOptions,
 } from './compatible.js';
 
-export type { OpenAICompatibleProviderOptions };
-export { getProviderDefinition, type ProviderDefinition, type FetchFn, type ResolvedAuth };
-
-// ─── Core: map definitions → Provider shape ───────────────────────────────────
-
-function definitionToProvider(def: ProviderDefinition): Provider {
-  return {
-    id: def.id,
-    name: def.name,
-    baseUrl: def.baseUrl ?? '',
-    defaultModelId: def.defaultModelId,
-    envVars: [...def.envVars],
-    keyless: def.keyless ?? false,
-    authScheme: def.authScheme ?? 'bearer',
-    namespace: def.namespace,
-    // Additive: SDK language model factory hook (plan.md D2)
-    languageModel(modelId: string, auth: ResolvedAuth, fetchFn?: FetchFn) {
-      return def.factory(modelId, auth, fetchFn);
-    },
-    // Legacy streams kept so faux/testing/custom providers still work (plan.md D2)
-    streams: {},
-  };
-}
-
-/** All built-in providers wired with their SDK factories */
-export function builtinProviders(): Provider[] {
-  return PROVIDER_DEFINITIONS.map(definitionToProvider);
-}
-
-// ─── Legacy factory names (G1 gate — all consumed by cli via @steward/ai) ─────
-
-export function anthropicProvider(): Provider {
-  return definitionToProvider(getProviderDefinition('anthropic')!);
-}
-
-export function openAIProvider(): Provider {
-  return definitionToProvider(getProviderDefinition('openai')!);
-}
-
-export function googleProvider(): Provider {
-  return definitionToProvider(getProviderDefinition('google')!);
-}
-
-export function mistralProvider(): Provider {
-  return definitionToProvider(getProviderDefinition('mistral')!);
-}
-
-export function grokProvider(): Provider {
-  return definitionToProvider(getProviderDefinition('grok')!);
-}
-
-export function openRouterProvider(): Provider {
-  return definitionToProvider(getProviderDefinition('openrouter')!);
-}
-
-export function deepseekProvider(): Provider {
-  return definitionToProvider(getProviderDefinition('deepseek')!);
-}
-
-export function ollamaProvider(): Provider {
-  return definitionToProvider(getProviderDefinition('ollama')!);
-}
-
-export function githubCopilotProvider(): Provider {
-  return definitionToProvider(getProviderDefinition('github-copilot')!);
-}
-
-export function groqProvider(): Provider {
-  return definitionToProvider(getProviderDefinition('groq')!);
-}
+import { anthropicProvider } from './anthropic.js';
+import { openAIProvider } from './openai.js';
+import { googleProvider } from './google.js';
+import { deepseekProvider } from './deepseek.js';
+import { groqProvider } from './groq.js';
+import { mistralProvider } from './mistral.js';
+import { grokProvider } from './grok.js';
+import { openRouterProvider } from './openrouter.js';
+import { ollamaProvider } from './ollama.js';
+import { githubCopilotProvider } from './github-copilot.js';
 
 /**
- * Factory for custom/self-hosted OpenAI-compatible providers.
- * Public API — kept stable (G1 gate).
+ * Returns instantiated instances of all 10 built-in providers.
  */
-export function openAICompatibleProvider(opts: OpenAICompatibleProviderOptions): Provider {
-  const protocolLabel: ProtocolId = 'openai-completions';
-  return {
-    id: opts.id as any,
-    name: opts.name,
-    baseUrl: opts.baseUrl,
-    defaultModelId: opts.defaultModelId,
-    envVars: opts.envVars ? [...opts.envVars] : [],
-    keyless: opts.keyless ?? false,
-    authScheme: 'bearer',
-    namespace: opts.name, // name is the providerMetadata namespace key for compatible providers
-    languageModel(modelId: string, auth: ResolvedAuth, fetchFn?: FetchFn) {
-      return buildOpenAICompatibleModel(opts, modelId, auth, fetchFn);
-    },
-    streams: {},
-  };
+export function builtinProviders(): Provider[] {
+  return [
+    anthropicProvider(),
+    openAIProvider(),
+    googleProvider(),
+    deepseekProvider(),
+    groqProvider(),
+    mistralProvider(),
+    grokProvider(),
+    openRouterProvider(),
+    ollamaProvider(),
+    githubCopilotProvider(),
+  ];
 }
