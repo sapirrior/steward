@@ -9,7 +9,8 @@ import type { LanguageModelUsage } from 'ai';
 import type { FinishReason, TokenUsage } from '../types.js';
 
 export function normalizeUsage(sdkUsage: LanguageModelUsage): TokenUsage {
-  const { inputTokens, inputTokenDetails, outputTokens, outputTokenDetails, totalTokens } = sdkUsage;
+  const { inputTokens, inputTokenDetails, outputTokens, outputTokenDetails, totalTokens } =
+    sdkUsage;
 
   // Prefer noCacheTokens (uncached input only) to avoid double-counting cached reads (D-G fix)
   const input =
@@ -37,11 +38,16 @@ export function normalizeFinishReason(
 ): FinishReason {
   if (hasToolCalls) return 'tool-use';
   switch (sdkReason) {
-    case 'stop':         return 'stop';
-    case 'length':       return 'length';
-    case 'tool-calls':   return 'tool-use';
+    case 'stop':
+      return 'stop';
+    case 'length':
+      return 'length';
+    case 'tool-calls':
+      return 'tool-use';
     case 'content-filter':
-    case 'error':        return 'error';
-    default:             return 'stop';
+    case 'error':
+      return 'error';
+    default:
+      return 'stop';
   }
 }

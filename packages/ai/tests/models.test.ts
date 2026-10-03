@@ -287,7 +287,12 @@ describe('models.dev — fetchModelsDev & force refresh', () => {
           github: {
             api: 'https://api.individual.githubcopilot.com/v1',
             models: {
-              'gpt-4o': { id: 'gpt-4o', name: 'GPT-4o', tool_call: true, limit: { context: 128000, output: 4096 } },
+              'gpt-4o': {
+                id: 'gpt-4o',
+                name: 'GPT-4o',
+                tool_call: true,
+                limit: { context: 128000, output: 4096 },
+              },
             },
           },
         }),
@@ -302,10 +307,13 @@ describe('models.dev — fetchModelsDev & force refresh', () => {
     expect(cached.notModified).toBe(true);
 
     // 2. Force fetch bypasses etag and returns fresh data
-    const forced = await fetchModelsDev({ force: true, etag: 'etag-123', fetchFn: mockFetch as any });
+    const forced = await fetchModelsDev({
+      force: true,
+      etag: 'etag-123',
+      fetchFn: mockFetch as any,
+    });
     expect(forced.data).toBeDefined();
     expect(forced.data?.github?.models?.['gpt-4o']).toBeDefined();
     expect(forced.etag).toBe('etag-new');
   });
 });
-

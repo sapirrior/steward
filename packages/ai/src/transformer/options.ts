@@ -37,9 +37,9 @@ export function normalizeOptions(
   // Map Steward ReasoningEffort → SDK reasoning level
   // ('xhigh' is Steward's top tier, maps to SDK 'high')
   const effort = request.effort;
-  if (effort === 'none')                     params.reasoning = 'none';
-  else if (effort === 'low')                 params.reasoning = 'low';
-  else if (effort === 'medium')              params.reasoning = 'medium';
+  if (effort === 'none') params.reasoning = 'none';
+  else if (effort === 'low') params.reasoning = 'low';
+  else if (effort === 'medium') params.reasoning = 'medium';
   else if (effort === 'high' || effort === 'xhigh') params.reasoning = 'high';
 
   // Merge namespace request defaults (e.g. OpenAI store:false)

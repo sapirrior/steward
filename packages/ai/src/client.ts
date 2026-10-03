@@ -69,7 +69,11 @@ export interface Provider {
    * When present, client.ts dispatches through the SDK pipeline.
    * When absent, falls back to the legacy `streams` map.
    */
-  languageModel?(modelId: string, auth: ResolvedAuth, fetchFn?: typeof fetch): import('ai').LanguageModel;
+  languageModel?(
+    modelId: string,
+    auth: ResolvedAuth,
+    fetchFn?: typeof fetch,
+  ): import('ai').LanguageModel;
   streams: Partial<Record<ProtocolId, ProtocolStream>>;
   prepare?(
     model: Model,
@@ -77,7 +81,6 @@ export interface Provider {
     auth: ResolvedAuth,
   ): { headers?: Record<string, string>; baseUrl?: string };
 }
-
 
 // ─── Provider & Auth Status ───────────────────────────────────────────────────
 

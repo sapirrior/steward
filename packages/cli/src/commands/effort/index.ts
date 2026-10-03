@@ -20,7 +20,8 @@ export function parseEffort(input?: string): ReasoningEffort | undefined {
   if (lower === 'medium' || lower === 'med' || lower === '2' || lower === 'default')
     return 'medium';
   if (lower === 'high' || lower === '3') return 'high';
-  if (lower === 'xhigh' || lower === '4' || lower === 'max' || lower === 'extra-high') return 'xhigh';
+  if (lower === 'xhigh' || lower === '4' || lower === 'max' || lower === 'extra-high')
+    return 'xhigh';
   return undefined;
 }
 

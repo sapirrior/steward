@@ -17,10 +17,7 @@ import type {
 
 export class MessageBuilder {
   private textMap = new Map<number, string>();
-  private thinkingMap = new Map<
-    number,
-    { text: string; signature?: string; redacted?: boolean }
-  >();
+  private thinkingMap = new Map<number, { text: string; signature?: string; redacted?: boolean }>();
   private toolMap = new Map<
     string,
     { id: string; name: string; args: string; thoughtSig?: string; parsedArgs?: JsonObject }

@@ -13,8 +13,16 @@ describe('provider definitions', () => {
   it('all 10 built-in providers have languageModel factory and required fields', () => {
     const providers = builtinProviders();
     const requiredIds = [
-      'anthropic', 'openai', 'google', 'mistral',
-      'grok', 'deepseek', 'groq', 'openrouter', 'ollama', 'github-copilot',
+      'anthropic',
+      'openai',
+      'google',
+      'mistral',
+      'grok',
+      'deepseek',
+      'groq',
+      'openrouter',
+      'ollama',
+      'github-copilot',
     ];
     for (const id of requiredIds) {
       const p = providers.find((p) => p.id === id);
@@ -50,7 +58,7 @@ describe('transformer — usage normalizer', () => {
       },
       config,
     );
-    expect(usage.input).toBe(800);      // noCacheTokens, not 1000
+    expect(usage.input).toBe(800); // noCacheTokens, not 1000
     expect(usage.cacheRead).toBe(200);
     expect(usage.output).toBe(50);
   });
@@ -71,7 +79,11 @@ describe('transformer — message builder', () => {
   it('attaches meta to built message (D-B fix)', () => {
     const builder = new MessageBuilder();
     builder.appendText('hello');
-    const meta = { modelId: 'claude-opus-4-5', provider: 'anthropic' as const, protocol: 'anthropic-messages' as const };
+    const meta = {
+      modelId: 'claude-opus-4-5',
+      provider: 'anthropic' as const,
+      protocol: 'anthropic-messages' as const,
+    };
     const msg = builder.build(meta);
     expect(msg.meta?.modelId).toBe('claude-opus-4-5');
   });
@@ -80,7 +92,11 @@ describe('transformer — message builder', () => {
 describe('transformer — tools', () => {
   it('converts ToolSpec array to AI SDK ToolSet', () => {
     const tools = normalizeTools([
-      { name: 'read_file', description: 'Read a file', inputSchema: { type: 'object', properties: { path: { type: 'string' } } } },
+      {
+        name: 'read_file',
+        description: 'Read a file',
+        inputSchema: { type: 'object', properties: { path: { type: 'string' } } },
+      },
     ]);
     expect(tools).toBeDefined();
     expect(typeof tools!['read_file']).toBe('object');

@@ -157,7 +157,8 @@ export async function fetchModelMetadata(
           contextWindow: rawModel.limit?.context,
           maxOutputTokens: rawModel.limit?.output,
           reasoning: Boolean(
-            rawModel.reasoning || (rawModel.reasoning_options && rawModel.reasoning_options.length > 0),
+            rawModel.reasoning ||
+            (rawModel.reasoning_options && rawModel.reasoning_options.length > 0),
           ),
           cost: rawModel.cost
             ? {

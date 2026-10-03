@@ -94,7 +94,9 @@ export async function pumpSdkStream(
     try {
       const u = await streamResult.usage;
       if (u && Object.keys(latestUsage).length === 0) latestUsage = normalizeUsage(u);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     const finishReason = normalizeFinishReason(sdkFinishReason, hasToolCalls);
     meta.usage = latestUsage;

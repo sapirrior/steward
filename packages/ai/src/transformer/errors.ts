@@ -18,7 +18,12 @@ export function normalizeError(err: unknown, providerId: ProviderId): AIError {
     const e = err as Record<string, unknown>;
     const name = typeof e.name === 'string' ? e.name : '';
     const message = typeof e.message === 'string' ? e.message : String(err);
-    const status = typeof e.statusCode === 'number' ? e.statusCode : (typeof e.status === 'number' ? e.status : undefined);
+    const status =
+      typeof e.statusCode === 'number'
+        ? e.statusCode
+        : typeof e.status === 'number'
+          ? e.status
+          : undefined;
 
     // Check specific SDK error classes/names
     if (name === 'APICallError') {

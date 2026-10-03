@@ -11,12 +11,7 @@
  */
 
 import type { ModelMessage } from 'ai';
-import type {
-  AssistantMessage,
-  Message,
-  ToolMessage,
-  UserMessage,
-} from '../types.js';
+import type { AssistantMessage, Message, ToolMessage, UserMessage } from '../types.js';
 
 export interface NormalizedMessagesResult {
   instructions?: string;
@@ -37,9 +32,9 @@ export function normalizeMessages(
       instructions = instructions ? `${instructions}\n\n${text}` : text;
       continue;
     }
-    if (msg.role === 'user')      messages.push(toUserMessage(msg));
+    if (msg.role === 'user') messages.push(toUserMessage(msg));
     else if (msg.role === 'assistant') messages.push(toAssistantMessage(msg));
-    else if (msg.role === 'tool')  messages.push(toToolMessage(msg));
+    else if (msg.role === 'tool') messages.push(toToolMessage(msg));
   }
 
   return { instructions, messages };
