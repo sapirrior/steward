@@ -28,11 +28,21 @@
     "test": "bun test ./tests",
     "chat": "bun run examples/chat.ts"
   },
-
   "engines": {
     "node": ">=22.19.0"
   },
   "devDependencies": {
     "@types/bun": "1.4.2"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "4.0.71",
+    "@ai-sdk/deepseek": "3.0.58",
+    "@ai-sdk/google": "4.0.87",
+    "@ai-sdk/groq": "4.0.54",
+    "@ai-sdk/mistral": "4.0.56",
+    "@ai-sdk/openai": "4.0.83",
+    "@ai-sdk/openai-compatible": "3.0.62",
+    "@ai-sdk/xai": "5.0.14",
+    "ai": "7.0.127"
   }
 }
