@@ -161,46 +161,13 @@ export class ModalController {
 
     const picker = new LoginPicker({
       providers,
-      onSelect: async (item) => {
-        this.closeModal();
-        engine.commit(formatSystemMessage(`Initiating authentication for ${item.name}...`), {
-          tag: 'system',
-        });
-        try {
-          if (onSelect) {
-            const res = await onSelect(item, {
-              onDeviceCode: (info) => {
-                engine.commit(
-                  formatSystemMessage(
-                    `GitHub Device Authorization Code:\n\n` +
-                      `  🔑 Code: ${info.userCode}\n` +
-                      `  🔗 URL:  ${info.verificationUri}\n\n` +
-                      `Enter the code at the URL in your browser to complete authorization.`,
-                  ),
-                  { tag: 'system' },
-                );
-              },
-              onAuthUrl: (url) => {
-                engine.commit(
-                  formatSystemMessage(
-                    `Browser opened for ${item.name} authorization.\nIf your browser did not open, navigate to:\n${url}`,
-                  ),
-                  { tag: 'system' },
-                );
-              },
-            });
-            if (res) {
-              engine.commit(formatSystemMessage(res), { tag: 'system' });
-            }
-          }
-        } catch (err: any) {
-          engine.commit(
-            formatSystemMessage(`Login error: ${err instanceof Error ? err.message : String(err)}`),
-            { tag: 'system' },
-          );
+      onSelect: async (item, callbacks) => {
+        if (onSelect) {
+          const res = await onSelect(item, callbacks);
+          if (res) return res;
         }
       },
-      onCancel: () => this.closeModal(),
+      onClose: () => this.closeModal(),
     });
 
     this.activeModal = picker;
