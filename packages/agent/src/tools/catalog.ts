@@ -90,8 +90,3 @@ export class ToolCatalog {
     return await def.execute(parsedArgs, context);
   }
 }
-
-/**
- * Global default tool catalog instance.
- */
-export const defaultToolCatalog = new ToolCatalog();

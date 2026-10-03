@@ -10,17 +10,36 @@ describe('ToolCatalog & Serialization Integration', () => {
   it('converts registered tools into plain serializable ToolSpecs', () => {
     const specs = getToolSpecs(dummyContext, defaultToolCatalog);
 
-    expect(specs.length).toBeGreaterThan(0);
+    expect(specs.length).toBeGreaterThanOrEqual(16);
 
-    const writeFile = specs.find((s) => s.name === 'write_file');
-    expect(writeFile).toBeDefined();
-    expect(writeFile!.inputSchema).toBeDefined();
-    expect(typeof writeFile!.inputSchema).toBe('object');
+    const expectedTools = [
+      'read_file',
+      'write_file',
+      'edit_file',
+      'glob',
+      'grep',
+      'list_dir',
+      'sleep',
+      'bash',
+      'task_list',
+      'task_read',
+      'task_send_input',
+      'task_kill',
+      'web_fetch',
+      'web_search',
+      'skill_list',
+      'skill_read',
+    ];
 
-    const readFile = specs.find((s) => s.name === 'read_file');
-    expect(readFile).toBeDefined();
-    expect(readFile!.inputSchema).toBeDefined();
-    expect(typeof readFile!.inputSchema).toBe('object');
+    for (const toolName of expectedTools) {
+      const spec = specs.find((s) => s.name === toolName);
+      expect(spec, `Tool ${toolName} missing from getToolSpecs`).toBeDefined();
+      expect(spec!.inputSchema).toBeDefined();
+      expect(typeof spec!.inputSchema).toBe('object');
+
+      const toolDef = defaultToolCatalog.get(toolName);
+      expect(toolDef, `Tool ${toolName} missing from defaultToolCatalog`).toBeDefined();
+    }
   });
 
   it('validates tool arguments and executes correctly', async () => {

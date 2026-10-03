@@ -34,7 +34,7 @@ Every tool has an implementation file in `src/tools/` and a corresponding schema
 
 | File | Tool Name | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- |
-| `catalog.ts` | `ToolCatalog` / `defaultToolCatalog` | Central tool registry converting Zod schemas to JSON schema `ToolSpec` and dispatching execution. | Validates access permissions before execution. |
+| `catalog.ts` / `index.ts` | `ToolCatalog` / `defaultToolCatalog` / `createDefaultToolCatalog` | Central tool registry converting Zod schemas to JSON schema `ToolSpec`, self-populating all 16 built-in tools, and dispatching execution. | Validates access permissions before execution; guaranteed retention across bundlers. |
 | `read-file/` | `read_file` | Reads the full content of a workspace file with line numbers. | Bounded path resolution; returns line count and content. |
 | `write-file/` | `write_file` | Creates a new file or completely overwrites an existing file. | Requires user permission for new files or destructive overwrites; records CAS checkpoint pre-image. |
 | `edit-file/` | `edit_file` | Performs exact string replacements in an existing file. | Requires user permission; shows diff preview; records CAS checkpoint pre-image. |

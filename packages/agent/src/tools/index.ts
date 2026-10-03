@@ -36,10 +36,15 @@ export const builtInTools: ToolDefinition<any, any>[] = [
   skillReadTool,
 ];
 
-// Register all built-in tools into defaultToolCatalog
-for (const tool of builtInTools) {
-  defaultToolCatalog.register(tool);
+export function createDefaultToolCatalog(): ToolCatalog {
+  const catalog = new ToolCatalog();
+  for (const tool of builtInTools) {
+    catalog.register(tool);
+  }
+  return catalog;
 }
+
+export const defaultToolCatalog: ToolCatalog = createDefaultToolCatalog();
 
 /**
  * Returns plain ToolSpec array for all registered tools allowed in the given context.
