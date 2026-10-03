@@ -103,7 +103,7 @@ Steward works with any model you prefer—frontier cloud models, unified gateway
 | **DeepSeek** | API Key | `export DEEPSEEK_API_KEY=...` |
 | **Mistral AI** | API Key | `export MISTRAL_API_KEY=...` |
 | **Groq** | API Key | `export GROQ_API_KEY=...` |
-| **Custom / Self-Hosted** | Base URL + API Key | `CUSTOM_API_URL` and `CUSTOM_API_KEY` |
+| **Custom / Self-Hosted** | Base URL + Model + API Key | `CUSTOM_API_URL`, `CUSTOM_MODEL_NAME`, and `CUSTOM_API_KEY` |
 
 ---
 

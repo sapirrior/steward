@@ -2,7 +2,7 @@
 
 AI streaming inference engine and model orchestrator for terminal engineering assistants and agent runtimes, powered by AI SDK v7.
 
-`@steward/ai` provides a unified streaming abstraction, tool calling, reasoning/thinking controls, cross-model message translation, dynamic `models.dev` catalog discovery, and resilient error recovery across 10 built-in LLM providers and custom OpenAI-compatible endpoints.
+`@steward/ai` provides a unified streaming abstraction, tool calling, reasoning/thinking controls, cross-model message translation, dynamic `models.dev` catalog discovery, and resilient error recovery across 11 built-in LLM providers and custom OpenAI-compatible endpoints.
 
 ---
 
@@ -22,7 +22,7 @@ AI streaming inference engine and model orchestrator for terminal engineering as
 
 ## Features
 
-- **Production-Grade Multi-Provider Inference:** Unified streaming inference across OpenAI, Anthropic, Google Gemini, DeepSeek, Groq, Mistral, xAI Grok, OpenRouter, Ollama, and GitHub Copilot.
+- **Production-Grade Multi-Provider Inference:** Unified streaming inference across OpenAI, Anthropic, Google Gemini, DeepSeek, Groq, Mistral, xAI Grok, OpenRouter, Ollama, GitHub Copilot, and Custom (OpenAI-compatible) endpoints.
 - **Configurable Transformer Architecture:** Decoupled translation seam between domain types and underlying model streaming protocol.
 - **Dynamic Runtime Catalog:** Lightweight on-demand discovery from `models.dev` with in-memory caching (TTL & ETag).
 - **Accurate Token Usage & Cost:** Uncached input token resolution (`noCacheTokens`) preventing cached token double-counting.
@@ -45,7 +45,7 @@ AI streaming inference engine and model orchestrator for terminal engineering as
 | `mistral` | `@ai-sdk/mistral` | `mistral-large-latest` | `MISTRAL_API_KEY` (`Bearer`) | Native | Native |
 | `ollama` | `@ai-sdk/openai-compatible` | `llama3.2` | Keyless / local | Native | Native |
 | `github-copilot` | `@ai-sdk/openai-compatible` | `gpt-4o` | `GITHUB_TOKEN` / `COPILOT_API_KEY` | Model-dependent | Native |
-| *Custom* | `@ai-sdk/openai-compatible` | Configurable | API Key / Bearer / Keyless | Configurable | Native |
+| `custom` | `@ai-sdk/openai-compatible` | `custom` (`CUSTOM_MODEL_NAME`) | `CUSTOM_API_KEY` & `CUSTOM_API_URL` (Keyless by default) | Model-dependent | Native |
 
 ---
 
@@ -182,6 +182,7 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `src/provider/openrouter.ts` | `openRouterProvider` | `() => Provider` | OpenRouter provider factory over `@ai-sdk/openai-compatible`. |
 | `src/provider/ollama.ts` | `ollamaProvider` | `() => Provider` | Local Ollama provider factory over `@ai-sdk/openai-compatible`. |
 | `src/provider/github-copilot.ts` | `githubCopilotProvider` | `() => Provider` | GitHub Copilot provider with dynamic `proxy-ep` URL resolution and Copilot headers. |
+| `src/provider/custom.ts` | `customProvider` | `() => Provider` | Custom OpenAI-compatible provider factory using `CUSTOM_API_URL`, `CUSTOM_API_KEY`, and `CUSTOM_MODEL_NAME`. |
 | `src/provider/compatible.ts` | `openAICompatibleProvider` | `(opts: OpenAICompatibleProviderOptions) => Provider` | Creates a custom OpenAI-compatible provider definition for local servers or proxies. |
 
 ### 6. `src/models/discovery.ts`
