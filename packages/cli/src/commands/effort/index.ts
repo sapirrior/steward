@@ -6,10 +6,11 @@ const EFFORT_HELP = `Reasoning Effort Levels:
   low    : fast, concise reasoning
   medium : balanced reasoning
   high   : thorough reasoning
+  xhigh  : maximum depth reasoning
 
 Usage:
   /effort        - Open effort picker
-  /effort <name> - Set effort (none | low | medium | high)`;
+  /effort <name> - Set effort (none | low | medium | high | xhigh)`;
 
 export function parseEffort(input?: string): ReasoningEffort | undefined {
   if (!input) return undefined;
@@ -18,7 +19,8 @@ export function parseEffort(input?: string): ReasoningEffort | undefined {
   if (lower === 'low' || lower === '1' || lower === 'minimal') return 'low';
   if (lower === 'medium' || lower === 'med' || lower === '2' || lower === 'default')
     return 'medium';
-  if (lower === 'high' || lower === '3' || lower === 'max' || lower === 'xhigh') return 'high';
+  if (lower === 'high' || lower === '3') return 'high';
+  if (lower === 'xhigh' || lower === '4' || lower === 'max' || lower === 'extra-high') return 'xhigh';
   return undefined;
 }
 
@@ -27,8 +29,8 @@ export function parseEffort(input?: string): ReasoningEffort | undefined {
  */
 export const effortCommand: SlashCommand = {
   name: 'effort',
-  description: 'View or set model reasoning effort (none, low, medium, high)',
-  usage: '/effort [none | low | medium | high]',
+  description: 'View or set model reasoning effort (none, low, medium, high, xhigh)',
+  usage: '/effort [none | low | medium | high | xhigh]',
 
   async execute(args: string[], context: CommandContext): Promise<CommandResult> {
     const currentEffort = context.session.getEffort();

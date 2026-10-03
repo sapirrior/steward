@@ -17,6 +17,7 @@ export const EFFORT_OPTIONS: EffortOption[] = [
   { id: 'low', label: 'low', badge: 'low', description: 'Fast thinking' },
   { id: 'medium', label: 'medium', badge: 'medium', description: 'Balanced' },
   { id: 'high', label: 'high', badge: 'high', description: 'Thorough' },
+  { id: 'xhigh', label: 'xhigh', badge: 'xhigh', description: 'Maximum depth' },
 ];
 
 export interface EffortPickerProps {
