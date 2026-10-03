@@ -23,6 +23,7 @@ export const PROVIDER_SELECTION_PRIORITY: readonly ProviderId[] = [
   'mistral',
   'ollama',
   'github-copilot',
+  'custom',
 ] as const;
 
 export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
@@ -36,6 +37,7 @@ export const DEFAULT_PROVIDER_MODELS: Record<string, string> = {
   mistral: 'mistral-large-latest',
   ollama: 'llama3.2',
   'github-copilot': 'gpt-4o',
+  custom: 'custom',
 };
 
 export function normalizeProviderId(provider?: string): ProviderId | undefined {

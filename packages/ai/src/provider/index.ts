@@ -22,6 +22,7 @@ export {
   COPILOT_HEADERS,
   COPILOT_DEFAULT_BASE_URL,
 } from './github-copilot.js';
+export { customProvider } from './custom.js';
 export {
   openAICompatibleProvider,
   buildOpenAICompatibleModel,
@@ -38,9 +39,10 @@ import { grokProvider } from './grok.js';
 import { openRouterProvider } from './openrouter.js';
 import { ollamaProvider } from './ollama.js';
 import { githubCopilotProvider } from './github-copilot.js';
+import { customProvider } from './custom.js';
 
 /**
- * Returns instantiated instances of all 10 built-in providers.
+ * Returns instantiated instances of all 11 built-in providers.
  */
 export function builtinProviders(): Provider[] {
   return [
@@ -54,5 +56,6 @@ export function builtinProviders(): Provider[] {
     openRouterProvider(),
     ollamaProvider(),
     githubCopilotProvider(),
+    customProvider(),
   ];
 }

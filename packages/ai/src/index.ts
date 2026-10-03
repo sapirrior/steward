@@ -120,6 +120,7 @@ export {
   deepseekProvider,
   ollamaProvider,
   groqProvider,
+  customProvider,
   openAICompatibleProvider,
   builtinProviders,
   type OpenAICompatibleProviderOptions,

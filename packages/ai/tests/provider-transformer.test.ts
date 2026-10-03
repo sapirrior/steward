@@ -23,6 +23,7 @@ describe('provider definitions', () => {
       'openrouter',
       'ollama',
       'github-copilot',
+      'custom',
     ];
     for (const id of requiredIds) {
       const p = providers.find((p) => p.id === id);
@@ -30,6 +31,26 @@ describe('provider definitions', () => {
       expect(typeof p!.languageModel, `${id} missing languageModel`).toBe('function');
       expect(p!.namespace, `${id} missing namespace`).toBeTruthy();
     }
+  });
+
+  it('customProvider respects environment variables and keyless mode', () => {
+    const { customProvider } = require('../src/index.js');
+    const prevUrl = process.env.CUSTOM_API_URL;
+    const prevModel = process.env.CUSTOM_MODEL_NAME;
+    process.env.CUSTOM_API_URL = 'http://localhost:9000/v1';
+    process.env.CUSTOM_MODEL_NAME = 'my-custom-model';
+
+    const p = customProvider();
+    expect(p.id).toBe('custom');
+    expect(p.baseUrl).toBe('http://localhost:9000/v1');
+    expect(p.defaultModelId).toBe('my-custom-model');
+    expect(p.keyless).toBe(true);
+    expect(typeof p.languageModel).toBe('function');
+
+    if (prevUrl) process.env.CUSTOM_API_URL = prevUrl;
+    else delete process.env.CUSTOM_API_URL;
+    if (prevModel) process.env.CUSTOM_MODEL_NAME = prevModel;
+    else delete process.env.CUSTOM_MODEL_NAME;
   });
 
   it('openAICompatibleProvider creates provider with languageModel', () => {
