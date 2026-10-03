@@ -65,6 +65,12 @@ export interface FetchModelsDevResult {
   notModified?: boolean;
 }
 
+// In-memory cache for models.dev catalog
+let cachedCatalog: ModelsDevApiResponse | undefined;
+let cachedCatalogEtag: string | undefined;
+let cachedCatalogTimestamp = 0;
+const CATALOG_TTL = 3600_000; // 1 hour
+
 /**
  * Fetches the latest models.dev catalog JSON with optional ETag and force refresh.
  */
@@ -96,7 +102,77 @@ export async function fetchModelsDev(
   const etag = res.headers.get('etag') ?? undefined;
   const data = (await res.json()) as ModelsDevApiResponse;
 
+  cachedCatalog = data;
+  cachedCatalogEtag = etag;
+  cachedCatalogTimestamp = Date.now();
+
   return { data, etag };
+}
+
+export interface ModelMetadata {
+  id: string;
+  name?: string;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoning?: boolean;
+  cost?: {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+  };
+}
+
+/**
+ * Fetches metadata for a specific model ID (by model id alone, independent of provider/modelid prefix)
+ * on-demand from models.dev with in-memory caching.
+ */
+export async function fetchModelMetadata(
+  modelId: string,
+  opts: FetchModelsDevOptions = {},
+): Promise<ModelMetadata | undefined> {
+  const now = Date.now();
+  if (opts.force || !cachedCatalog || now - cachedCatalogTimestamp > CATALOG_TTL) {
+    try {
+      const res = await fetchModelsDev({ ...opts, etag: cachedCatalogEtag });
+      if (res.data) {
+        cachedCatalog = res.data;
+      }
+    } catch {
+      // Offline fallback
+    }
+  }
+
+  if (!cachedCatalog) return undefined;
+
+  const targetId = modelId.toLowerCase().trim();
+
+  for (const provider of Object.values(cachedCatalog)) {
+    if (!provider.models) continue;
+    for (const [rawId, rawModel] of Object.entries(provider.models)) {
+      if (rawId.toLowerCase() === targetId || rawId.toLowerCase().endsWith(`/${targetId}`)) {
+        return {
+          id: rawModel.id || rawId,
+          name: rawModel.name,
+          contextWindow: rawModel.limit?.context,
+          maxOutputTokens: rawModel.limit?.output,
+          reasoning: Boolean(
+            rawModel.reasoning || (rawModel.reasoning_options && rawModel.reasoning_options.length > 0),
+          ),
+          cost: rawModel.cost
+            ? {
+                input: rawModel.cost.input,
+                output: rawModel.cost.output,
+                cacheRead: rawModel.cost.cache_read,
+                cacheWrite: rawModel.cost.cache_write,
+              }
+            : undefined,
+        };
+      }
+    }
+  }
+
+  return undefined;
 }
 
 /**

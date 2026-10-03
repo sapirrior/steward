@@ -73,12 +73,22 @@ export {
   supportsReasoning,
   filterModels,
   fetchModelsDev,
+  fetchModelMetadata,
   type FetchModelsDevOptions,
   type FetchModelsDevResult,
+  type ModelMetadata,
   type ModelFilter,
   type ModelsDevApiResponse,
   type ModelsDevRawModel,
 } from './models/catalog.js';
+
+export {
+  discoverProviderModels,
+  DISCOVERY_CONFIGS,
+  NON_CHAT_MODEL_REGEX,
+  type DiscoveredModel,
+  type ProviderDiscoveryConfig,
+} from './models/discovery.js';
 
 export {
   getSupportedEfforts,

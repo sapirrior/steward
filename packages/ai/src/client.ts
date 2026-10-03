@@ -22,6 +22,7 @@ import {
   type ModelFilter,
   type ModelsDevApiResponse,
 } from './models/catalog.js';
+import { discoverProviderModels } from './models/discovery.js';
 import { resolveModelSelection, type ModelSelectionRequest } from './models/selection.js';
 import { builtinProviders } from './provider/index.js';
 import { streamText, stepCountIs } from 'ai';
@@ -306,13 +307,23 @@ export function createAI(opts: CreateAIOptions = {}): AI {
     async availableModels(filter?: ModelFilter | ProviderId): Promise<readonly Model[]> {
       const available: Model[] = [];
       for (const p of providersMap.values()) {
-        if (await ai.isConfigured(p.id)) {
+        try {
+          const auth = await resolveAuth(p);
+          // 1. Live discovery from provider's official endpoint
+          const discovered = await discoverProviderModels(p, auth, fetchFn);
+          for (const m of discovered) {
+            modelsMap.set(`${p.id}/${m.id}`, m);
+          }
+
+          // 2. Fetch all known models for this provider
           const providerModels = ai.models(p.id);
           if (providerModels.length > 0) {
             available.push(...providerModels);
           } else if (p.defaultModelId) {
             available.push(syntheticModel(p.id, p.defaultModelId, p));
           }
+        } catch {
+          // Provider unconfigured or discovery failed — skip
         }
       }
       return filterModels(available, normalizeFilter(filter));

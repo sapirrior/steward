@@ -124,13 +124,13 @@ const stream = ai.stream({
 
 ---
 
-## models.dev Dynamic Catalog
+## Dynamic Model Discovery & On-Demand Metadata
 
-`@steward/ai` uses metadata from [`models.dev`](https://models.dev) to provide token limits, pricing, context windows, and reasoning capabilities:
+`@steward/ai` uses official provider endpoints for live model discovery and on-demand metadata:
 
-- **Zero Bundled Bloat:** No static generated catalog files; dynamic models are fetched on-demand and kept purely in-memory.
-- **In-Memory Caching:** `ai.refreshCatalog()` dynamically updates the cache when online with ETag and TTL support.
-- **Resilient Fallbacks:** When offline or when `models.dev` is unreachable, explicit model inference and configured default provider models operate seamlessly.
+- **Live Official Discovery (`/v1/models`):** Queries authenticated provider endpoints directly (`https://api.individual.githubcopilot.com/models`, `https://api.openai.com/v1/models`, Anthropic, Gemini, Groq, Ollama) so your account's exact enabled models (e.g. Copilot Enterprise, local Ollama models) appear in `/model` instantly.
+- **On-Demand Metadata Lookup (`fetchModelMetadata(modelId)`):** Fetches token limits, pricing, context windows, and reasoning capabilities on demand by model ID directly from `models.dev` with in-memory caching.
+- **Resilient Fallbacks:** Operates seamlessly offline or when external catalog services are unreachable.
 
 ---
 

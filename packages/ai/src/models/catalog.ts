@@ -7,8 +7,10 @@ import {
   inferProtocolForModel,
   supportsReasoning,
   fetchModelsDev,
+  fetchModelMetadata,
   type FetchModelsDevOptions,
   type FetchModelsDevResult,
+  type ModelMetadata,
   type ModelsDevApiResponse,
   type ModelsDevRawModel,
 } from './models-dev.js';
@@ -19,8 +21,10 @@ export {
   inferProtocolForModel,
   supportsReasoning,
   fetchModelsDev,
+  fetchModelMetadata,
   type FetchModelsDevOptions,
   type FetchModelsDevResult,
+  type ModelMetadata,
   type ModelsDevApiResponse,
   type ModelsDevRawModel,
 };
