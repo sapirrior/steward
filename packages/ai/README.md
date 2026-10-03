@@ -167,15 +167,32 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `AIError` | `class extends Error` | Standardized domain error with `code: AIErrorCode` (`auth`, `rate-limit`, `context-overflow`, `invalid-request`, `provider`, `network`, `aborted`, `parse`). |
 | `classifyHttpError` | `(status: number, detail?: string, provider?: ProviderId, cause?: unknown) => AIError` | Classifies HTTP status codes into canonical `AIError` domains. |
 
-### 5. `src/provider/index.ts` & `src/provider/definitions.ts`
+### 5. `src/provider/*.ts`
+
+| File | Export | Type | Description & Constraints |
+| :--- | :--- | :--- | :--- |
+| `src/provider/index.ts` | `builtinProviders` | `() => Provider[]` | Instantiates all 10 built-in providers wired to their AI SDK language model factories. |
+| `src/provider/anthropic.ts` | `anthropicProvider` | `() => Provider` | Anthropic Messages provider factory over `@ai-sdk/anthropic`. |
+| `src/provider/openai.ts` | `openAIProvider` | `() => Provider` | OpenAI Responses provider factory over `@ai-sdk/openai`. |
+| `src/provider/google.ts` | `googleProvider` | `() => Provider` | Google Gemini provider factory over `@ai-sdk/google`. |
+| `src/provider/deepseek.ts` | `deepseekProvider` | `() => Provider` | DeepSeek provider factory over `@ai-sdk/deepseek`. |
+| `src/provider/groq.ts` | `groqProvider` | `() => Provider` | Groq provider factory over `@ai-sdk/groq`. |
+| `src/provider/mistral.ts` | `mistralProvider` | `() => Provider` | Mistral AI provider factory over `@ai-sdk/mistral`. |
+| `src/provider/grok.ts` | `grokProvider` | `() => Provider` | xAI Grok provider factory over `@ai-sdk/xai`. |
+| `src/provider/openrouter.ts` | `openRouterProvider` | `() => Provider` | OpenRouter provider factory over `@ai-sdk/openai-compatible`. |
+| `src/provider/ollama.ts` | `ollamaProvider` | `() => Provider` | Local Ollama provider factory over `@ai-sdk/openai-compatible`. |
+| `src/provider/github-copilot.ts` | `githubCopilotProvider` | `() => Provider` | GitHub Copilot provider with dynamic `proxy-ep` URL resolution and Copilot headers. |
+| `src/provider/compatible.ts` | `openAICompatibleProvider` | `(opts: OpenAICompatibleProviderOptions) => Provider` | Creates a custom OpenAI-compatible provider definition for local servers or proxies. |
+
+### 6. `src/models/discovery.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
-| `builtinProviders` | `() => Provider[]` | Instantiates all 10 built-in providers wired to their AI SDK language model factories. |
-| `openAICompatibleProvider` | `(opts: OpenAICompatibleProviderOptions) => Provider` | Creates a custom OpenAI-compatible provider definition for local servers or proxies. |
-| `PROVIDER_DEFINITIONS` | `readonly ProviderDefinition[]` | Declarative table of all built-in provider descriptors and factories. |
+| `discoverProviderModels` | `(provider: Provider, auth: ResolvedAuth, fetchFn?: typeof fetch, timeoutMs?: number) => Promise<Model[]>` | Discovers live models from a provider's official `/v1/models` endpoint with non-chat filtering and on-demand metadata enrichment. |
+| `NON_CHAT_MODEL_REGEX` | `RegExp` | Filter matching non-chat models (`embed`, `whisper`, `tts`, `dall-e`, `moderation`). |
+| `DISCOVERY_CONFIGS` | `Partial<Record<ProviderId, ProviderDiscoveryConfig>>` | Declarative per-provider discovery endpoint and header configurations. |
 
-### 6. `src/transformer/index.ts`
+### 7. `src/transformer/index.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
@@ -188,15 +205,17 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `pumpSdkStream` | `(sdkStream, stream, model, request) => Promise<void>` | Consumes `fullStream` and translates events into Steward `InferenceEvents`. |
 | `MessageBuilder` | `class` | Incrementally accumulates stream parts into final `AssistantMessage`. |
 
-### 7. `src/models/catalog.ts` & `src/models/models-dev.ts`
+### 8. `src/models/catalog.ts` & `src/models/models-dev.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
 | `parseModelsDevModel` | `(providerId, raw) => Model` | Parses raw `models.dev` API model definition into canonical `Model`. |
+| `fetchModelsDev` | `(opts?: FetchModelsDevOptions) => Promise<FetchModelsDevResult>` | Fetches `models.dev/api.json` with conditional ETag and force refresh support. |
+| `fetchModelMetadata` | `(modelId: string, opts?: FetchModelsDevOptions) => Promise<ModelMetadata \| undefined>` | Fetches rich token limits, pricing, and reasoning capabilities on demand by model ID. |
 | `supportsReasoning` | `(model: Model) => boolean` | Checks if model supports reasoning / thinking. |
 | `filterModels` | `(models: readonly Model[], filter: ModelFilter) => Model[]` | Filters models by provider, query string, or reasoning support. |
 
-### 8. `src/models/selection.ts`
+### 9. `src/models/selection.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
@@ -204,14 +223,14 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `inferProviderFromModelId` | `(modelId: string) => ProviderId \| null` | Heuristically infers provider from model ID prefixes. |
 | `normalizeProviderId` | `(provider?: string) => ProviderId \| undefined` | Normalizes provider ID aliases (e.g. `'gemini'` $\to$ `'google'`, `'xai'` $\to$ `'grok'`). |
 
-### 9. `src/models/thinking.ts`
+### 10. `src/models/thinking.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
 | `clampThinkingEffort` | `(model: Model, requested: ReasoningEffort) => ReasoningEffort` | Clamps reasoning effort to model's supported levels. |
 | `calculateAnthropicBudgetTokens` | `(effort: ReasoningEffort, maxOutputTokens: number) => number \| undefined` | Computes token budget for Anthropic thinking models. |
 
-### 10. `src/util/cost.ts`
+### 11. `src/util/cost.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
