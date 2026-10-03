@@ -4,6 +4,11 @@
  * Zero-dependency, pure Web Standards AI engine and model orchestrator.
  */
 
+// Suppress AI SDK warnings and direct console logging in TUI environment
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).AI_SDK_LOG_WARNINGS = false;
+}
+
 // ─── Domain Types & Contracts ────────────────────────────────────────────────
 export type {
   ProviderId,

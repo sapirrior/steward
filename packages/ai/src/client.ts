@@ -87,6 +87,11 @@ export interface ProviderAuthStatus {
   envVars: readonly string[];
 }
 
+// Suppress AI SDK warnings and direct console logging in TUI environment
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).AI_SDK_LOG_WARNINGS = false;
+}
+
 export interface RefreshCatalogOptions {
   force?: boolean;
   signal?: AbortSignal;
@@ -372,6 +377,7 @@ export function createAI(opts: CreateAIOptions = {}): AI {
               headers: opts.headers,
               abortSignal: request.abortSignal,
               maxRetries: 0,
+              onError: () => {}, // Suppress direct console.error logging — handled via pumpSdkStream
             });
             await pumpSdkStream(sdkStream, stream, model, request);
             return;
