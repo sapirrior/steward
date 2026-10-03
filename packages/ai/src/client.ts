@@ -241,7 +241,15 @@ export function createAI(opts: CreateAIOptions = {}): AI {
 
         for (const [providerKey, providerData] of Object.entries(data)) {
           if (!providerData.models) continue;
-          const providerId = providerKey as ProviderId;
+          const normalizedKey =
+            providerKey === 'github' || providerKey === 'copilot'
+              ? 'github-copilot'
+              : providerKey === 'xai'
+                ? 'grok'
+                : providerKey === 'gemini'
+                  ? 'google'
+                  : providerKey;
+          const providerId = normalizedKey as ProviderId;
 
           for (const rawModel of Object.values(providerData.models)) {
             const parsed = parseModelsDevModel(providerId, rawModel, {

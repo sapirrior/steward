@@ -274,3 +274,38 @@ describe('models/selection — resolveModelSelection', () => {
     expect(sel.modelId).toBe('gpt-4o');
   });
 });
+
+describe('models.dev — fetchModelsDev & force refresh', () => {
+  it('performs force refresh ignoring etag', async () => {
+    const mockFetch = mock(async (url: string | URL | Request, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      if (headers.get('If-None-Match') === 'etag-123') {
+        return new Response(null, { status: 304 });
+      }
+      return new Response(
+        JSON.stringify({
+          github: {
+            api: 'https://api.individual.githubcopilot.com/v1',
+            models: {
+              'gpt-4o': { id: 'gpt-4o', name: 'GPT-4o', tool_call: true, limit: { context: 128000, output: 4096 } },
+            },
+          },
+        }),
+        { status: 200, headers: { etag: 'etag-new' } },
+      );
+    });
+
+    const { fetchModelsDev } = await import('../src/models/models-dev.js');
+
+    // 1. Regular fetch with etag returns 304 notModified
+    const cached = await fetchModelsDev({ etag: 'etag-123', fetchFn: mockFetch as any });
+    expect(cached.notModified).toBe(true);
+
+    // 2. Force fetch bypasses etag and returns fresh data
+    const forced = await fetchModelsDev({ force: true, etag: 'etag-123', fetchFn: mockFetch as any });
+    expect(forced.data).toBeDefined();
+    expect(forced.data?.github?.models?.['gpt-4o']).toBeDefined();
+    expect(forced.etag).toBe('etag-new');
+  });
+});
+

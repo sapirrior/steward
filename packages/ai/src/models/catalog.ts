@@ -6,6 +6,9 @@ import {
   parseModelsDevModel,
   inferProtocolForModel,
   supportsReasoning,
+  fetchModelsDev,
+  type FetchModelsDevOptions,
+  type FetchModelsDevResult,
   type ModelsDevApiResponse,
   type ModelsDevRawModel,
 } from './models-dev.js';
@@ -15,6 +18,9 @@ export {
   parseModelsDevModel,
   inferProtocolForModel,
   supportsReasoning,
+  fetchModelsDev,
+  type FetchModelsDevOptions,
+  type FetchModelsDevResult,
   type ModelsDevApiResponse,
   type ModelsDevRawModel,
 };

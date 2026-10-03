@@ -51,6 +51,54 @@ export interface ModelsDevRawProvider {
 
 export type ModelsDevApiResponse = Record<string, ModelsDevRawProvider>;
 
+export interface FetchModelsDevOptions {
+  url?: string;
+  force?: boolean;
+  etag?: string;
+  signal?: AbortSignal;
+  fetchFn?: typeof fetch;
+}
+
+export interface FetchModelsDevResult {
+  data?: ModelsDevApiResponse;
+  etag?: string;
+  notModified?: boolean;
+}
+
+/**
+ * Fetches the latest models.dev catalog JSON with optional ETag and force refresh.
+ */
+export async function fetchModelsDev(
+  opts: FetchModelsDevOptions = {},
+): Promise<FetchModelsDevResult> {
+  const url = opts.url ?? 'https://models.dev/api.json';
+  const fetchFn = opts.fetchFn ?? globalThis.fetch;
+  const headers: Record<string, string> = { Accept: 'application/json' };
+
+  if (!opts.force && opts.etag) {
+    headers['If-None-Match'] = opts.etag;
+  }
+
+  const res = await fetchFn(url, {
+    method: 'GET',
+    headers,
+    signal: opts.signal,
+  });
+
+  if (res.status === 304) {
+    return { notModified: true, etag: opts.etag };
+  }
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch models.dev (HTTP ${res.status}): ${res.statusText}`);
+  }
+
+  const etag = res.headers.get('etag') ?? undefined;
+  const data = (await res.json()) as ModelsDevApiResponse;
+
+  return { data, etag };
+}
+
 /**
  * Infer wire protocol for a model based on provider and model ID conventions.
  */
