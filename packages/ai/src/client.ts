@@ -23,7 +23,13 @@ import {
   type ModelsDevApiResponse,
 } from './models/catalog.js';
 import { resolveModelSelection, type ModelSelectionRequest } from './models/selection.js';
-import { builtinProviders } from './providers/index.js';
+import { builtinProviders } from './provider/index.js';
+import { streamText, stepCountIs } from 'ai';
+import { getNamespaceConfig } from './transformer/config.js';
+import { normalizeMessages } from './transformer/messages.js';
+import { normalizeOptions } from './transformer/options.js';
+import { normalizeTools } from './transformer/tools.js';
+import { pumpSdkStream } from './transformer/stream.js';
 import type {
   InferenceRequest,
   InferenceResult,
@@ -52,6 +58,17 @@ export interface Provider {
   readonly authScheme?: AuthScheme;
   readonly keyless?: boolean;
   readonly defaultModelId?: string;
+  /**
+   * SDK namespace key used in providerMetadata / providerOptions lookups.
+   * Set by built-in providers; undefined for legacy/faux providers.
+   */
+  readonly namespace?: string;
+  /**
+   * Additive SDK factory hook (plan.md Decision D2 — strangler pattern).
+   * When present, client.ts dispatches through the SDK pipeline.
+   * When absent, falls back to the legacy `streams` map.
+   */
+  languageModel?(modelId: string, auth: ResolvedAuth, fetchFn?: typeof fetch): import('ai').LanguageModel;
   streams: Partial<Record<ProtocolId, ProtocolStream>>;
   prepare?(
     model: Model,
@@ -59,6 +76,7 @@ export interface Provider {
     auth: ResolvedAuth,
   ): { headers?: Record<string, string>; baseUrl?: string };
 }
+
 
 // ─── Provider & Auth Status ───────────────────────────────────────────────────
 
@@ -323,6 +341,39 @@ export function createAI(opts: CreateAIOptions = {}): AI {
             model = found ?? syntheticModel(providerId, modelId, p);
           }
 
+          const auth = await resolveAuth(p, request.apiKey);
+
+          // ── SDK dispatch (plan.md Decision D2 — strangler pattern) ──────────
+          if (p.languageModel) {
+            const namespace = p.namespace ?? p.id;
+            const config = getNamespaceConfig(namespace);
+            const { instructions, messages } = normalizeMessages(
+              request.messages,
+              config,
+              model.id,
+            );
+            const opts = normalizeOptions(request, model, config);
+            const tools = normalizeTools(request.tools);
+            const sdkModel = p.languageModel(model.id, auth, fetchFn);
+            const sdkStream = streamText({
+              model: sdkModel,
+              instructions,
+              messages,
+              tools,
+              stopWhen: stepCountIs(1),
+              maxOutputTokens: opts.maxOutputTokens,
+              temperature: opts.temperature,
+              reasoning: opts.reasoning,
+              providerOptions: opts.providerOptions as any,
+              headers: opts.headers,
+              abortSignal: request.abortSignal,
+              maxRetries: 0,
+            });
+            await pumpSdkStream(sdkStream, stream, model, request, config);
+            return;
+          }
+
+          // ── Legacy protocol dispatch ─────────────────────────────────────────
           const protocolFn = p.streams[model.protocol];
           if (!protocolFn) {
             throw new AIError(
@@ -330,16 +381,12 @@ export function createAI(opts: CreateAIOptions = {}): AI {
               { code: 'invalid-request', provider: providerId },
             );
           }
-
-          const auth = await resolveAuth(p, request.apiKey);
-
           const prepared = p.prepare?.(model, request, auth);
           const effectiveAuth: ResolvedAuth = {
             ...auth,
             headers: { ...auth.headers, ...prepared?.headers },
             baseUrl: prepared?.baseUrl ?? auth.baseUrl,
           };
-
           await protocolFn(model, request, effectiveAuth, fetchFn, stream);
         } catch (err) {
           stream.push({

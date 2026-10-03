@@ -110,10 +110,13 @@ export {
   grokProvider,
   mistralProvider,
   githubCopilotProvider,
+  deepseekProvider,
+  ollamaProvider,
+  groqProvider,
   openAICompatibleProvider,
   builtinProviders,
   type OpenAICompatibleProviderOptions,
-} from './providers/index.js';
+} from './provider/index.js';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 export { decodeSSE } from './util/sse.js';

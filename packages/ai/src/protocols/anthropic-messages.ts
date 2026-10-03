@@ -196,24 +196,7 @@ export async function anthropicMessagesProtocol(
   };
 
   if (auth.apiKey) {
-    const isOAuth =
-      auth.scheme === 'bearer' ||
-      auth.apiKey.startsWith('sk-ant-sso') ||
-      auth.apiKey.startsWith('sk-ant-oauth') ||
-      model.provider === ('github-copilot' as any);
-
-    if (isOAuth) {
-      headers['Authorization'] = `Bearer ${auth.apiKey}`;
-      const existingBeta = headers['anthropic-beta'] ? `${headers['anthropic-beta']}, ` : '';
-      if (!existingBeta.includes('oauth-2025-04-20')) {
-        headers['anthropic-beta'] = `${existingBeta}claude-code-20250219, oauth-2025-04-20`;
-      }
-      headers['user-agent'] = headers['user-agent'] || 'claude-cli/0.2.29';
-      headers['x-app'] = headers['x-app'] || 'cli';
-      headers['anthropic-dangerous-direct-browser-access'] = 'true';
-    } else {
-      headers['x-api-key'] = auth.apiKey;
-    }
+    headers['x-api-key'] = auth.apiKey;
   }
 
   // 7. Execute request with retry before first byte
