@@ -58,4 +58,58 @@ describe('StreamingView Thinking Indicator & Transitions', () => {
 
     view.reset();
   });
+
+  it('suppresses Thinking.. between multi-tool calls in event router until all tools complete', () => {
+    const { createAgentEventHandler } = require('../../src/ui/agent-event-router.js');
+    const view = new StreamingView();
+    const state = {
+      accumulatedText: '',
+      activeToolStartTimes: new Map(),
+      turnStartTime: performance.now(),
+    };
+    const commits: any[] = [];
+    const engine: any = {
+      commit: (fn: any, opts: any) => {
+        commits.push({ fn: typeof fn === 'function' ? fn(80) : fn, opts });
+      },
+    };
+
+    const handler = createAgentEventHandler({
+      engine,
+      streamingView: view,
+      logError: () => {},
+      getSessionId: () => 'test-session',
+      state,
+    });
+
+    // Step has 2 tool calls
+    handler({
+      type: 'tool-call',
+      toolCall: { id: 'call-1', name: 'read_file', args: { path: 'a.txt' } },
+    });
+    handler({
+      type: 'tool-call',
+      toolCall: { id: 'call-2', name: 'read_file', args: { path: 'b.txt' } },
+    });
+
+    // Tool 1 finishes, but Tool 2 is still pending
+    handler({
+      type: 'tool-result',
+      toolResult: { id: 'call-1', name: 'read_file', args: { path: 'a.txt' }, result: 'content a' },
+    });
+
+    // Thinking indicator should NOT be active yet because Tool 2 is still running
+    expect(view.state.isThinking).toBe(false);
+
+    // Tool 2 finishes (activeToolStartTimes now 0)
+    handler({
+      type: 'tool-result',
+      toolResult: { id: 'call-2', name: 'read_file', args: { path: 'b.txt' }, result: 'content b' },
+    });
+
+    // Now thinking indicator should be activated for next model reasoning step
+    expect(view.state.isThinking).toBe(true);
+
+    view.reset();
+  });
 });

@@ -105,7 +105,9 @@ export function createAgentEventHandler(deps: AgentEventRouterDeps): AgentEventL
             }),
           { tag: 'tool-result', hangingIndent: 2 },
         );
-        streamingView.setThinking(true);
+        if (state.activeToolStartTimes.size === 0) {
+          streamingView.setThinking(true);
+        }
         break;
       }
       case 'turn-complete': {
