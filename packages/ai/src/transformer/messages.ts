@@ -1,11 +1,13 @@
 /**
  * @steward/ai — Transformer: Messages Normalization
  *
- * Converts Steward Message[] history to AI SDK ModelMessage[] format and instructions (system prompt).
- * Handles:
- * - Extracting system instructions
- * - Replaying thinking/signatures or collapsing thinking to text for foreign models
- * - Formatting user/assistant/tool messages
+ * Converts Steward Message[] history to AI SDK ModelMessage[] + instructions.
+ *
+ * Signature/encrypted-content replay is handled ENTIRELY by each AI SDK provider adapter
+ * via the providerOptions passthrough. We only need to round-trip providerMetadata
+ * back as providerOptions on reasoning parts — the SDK does the rest.
+ *
+ * No provider-specific branching needed here.
  */
 
 import type { ModelMessage } from 'ai';
@@ -15,7 +17,6 @@ import type {
   ToolMessage,
   UserMessage,
 } from '../types.js';
-import type { NamespaceConfig } from './config.js';
 
 export interface NormalizedMessagesResult {
   instructions?: string;
@@ -24,107 +25,84 @@ export interface NormalizedMessagesResult {
 
 export function normalizeMessages(
   inputMessages: readonly Message[],
-  config: NamespaceConfig,
-  currentModelId?: string,
+  _config?: unknown,
+  _currentModelId?: string,
 ): NormalizedMessagesResult {
-  let instructions: string | undefined = undefined;
+  let instructions: string | undefined;
   const messages: ModelMessage[] = [];
 
   for (const msg of inputMessages) {
     if (msg.role === 'system') {
-      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-      instructions = instructions ? `${instructions}\n\n${content}` : content;
+      const text = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      instructions = instructions ? `${instructions}\n\n${text}` : text;
       continue;
     }
-
-    if (msg.role === 'user') {
-      messages.push(normalizeUserMessage(msg));
-    } else if (msg.role === 'assistant') {
-      messages.push(normalizeAssistantMessage(msg, config, currentModelId));
-    } else if (msg.role === 'tool') {
-      messages.push(normalizeToolMessage(msg));
-    }
+    if (msg.role === 'user')      messages.push(toUserMessage(msg));
+    else if (msg.role === 'assistant') messages.push(toAssistantMessage(msg));
+    else if (msg.role === 'tool')  messages.push(toToolMessage(msg));
   }
 
   return { instructions, messages };
 }
 
-function normalizeUserMessage(msg: UserMessage): ModelMessage {
-  if (typeof msg.content === 'string') {
-    return {
-      role: 'user',
-      content: msg.content,
-    };
-  }
-
-  const parts: any[] = [];
-  for (const block of msg.content) {
-    if (block.type === 'text') {
-      parts.push({ type: 'text', text: block.text });
-    }
-  }
+function toUserMessage(msg: UserMessage): ModelMessage {
+  if (typeof msg.content === 'string') return { role: 'user', content: msg.content };
 
   return {
     role: 'user',
-    content: parts,
+    content: msg.content.map((b) => ({ type: 'text' as const, text: b.text })),
   };
 }
 
-function normalizeAssistantMessage(
-  msg: AssistantMessage,
-  config: NamespaceConfig,
-  currentModelId?: string,
-): ModelMessage {
-  const isSameModel = !msg.meta?.modelId || !currentModelId || msg.meta.modelId === currentModelId;
+function toAssistantMessage(msg: AssistantMessage): ModelMessage {
   const parts: any[] = [];
 
   for (const block of msg.content) {
     if (block.type === 'text') {
       parts.push({ type: 'text', text: block.text });
     } else if (block.type === 'thinking') {
-      if (!isSameModel && config.replay.foreignToText) {
-        if (block.thinking) {
-          parts.push({ type: 'text', text: block.thinking });
-        }
-      } else {
-        if (block.thinking || block.redacted) {
-          const reasoningPart: any = {
-            type: 'reasoning',
-            text: block.thinking || '',
-          };
-          if (block.thinkingSignature && config.metadataToLegacy.thinkingSignature) {
-            reasoningPart.providerMetadata = {
-              [config.metadataToLegacy.thinkingSignature]: block.thinkingSignature,
-            };
-          }
-          parts.push(reasoningPart);
-        }
+      /**
+       * Reasoning replay: pass whatever providerMetadata we stored back as
+       * providerOptions. Each SDK adapter (Anthropic, OpenAI, xAI, …) reads its
+       * own namespace key and reconstructs the correct wire payload automatically.
+       *
+       * Anthropic reads:  providerOptions.anthropic.signature
+       * OpenAI reads:     providerOptions.openai.reasoningEncryptedContent
+       *
+       * thinkingSignature stored in Steward ThinkingContent maps to the
+       * anthropic namespace — set it there.
+       */
+      const providerOptions: Record<string, unknown> = {};
+      if (block.thinkingSignature) {
+        providerOptions['anthropic'] = { signature: block.thinkingSignature };
       }
+      parts.push({
+        type: 'reasoning',
+        text: block.thinking ?? '',
+        providerOptions: Object.keys(providerOptions).length ? providerOptions : undefined,
+      });
     } else if (block.type === 'tool-call') {
       parts.push({
         type: 'tool-call',
-        toolCallId: config.toolCallId.normalize(block.id),
+        toolCallId: block.id,
         toolName: block.name,
         input: block.arguments,
       });
     }
   }
 
-  return {
-    role: 'assistant',
-    content: parts,
-  };
+  return { role: 'assistant', content: parts };
 }
 
-function normalizeToolMessage(msg: ToolMessage): ModelMessage {
+function toToolMessage(msg: ToolMessage): ModelMessage {
   return {
     role: 'tool',
     content: msg.content.map((c) => ({
-      type: 'tool-result',
+      type: 'tool-result' as const,
       toolCallId: c.toolCallId,
       toolName: c.toolName ?? 'unknown',
       output: {
-        type: 'text',
+        type: 'text' as const,
         value: typeof c.output === 'string' ? c.output : JSON.stringify(c.output),
       },
     })),

@@ -347,11 +347,7 @@ export function createAI(opts: CreateAIOptions = {}): AI {
           if (p.languageModel) {
             const namespace = p.namespace ?? p.id;
             const config = getNamespaceConfig(namespace);
-            const { instructions, messages } = normalizeMessages(
-              request.messages,
-              config,
-              model.id,
-            );
+            const { instructions, messages } = normalizeMessages(request.messages);
             const opts = normalizeOptions(request, model, config);
             const tools = normalizeTools(request.tools);
             const sdkModel = p.languageModel(model.id, auth, fetchFn);
@@ -369,7 +365,7 @@ export function createAI(opts: CreateAIOptions = {}): AI {
               abortSignal: request.abortSignal,
               maxRetries: 0,
             });
-            await pumpSdkStream(sdkStream, stream, model, request, config);
+            await pumpSdkStream(sdkStream, stream, model, request);
             return;
           }
 

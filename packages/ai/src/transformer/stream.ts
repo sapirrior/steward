@@ -1,14 +1,15 @@
 /**
  * @steward/ai — Transformer: Stream Pump
  *
- * Consumes AI SDK streamText result.fullStream and translates events into Steward InferenceEvents,
- * pushing them into AssistantMessageStream.
+ * Consumes AI SDK streamText.fullStream and pushes Steward InferenceEvents.
+ *
+ * The SDK handles all provider-specific wire details (signatures, encrypted content,
+ * finish reason normalization, tool call IDs) natively. We just translate the schema.
  */
 
-import type { LanguageModelUsage, streamText } from 'ai';
+import type { streamText } from 'ai';
 import type { AssistantMessageStream } from '../event-stream.js';
 import type { AssistantMeta, InferenceRequest, Model, TokenUsage } from '../types.js';
-import type { NamespaceConfig } from './config.js';
 import { normalizeError } from './errors.js';
 import { MessageBuilder } from './message-builder.js';
 import { normalizeFinishReason, normalizeUsage } from './usage.js';
@@ -17,12 +18,11 @@ export async function pumpSdkStream(
   streamResult: ReturnType<typeof streamText>,
   stream: AssistantMessageStream,
   model: Model,
-  request: InferenceRequest,
-  config: NamespaceConfig,
+  _request: InferenceRequest,
 ): Promise<void> {
   const builder = new MessageBuilder();
   let latestUsage: TokenUsage = {};
-  let finishReasonFromStream: string | undefined = undefined;
+  let sdkFinishReason: string | undefined;
   let hasToolCalls = false;
 
   const meta: AssistantMeta = {
@@ -33,98 +33,87 @@ export async function pumpSdkStream(
 
   try {
     for await (const part of streamResult.fullStream) {
-      if (part.type === 'text-delta') {
-        builder.appendText(part.text);
-        stream.push({ type: 'text-delta', delta: part.text });
-      } else if (part.type === 'reasoning-delta') {
-        const signature =
-          config.metadataToLegacy.thinkingSignature && part.providerMetadata
-            ? (part.providerMetadata[config.metadataToLegacy.thinkingSignature] as unknown as string | undefined)
-            : undefined;
-        builder.appendReasoning(part.text, signature);
-        stream.push({ type: 'reasoning-delta', delta: part.text });
-      } else if (part.type === 'tool-input-start') {
-        hasToolCalls = true;
-        builder.startTool(part.id, part.toolName);
-        stream.push({ type: 'tool-call-start', id: part.id, name: part.toolName });
-      } else if (part.type === 'tool-input-delta') {
-        builder.appendToolDelta(part.id, part.delta);
-        stream.push({ type: 'tool-call-delta', id: part.id, delta: part.delta });
-      } else if (part.type === 'tool-call') {
-        hasToolCalls = true;
-        const normalizedId = config.toolCallId.normalize(part.toolCallId);
-        const toolCallObj: import('../types.js').ToolCallContent = {
-          type: 'tool-call',
-          id: normalizedId,
-          name: part.toolName,
-          arguments: ((part.input ?? {}) as Record<string, unknown>) as import('../types.js').JsonObject,
-        };
-        builder.endTool(toolCallObj);
-        stream.push({ type: 'tool-call-end', toolCall: toolCallObj });
-      } else if (part.type === 'finish-step') {
-        finishReasonFromStream = part.finishReason;
-        if (part.usage) {
-          latestUsage = normalizeUsage(part.usage, config);
+      switch (part.type) {
+        case 'text-delta':
+          builder.appendText(part.text);
+          stream.push({ type: 'text-delta', delta: part.text });
+          break;
+
+        case 'reasoning-delta':
+          // Signature/encrypted-content replay: the SDK round-trips providerMetadata
+          // back as providerOptions automatically — nothing to extract here.
+          builder.appendReasoning(part.text);
+          stream.push({ type: 'reasoning-delta', delta: part.text });
+          break;
+
+        case 'tool-input-start':
+          hasToolCalls = true;
+          builder.startTool(part.id, part.toolName);
+          stream.push({ type: 'tool-call-start', id: part.id, name: part.toolName });
+          break;
+
+        case 'tool-input-delta':
+          builder.appendToolDelta(part.id, part.delta);
+          stream.push({ type: 'tool-call-delta', id: part.id, delta: part.delta });
+          break;
+
+        case 'tool-call': {
+          hasToolCalls = true;
+          const toolCallObj: import('../types.js').ToolCallContent = {
+            type: 'tool-call',
+            id: part.toolCallId,
+            name: part.toolName,
+            arguments: (part.input ?? {}) as import('../types.js').JsonObject,
+          };
+          builder.endTool(toolCallObj);
+          stream.push({ type: 'tool-call-end', toolCall: toolCallObj });
+          break;
         }
-      } else if (part.type === 'finish') {
-        if (part.finishReason && !finishReasonFromStream) {
-          finishReasonFromStream = part.finishReason;
+
+        case 'finish-step':
+          sdkFinishReason = part.finishReason;
+          if (part.usage) latestUsage = normalizeUsage(part.usage);
+          break;
+
+        case 'finish':
+          if (!sdkFinishReason) sdkFinishReason = part.finishReason;
+          if (Object.keys(latestUsage).length === 0 && part.totalUsage) {
+            latestUsage = normalizeUsage(part.totalUsage);
+          }
+          break;
+
+        case 'error': {
+          const aiError = normalizeError(part.error, model.provider);
+          stream.push({ type: 'error', error: aiError, partial: builder.build(meta) });
+          return;
         }
-        if (part.totalUsage && Object.keys(latestUsage).length === 0) {
-          latestUsage = normalizeUsage(part.totalUsage, config);
-        }
-      } else if (part.type === 'error') {
-        const aiError = normalizeError(part.error, model.provider);
-        const partialMessage = builder.build(meta);
-        stream.push({
-          type: 'error',
-          error: aiError,
-          partial: partialMessage,
-        });
-        return;
       }
     }
 
-    // Try awaiting usage if not captured in chunks
+    // Fallback: read usage from the promise if not captured in stream chunks
     try {
-      const sdkUsage = await streamResult.usage;
-      if (sdkUsage) {
-        latestUsage = normalizeUsage(sdkUsage, config);
-      }
-    } catch {
-      // Ignore errors reading total usage
-    }
+      const u = await streamResult.usage;
+      if (u && Object.keys(latestUsage).length === 0) latestUsage = normalizeUsage(u);
+    } catch { /* ignore */ }
 
-    const { finishReason, errorMessage } = normalizeFinishReason(
-      finishReasonFromStream,
-      config,
-      hasToolCalls,
-    );
-
+    const finishReason = normalizeFinishReason(sdkFinishReason, hasToolCalls);
     meta.usage = latestUsage;
     const finalMessage = builder.build(meta);
 
     if (finishReason === 'error') {
       stream.push({
         type: 'error',
-        error: normalizeError(new Error(errorMessage ?? 'Generation failed'), model.provider),
+        error: normalizeError(new Error('Generation failed'), model.provider),
         partial: finalMessage,
       });
     } else {
-      stream.push({
-        type: 'done',
-        message: finalMessage,
-        usage: latestUsage,
-        finishReason,
-      });
+      stream.push({ type: 'done', message: finalMessage, usage: latestUsage, finishReason });
     }
   } catch (err) {
-    const aiError = normalizeError(err, model.provider);
-    const partialMessage = builder.build(meta);
     stream.push({
       type: 'error',
-      error: aiError,
-      partial: partialMessage,
+      error: normalizeError(err, model.provider),
+      partial: builder.build(meta),
     });
   }
 }
