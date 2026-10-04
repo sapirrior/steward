@@ -3,6 +3,13 @@ import HistoryStore from './HistoryStore.js';
 import StateRenderer from './StateRenderer.js';
 import { DocumentTree, type ComponentNode } from './DocumentTree.js';
 import { ScrollModel, type ScrollSnapshot } from './scroll.js';
+import {
+  InputParser,
+  ESC_TIMEOUT_MS,
+  PASTE_IDLE_MS,
+  type InputEvent,
+  type TerminalEvent,
+} from '../terminal/input.js';
 import { nodeIO, type TerminalIO } from '../terminal/io.js';
 import {
   ENTER_ALTERNATE_SCREEN,
@@ -108,6 +115,9 @@ export class TerminalEngine {
   private inputHandler: (str: string) => void;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private renderTimer: ReturnType<typeof setTimeout> | null = null;
+  private escTimer: ReturnType<typeof setTimeout> | null = null;
+  private pasteTimer: ReturnType<typeof setTimeout> | null = null;
+  private inputParser = new InputParser();
   private lastRenderTime = 0;
   private pendingFlushResolvers: Array<() => void> = [];
   private cleanupResizeListener: (() => void) | null = null;
@@ -117,7 +127,7 @@ export class TerminalEngine {
   private idCounter = 0;
   private pendingForceFull = false;
   private lineWidthCache: Map<string, number> = new Map();
-  private customInputListeners: Array<(chunk: string | Buffer) => boolean | void> = [];
+  private customInputListeners: Array<(ev: InputEvent) => boolean | void> = [];
   private consecutiveRenderFailures = 0;
   private disposed = false;
 
@@ -165,94 +175,116 @@ export class TerminalEngine {
       }, 50);
     };
 
-    // Keyboard navigation handler
-    this.inputHandler = (chunk: string) => {
-      if (!this.inAlternateScreen || this.disposed) return;
-
-      const str = typeof chunk === 'string' ? chunk : String(chunk);
-
-      // Consume focus tracking event escapes (Mode 1004: \x1b[I = focus in, \x1b[O = focus out)
-      if (
-        str === '\x1b[I' ||
-        str === '\x1b[O' ||
-        str.startsWith('\x1b[I') ||
-        str.startsWith('\x1b[O')
-      ) {
+    const dispatchTerminalEvent = (ev: TerminalEvent) => {
+      if (ev.type === 'focus') {
         return;
       }
 
-      // Check registered custom input listeners first
-      for (let i = this.customInputListeners.length - 1; i >= 0; i--) {
-        const listener = this.customInputListeners[i];
-        if (listener) {
-          const handled = listener(str);
-          if (handled) return;
+      if (ev.type === 'mouse') {
+        if (ev.action === 'wheel') {
+          if (ev.button === 'wheelUp') {
+            this.scrollBy(3);
+          } else if (ev.button === 'wheelDown') {
+            this.scrollBy(-3);
+          }
         }
+        return;
       }
 
-      if (this.mouse) {
-        // SGR Extended Mouse reporting: \x1b[<btn;col;row[M|m]
-        if (str.includes('\x1b[<')) {
-          const sgrRegex = /\x1b\[<(\d+);(\d+);(\d+)([Mm])/g;
-          let sgrMatch: RegExpExecArray | null;
-          let handledMouse = false;
-          while ((sgrMatch = sgrRegex.exec(str)) !== null) {
-            handledMouse = true;
-            const btn = parseInt(sgrMatch[1], 10);
-            if ((btn & 64) === 64) {
-              if ((btn & 1) === 1) {
-                this.scrollDown(3);
-              } else {
-                this.scrollUp(3);
-              }
-            }
+      if (ev.type === 'key') {
+        if (this.scrollKeys) {
+          const step = Math.max(1, this.io.rows - 1);
+          if (ev.key.name === 'pageup' || ev.key.pageUp) {
+            this.scrollBy(step);
+            return;
           }
-          if (handledMouse) return;
+          if (ev.key.name === 'pagedown' || ev.key.pageDown) {
+            this.scrollBy(-step);
+            return;
+          }
+          if (ev.key.name === 'home' && (ev.key.ctrl || ev.key.shift)) {
+            this.scrollToTop();
+            return;
+          }
+          if (ev.key.name === 'end' && (ev.key.ctrl || ev.key.shift)) {
+            this.scrollToBottom();
+            return;
+          }
         }
 
-        // Legacy X10 / Normal Mouse reporting: \x1b[M b col row
-        if (str.includes('\x1b[M')) {
-          const legacyRegex = /\x1b\[M([\x20-\xff])([\x20-\xff])([\x20-\xff])/g;
-          let legMatch: RegExpExecArray | null;
-          let handledLegacy = false;
-          while ((legMatch = legacyRegex.exec(str)) !== null) {
-            handledLegacy = true;
-            const btn = legMatch[1].charCodeAt(0) - 32;
-            if (btn === 64) {
-              this.scrollUp(3);
-            } else if (btn === 65) {
-              this.scrollDown(3);
-            }
-          }
-          if (handledLegacy) return;
+        // Non-scroll key: auto snap to bottom when scrolled up
+        if (this.scrollModel.snapshot().offset > 0) {
+          this.scrollToBottom();
         }
+
+        // Deliver key event to registered listeners
+        for (let i = this.customInputListeners.length - 1; i >= 0; i--) {
+          const listener = this.customInputListeners[i];
+          if (listener) {
+            const handled = listener(ev);
+            if (handled) return;
+          }
+        }
+        return;
       }
 
-      if (this.scrollKeys) {
-        const halfPage = Math.max(1, Math.floor((this.io.rows - 1) / 2));
+      if (ev.type === 'paste') {
+        if (this.scrollModel.snapshot().offset > 0) {
+          this.scrollToBottom();
+        }
 
-        // PageUp / PageDown / Ctrl+U / Ctrl+D scrolling
-        if (str === '\x04') {
-          this.scrollDown(halfPage);
-          return;
+        for (let i = this.customInputListeners.length - 1; i >= 0; i--) {
+          const listener = this.customInputListeners[i];
+          if (listener) {
+            const handled = listener(ev);
+            if (handled) return;
+          }
         }
-        if (str === '\x15') {
-          this.scrollUp(halfPage);
-          return;
-        }
-        if (str === '\x1b[6~') {
-          this.scrollDown(5);
-          return;
-        }
-        if (str === '\x1b[5~') {
-          this.scrollUp(5);
-          return;
-        }
+        return;
+      }
+    };
+
+    // Central keyboard and ANSI input dispatch
+    this.inputHandler = (chunk: string) => {
+      if (!this.inAlternateScreen || this.disposed) return;
+      const str = typeof chunk === 'string' ? chunk : String(chunk);
+      const events = this.inputParser.feed(str);
+
+      if (this.inputParser.pending) {
+        if (this.escTimer) clearTimeout(this.escTimer);
+        this.escTimer = setTimeout(() => {
+          this.escTimer = null;
+          const flushed = this.inputParser.flush();
+          for (const ev of flushed) {
+            dispatchTerminalEvent(ev);
+          }
+        }, ESC_TIMEOUT_MS);
+      } else if (this.escTimer) {
+        clearTimeout(this.escTimer);
+        this.escTimer = null;
+      }
+
+      if (this.inputParser.inPaste) {
+        if (this.pasteTimer) clearTimeout(this.pasteTimer);
+        this.pasteTimer = setTimeout(() => {
+          this.pasteTimer = null;
+          const flushed = this.inputParser.flushPaste();
+          for (const ev of flushed) {
+            dispatchTerminalEvent(ev);
+          }
+        }, PASTE_IDLE_MS);
+      } else if (this.pasteTimer) {
+        clearTimeout(this.pasteTimer);
+        this.pasteTimer = null;
+      }
+
+      for (const ev of events) {
+        dispatchTerminalEvent(ev);
       }
     };
   }
 
-  addInputListener(listener: (chunk: string | Buffer) => boolean | void): () => void {
+  addInputListener(listener: (ev: InputEvent) => boolean | void): () => void {
     this.customInputListeners.push(listener);
     return () => {
       this.customInputListeners = this.customInputListeners.filter((l) => l !== listener);
@@ -309,6 +341,16 @@ export class TerminalEngine {
   }
 
   cleanupSync(): void {
+    if (this.escTimer) {
+      clearTimeout(this.escTimer);
+      this.escTimer = null;
+    }
+    if (this.pasteTimer) {
+      clearTimeout(this.pasteTimer);
+      this.pasteTimer = null;
+    }
+    this.inputParser.reset();
+
     this.showCursor();
     if (this.inAlternateScreen) {
       let exitSeq = ENABLE_AUTOWRAP;
@@ -334,6 +376,16 @@ export class TerminalEngine {
   }
 
   async exitAlternateScreen(): Promise<void> {
+    if (this.escTimer) {
+      clearTimeout(this.escTimer);
+      this.escTimer = null;
+    }
+    if (this.pasteTimer) {
+      clearTimeout(this.pasteTimer);
+      this.pasteTimer = null;
+    }
+    this.inputParser.reset();
+
     this.showCursor();
     if (this.inAlternateScreen) {
       let exitSeq = ENABLE_AUTOWRAP;
@@ -373,6 +425,15 @@ export class TerminalEngine {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    if (this.escTimer) {
+      clearTimeout(this.escTimer);
+      this.escTimer = null;
+    }
+    if (this.pasteTimer) {
+      clearTimeout(this.pasteTimer);
+      this.pasteTimer = null;
+    }
+    this.inputParser.reset();
     this.cleanupSync();
 
     if (this.cleanupInputListener) {
