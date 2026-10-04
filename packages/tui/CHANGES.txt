@@ -94,3 +94,17 @@ tags: [REMOVED] [RENAMED] [CHANGED] [ADDED] [MOVED] [BEHAVIOR] [CONSUMER-ACTION]
 [ADDED] src/engine.ts for low-level imperative API exports (stitchable/engine)
 [ADDED] package.json exports mapping for '.', './engine', './jsx-runtime', './jsx-dev-runtime'
 [INFO] Engine verified at 2.39 MB V8 heap and flat 39 MB RSS with zero memory growth under 30 FPS load
+
+== STEP 8.1 - 8.7 | v0.0.0 scroll, input engine, and cursor math hardening ==
+[ADDED] src/terminal/input.ts — stateful InputParser with ECMA-48 grammar, bracketed paste buffering, SGR mouse decoding, and non-BMP surrogate buffering
+[ADDED] src/engine/scroll.ts — pure ScrollModel supporting 'follow' vs 'anchored' modes with monotonic row ID anchoring
+[ADDED] src/text/width.ts — visibleColumnAtOffset for ANSI-transparent 1-indexed column position calculations
+[CHANGED] TerminalEngine input loop rewritten with stateful InputParser, ESC_TIMEOUT_MS (50ms) and PASTE_IDLE_MS (500ms)
+[CHANGED] TerminalEngine scroll keys (PageUp/PageDn rows - 1 context, Home/End, wheel) and bottom snap on non-scroll typing/paste
+[CHANGED] HistoryStore bounded to historyLimit to eliminate unbounded memory growth under streaming/long sessions
+[CHANGED] HistoryLayoutCache and DocumentTree purge dropped node layouts and evict stale-width caches on resize
+[BEHAVIOR] FunctionalRootComponent in mount.ts caches renderWithCursor to eliminate double renders on scroll frames
+[BEHAVIOR] Bracketed paste (\x1b[200~ ... \x1b[201~) delivered atomically via onKey
+[REMOVED] Dead interactive option in createApp options
+[CONSUMER-ACTION] Use onKey bracketed paste events and native ScrollModel / engine.scrollTo / engine.scrollBy methods
+

@@ -15,6 +15,7 @@ export { HistoryLayoutCache } from './engine/HistoryLayoutCache.js';
 export { StateRenderer } from './engine/StateRenderer.js';
 export { ScreenBuffer } from './layout/ScreenBuffer.js';
 export { computeDocumentFrame, type DocumentFrame } from './engine/FrameBuffer.js';
+export { ScrollModel, type ScrollSnapshot, type ResolveParams } from './engine/scroll.js';
 export {
   layoutDocument,
   measureNode,

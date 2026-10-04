@@ -6,6 +6,7 @@ export { DocumentTree, TextNode, ResponsiveHistoryNode } from './engine/Document
 export { HistoryStore } from './engine/HistoryStore.js';
 export { default as StateRenderer } from './engine/StateRenderer.js';
 export { computeDocumentFrame, type DocumentFrame } from './engine/FrameBuffer.js';
+export { ScrollModel, type ScrollSnapshot, type ResolveParams } from './engine/scroll.js';
 export * from './engine/layout.js';
 export * from './text/wrap.js';
 export * from './text/truncate.js';

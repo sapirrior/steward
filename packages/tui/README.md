@@ -1,320 +1,134 @@
-# 🧵 stitchable
+# @steward/tui (stitchable)
 
-A focused, high-performance, double-buffered terminal UI engine for TypeScript and Bun/Node.js — built with zero external dependencies except `string-width`.
-
----
-
-## ⚡ Key Highlights
-
-- **The "Stitched" Architecture:** Seamlessly stitches together responsive scrollback history with a live double-buffered viewport.
-- **$O(1)$ Zero-Cost History:** Past messages and headers are committed once to retained history. They cost **$0$ CPU** during streaming/typing, but automatically reflow when the terminal is resized.
-- **Double-Buffered Differential Rendering:** Calculates row-level character diffs with Mode 2026 Synchronized Output for completely flicker-free terminal paints.
-- **Pure Functional Element Layer:** Declarative `<Box>`, `<Text>`, `<Newline>`, `<Spacer>`, and `<Transform>` components with an integer-based flexbox layout subset.
-- **Zero-Allocation Memory Safety:** No hook reconciler overhead, no microtask cascades, and no closure churn. Flat **~2 MB V8 Heap** memory profile designed for constrained environments (e.g. Android Termux, Docker, CI).
-- **Zero-Dep ANSI Color Engine:** Full support for Truecolor (24-bit), 256 colors, basic 16 ANSI colors, automatic terminal color downsampling, `NO_COLOR`, and `FORCE_COLOR`.
-- **First-Class TSX / JSX:** Native support for JSX syntax with `@jsxImportSource stitchable`.
+`@steward/tui` (`stitchable`) is a zero-dependency (except `string-width`), double-buffered terminal user interface and layout engine for TypeScript and Bun/Node.js. It stitches responsive, reflowing scrollback history with a live differential viewport using Mode 2026 Synchronized Output for flicker-free terminal applications.
 
 ---
 
-## 🎯 When to Use What: Feature Selection Guide
+## Table of Contents
 
-`stitchable` splits terminal interfaces into two cooperating zones: **Scrollback History** and the **Live Dynamic View**.
+- [Package Architecture & Boundaries](#package-architecture--boundaries)
+- [Module & API Breakdown](#module--api-breakdown)
+  - [1. Terminal IO, Sequences & Input Parsing (`src/terminal/`)](#1-terminal-io-sequences--input-parsing-srcterminal)
+  - [2. Text Measurement, Wrapping & ANSI Parsing (`src/text/`)](#2-text-measurement-wrapping--ansi-parsing-srctext)
+  - [3. Layout, Diffing & Rendering Engine (`src/engine/` & `src/layout/`)](#3-layout-diffing--rendering-engine-srcengine--srclayout)
+  - [4. Declarative Elements & Layout Primitives (`src/elements/`)](#4-declarative-elements--layout-primitives-srcelements)
+  - [5. Application Runtime & Mounting (`src/runtime/`)](#5-application-runtime--mounting-srcruntime)
+- [Architectural Invariants & Constraints](#architectural-invariants--constraints)
+
+---
+
+## Package Architecture & Boundaries
+
+`@steward/tui` is structured into strictly isolated internal layers with one-way dependency boundaries:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ SCROLLBACK HISTORY (engine.commit)                          │
-│ • Banners & Headers                                         │  ← Evaluated ONCE.
-│ • Completed User Prompts & AI Responses                     │  ← Stays in history.
-│ • Static tool results & system logs                         │  ← Zero frame overhead.
-│ • Reflows on terminal resize!                               │
-├─────────────────────────────────────────────────────────────┤
-│ LIVE DYNAMIC VIEW (renderFn)                                │
-│ • Active streaming tokens / typing animations               │  ← Evaluated on frames.
-│ • Full-width input box & moving cursor                      │  ← Double-buffered diff.
-│ • Spinners, progress bars, live status badges               │  ← Flicker-free paint.
+│ 5. RUNTIME (src/runtime/)                                   │
+│    createApp, mount, renderToString                         │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────┐
+│ 4. DECLARATIVE ELEMENTS (src/elements/)                     │
+│    Box, Text, Newline, Spacer, Transform, flex/border layout │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────┐
+│ 3. ENGINE & BUFFER PIPELINE (src/engine/, src/layout/)      │
+│    TerminalEngine, DocumentTree, StateRenderer, FrameBuffer │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────┐
+│ 1 & 2. TEXT & TERMINAL BASE (src/text/, src/terminal/)      │
+│    InputParser, TerminalIO, SgrState, width/wrap/sanitize   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Decision Matrix
-
-| What you want to build | Recommended Feature | Why? |
-| :--- | :--- | :--- |
-| **Completed Chat Turns / Log Items** | `ctx.engine.commit((width) => ...)` | Avoids re-measuring and re-wrapping past messages on every frame ($O(1)$ speed). Automatically reflows on resize. |
-| **App Header / Welcome Banner** | `ctx.engine.commit(...)` in `onMount` | Renders above history once and stays in scrollback without eating live viewport rows. |
-| **Live Prompt Input & Moving Cursor** | Live `renderFn` with `<InputPrompt />` | Rerenders on key input with sub-millisecond differential line diffs. |
-| **Real-time LLM Token Streaming** | Live `renderFn` with `state.streamingContent` | Streams token by token into the live frame; once complete, commit to history and clear live state. |
-| **Background Timers & Stream Cleanups** | `ctx.addCleanup(() => clearInterval(id))` | Guarantees zero timer leaks when the user exits with `q` or `Ctrl+C`. |
-| **Updating Live State** | Mutate `state` + `ctx.invalidate()` | Tells the engine to schedule a batched differential frame. Zero allocations. |
+- **Zero Framework Reconcilers:** No virtual DOM or React fibers; component updates mark dirty flags and trigger batched differential renders.
+- **Strict Boundary Guard:** Layer 0 (`engine/`, `layout/`) cannot import from Layer 1 (`elements/`) or Layer 2 (`runtime/`). `src/terminal/` imports nothing outside `src/terminal/`.
+- **Mode 2026 Synchronized Output:** Emits atomic frame updates wrapped in `\x1b[?2026h` ... `\x1b[?2026l` to prevent terminal tearing.
 
 ---
 
-## 🚀 Quick Start Examples
+## Module & API Breakdown
 
-### 1. Interactive AI Assistant Chat (`aichat.tsx`)
+### 1. Terminal IO, Sequences & Input Parsing (`src/terminal/`)
 
-Demonstrates the combination of **Responsive Scrollback History** + **Live Streaming View** + **Full Cursor Navigation**:
-
-```tsx
-/** @jsxImportSource stitchable */
-import { createApp, Box, Text, renderElement } from 'stitchable';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface ChatState {
-  inputText: string;
-  cursorPos: number;
-  isStreaming: boolean;
-  streamingContent: string;
-}
-
-function MessageBubble({ msg }: { msg: Message }) {
-  const isUser = msg.role === 'user';
-  return (
-    <Box flexDirection="column" marginTop={1} width="100%">
-      <Text bold color={isUser ? 'magenta' : 'green'}>
-        {isUser ? 'You' : 'Assistant'}:
-      </Text>
-      <Box borderStyle="single" borderColor={isUser ? 'magenta' : 'green'} paddingX={1} width="100%">
-        <Text>{msg.content}</Text>
-      </Box>
-    </Box>
-  );
-}
-
-const app = createApp<ChatState>(
-  (state) => (
-    <Box flexDirection="column" paddingX={1} width="100%">
-      {/* Active Streaming Response (only in live view while generating) */}
-      {state.isStreaming && (
-        <MessageBubble msg={{ role: 'assistant', content: state.streamingContent }} />
-      )}
-
-      {/* Full-width Input Box with active cursor */}
-      <Box
-        flexDirection="column"
-        borderStyle="double"
-        borderColor={state.isStreaming ? 'gray' : 'yellow'}
-        paddingX={1}
-        marginTop={1}
-        width="100%"
-      >
-        <Text bold color={state.isStreaming ? 'gray' : 'yellow'}>
-          {state.isStreaming ? 'Assistant generating...' : 'Prompt:'}
-        </Text>
-        <Text color="white">
-          &gt; {state.inputText.slice(0, state.cursorPos)}
-          <Text inverse bold color="cyan">
-            {state.inputText[state.cursorPos] || ' '}
-          </Text>
-          {state.inputText.slice(state.cursorPos + 1)}
-        </Text>
-      </Box>
-    </Box>
-  ),
-  {
-    state: {
-      inputText: '',
-      cursorPos: 0,
-      isStreaming: false,
-      streamingContent: '',
-    },
-    onMount(_state, ctx) {
-      // 1. Commit Welcome Message to scrollback history once
-      ctx.engine.commit(
-        (width: number) =>
-          renderElement(
-            <MessageBubble msg={{ role: 'assistant', content: 'Hello! I am your terminal assistant.' }} />,
-            { width }
-          )
-      );
-    },
-    onKey(input, key, state, ctx) {
-      if (key.ctrl && key.name === 'c') {
-        ctx.exit();
-        return;
-      }
-      if (state.isStreaming) return;
-
-      // Cursor movement
-      if (key.leftArrow && state.cursorPos > 0) {
-        state.cursorPos--;
-        ctx.invalidate();
-      } else if (key.rightArrow && state.cursorPos < state.inputText.length) {
-        state.cursorPos++;
-        ctx.invalidate();
-      } else if (key.backspace && state.cursorPos > 0) {
-        state.inputText = state.inputText.slice(0, state.cursorPos - 1) + state.inputText.slice(state.cursorPos);
-        state.cursorPos--;
-        ctx.invalidate();
-      } else if (key.return && state.inputText.trim()) {
-        const text = state.inputText.trim();
-
-        // 2. Commit User message to scrollback history immediately
-        ctx.engine.commit((width: number) =>
-          renderElement(<MessageBubble msg={{ role: 'user', content: text }} />, { width })
-        );
-
-        state.inputText = '';
-        state.cursorPos = 0;
-        state.isStreaming = true;
-        ctx.invalidate();
-
-        // 3. Simulate streaming tokens, then commit assistant response
-        simulateStream(text, state, ctx);
-      } else if (input && input.length === 1 && input >= ' ') {
-        state.inputText = state.inputText.slice(0, state.cursorPos) + input + state.inputText.slice(state.cursorPos);
-        state.cursorPos++;
-        ctx.invalidate();
-      }
-    },
-  }
-);
-
-await app.waitUntilExit();
-```
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `src/terminal/io.ts` | `TerminalIO` | `Interface` | Abstract stream and TTY interface decoupling the engine from process globals. | Defines `write`, `onData`, `columns`, `rows`, `setRawMode`, `isTTY`, `dispose`. |
+| `src/terminal/io.ts` | `nodeIO` | `(stdin?, stdout?) => TerminalIO` | Production TTY IO wrapper around standard Node/Bun streams. | Employs `StringDecoder('utf8')` to prevent split multibyte/emoji byte streams. |
+| `src/terminal/io.ts` | `memoryIO` | `(opts?) => MemoryIO` | In-memory mock IO for unit tests, headless goldens, and benchmarking. | Supports simulated input injection, programmatic resize, and written byte log. |
+| `src/terminal/sequences.ts` | Escape Constants | `Constant` | Named ANSI/VT escape sequences for synchronized rendering, mouse, paste, and screen buffers. | Contains `SYNC_START`, `SYNC_END`, `ALT_SCREEN_ENTER`, `ALT_SCREEN_LEAVE`, `BRACKETED_PASTE_ENTER`, `BRACKETED_PASTE_LEAVE`, `MOUSE_TRACK_ENABLE`, `MOUSE_TRACK_DISABLE`. |
+| `src/terminal/color.ts` | `color` / `styleText` | Functions | Zero-dependency ANSI SGR color styling supporting Truecolor (24-bit), 256 colors, and 16 ANSI colors. | Automatically downsamples colors when terminal capabilities are constrained; respects `NO_COLOR` and `FORCE_COLOR`. |
+| `src/terminal/input.ts` | `InputParser` | `Class` | Stateful parser for standard VT/xterm input sequences, bracketed paste, SGR mouse tracking, and Unicode. | Implements 50ms ESC timeout disambiguation, 500ms paste fallback flush, non-BMP UTF-16 surrogate buffering, and atomic paste events. |
+| `src/terminal/input.ts` | `parseInputChunk` | `(chunk: string) => InputEvent[]` | Stateless helper parsing a string chunk into discrete input events. | Emits `KeyEvent`, `PasteEvent`, `MouseEvent`, or `ResizeEvent`. |
 
 ---
 
-### 2. Simple Interactive Counter (`counter.tsx`)
+### 2. Text Measurement, Wrapping & ANSI Parsing (`src/text/`)
 
-```tsx
-/** @jsxImportSource stitchable */
-import { createApp, Box, Text } from 'stitchable';
-
-const app = createApp(
-  (state, _ctx) => (
-    <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={2} paddingY={1}>
-      <Text bold color="green">Count: {state.count}</Text>
-      <Text dimColor>Press &apos;+&apos;/Up to increment, &apos;-&apos;/Down to decrement, &apos;q&apos; to quit</Text>
-    </Box>
-  ),
-  {
-    state: { count: 0 },
-    onKey(input, key, state, ctx) {
-      if (input === 'q' || input === 'Q') ctx.exit();
-      if (input === '+' || key.upArrow) { state.count++; ctx.invalidate(); }
-      if (input === '-' || key.downArrow) { state.count--; ctx.invalidate(); }
-    },
-  }
-);
-
-await app.waitUntilExit();
-```
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `src/text/ansi.ts` | `SgrState` | `Class` | Tracks active SGR styling state (fg, bg, modifiers) across string segments. | Serializes and restores style stacks across wrapped line breaks without style leakage. |
+| `src/text/ansi.ts` | `stripAnsi` | `(text: string) => string` | Zero-dependency regex-based ANSI escape stripper. | Strips CSI, OSC, and DEC private sequences. |
+| `src/text/width.ts` | `visibleWidth` | `(text: string) => number` | Computes visual display column width of a string ignoring ANSI escapes. | Evaluates East Asian wide characters and grapheme clusters via `Intl.Segmenter` and `string-width`. |
+| `src/text/width.ts` | `visibleColumnAtOffset` | `(text: string, charOffset: number) => number` | Computes 1-indexed display column corresponding to a logical character offset. | Skips invisible ANSI SGR escape sequences; factors double-width CJK characters. |
+| `src/text/width.ts` | `expandTabs` | `(text: string, tabWidth?: number) => string` | Expands tab characters (`\t`) to alignment spaces (default: 4). | Computes column modulo to advance precisely to the next tab stop. |
+| `src/text/wrap.ts` | `wrapVisualLine` | `(text, maxCols, hangingIndent?) => string[]` | Soft-wraps text to display columns with word-boundary awareness and hanging indent. | Preserves active SGR color/style across wrapped line continuations. |
+| `src/text/wrap.ts` | `wrapVisualLineWithCursor` | `(text, maxCols, offset, hangingIndent?) => WrapResultWithCursor` | Simultaneously wraps text and maps a logical character cursor to its wrapped row and column. | Single-pass cursor mapping; preserves offset alignment on CRLF normalization. |
+| `src/text/truncate.ts` | `truncate` | `(text, maxCols, opts?) => string` | Truncates text to fit within column constraints (`'start'`, `'middle'`, `'end'`). | Supports optional custom ellipsis (e.g. `'…'`) and preserves ANSI style boundaries. |
+| `src/text/sanitize.ts` | `sanitizeLine` | `(line: string) => string` | Sanitizes control characters and non-printable escape injection attempts. | Strips dangerous OSC sequences while preserving valid SGR formatting. |
 
 ---
 
-## 📚 API Reference
+### 3. Layout, Diffing & Rendering Engine (`src/engine/` & `src/layout/`)
 
-### 1. `createApp(renderFn, options)`
-
-Orchestrates engine creation, alternate screen buffer, raw input, and lifecycle handlers.
-
-```ts
-function createApp<S extends object>(
-  renderFn: (state: S, ctx: UIContext) => any,
-  options?: CreateAppOptions<S>
-): UIHandle<S>;
-```
-
-#### `CreateAppOptions<S>`:
-| Option | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `state` | `S` | `{}` | Initial state object passed to `renderFn` and callbacks. |
-| `onKey` | `(input, key, state, ctx) => void` | `undefined` | Single persistent keyboard and ANSI event listener. |
-| `onMount` | `(state, ctx) => void` | `undefined` | Lifecycle hook executed once after mounting into terminal. |
-| `onUnmount`| `(state) => void` | `undefined` | Lifecycle hook executed once before teardown and terminal restoration. |
-| `maxFps` | `number` | `30` | Maximum frame rate throttle for batched differential diffs. |
-| `exitOnCtrlC`| `boolean` | `true` | Automatically unmounts and exits cleanly when `Ctrl+C` is pressed. |
-| `io` | `TerminalIO` | `nodeIO()` | Terminal IO abstraction (`nodeIO()` or `memoryIO()`). |
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `src/engine/TerminalEngine.ts` | `TerminalEngine` | `Class` | Central orchestration engine managing IO, frame dispatch, document tree, and input listeners. | Features debounced `requestFrame()`, `flush()`, scroll key handling (PageUp/Dn, Home/End, wheel), and automatic bottom snapping. |
+| `src/engine/DocumentTree.ts` | `DocumentTree` | `Class` | Maintains the hierarchical document model composed of committed history and live dynamic nodes. | Tracks `prunedRowCount`, bounds history size via `historyLimit`, and manages per-tree layout caching. |
+| `src/engine/HistoryStore.ts` | `HistoryStore` | `Class` | In-memory ring buffer storing committed history entries and layout metadata. | Hard-bounded to `historyLimit` (FIFO eviction); prevents unbounded memory growth. |
+| `src/engine/HistoryLayoutCache.ts` | `HistoryLayoutCache` | `Class` | Caches wrapped row layouts for static history entries keyed by width. | Purges entries on terminal width changes and dropped history node evictions. |
+| `src/engine/StateRenderer.ts` | `StateRenderer` | `Class` | Double-buffered differential renderer calculating character and style cell diffs. | Emits minimal ANSI cursor positioning and color sequences wrapped in Mode 2026 sync output. |
+| `src/engine/FrameBuffer.ts` | `computeDocumentFrame` | `(tree, width, height, scroll?, forceAll?, cache?, onOverflow?) => DocumentFrame` | Top-level frame computation coordinating document measurement and viewport slicing. | Slices viewport rows in $O(\text{viewport})$ time independent of total history size. |
+| `src/engine/FrameBuffer.ts` | `measureDocument` | `(tree, width, forceAll?, onOverflow?) => DocumentMeasurement` | Computes physical line counts and cursor coordinates across history and live nodes. | Returns measurement summary without mutating layout state. |
+| `src/engine/FrameBuffer.ts` | `sliceViewport` | `(tree, measure, width, height, scrollOffset) => DocumentFrame` | Extracts viewport lines and maps physical cursor coordinates to relative screen rows. | Clamps cursor column coordinates to `[1, width]`. |
+| `src/engine/scroll.ts` | `ScrollModel` | `Class` | Pure mathematical model managing scroll state (`follow` vs `anchored` modes). | Anchors viewport to monotonic top row IDs; survives history pruning and dynamic streaming. |
+| `src/engine/layout.ts` | `measureNode` | `(node, width, forceAll?, onOverflow?) => { rows, cursorWithinNode }` | Breaks logical component lines into physical rows respecting wrapping and clipping rules. | Evaluates single-pass cursor positioning and asserts row width bounds. |
+| `src/engine/layout.ts` | `layoutDocument` | `(tree, width, forceAll?, cache?, onOverflow?) => CellLayoutResult` | Lays out full document tree into flat physical rows and absolute cursor position. | Used for headless full-tree measurement and layout verification. |
+| `src/layout/ScreenBuffer.ts` | `ScreenBuffer` | `Class` | Flat 2D grid storing character codepoints, style IDs, and cell widths. | Employs `Uint32Array` style interning and `Uint8Array` cell widths for low heap overhead. |
 
 ---
 
-### 2. `UIContext` (`ctx`)
+### 4. Declarative Elements & Layout Primitives (`src/elements/`)
 
-Passed to `renderFn`, `onKey`, and `onMount`:
-
-| Method / Property | Type | Description |
-| :--- | :--- | :--- |
-| `ctx.invalidate()` | `() => void` | Marks UI dirty and schedules the next differential render frame. Zero allocations. |
-| `ctx.exit(err?)` | `(err?: any) => void` | Cleanly unmounts the app, restores terminal alternate screen, and resolves `waitUntilExit()`. |
-| `ctx.addCleanup(fn)` | `(fn: () => void) => void`| Registers a cleanup callback (e.g. `clearInterval`) guaranteed to run on unmount. |
-| `ctx.engine` | `TerminalEngine` | Access to underlying `TerminalEngine` (for `engine.commit(...)`, scrolling, etc.). |
-| `ctx.io` | `TerminalIO` | Access to terminal IO stream and column/row dimensions. |
-
----
-
-### 3. Elements Layer Props
-
-#### `<Box>` Props
-| Prop | Type | Description |
-| :--- | :--- | :--- |
-| `flexDirection` | `'row' \| 'column' \| 'row-reverse' \| 'column-reverse'` | Flex direction (default: `'row'`). |
-| `width` / `height` | `number \| string` | Fixed terminal cells, or percentage (e.g. `'100%'`, `'50%'`). |
-| `minWidth` / `maxWidth` | `number` | Width constraints in columns. |
-| `flexGrow` / `flexShrink` | `number` | Flex space allocation weights. |
-| `flexBasis` | `number` | Initial size before flex distribution. |
-| `justifyContent` | `'flex-start' \| 'center' \| 'flex-end' \| 'space-between' \| 'space-around' \| 'space-evenly'` | Main-axis alignment. |
-| `alignItems` | `'flex-start' \| 'center' \| 'flex-end' \| 'stretch'` | Cross-axis alignment. |
-| `padding` / `paddingX` / `paddingY` | `number` | Inner padding in cells. |
-| `margin` / `marginTop` / etc. | `number` | Outer margin spacing. |
-| `gap` / `columnGap` / `rowGap` | `number` | Spacing between children. |
-| `borderStyle` | `'single' \| 'double' \| 'round' \| 'bold' \| 'singleDouble' \| 'doubleSingle' \| 'classic'` | Box border style. |
-| `borderColor` | `Color` | Border color (`'cyan'`, `'#ff0055'`, `'rgb(255,0,0)'`, `'ansi256(120)'`). |
-| `backgroundColor` | `Color` | Background fill color (inherited by child text). |
-
-#### `<Text>` Props
-| Prop | Type | Description |
-| :--- | :--- | :--- |
-| `color` | `Color` | Text foreground color. |
-| `backgroundColor` | `Color` | Text background color. |
-| `bold` | `boolean` | Bold text (`\x1b[1m`). |
-| `dimColor` / `dim` | `boolean` | Dim text (`\x1b[2m`). |
-| `italic` | `boolean` | Italic text (`\x1b[3m`). |
-| `underline` | `boolean` | Underline text (`\x1b[4m`). |
-| `strikethrough` | `boolean` | Strikethrough text (`\x1b[9m`). |
-| `inverse` | `boolean` | Invert foreground and background. |
-| `wrap` | `'wrap' \| 'hard' \| 'truncate' \| 'truncate-start' \| 'truncate-middle' \| 'truncate-end'` | Text wrap and truncation strategy. |
-| `hangingIndent` | `number \| string` | Hanging indent for subsequent wrapped lines. |
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `src/elements/Box.ts` | `<Box>` | `Function Component` | Primary layout container supporting flexbox positioning, borders, padding, and margins. | Supports `flexDirection`, `flexGrow`, `flexShrink`, `flexBasis`, `justifyContent`, `alignItems`, and percentage dimensions. |
+| `src/elements/Text.ts` | `<Text>` | `Function Component` | Text presentation component supporting styling, wrapping modes, and hanging indentation. | Supports `color`, `backgroundColor`, `bold`, `dimColor`, `italic`, `underline`, `strikethrough`, `inverse`, and `wrap`. |
+| `src/elements/Newline.ts` | `<Newline>` | `Function Component` | Inserts one or more vertical blank line rows (`count?: number`). | Rendered as empty string lines in the parent flex flow. |
+| `src/elements/Spacer.ts` | `<Spacer>` | `Function Component` | Flexible spacing element that expands to fill available flex space. | Equates to `<Box flexGrow={1} />`. |
+| `src/elements/Transform.ts` | `<Transform>` | `Function Component` | Applies arbitrary string transformation functions across rendered child output lines. | Useful for custom masking, casing, or syntax highlighter pipelines. |
+| `src/elements/flex.ts` | `computeFlexLayout` | Function | Deterministic integer flexbox layout calculator. | Implements largest remainder fractional allocation to eliminate rounding gaps. |
+| `src/elements/border.ts` | `renderBorder` | Function | Draws box borders using single, double, round, bold, or custom glyph maps. | Supports individual border side colors and dimming attributes. |
 
 ---
 
-## 🛡️ Low-Level Engine (`stitchable/engine`)
+### 5. Application Runtime & Mounting (`src/runtime/`)
 
-For headless testing, batch rendering, or direct terminal IO:
-
-```ts
-import { TerminalEngine, Component, memoryIO, renderToString, Box, Text } from 'stitchable';
-
-const io = memoryIO({ columns: 80, rows: 24 });
-const engine = new TerminalEngine({ io, maxFps: 60 });
-
-// Render headless string
-const ansi = renderToString(
-  <Box borderStyle="round" borderColor="cyan" paddingX={1}>
-    <Text bold color="green">Headless Output</Text>
-  </Box>,
-  { columns: 40 }
-);
-
-console.log(ansi);
-```
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `src/runtime/createApp.ts` | `createApp` | `<S>(renderFn, options?) => UIHandle<S>` | High-level orchestrator initializing alternate-screen UI, raw input dispatch, and event loops. | Automatically restores terminal state on exit; handles `Ctrl+C` exit signals cleanly. |
+| `src/runtime/mount.ts` | `mount` | `<S>(engine, renderFn, options?) => MountedApp<S>` | Mounts a functional declarative component into an existing `TerminalEngine` instance. | Caches `renderWithCursor` across scroll frames; respects engine ownership flags. |
+| `src/runtime/renderToString.ts` | `renderToString` / `renderElement` | `(element, options?) => string` | Renders a declarative element tree to a standalone ANSI string without an active engine. | Ideal for snapshot testing, CLI stdout printing, or headless generation. |
+| `src/jsx-runtime.ts` | `jsx` / `jsxs` / `Fragment` | Functions | Native JSX factory enabling `@jsxImportSource stitchable` syntax. | Returns plain Element objects; requires no React dependencies. |
 
 ---
 
-## 📂 Included Runnable Examples
+## Architectural Invariants & Constraints
 
-Run directly with Bun:
-
-```bash
-# Interactive Full-Width AI Chat with Scrollback History & Cursor Navigation
-bun src/packages/tui/examples/aichat.tsx
-
-# Interactive Counter
-bun src/packages/tui/examples/counter.tsx
-
-# Real-Time Streaming Logs
-bun src/packages/tui/examples/streaming-logs.tsx
-```
+1. **Rule 1 — Layer Boundaries:** Dependency flow is strictly unidirectional (`runtime` $\to$ `elements` $\to$ `engine` $\to$ `text` / `terminal`). Layer 0 files never import from Layer 1 or Layer 2.
+2. **Rule 2 — Layer 0 Frozen Contract:** Files in `src/engine/` and `src/layout/` may only be modified for Reason A (terminal escape protocol), Reason B (demonstrable plain-text layout bug), or Reason C (measured render loop regression).
+3. **Rule 3 — Content-Blind Layout:** Layout routines must never sniff string contents (e.g. searching for bullets or markdown tags) to infer formatting. All indentation and wrapping parameters must be passed explicitly.
+4. **Rule 5 — Single-Pass Cursor Invariant:** The cursor position is derived in the exact same render pass as line generation (`renderWithCursor`), never computed post-facto with magic line offsets.
+5. **Rule 11 — Injected Width Invariant:** Terminal column width is always passed in from the engine render loop; components must never consult `process.stdout.columns` directly during rendering.
