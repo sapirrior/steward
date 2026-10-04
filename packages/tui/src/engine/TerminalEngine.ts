@@ -296,6 +296,14 @@ export class TerminalEngine {
     this.requestFrame();
   }
 
+  scrollUp(amount = 1): void {
+    this.scrollBy(amount);
+  }
+
+  scrollDown(amount = 1): void {
+    this.scrollBy(-amount);
+  }
+
   scrollTo(offset: number): void {
     this.scrollModel.scrollTo(offset);
     this.requestFrame();

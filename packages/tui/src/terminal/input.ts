@@ -42,7 +42,11 @@ export type TerminalEvent =
     }
   | { type: 'focus'; focused: boolean };
 
-export type InputEvent = Extract<TerminalEvent, { type: 'key' | 'paste' }>;
+export interface InputEvent {
+  input: string;
+  key: Key;
+  isPaste?: boolean;
+}
 
 export const MAX_SEQUENCE_BYTES = 256;
 export const MAX_PASTE_CHARS = 1_048_576;
@@ -565,3 +569,52 @@ export class InputParser {
     return events;
   }
 }
+
+/**
+ * Parses a raw string chunk, Buffer, or structured TerminalEvent/InputEvent into discrete InputEvents.
+ */
+export function parseInputChunk(
+  chunk: string | Buffer | InputEvent | TerminalEvent,
+): InputEvent[] {
+  if (typeof chunk === 'object' && chunk !== null && !Buffer.isBuffer(chunk)) {
+    if ('type' in chunk) {
+      if (chunk.type === 'key') {
+        return [{ input: chunk.input, key: chunk.key, isPaste: false }];
+      }
+      if (chunk.type === 'paste') {
+        return [{ input: chunk.text, key: makeKey('paste', { paste: true }), isPaste: true }];
+      }
+      return [];
+    }
+    if ('input' in chunk && 'key' in chunk) {
+      return [chunk as InputEvent];
+    }
+    return [];
+  }
+
+  const str =
+    typeof chunk === 'string'
+      ? chunk
+      : Buffer.isBuffer(chunk)
+        ? chunk.toString('utf-8')
+        : '';
+  if (!str) return [];
+
+  const parser = new InputParser();
+  const events = parser.feed(str);
+  const flushed = parser.flush();
+  const all = [...events, ...flushed];
+  const out: InputEvent[] = [];
+
+  for (const ev of all) {
+    if (ev.type === 'key') {
+      out.push({ input: ev.input, key: ev.key, isPaste: false });
+    } else if (ev.type === 'paste') {
+      out.push({ input: ev.text, key: makeKey('paste', { paste: true }), isPaste: true });
+    }
+  }
+
+  return out;
+}
+
+
