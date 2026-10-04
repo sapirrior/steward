@@ -1,5 +1,6 @@
 import type { DocumentTree } from './DocumentTree.js';
 import { computeDocumentFrame, type DocumentFrame } from './FrameBuffer.js';
+import { ScrollModel } from './scroll.js';
 import { ScreenBuffer } from '../layout/ScreenBuffer.js';
 import { nodeIO, type TerminalIO } from '../terminal/io.js';
 import {
@@ -49,7 +50,7 @@ export default class StateRenderer {
 
   render(
     tree: DocumentTree,
-    scrollOffset = 0,
+    scroll: ScrollModel | number = 0,
     forceFull = false,
     lineWidthCache: Map<string, number> = new Map(),
     io?: { columns: number; rows: number; write: (data: string) => void },
@@ -66,7 +67,7 @@ export default class StateRenderer {
       tree,
       termWidth,
       termHeight,
-      scrollOffset,
+      scroll,
       forceFull,
       lineWidthCache,
       onOverflow,

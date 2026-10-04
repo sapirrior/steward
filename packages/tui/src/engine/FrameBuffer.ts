@@ -1,5 +1,6 @@
 import { DocumentTree } from './DocumentTree.js';
-import { measureNode, layoutDocument, type CellLayoutResult } from './layout.js';
+import { measureNode } from './layout.js';
+import { ScrollModel } from './scroll.js';
 
 export interface DocumentFrame {
   lines: string[];
@@ -9,19 +10,20 @@ export interface DocumentFrame {
   currentScrollOffset: number;
 }
 
-export function computeDocumentFrame(
+export interface DocumentMeasurement {
+  histCount: number;
+  liveRows: { text: string }[];
+  liveCursor: { row: number; column: number } | null;
+  totalPhysicalRows: number;
+}
+
+export function measureDocument(
   tree: DocumentTree,
   termWidth: number,
-  termHeight: number,
-  scrollOffset = 0,
   forceAll = false,
-  lineWidthCache: Map<string, number> = new Map(),
   onOverflow?: (info: { width: number; maxCols: number; row: string }) => void,
-): DocumentFrame {
+): DocumentMeasurement {
   const safeWidth = Math.max(1, termWidth);
-  const maxRows = Math.max(1, termHeight);
-
-  // Fast path with zero full-history array copying
   const histCount = tree.getHistoryRowCount(safeWidth, forceAll);
   const liveNodes = tree.getLiveNodes();
 
@@ -43,6 +45,20 @@ export function computeDocumentFrame(
   }
 
   const totalPhysicalRows = histCount + liveRows.length;
+  return { histCount, liveRows, liveCursor, totalPhysicalRows };
+}
+
+export function sliceViewport(
+  tree: DocumentTree,
+  measure: DocumentMeasurement,
+  termWidth: number,
+  termHeight: number,
+  scrollOffset: number,
+): DocumentFrame {
+  const safeWidth = Math.max(1, termWidth);
+  const maxRows = Math.max(1, termHeight);
+  const { histCount, liveRows, liveCursor, totalPhysicalRows } = measure;
+
   const maxScrollOffset = Math.max(0, totalPhysicalRows - maxRows);
   const clampedScroll = Math.max(0, Math.min(scrollOffset, maxScrollOffset));
 
@@ -95,4 +111,32 @@ export function computeDocumentFrame(
     maxScrollOffset,
     currentScrollOffset: clampedScroll,
   };
+}
+
+export function computeDocumentFrame(
+  tree: DocumentTree,
+  termWidth: number,
+  termHeight: number,
+  scroll: ScrollModel | number = 0,
+  forceAll = false,
+  _lineWidthCache?: Map<string, number>,
+  onOverflow?: (info: { width: number; maxCols: number; row: string }) => void,
+): DocumentFrame {
+  const safeWidth = Math.max(1, termWidth);
+  const safeHeight = Math.max(1, termHeight);
+  const measure = measureDocument(tree, safeWidth, forceAll, onOverflow);
+
+  let offset = 0;
+  if (typeof scroll === 'number') {
+    offset = scroll;
+  } else if (scroll && typeof scroll.resolve === 'function') {
+    offset = scroll.resolve({
+      total: measure.totalPhysicalRows,
+      rows: safeHeight,
+      pruned: tree.prunedRowCount,
+      width: safeWidth,
+    });
+  }
+
+  return sliceViewport(tree, measure, safeWidth, safeHeight, offset);
 }

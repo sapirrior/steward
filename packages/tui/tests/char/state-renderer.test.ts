@@ -99,4 +99,16 @@ describe('Characterization: StateRenderer Byte Stream Goldens', () => {
 
     verifyOrSaveGolden('scenario5_cursor_hidden', io.output.join(''));
   });
+
+  test('Scenario 6: Scrolled viewport at offset > 0 with hidden cursor', () => {
+    const tree = new DocumentTree();
+    tree.addText(['Line 1', 'Line 2', 'Line 3', 'Line 4', 'Line 5', 'Line 6', 'Line 7'], false);
+    const renderer = new StateRenderer();
+    const io = memoryIO({ columns: 40, rows: 4 });
+
+    // Render scrolled up by 2 rows
+    renderer.render(tree, 2, false, new Map(), io);
+
+    verifyOrSaveGolden('scenario6_scrolled_viewport', io.output.join(''));
+  });
 });

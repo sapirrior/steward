@@ -2,6 +2,7 @@ import Component from './Component.js';
 import HistoryStore from './HistoryStore.js';
 import StateRenderer from './StateRenderer.js';
 import { DocumentTree, type ComponentNode } from './DocumentTree.js';
+import { ScrollModel, type ScrollSnapshot } from './scroll.js';
 import { nodeIO, type TerminalIO } from '../terminal/io.js';
 import {
   ENTER_ALTERNATE_SCREEN,
@@ -92,7 +93,7 @@ export class TerminalEngine {
   dirty: boolean;
   cursorHidden: boolean;
   inAlternateScreen: boolean;
-  scrollOffset: number;
+  private scrollModel: ScrollModel;
 
   private onError?: (err: unknown, ctx?: { source: string; forcedFull: boolean }) => void;
   private exitHook: boolean;
@@ -109,8 +110,6 @@ export class TerminalEngine {
   private renderTimer: ReturnType<typeof setTimeout> | null = null;
   private lastRenderTime = 0;
   private pendingFlushResolvers: Array<() => void> = [];
-  private lastMaxScrollOffset = 0;
-  private lastTotalRows = 0;
   private cleanupResizeListener: (() => void) | null = null;
   private cleanupInputListener: (() => void) | null = null;
   private exitHookFn: (() => void) | null = null;
@@ -141,7 +140,7 @@ export class TerminalEngine {
     this.dirty = false;
     this.cursorHidden = false;
     this.inAlternateScreen = false;
-    this.scrollOffset = 0;
+    this.scrollModel = new ScrollModel();
 
     // Window resize & zoom handler: debounced for smooth reflow
     this.resizeHandler = () => {
@@ -161,9 +160,6 @@ export class TerminalEngine {
           if (typeof comp.onResize === 'function') {
             comp.onResize(w, h);
           }
-        }
-        if (this.scrollOffset > 0) {
-          this.scrollOffset = 0;
         }
         this.requestFrame(true);
       }, 50);
@@ -264,39 +260,27 @@ export class TerminalEngine {
   }
 
   scrollBy(amount: number): void {
-    this.scrollOffset = Math.max(0, this.scrollOffset + amount);
+    this.scrollModel.scrollBy(amount);
     this.requestFrame();
   }
 
   scrollTo(offset: number): void {
-    this.scrollOffset = Math.max(0, offset);
+    this.scrollModel.scrollTo(offset);
     this.requestFrame();
   }
 
-  scrollUp(amount = 3): void {
-    this.scrollBy(amount);
-  }
-
-  scrollDown(amount = 3): void {
-    this.scrollBy(-amount);
-  }
-
   scrollToBottom(): void {
-    this.scrollOffset = 0;
+    this.scrollModel.toBottom();
     this.requestFrame();
   }
 
   scrollToTop(): void {
-    this.scrollOffset = this.lastMaxScrollOffset;
+    this.scrollModel.toTop();
     this.requestFrame();
   }
 
-  getScrollState(): { offset: number; max: number; totalRows: number } {
-    return {
-      offset: this.scrollOffset,
-      max: this.lastMaxScrollOffset,
-      totalRows: this.lastTotalRows,
-    };
+  getScrollState(): ScrollSnapshot {
+    return this.scrollModel.snapshot();
   }
 
   ensureAlternateScreen(): void {
@@ -522,17 +506,14 @@ export class TerminalEngine {
     this.pendingForceFull = false;
 
     try {
-      const frame = this.renderer.render(
+      this.renderer.render(
         this.tree,
-        this.scrollOffset,
+        this.scrollModel,
         shouldForceFull,
         this.lineWidthCache,
         this.io,
         this.onOverflow,
       );
-      this.scrollOffset = frame.currentScrollOffset;
-      this.lastMaxScrollOffset = frame.maxScrollOffset;
-      this.lastTotalRows = frame.totalVisualRows;
       this.consecutiveRenderFailures = 0;
     } catch (err) {
       this.consecutiveRenderFailures += 1;

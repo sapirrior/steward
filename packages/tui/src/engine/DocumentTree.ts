@@ -103,12 +103,18 @@ export class DocumentTree {
   private lastHistoryWidth = -1;
   private layoutCache = new HistoryLayoutCache();
 
+  private _prunedRowCount = 0;
+
   constructor(options?: { historyLimit?: number }) {
     this.historyLimit = options?.historyLimit;
   }
 
   get historyRowCount(): number {
     return this.cachedHistoryRows.length;
+  }
+
+  get prunedRowCount(): number {
+    return this._prunedRowCount;
   }
 
   private pruneHistoryIfNeeded(): void {
@@ -118,6 +124,7 @@ export class DocumentTree {
       this.cachedHistoryRows.length > this.historyLimit
     ) {
       const dropCount = this.cachedHistoryRows.length - this.historyLimit;
+      this._prunedRowCount += dropCount;
       this.cachedHistoryRows = this.cachedHistoryRows.slice(dropCount);
       // If historyNodes array grows excessively, keep it bounded
       if (this.historyNodes.length > this.historyLimit * 2) {
