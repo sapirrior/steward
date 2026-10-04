@@ -4,10 +4,10 @@ import { resolveBorderStyle } from './border.js';
 import { colorToSgr, styleText } from '../terminal/color.js';
 import { RESET_SGR } from '../terminal/sequences.js';
 import { distributeFlexSpace, computeJustifyGaps, alignBlockInRow, type FlexItem } from './flex.js';
-import { renderTextElement } from './Text.js';
-import { renderNewlineElement } from './Newline.js';
+import { renderTextElement, Text } from './Text.js';
+import { renderNewlineElement, Newline } from './Newline.js';
 import { renderSpacerElement, Spacer } from './Spacer.js';
-import { renderTransformElement } from './Transform.js';
+import { renderTransformElement, Transform } from './Transform.js';
 
 export function parseDimension(
   dim: number | string | undefined,
@@ -57,19 +57,19 @@ export function renderAnyElement(node: any, context: RenderContext): Block {
   if (typeof node === 'object') {
     if (typeof node.type === 'function') {
       const typeName = node.type.name;
-      if (typeName === 'Text') {
+      if (node.type === Text || typeName === 'Text') {
         return renderTextElement(node, context);
       }
-      if (typeName === 'Newline') {
+      if (node.type === Newline || typeName === 'Newline') {
         return renderNewlineElement(node, context);
       }
-      if (typeName === 'Spacer') {
+      if (node.type === Spacer || typeName === 'Spacer') {
         return renderSpacerElement(node, context);
       }
-      if (typeName === 'Transform') {
+      if (node.type === Transform || typeName === 'Transform') {
         return renderTransformElement(node, context, renderAnyElement);
       }
-      if (typeName === 'Box') {
+      if (node.type === Box || typeName === 'Box') {
         return renderBoxElement(node, context);
       }
       try {
@@ -79,7 +79,7 @@ export function renderAnyElement(node: any, context: RenderContext): Block {
         return { lines: [], width: 0 };
       }
     }
-    if (node.type === 'Text') {
+    if (node.type === 'Text' || node.type === 'text') {
       return renderTextElement(node, context);
     }
     return renderBoxElement(node, context);
