@@ -38,7 +38,7 @@
     },
     "packages/cli": {
       "name": "steward-cli",
-      "version": "0.33.0",
+      "version": "0.33.1",
       "bin": {
         "steward": "dist/cli.js",
         "steward-cli": "dist/cli.js",
