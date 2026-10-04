@@ -1,5 +1,5 @@
 import { SgrState } from './ansi.js';
-import { expandTabs, graphemeWidth, segmentGraphemes, visibleWidth } from './width.js';
+import { expandTabs, graphemeWidth, segmentGraphemes, visibleWidth, visibleColumnAtOffset } from './width.js';
 import { RESET_SGR } from '../terminal/sequences.js';
 
 export interface WrapResultWithCursor {
@@ -107,8 +107,8 @@ export function wrapVisualLineWithCursor(
   targetCharOffset: number | null,
   hangingIndent: number | string = 0,
 ): WrapResultWithCursor {
-  // Normalize line breaks
-  text = expandTabs(text.replace(/\r\n|\r|\n/g, ' '));
+  // Normalize line breaks while strictly preserving character offsets
+  text = expandTabs(text.replace(/\r\n/g, '  ').replace(/\r|\n/g, ' '));
 
   if (text.length === 0) {
     return {
@@ -123,7 +123,7 @@ export function wrapVisualLineWithCursor(
         targetCharOffset !== null
           ? {
               segmentIndex: 0,
-              column: 1 + visibleWidth(text.slice(0, targetCharOffset)),
+              column: visibleColumnAtOffset(text, targetCharOffset),
             }
           : null,
     };
@@ -314,10 +314,12 @@ export function wrapVisualLineWithCursor(
     cursorFound = true;
   }
 
+  const finalColumn = maxCols > 0 ? Math.max(1, Math.min(maxCols, cursorColumn)) : cursorColumn;
+
   return {
     segments: lines,
     cursorInLine:
-      targetCharOffset !== null ? { segmentIndex: cursorSegment, column: cursorColumn } : null,
+      targetCharOffset !== null ? { segmentIndex: cursorSegment, column: finalColumn } : null,
   };
 }
 

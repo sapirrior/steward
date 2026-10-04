@@ -99,7 +99,7 @@ export function sliceViewport(
     ) {
       adjustedCursor = {
         line: cursorViewportRow,
-        column: liveCursor.column,
+        column: Math.max(1, Math.min(safeWidth, liveCursor.column)),
       };
     }
   }

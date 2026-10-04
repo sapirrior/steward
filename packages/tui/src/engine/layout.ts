@@ -1,4 +1,4 @@
-import { visibleWidth } from '../text/width.js';
+import { visibleWidth, visibleColumnAtOffset } from '../text/width.js';
 import { truncate } from '../text/truncate.js';
 import { wrapVisualLineWithCursor, wrapVisualLine } from '../text/wrap.js';
 import type { ComponentNode, DocumentTree } from './DocumentTree.js';
@@ -6,7 +6,7 @@ import type { ComponentNode, DocumentTree } from './DocumentTree.js';
 export interface PhysicalRow {
   /** The literal string to draw for this row (may contain ANSI SGR codes). */
   text: string;
-  /** Index of the logical line (within the whole document) this row was wrapped from. */
+  /** Index of the logical line (within the current node) this row was wrapped from. */
   sourceLineIndex: number;
   /** Which wrapped segment of that logical line this is (0 = first segment). */
   wrapSegmentIndex: number;
@@ -89,7 +89,10 @@ export function measureNode(
             targetCharOffset !== null
               ? {
                   segmentIndex: 0,
-                  column: 1 + visibleWidth(line.slice(0, targetCharOffset)),
+                  column: Math.max(
+                    1,
+                    Math.min(contentWidth, visibleColumnAtOffset(line, targetCharOffset)),
+                  ),
                 }
               : null,
         };

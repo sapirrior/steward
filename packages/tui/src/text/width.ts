@@ -75,3 +75,38 @@ export function visibleWidth(text: string): number {
   }
   return total;
 }
+
+/**
+ * Computes 1-indexed column for a given logical visible character offset (skipping ANSI escapes).
+ */
+export function visibleColumnAtOffset(text: string, charOffset: number): number {
+  if (charOffset <= 0 || !text) return 1;
+  const ansiRegex = new RegExp(ANSI_ESCAPE_REGEX.source, 'g');
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let col = 1;
+  let countedChars = 0;
+
+  const processPlain = (plain: string) => {
+    for (const g of segmentGraphemes(plain)) {
+      if (countedChars >= charOffset) return;
+      col += graphemeWidth(g);
+      countedChars += g.length;
+    }
+  };
+
+  while ((match = ansiRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      processPlain(text.slice(lastIndex, match.index));
+      if (countedChars >= charOffset) return col;
+    }
+    lastIndex = ansiRegex.lastIndex;
+  }
+
+  if (lastIndex < text.length && countedChars < charOffset) {
+    processPlain(text.slice(lastIndex));
+  }
+
+  return col;
+}
+
