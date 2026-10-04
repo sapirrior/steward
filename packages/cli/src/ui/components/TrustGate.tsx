@@ -1,5 +1,5 @@
 /** @jsxImportSource stitchable */
-import { Component, Box, Text, renderElement, parseInputChunk } from 'stitchable';
+import { Component, Box, Text, renderElement, type InputEvent } from 'stitchable';
 import { figures } from '../../theme/index.js';
 import { c, bold, italic } from '../../theme/style.js';
 
@@ -28,37 +28,32 @@ export default class TrustGate extends Component<TrustGateProps, TrustGateState>
   override componentDidMount(): void {
     if (!this.engine) return;
 
-    this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
-      const events = parseInputChunk(rawStr);
+    this.removeInputListener = this.engine.addInputListener((ev: InputEvent) => {
+      if (ev.key.upArrow || ev.key.downArrow) {
+        this.setState({
+          selectedIndex: this.state.selectedIndex === 0 ? 1 : 0,
+        });
+        return true;
+      }
 
-      for (const ev of events) {
-        if (ev.key.upArrow || ev.key.downArrow) {
-          this.setState({
-            selectedIndex: this.state.selectedIndex === 0 ? 1 : 0,
-          });
-          return true;
-        }
+      if (ev.input === '1') {
+        this.setState({ selectedIndex: 0 });
+        return true;
+      }
 
-        if (ev.input === '1') {
-          this.setState({ selectedIndex: 0 });
-          return true;
-        }
+      if (ev.input === '2') {
+        this.setState({ selectedIndex: 1 });
+        return true;
+      }
 
-        if (ev.input === '2') {
-          this.setState({ selectedIndex: 1 });
-          return true;
-        }
+      if (ev.key.return) {
+        this.props.onDecision(this.state.selectedIndex === 0);
+        return true;
+      }
 
-        if (ev.key.return) {
-          this.props.onDecision(this.state.selectedIndex === 0);
-          return true;
-        }
-
-        if (ev.key.escape) {
-          this.props.onDecision(false);
-          return true;
-        }
+      if (ev.key.escape) {
+        this.props.onDecision(false);
+        return true;
       }
 
       return false;

@@ -16,9 +16,8 @@ export default class ShortcutsMenu extends Component<ShortcutsMenuProps> {
   override componentDidMount(): void {
     if (!this.engine) return;
 
-    this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const str = chunk.toString();
-      if (str === '\x1b' || str === '\r' || str === '\n') {
+    this.removeInputListener = this.engine.addInputListener((ev) => {
+      if (ev.key.escape || ev.key.return) {
         this.props.onClose();
         return true;
       }

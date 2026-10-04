@@ -1,5 +1,11 @@
 import { SgrState } from './ansi.js';
-import { expandTabs, graphemeWidth, segmentGraphemes, visibleWidth, visibleColumnAtOffset } from './width.js';
+import {
+  expandTabs,
+  graphemeWidth,
+  segmentGraphemes,
+  visibleWidth,
+  visibleColumnAtOffset,
+} from './width.js';
 import { RESET_SGR } from '../terminal/sequences.js';
 
 export interface WrapResultWithCursor {

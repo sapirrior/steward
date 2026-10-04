@@ -10,7 +10,9 @@ export function verifyOrSaveGolden(name: string, actual: string) {
     if (updateGoldens) {
       writeFileSync(goldenPath, actual, 'utf8');
     } else {
-      throw new Error(`Golden file does not exist: ${goldenPath}. Run with UPDATE_GOLDENS=1 to create/update.`);
+      throw new Error(
+        `Golden file does not exist: ${goldenPath}. Run with UPDATE_GOLDENS=1 to create/update.`,
+      );
     }
   }
 

@@ -1,5 +1,5 @@
 /** @jsxImportSource stitchable */
-import { Component, Box, Text, renderElement, wrapVisualLine, parseInputChunk } from 'stitchable';
+import { Component, Box, Text, renderElement, wrapVisualLine, type InputEvent } from 'stitchable';
 import { figures } from '../../../theme/index.js';
 import { c, bold, italic } from '../../../theme/style.js';
 
@@ -38,71 +38,48 @@ export default class BashPermissionDock extends Component<
   override componentDidMount(): void {
     if (!this.engine) return;
 
-    this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
-      const events = parseInputChunk(rawStr);
-
-      for (const ev of events) {
-        if (this.state.mode === 'NORMAL') {
-          // 'f' enters review mode
-          if (ev.input === 'f' || ev.input === 'F') {
-            this.setState({ mode: 'REVIEW', scrollOffset: 0 });
-            return true;
-          }
-
-          // Up / Down toggles selection
-          if (ev.key.upArrow || ev.key.downArrow) {
-            this.setState({
-              selectedIndex: this.state.selectedIndex === 0 ? 1 : 0,
-            });
-            return true;
-          }
-
-          // Numeric direct selection
-          if (ev.input === '1') {
-            this.setState({ selectedIndex: 0 });
-            return true;
-          }
-          if (ev.input === '2') {
-            this.setState({ selectedIndex: 1 });
-            return true;
-          }
-
-          // Submit
-          if (ev.key.return) {
-            this.props.onDecision(this.state.selectedIndex === 0);
-            return true;
-          }
-
-          // Esc cancels (denies)
-          if (ev.key.escape) {
-            this.props.onDecision(false);
-            return true;
-          }
-        } else if (this.state.mode === 'REVIEW') {
-          // 'f' or Esc returns to normal permission mode
-          if (ev.input === 'f' || ev.input === 'F' || ev.key.escape) {
-            this.setState({ mode: 'NORMAL', scrollOffset: 0 });
-            return true;
-          }
-
-          // Up / Down scrolls review output
-          if (ev.key.upArrow) {
-            this.setState({
-              scrollOffset: Math.max(0, this.state.scrollOffset - 1),
-            });
-            return true;
-          }
-          if (ev.key.downArrow) {
-            const maxScroll = this.getMaxScroll();
-            this.setState({
-              scrollOffset: Math.min(maxScroll, this.state.scrollOffset + 1),
-            });
-            return true;
-          }
+    this.removeInputListener = this.engine.addInputListener((ev: InputEvent) => {
+      if (this.state.mode === 'NORMAL') {
+        if (ev.input === 'f' || ev.input === 'F') {
+          this.setState({ mode: 'REVIEW', scrollOffset: 0 });
+          return true;
+        }
+        if (ev.key.upArrow || ev.key.downArrow) {
+          this.setState({ selectedIndex: this.state.selectedIndex === 0 ? 1 : 0 });
+          return true;
+        }
+        if (ev.input === '1') {
+          this.setState({ selectedIndex: 0 });
+          return true;
+        }
+        if (ev.input === '2') {
+          this.setState({ selectedIndex: 1 });
+          return true;
+        }
+        if (ev.key.return) {
+          this.props.onDecision(this.state.selectedIndex === 0);
+          return true;
+        }
+        if (ev.key.escape) {
+          this.props.onDecision(false);
+          return true;
+        }
+      } else if (this.state.mode === 'REVIEW') {
+        if (ev.input === 'f' || ev.input === 'F' || ev.key.escape) {
+          this.setState({ mode: 'NORMAL', scrollOffset: 0 });
+          return true;
+        }
+        if (ev.key.upArrow) {
+          this.setState({ scrollOffset: Math.max(0, this.state.scrollOffset - 1) });
+          return true;
+        }
+        if (ev.key.downArrow) {
+          this.setState({
+            scrollOffset: Math.min(this.getMaxScroll(), this.state.scrollOffset + 1),
+          });
+          return true;
         }
       }
-
       return false;
     });
   }

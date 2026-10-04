@@ -109,4 +109,3 @@ export function visibleColumnAtOffset(text: string, charOffset: number): number 
 
   return col;
 }
-

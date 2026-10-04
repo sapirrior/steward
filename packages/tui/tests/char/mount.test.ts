@@ -41,16 +41,13 @@ describe('Phase 5: Runtime mount and createApp Integration', () => {
     const io = memoryIO({ columns: 40, rows: 5 });
     const receivedKeys: Array<{ input: string; name: string }> = [];
 
-    const app = createApp(
-      () => Box({}, Text({}, 'App')),
-      {
-        io,
-        mouse: true,
-        onKey: (input, key) => {
-          receivedKeys.push({ input, name: key.name });
-        },
+    const app = createApp(() => Box({}, Text({}, 'App')), {
+      io,
+      mouse: true,
+      onKey: (input, key) => {
+        receivedKeys.push({ input, name: key.name });
       },
-    );
+    });
 
     // Feed SGR wheel (should scroll and NOT leak to onKey)
     io.feed('\x1b[<64;10;5M');
@@ -73,17 +70,14 @@ describe('Phase 5: Runtime mount and createApp Integration', () => {
     const io = memoryIO({ columns: 40, rows: 5 });
     const receivedPastes: Array<{ input: string; isPaste: boolean }> = [];
 
-    const app = createApp(
-      () => Box({}, Text({}, 'App')),
-      {
-        io,
-        onKey: (input, key) => {
-          if (key.paste) {
-            receivedPastes.push({ input, isPaste: key.paste });
-          }
-        },
+    const app = createApp(() => Box({}, Text({}, 'App')), {
+      io,
+      onKey: (input, key) => {
+        if (key.paste) {
+          receivedPastes.push({ input, isPaste: key.paste });
+        }
       },
-    );
+    });
 
     // Bracketed paste split across 2 chunks
     io.feed('\x1b[200~Hello\r\n');
@@ -100,15 +94,12 @@ describe('Phase 5: Runtime mount and createApp Integration', () => {
     const io = memoryIO({ columns: 40, rows: 5 });
     const received: string[] = [];
 
-    const app = createApp(
-      () => Box({}, Text({}, 'App')),
-      {
-        io,
-        onKey: (_input, key) => {
-          received.push(`${key.name}${key.ctrl ? '+ctrl' : ''}`);
-        },
+    const app = createApp(() => Box({}, Text({}, 'App')), {
+      io,
+      onKey: (_input, key) => {
+        received.push(`${key.name}${key.ctrl ? '+ctrl' : ''}`);
       },
-    );
+    });
 
     io.feed('\x04'); // Ctrl+D
     io.feed('\x15'); // Ctrl+U

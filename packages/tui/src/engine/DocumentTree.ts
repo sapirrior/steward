@@ -132,7 +132,9 @@ export class DocumentTree {
         let keepFromIdx = this.historyNodes.length;
         for (let i = this.historyNodes.length - 1; i >= 0; i--) {
           const node = this.historyNodes[i]!;
-          const nodeRows = node.getLines(this.lastHistoryWidth > 0 ? this.lastHistoryWidth : 80).length;
+          const nodeRows = node.getLines(
+            this.lastHistoryWidth > 0 ? this.lastHistoryWidth : 80,
+          ).length;
           totalRetained += Math.max(1, nodeRows);
           keepFromIdx = i;
           if (totalRetained >= this.historyLimit) {

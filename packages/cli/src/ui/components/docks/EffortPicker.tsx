@@ -1,5 +1,5 @@
 /** @jsxImportSource stitchable */
-import { Component, Box, Text, parseInputChunk } from 'stitchable';
+import { Component, Box, Text, type InputEvent } from 'stitchable';
 import type { ReasoningEffort } from '@steward/ai';
 import { figures } from '../../../theme/index.js';
 import { c, bold } from '../../../theme/style.js';
@@ -48,47 +48,31 @@ export default class EffortPicker extends Component<EffortPickerProps, EffortPic
   override componentDidMount(): void {
     if (!this.engine) return;
 
-    this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
-      const events = parseInputChunk(rawStr);
-
-      for (const ev of events) {
-        if (ev.key.leftArrow) {
-          this.setState({
-            selectedIndex: Math.max(0, this.state.selectedIndex - 1),
-          });
-          return true;
-        }
-
-        if (ev.key.rightArrow) {
-          this.setState({
-            selectedIndex: Math.min(EFFORT_OPTIONS.length - 1, this.state.selectedIndex + 1),
-          });
-          return true;
-        }
-
-        if (ev.key.return) {
-          const chosen = EFFORT_OPTIONS[this.state.selectedIndex];
-          if (chosen) {
-            this.props.onSelect(chosen.id, true);
-          }
-          return true;
-        }
-
-        if (ev.input === 's' || ev.input === 'S') {
-          const chosen = EFFORT_OPTIONS[this.state.selectedIndex];
-          if (chosen) {
-            this.props.onSelect(chosen.id, false);
-          }
-          return true;
-        }
-
-        if (ev.key.escape) {
-          this.props.onCancel();
-          return true;
-        }
+    this.removeInputListener = this.engine.addInputListener((ev: InputEvent) => {
+      if (ev.key.leftArrow) {
+        this.setState({ selectedIndex: Math.max(0, this.state.selectedIndex - 1) });
+        return true;
       }
-
+      if (ev.key.rightArrow) {
+        this.setState({
+          selectedIndex: Math.min(EFFORT_OPTIONS.length - 1, this.state.selectedIndex + 1),
+        });
+        return true;
+      }
+      if (ev.key.return) {
+        const chosen = EFFORT_OPTIONS[this.state.selectedIndex];
+        if (chosen) this.props.onSelect(chosen.id, true);
+        return true;
+      }
+      if (ev.input === 's' || ev.input === 'S') {
+        const chosen = EFFORT_OPTIONS[this.state.selectedIndex];
+        if (chosen) this.props.onSelect(chosen.id, false);
+        return true;
+      }
+      if (ev.key.escape) {
+        this.props.onCancel();
+        return true;
+      }
       return false;
     });
   }

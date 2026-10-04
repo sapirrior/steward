@@ -22,7 +22,7 @@ The `@steward/cli` package serves as the application composition root and termin
 | File / Component | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- |
 | `components/Header.tsx` | Component | Sticky top banner showing Steward logo, version, working directory, and active model. | Renders at the top of history. |
-| `components/PromptInput.tsx` | Component | Main interactive prompt input supporting multiline typing, cursor navigation, history, `@file` search, `/slash` palette, and drafting while busy. | Unicode-safe, ANSI-safe text buffer; allows drafting during generation and blocks concurrent submissions. |
+| `components/PromptInput.tsx` | Component | Main interactive prompt input supporting multiline typing, cursor navigation, history, `@file` search, `/slash` palette, and drafting while busy. | Unicode-safe, ANSI-safe text buffer; consumes native `InputEvent` dispatch from `stitchable`; allows drafting during generation and blocks concurrent submissions. |
 | `components/StreamingView.tsx` | Component | Live streaming response view rendering incremental text, thinking indicator, and active tool execution status. | Real-time ANSI-rendered markdown output with smooth thinking transitions. |
 | `components/StatusBar.tsx` | Component | Sticky bottom bar displaying active model, reasoning effort, token usage counters, and chat mode badge. | Subline status bar. |
 | `components/TrustGate.tsx` | Component | Security gate displayed when launching in an untrusted workspace folder. | Requires explicit folder authorization before accessing sensitive paths. |

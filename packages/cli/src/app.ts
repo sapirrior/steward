@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { TerminalEngine, parseInputChunk } from 'stitchable';
+import { TerminalEngine, type InputEvent } from 'stitchable';
 import {
   AgentSession,
   defaultToolCatalog,
@@ -207,77 +207,65 @@ export class TUIApp {
     this.engine.mount(this.statusBar);
 
     // Handle global keybindings
-    this.engine.addInputListener((chunk) => {
-      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
-      const events = parseInputChunk(rawStr);
+    this.engine.addInputListener((ev: InputEvent) => {
+      const { key } = ev;
 
-      for (const ev of events) {
-        const { key, input } = ev;
-
-        // Ctrl+C double-tap handling
-        if (key.ctrl && input === 'c') {
-          if (this.ctrlCPending) {
-            if (this.ctrlCTimer) clearTimeout(this.ctrlCTimer);
-            this.ctrlCPending = false;
-            this.exit();
-            return true;
-          }
-
-          this.ctrlCPending = true;
-          this.statusBar.update({ exitPending: true });
-          this.ctrlCTimer = setTimeout(() => {
-            this.ctrlCPending = false;
-            this.statusBar.update({ exitPending: false });
-          }, 1500);
+      // Ctrl+C double-tap handling
+      // Note: key.name holds the letter; input is '' for control chords.
+      if (key.ctrl && key.name === 'c') {
+        if (this.ctrlCPending) {
+          if (this.ctrlCTimer) clearTimeout(this.ctrlCTimer);
+          this.ctrlCPending = false;
+          this.exit();
           return true;
         }
 
-        // Ctrl+B: cycle through modes when idle
-        if (key.ctrl && input === 'b') {
-          if (this.isScrollViewMode) return true;
-          if (this.modals.getActiveModal()) return true;
-          if (this.session.isBusy || this.isBusy) {
-            this.statusBar.showWarning('Cannot change mode while Steward is generating');
-            return true;
-          }
-          const newMode = cycleMode();
-          saveModeSelection(newMode);
-          this.statusBar.setMode(newMode);
+        this.ctrlCPending = true;
+        this.statusBar.update({ exitPending: true });
+        this.ctrlCTimer = setTimeout(() => {
+          this.ctrlCPending = false;
+          this.statusBar.update({ exitPending: false });
+        }, 1500);
+        return true;
+      }
+
+      // Ctrl+B: cycle through modes when idle
+      if (key.ctrl && key.name === 'b') {
+        if (this.isScrollViewMode) return true;
+        if (this.modals.getActiveModal()) return true;
+        if (this.session.isBusy || this.isBusy) {
+          this.statusBar.showWarning('Cannot change mode while Steward is generating');
           return true;
         }
+        const newMode = cycleMode();
+        saveModeSelection(newMode);
+        this.statusBar.setMode(newMode);
+        return true;
+      }
 
-        // Ctrl+O: toggle scroll view mode when idle
-        if (key.ctrl && input === 'o') {
-          if (this.modals.getActiveModal()) return true;
-          if (this.session.isBusy || this.isBusy) return true;
+      // Ctrl+O: toggle scroll view mode when idle
+      if (key.ctrl && key.name === 'o') {
+        if (this.modals.getActiveModal()) return true;
+        if (this.session.isBusy || this.isBusy) return true;
+        this.toggleScrollViewMode();
+        return true;
+      }
+
+      // In scroll view mode: Esc/Enter exits; arrow keys scroll 1 line.
+      // PageUp/PageDown are consumed by the engine's scrollKeys handler
+      // (rows−1 math) before reaching listeners, so we don't duplicate them.
+      if (this.isScrollViewMode) {
+        if (key.escape || key.return) {
           this.toggleScrollViewMode();
           return true;
         }
-
-        // In scroll view mode:
-        if (this.isScrollViewMode) {
-          if (key.escape || key.return) {
-            this.toggleScrollViewMode();
-            return true;
-          }
-          if (key.upArrow) {
-            this.engine.scrollUp(1);
-            return true;
-          }
-          if (key.downArrow) {
-            this.engine.scrollDown(1);
-            return true;
-          }
-          if (key.pageUp) {
-            const halfPage = Math.max(1, Math.floor(((process.stdout.rows || 24) - 1) / 2));
-            this.engine.scrollUp(halfPage);
-            return true;
-          }
-          if (key.pageDown) {
-            const halfPage = Math.max(1, Math.floor(((process.stdout.rows || 24) - 1) / 2));
-            this.engine.scrollDown(halfPage);
-            return true;
-          }
+        if (key.upArrow) {
+          this.engine.scrollUp(1);
+          return true;
+        }
+        if (key.downArrow) {
+          this.engine.scrollDown(1);
+          return true;
         }
       }
 

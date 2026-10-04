@@ -1,4 +1,4 @@
-import { Component, parseInputChunk } from 'stitchable';
+import { Component, type InputEvent } from 'stitchable';
 import { c } from '../../theme/style.js';
 import { renderModalBox } from './modal-box.js';
 
@@ -41,63 +41,50 @@ export class SelectList<T> extends Component<SelectListOptions<T>, SelectListSta
   override componentDidMount(): void {
     if (!this.engine) return;
 
-    this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
-      const events = parseInputChunk(rawStr);
+    this.removeInputListener = this.engine.addInputListener((ev: InputEvent) => {
+      if (ev.key.escape) {
+        this.props.onCancel();
+        return true;
+      }
 
-      for (const ev of events) {
-        if (ev.key.escape) {
-          this.props.onCancel();
-          return true;
-        }
+      const filtered = this.getFilteredItems();
 
-        const filtered = this.getFilteredItems();
-
-        if (ev.key.upArrow) {
-          if (filtered.length > 0) {
-            this.setState({
-              selectedIndex:
-                this.state.selectedIndex > 0 ? this.state.selectedIndex - 1 : filtered.length - 1,
-            });
-          }
-          return true;
-        }
-
-        if (ev.key.downArrow) {
-          if (filtered.length > 0) {
-            this.setState({
-              selectedIndex:
-                this.state.selectedIndex < filtered.length - 1 ? this.state.selectedIndex + 1 : 0,
-            });
-          }
-          return true;
-        }
-
-        if (ev.key.return) {
-          const chosen = filtered[this.state.selectedIndex];
-          if (chosen) {
-            this.props.onSelect(chosen);
-          }
-          return true;
-        }
-
-        if (ev.key.backspace) {
-          if (this.state.query.length > 0) {
-            this.setState({
-              query: this.state.query.slice(0, -1),
-              selectedIndex: 0,
-            });
-          }
-          return true;
-        }
-
-        if (ev.input && ev.input.length === 1 && ev.input >= ' ') {
+      if (ev.key.upArrow) {
+        if (filtered.length > 0) {
           this.setState({
-            query: this.state.query + ev.input,
-            selectedIndex: 0,
+            selectedIndex:
+              this.state.selectedIndex > 0 ? this.state.selectedIndex - 1 : filtered.length - 1,
           });
-          return true;
         }
+        return true;
+      }
+
+      if (ev.key.downArrow) {
+        if (filtered.length > 0) {
+          this.setState({
+            selectedIndex:
+              this.state.selectedIndex < filtered.length - 1 ? this.state.selectedIndex + 1 : 0,
+          });
+        }
+        return true;
+      }
+
+      if (ev.key.return) {
+        const chosen = filtered[this.state.selectedIndex];
+        if (chosen) this.props.onSelect(chosen);
+        return true;
+      }
+
+      if (ev.key.backspace) {
+        if (this.state.query.length > 0) {
+          this.setState({ query: this.state.query.slice(0, -1), selectedIndex: 0 });
+        }
+        return true;
+      }
+
+      if (ev.input && ev.input.length === 1 && ev.input >= ' ') {
+        this.setState({ query: this.state.query + ev.input, selectedIndex: 0 });
+        return true;
       }
 
       return false;

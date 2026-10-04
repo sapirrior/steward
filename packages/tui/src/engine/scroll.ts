@@ -103,7 +103,11 @@ export class ScrollModel {
       offset = 0;
     } else {
       // Anchored mode
-      if (this.lastSnapshot.hasFrame && this.lastSnapshot.width > 0 && f.width !== this.lastSnapshot.width) {
+      if (
+        this.lastSnapshot.hasFrame &&
+        this.lastSnapshot.width > 0 &&
+        f.width !== this.lastSnapshot.width
+      ) {
         // Width changed: anchoring by ID is invalid after reflow -> keep previous offset clamped
         offset = Math.max(0, Math.min(this.lastSnapshot.offset, M));
         if (offset === 0) {

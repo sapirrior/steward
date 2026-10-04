@@ -1,4 +1,4 @@
-import { Component, parseInputChunk } from 'stitchable';
+import { Component, parseInputChunk, type InputEvent } from 'stitchable';
 import { figures } from '../../theme/index.js';
 import { c, bold } from '../../theme/style.js';
 import { truncateToWidth } from '../utils/format.js';
@@ -60,337 +60,298 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
   private attachInput(): void {
     if (this.removeInputListener) return;
 
-    const handleChunk = (chunk: string | Buffer): boolean | void => {
-      const rawStr = Buffer.isBuffer(chunk)
-        ? chunk.toString('utf-8')
-        : typeof chunk === 'string'
-          ? chunk
-          : String(chunk);
+    // Handler for InputEvent dispatched directly by the engine's InputParser.
+    // All escape-sequence decoding, mouse filtering, and UTF-8 reassembly has
+    // already happened before this callback fires.
+    const handleEvent = (ev: InputEvent): boolean | void => {
+      const k = ev.key;
 
-      // Strip SGR mouse sequences (\x1b[<...M/m) and X10 mouse sequences (\x1b[M...)
-      const noMouseStr = rawStr
-        .replace(/\x1b\[<[0-9;]+[Mm]/g, '')
-        .replace(/\x1b\[M[\x20-\xff]{3}/g, '');
-      if (!noMouseStr) return false;
-
-      const normalized = noMouseStr.replace(/\x1bO([A-D])/g, '\x1b[$1');
-      const events = parseInputChunk(normalized);
-
-      for (const ev of events) {
-        const k = ev.key;
-
-        // 1. Generation in progress: Escape aborts if no autocomplete/palette is open
-        if (this.state.disabled && k.escape) {
-          if (this.autocomplete.onEscape()) {
-            this.setState({ fileMatches: [] });
-            return true;
-          }
-          if (this.commandPalette.dismiss(this.state.value)) {
-            this.markDirty();
-            return true;
-          }
-          this.props.onAbort?.();
+      // 1. Generation in progress: Escape aborts if no autocomplete/palette is open
+      if (this.state.disabled && k.escape) {
+        if (this.autocomplete.onEscape()) {
+          this.setState({ fileMatches: [] });
           return true;
         }
-
-        // 2. Escape: dismiss completions or double-tap to clear
-        if (k.escape) {
-          if (this.autocomplete.onEscape()) {
-            this.setState({ fileMatches: [] });
-            return true;
-          }
-          if (this.commandPalette.dismiss(this.state.value)) {
-            this.markDirty();
-            return true;
-          }
-          if (this.state.value.length > 0) {
-            if (this.state.escPending) {
-              if (this.escTimer) clearTimeout(this.escTimer);
-              this.escTimer = null;
-              this.historyController.resetIndex();
-              this.setState({ value: '', cursorPos: 0, escPending: false, historyIndex: -1 });
-            } else {
-              this.setState({ escPending: true });
-              if (this.escTimer) clearTimeout(this.escTimer);
-              this.escTimer = setTimeout(() => {
-                this.setState({ escPending: false });
-              }, 600);
-            }
-            return true;
-          }
-          return false;
-        }
-
-        // 3. Question mark when empty opens Help
-        if (ev.input === '?' && this.state.value.length === 0) {
-          this.props.onToggleHelp?.();
+        if (this.commandPalette.dismiss(this.state.value)) {
+          this.markDirty();
           return true;
         }
+        this.props.onAbort?.();
+        return true;
+      }
 
-        // 4. Ctrl+W delete word
-        if (k.ctrl && k.name === 'w') {
+      // 2. Escape: dismiss completions or double-tap to clear
+      if (k.escape) {
+        if (this.autocomplete.onEscape()) {
+          this.setState({ fileMatches: [] });
+          return true;
+        }
+        if (this.commandPalette.dismiss(this.state.value)) {
+          this.markDirty();
+          return true;
+        }
+        if (this.state.value.length > 0) {
+          if (this.state.escPending) {
+            if (this.escTimer) clearTimeout(this.escTimer);
+            this.escTimer = null;
+            this.historyController.resetIndex();
+            this.setState({ value: '', cursorPos: 0, escPending: false, historyIndex: -1 });
+          } else {
+            this.setState({ escPending: true });
+            if (this.escTimer) clearTimeout(this.escTimer);
+            this.escTimer = setTimeout(() => {
+              this.setState({ escPending: false });
+            }, 600);
+          }
+          return true;
+        }
+        return false;
+      }
+
+      // 3. Question mark when empty opens Help
+      if (ev.input === '?' && this.state.value.length === 0) {
+        this.props.onToggleHelp?.();
+        return true;
+      }
+
+      // 4. Ctrl+W delete word
+      if (k.ctrl && k.name === 'w') {
+        const before = this.state.value.slice(0, this.state.cursorPos);
+        const match = before.match(/(\s*\S+)\s*$/);
+        const deleteCount = match ? match[0].length : 1;
+        const newPos = Math.max(0, this.state.cursorPos - deleteCount);
+        this.updateValueAndCheckCompletions(
+          this.state.value.slice(0, newPos) + this.state.value.slice(this.state.cursorPos),
+          newPos,
+        );
+        return true;
+      }
+
+      // 5. Ctrl+U clear line
+      if (k.ctrl && k.name === 'u') {
+        this.updateValueAndCheckCompletions('', 0);
+        return true;
+      }
+
+      // 6. Submit or Shift+Enter newline
+      if (k.return) {
+        if (k.shift) {
           const before = this.state.value.slice(0, this.state.cursorPos);
-          const match = before.match(/(\s*\S+)\s*$/);
-          const deleteCount = match ? match[0].length : 1;
-          const newPos = Math.max(0, this.state.cursorPos - deleteCount);
-          this.updateValueAndCheckCompletions(
-            this.state.value.slice(0, newPos) + this.state.value.slice(this.state.cursorPos),
-            newPos,
-          );
+          const after = this.state.value.slice(this.state.cursorPos);
+          this.updateValueAndCheckCompletions(`${before}\n${after}`, this.state.cursorPos + 1);
           return true;
         }
 
-        // 5. Ctrl+U clear line
-        if (k.ctrl && k.name === 'u') {
-          this.updateValueAndCheckCompletions('', 0);
+        const autoResult = this.autocomplete.onSubmit(this.state.value, this.state.cursorPos);
+        if (autoResult.handled && autoResult.nextValue !== undefined) {
+          this.setState({
+            value: autoResult.nextValue,
+            cursorPos: autoResult.nextPos ?? autoResult.nextValue.length,
+            fileMatches: [],
+          });
           return true;
         }
 
-        // 6. Submit or Shift+Enter newline
-        if (k.return) {
-          if (k.shift) {
-            const before = this.state.value.slice(0, this.state.cursorPos);
-            const after = this.state.value.slice(this.state.cursorPos);
-            this.updateValueAndCheckCompletions(`${before}\n${after}`, this.state.cursorPos + 1);
-            return true;
-          }
-
-          const autoResult = this.autocomplete.onSubmit(this.state.value, this.state.cursorPos);
-          if (autoResult.handled && autoResult.nextValue !== undefined) {
-            this.setState({
-              value: autoResult.nextValue,
-              cursorPos: autoResult.nextPos ?? autoResult.nextValue.length,
-              fileMatches: [],
-            });
-            return true;
-          }
-
-          const cmdResult = this.commandPalette.onSubmit(this.state.value);
-          if (cmdResult.handled && cmdResult.chosenCommand) {
-            if (this.state.disabled) {
-              return true;
-            }
-            this.historyController.add(cmdResult.chosenCommand);
-            this.setState({ value: '', cursorPos: 0, fileMatches: [] });
-            this.autocomplete.clear();
-            this.props.onSubmit(cmdResult.chosenCommand);
-            return true;
-          }
-
-          if (this.state.cursorPos > 0 && this.state.value[this.state.cursorPos - 1] === '\\') {
-            const before = this.state.value.slice(0, this.state.cursorPos - 1);
-            const after = this.state.value.slice(this.state.cursorPos);
-            this.updateValueAndCheckCompletions(`${before}\n${after}`, this.state.cursorPos);
-            return true;
-          }
-
+        const cmdResult = this.commandPalette.onSubmit(this.state.value);
+        if (cmdResult.handled && cmdResult.chosenCommand) {
           if (this.state.disabled) {
             return true;
           }
-
-          const trimmed = this.state.value.trim();
-          if (trimmed) {
-            if (trimmed.startsWith('!')) {
-              this.props.onBashModeChange?.(false);
-            }
-            this.historyController.add(trimmed);
-            this.setState({ value: '', cursorPos: 0, fileMatches: [] });
-            this.autocomplete.clear();
-            this.props.onSubmit(trimmed);
-          }
+          this.historyController.add(cmdResult.chosenCommand);
+          this.setState({ value: '', cursorPos: 0, fileMatches: [] });
+          this.autocomplete.clear();
+          this.props.onSubmit(cmdResult.chosenCommand);
           return true;
         }
 
-        // 7. Tab Completion
-        if (k.tab) {
-          const autoResult = this.autocomplete.onTab(this.state.value, this.state.cursorPos);
-          if (autoResult.handled && autoResult.nextValue !== undefined) {
-            this.setState({
-              value: autoResult.nextValue,
-              cursorPos: autoResult.nextPos ?? autoResult.nextValue.length,
-              fileMatches: [],
-            });
-            return true;
-          }
-
-          const cmdResult = this.commandPalette.onTab(this.state.value);
-          if (cmdResult.handled && cmdResult.completedText) {
-            this.setState({
-              value: cmdResult.completedText,
-              cursorPos: cmdResult.completedText.length,
-            });
-            return true;
-          }
+        if (this.state.cursorPos > 0 && this.state.value[this.state.cursorPos - 1] === '\\') {
+          const before = this.state.value.slice(0, this.state.cursorPos - 1);
+          const after = this.state.value.slice(this.state.cursorPos);
+          this.updateValueAndCheckCompletions(`${before}\n${after}`, this.state.cursorPos);
           return true;
         }
 
-        // 8. Arrow Up / Page Up
-        if (k.pageUp) {
-          this.engine?.scrollUp(5);
-          return true;
-        }
-        if (k.pageDown) {
-          this.engine?.scrollDown(5);
+        if (this.state.disabled) {
           return true;
         }
 
-        if (k.upArrow) {
-          if (k.shift) {
-            this.engine?.scrollUp(1);
-            return true;
+        const trimmed = this.state.value.trim();
+        if (trimmed) {
+          if (trimmed.startsWith('!')) {
+            this.props.onBashModeChange?.(false);
           }
-          if (this.autocomplete.onUp()) {
-            this.setState({ fileSelectIdx: this.autocomplete.getSelectedIndex() });
-            return true;
-          }
-          if (this.commandPalette.onUp(this.state.value)) {
-            this.setState({ paletteIdx: this.commandPalette.getSelectedIndex() });
-            return true;
-          }
+          this.historyController.add(trimmed);
+          this.setState({ value: '', cursorPos: 0, fileMatches: [] });
+          this.autocomplete.clear();
+          this.props.onSubmit(trimmed);
+        }
+        return true;
+      }
 
+      // 7. Tab Completion
+      if (k.tab) {
+        const autoResult = this.autocomplete.onTab(this.state.value, this.state.cursorPos);
+        if (autoResult.handled && autoResult.nextValue !== undefined) {
+          this.setState({
+            value: autoResult.nextValue,
+            cursorPos: autoResult.nextPos ?? autoResult.nextValue.length,
+            fileMatches: [],
+          });
+          return true;
+        }
+
+        const cmdResult = this.commandPalette.onTab(this.state.value);
+        if (cmdResult.handled && cmdResult.completedText) {
+          this.setState({
+            value: cmdResult.completedText,
+            cursorPos: cmdResult.completedText.length,
+          });
+          return true;
+        }
+        return true;
+      }
+
+      // 8. Arrow Up (with history navigation and Shift+Up scroll)
+      // Note: PageUp/PageDown are consumed by the engine's scrollKeys handler
+      // before reaching listeners, so we do not duplicate them here.
+      if (k.upArrow) {
+        if (k.shift) {
+          this.engine?.scrollUp(1);
+          return true;
+        }
+        if (this.autocomplete.onUp()) {
+          this.setState({ fileSelectIdx: this.autocomplete.getSelectedIndex() });
+          return true;
+        }
+        if (this.commandPalette.onUp(this.state.value)) {
+          this.setState({ paletteIdx: this.commandPalette.getSelectedIndex() });
+          return true;
+        }
+
+        const beforeCursor = this.state.value.slice(0, this.state.cursorPos);
+        const lastNewline = beforeCursor.lastIndexOf('\n');
+        if (lastNewline !== -1) {
+          const colOnCurLine = this.state.cursorPos - (lastNewline + 1);
+          const prevNewline = beforeCursor.slice(0, lastNewline).lastIndexOf('\n');
+          const prevLineStart = prevNewline === -1 ? 0 : prevNewline + 1;
+          const prevLineLen = lastNewline - prevLineStart;
+          this.setState({ cursorPos: prevLineStart + Math.min(colOnCurLine, prevLineLen) });
+          return true;
+        }
+
+        const histResult = this.historyController.onUp(this.state.value);
+        if (histResult.handled && histResult.nextValue !== undefined) {
+          this.setState({
+            value: histResult.nextValue,
+            cursorPos: histResult.nextPos ?? histResult.nextValue.length,
+            historyIndex: this.historyController.getIndex(),
+          });
+          return true;
+        }
+
+        if (!this.state.value) {
+          this.engine?.scrollUp(1);
+        }
+        return true;
+      }
+
+      // 9. Arrow Down
+      if (k.downArrow) {
+        if (k.shift) {
+          this.engine?.scrollDown(1);
+          return true;
+        }
+        if (this.autocomplete.onDown()) {
+          this.setState({ fileSelectIdx: this.autocomplete.getSelectedIndex() });
+          return true;
+        }
+        if (this.commandPalette.onDown(this.state.value)) {
+          this.setState({ paletteIdx: this.commandPalette.getSelectedIndex() });
+          return true;
+        }
+
+        const nextNewline = this.state.value.indexOf('\n', this.state.cursorPos);
+        if (nextNewline !== -1) {
           const beforeCursor = this.state.value.slice(0, this.state.cursorPos);
           const lastNewline = beforeCursor.lastIndexOf('\n');
-          if (lastNewline !== -1) {
-            const colOnCurLine = this.state.cursorPos - (lastNewline + 1);
-            const prevNewline = beforeCursor.slice(0, lastNewline).lastIndexOf('\n');
-            const prevLineStart = prevNewline === -1 ? 0 : prevNewline + 1;
-            const prevLineLen = lastNewline - prevLineStart;
-            this.setState({ cursorPos: prevLineStart + Math.min(colOnCurLine, prevLineLen) });
-            return true;
-          }
-
-          const histResult = this.historyController.onUp(this.state.value);
-          if (histResult.handled && histResult.nextValue !== undefined) {
-            this.setState({
-              value: histResult.nextValue,
-              cursorPos: histResult.nextPos ?? histResult.nextValue.length,
-              historyIndex: this.historyController.getIndex(),
-            });
-            return true;
-          }
-
-          if (!this.state.value) {
-            this.engine?.scrollUp(1);
-          }
+          const colOnCurLine =
+            lastNewline === -1 ? this.state.cursorPos : this.state.cursorPos - (lastNewline + 1);
+          const nextLineStart = nextNewline + 1;
+          const nextNextNewline = this.state.value.indexOf('\n', nextLineStart);
+          const nextLineEnd = nextNextNewline === -1 ? this.state.value.length : nextNextNewline;
+          this.setState({
+            cursorPos: nextLineStart + Math.min(colOnCurLine, nextLineEnd - nextLineStart),
+          });
           return true;
         }
 
-        // 9. Arrow Down
-        if (k.downArrow) {
-          if (k.shift) {
-            this.engine?.scrollDown(1);
-            return true;
-          }
-          if (this.autocomplete.onDown()) {
-            this.setState({ fileSelectIdx: this.autocomplete.getSelectedIndex() });
-            return true;
-          }
-          if (this.commandPalette.onDown(this.state.value)) {
-            this.setState({ paletteIdx: this.commandPalette.getSelectedIndex() });
-            return true;
-          }
-
-          const nextNewline = this.state.value.indexOf('\n', this.state.cursorPos);
-          if (nextNewline !== -1) {
-            const beforeCursor = this.state.value.slice(0, this.state.cursorPos);
-            const lastNewline = beforeCursor.lastIndexOf('\n');
-            const colOnCurLine =
-              lastNewline === -1 ? this.state.cursorPos : this.state.cursorPos - (lastNewline + 1);
-            const nextLineStart = nextNewline + 1;
-            const nextNextNewline = this.state.value.indexOf('\n', nextLineStart);
-            const nextLineEnd = nextNextNewline === -1 ? this.state.value.length : nextNextNewline;
-            this.setState({
-              cursorPos: nextLineStart + Math.min(colOnCurLine, nextLineEnd - nextLineStart),
-            });
-            return true;
-          }
-
-          const histResult = this.historyController.onDown();
-          if (histResult.handled && histResult.nextValue !== undefined) {
-            this.setState({
-              value: histResult.nextValue,
-              cursorPos: histResult.nextPos ?? histResult.nextValue.length,
-              historyIndex: this.historyController.getIndex(),
-            });
-            return true;
-          }
-
-          if (!this.state.value) {
-            this.engine?.scrollDown(1);
-          }
+        const histResult = this.historyController.onDown();
+        if (histResult.handled && histResult.nextValue !== undefined) {
+          this.setState({
+            value: histResult.nextValue,
+            cursorPos: histResult.nextPos ?? histResult.nextValue.length,
+            historyIndex: this.historyController.getIndex(),
+          });
           return true;
         }
 
-        // 10. Backspace & Deletion
-        if (k.backspace) {
-          if (this.state.cursorPos > 0) {
-            const before = this.state.value.slice(0, this.state.cursorPos - 1);
-            const after = this.state.value.slice(this.state.cursorPos);
-            this.updateValueAndCheckCompletions(before + after, this.state.cursorPos - 1);
-          }
-          return true;
+        if (!this.state.value) {
+          this.engine?.scrollDown(1);
         }
-        if (k.delete) {
-          if (this.state.cursorPos < this.state.value.length) {
-            const before = this.state.value.slice(0, this.state.cursorPos);
-            const after = this.state.value.slice(this.state.cursorPos + 1);
-            this.updateValueAndCheckCompletions(before + after, this.state.cursorPos);
-          }
-          return true;
-        }
+        return true;
+      }
 
-        // 11. Navigation Left/Right/Home/End
-        if (k.leftArrow) {
-          this.setState({ cursorPos: Math.max(0, this.state.cursorPos - 1) });
-          return true;
+      // 10. Backspace & Deletion
+      if (k.backspace) {
+        if (this.state.cursorPos > 0) {
+          const before = this.state.value.slice(0, this.state.cursorPos - 1);
+          const after = this.state.value.slice(this.state.cursorPos);
+          this.updateValueAndCheckCompletions(before + after, this.state.cursorPos - 1);
         }
-        if (k.rightArrow) {
-          this.setState({ cursorPos: Math.min(this.state.value.length, this.state.cursorPos + 1) });
-          return true;
+        return true;
+      }
+      if (k.delete) {
+        if (this.state.cursorPos < this.state.value.length) {
+          const before = this.state.value.slice(0, this.state.cursorPos);
+          const after = this.state.value.slice(this.state.cursorPos + 1);
+          this.updateValueAndCheckCompletions(before + after, this.state.cursorPos);
         }
-        if (k.home || (k.ctrl && k.name === 'a')) {
-          this.setState({ cursorPos: 0 });
-          return true;
-        }
-        if (k.end || (k.ctrl && k.name === 'e')) {
-          this.setState({ cursorPos: this.state.value.length });
-          return true;
-        }
+        return true;
+      }
 
-        // 12. Text insertion / paste
-        if (
-          !k.upArrow &&
-          !k.downArrow &&
-          !k.leftArrow &&
-          !k.rightArrow &&
-          !k.return &&
-          !k.escape &&
-          !k.tab &&
-          !k.backspace &&
-          !k.delete &&
-          !k.pageUp &&
-          !k.pageDown &&
-          !k.home &&
-          !k.end &&
-          !k.ctrl &&
-          !k.meta
-        ) {
-          if (!ev.input) continue;
-          if (ev.input.includes('\x1b')) continue;
+      // 11. Navigation Left/Right/Home/End
+      if (k.leftArrow) {
+        this.setState({ cursorPos: Math.max(0, this.state.cursorPos - 1) });
+        return true;
+      }
+      if (k.rightArrow) {
+        this.setState({ cursorPos: Math.min(this.state.value.length, this.state.cursorPos + 1) });
+        return true;
+      }
+      if (k.home || (k.ctrl && k.name === 'a')) {
+        this.setState({ cursorPos: 0 });
+        return true;
+      }
+      if (k.end || (k.ctrl && k.name === 'e')) {
+        this.setState({ cursorPos: this.state.value.length });
+        return true;
+      }
 
-          let clean = ev.input.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-          if (!ev.isPaste) {
-            clean = clean.replace(/[\x00-\x1f\x7f-\x9f]/g, '');
-          }
-          if (clean.length > 0) {
-            const before = this.state.value.slice(0, this.state.cursorPos);
-            const after = this.state.value.slice(this.state.cursorPos);
-            this.updateValueAndCheckCompletions(
-              before + clean + after,
-              this.state.cursorPos + clean.length,
-            );
-            return true;
-          }
+      // 12. Text insertion / paste
+      // input is non-empty only for plain printable text (no ctrl/meta chords).
+      if (ev.input && !k.ctrl && !k.meta) {
+        let clean = ev.input.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        if (!ev.isPaste) {
+          clean = clean.replace(/[\x00-\x1f\x7f-\x9f]/g, '');
+        }
+        if (clean.length > 0) {
+          const before = this.state.value.slice(0, this.state.cursorPos);
+          const after = this.state.value.slice(this.state.cursorPos);
+          this.updateValueAndCheckCompletions(
+            before + clean + after,
+            this.state.cursorPos + clean.length,
+          );
+          return true;
         }
       }
 
@@ -398,9 +359,16 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     };
 
     if (this.engine) {
-      this.removeInputListener = this.engine.addInputListener(handleChunk);
+      this.removeInputListener = this.engine.addInputListener(handleEvent);
     } else if (typeof process !== 'undefined' && process.stdin && !process.stdin.isTTY) {
-      const stdinListener = (data: Buffer) => handleChunk(data);
+      // Non-TTY stdin fallback (headless / testing): raw Buffer arrives outside
+      // the engine so we still parse it manually here.
+      const stdinListener = (data: Buffer) => {
+        const events = parseInputChunk(data.toString('utf-8'));
+        for (const ev of events) {
+          if (handleEvent(ev)) break;
+        }
+      };
       process.stdin.on('data', stdinListener);
       this.removeInputListener = () => {
         process.stdin.off('data', stdinListener);

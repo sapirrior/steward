@@ -26,14 +26,7 @@ export type TerminalEvent =
       type: 'mouse';
       action: 'press' | 'release' | 'move' | 'wheel';
       button:
-        | 'left'
-        | 'middle'
-        | 'right'
-        | 'none'
-        | 'wheelUp'
-        | 'wheelDown'
-        | 'wheelLeft'
-        | 'wheelRight';
+        'left' | 'middle' | 'right' | 'none' | 'wheelUp' | 'wheelDown' | 'wheelLeft' | 'wheelRight';
       col: number;
       row: number;
       shift: boolean;
@@ -55,7 +48,7 @@ export const PASTE_IDLE_MS = 500;
 
 export function makeKey(
   name: string,
-  mods?: { ctrl?: boolean; meta?: boolean; shift?: boolean; paste?: boolean }
+  mods?: { ctrl?: boolean; meta?: boolean; shift?: boolean; paste?: boolean },
 ): Key {
   const ctrl = mods?.ctrl ?? false;
   const meta = mods?.meta ?? false;
@@ -242,7 +235,15 @@ export class InputParser {
               const isWheel = (b & 64) !== 0;
 
               let action: 'press' | 'release' | 'move' | 'wheel';
-              let button: 'left' | 'middle' | 'right' | 'none' | 'wheelUp' | 'wheelDown' | 'wheelLeft' | 'wheelRight';
+              let button:
+                | 'left'
+                | 'middle'
+                | 'right'
+                | 'none'
+                | 'wheelUp'
+                | 'wheelDown'
+                | 'wheelLeft'
+                | 'wheelRight';
 
               if (isWheel) {
                 action = 'wheel';
@@ -257,11 +258,25 @@ export class InputParser {
               } else if (finalChar === 'm') {
                 action = 'release';
                 const btnCode = b & 3;
-                button = btnCode === 0 ? 'left' : btnCode === 1 ? 'middle' : btnCode === 2 ? 'right' : 'none';
+                button =
+                  btnCode === 0
+                    ? 'left'
+                    : btnCode === 1
+                      ? 'middle'
+                      : btnCode === 2
+                        ? 'right'
+                        : 'none';
               } else {
                 action = 'press';
                 const btnCode = b & 3;
-                button = btnCode === 0 ? 'left' : btnCode === 1 ? 'middle' : btnCode === 2 ? 'right' : 'none';
+                button =
+                  btnCode === 0
+                    ? 'left'
+                    : btnCode === 1
+                      ? 'middle'
+                      : btnCode === 2
+                        ? 'right'
+                        : 'none';
               }
 
               events.push({
@@ -573,9 +588,7 @@ export class InputParser {
 /**
  * Parses a raw string chunk, Buffer, or structured TerminalEvent/InputEvent into discrete InputEvents.
  */
-export function parseInputChunk(
-  chunk: string | Buffer | InputEvent | TerminalEvent,
-): InputEvent[] {
+export function parseInputChunk(chunk: string | Buffer | InputEvent | TerminalEvent): InputEvent[] {
   if (typeof chunk === 'object' && chunk !== null && !Buffer.isBuffer(chunk)) {
     if ('type' in chunk) {
       if (chunk.type === 'key') {
@@ -593,11 +606,7 @@ export function parseInputChunk(
   }
 
   const str =
-    typeof chunk === 'string'
-      ? chunk
-      : Buffer.isBuffer(chunk)
-        ? chunk.toString('utf-8')
-        : '';
+    typeof chunk === 'string' ? chunk : Buffer.isBuffer(chunk) ? chunk.toString('utf-8') : '';
   if (!str) return [];
 
   const parser = new InputParser();
@@ -616,5 +625,3 @@ export function parseInputChunk(
 
   return out;
 }
-
-

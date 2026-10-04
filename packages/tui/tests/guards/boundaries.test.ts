@@ -36,7 +36,9 @@ describe('Architectural Boundary Guards', () => {
           const resolved = join(file, '..', specifier);
           const relToSrc = relative(srcDir, resolved);
           if (!relToSrc.startsWith('terminal') && !specifier.startsWith('node:')) {
-            throw new Error(`File ${relative(packageRoot, file)} imports outside terminal: ${specifier}`);
+            throw new Error(
+              `File ${relative(packageRoot, file)} imports outside terminal: ${specifier}`,
+            );
           }
         }
       }
@@ -59,12 +61,19 @@ describe('Architectural Boundary Guards', () => {
         if (specifier.startsWith('.')) {
           const resolved = join(file, '..', specifier);
           const relToSrc = relative(srcDir, resolved);
-          const allowed = relToSrc.startsWith('text') || relToSrc === 'terminal/sequences.js' || relToSrc === 'terminal/sequences.ts';
+          const allowed =
+            relToSrc.startsWith('text') ||
+            relToSrc === 'terminal/sequences.js' ||
+            relToSrc === 'terminal/sequences.ts';
           if (!allowed) {
-            throw new Error(`File ${relative(packageRoot, file)} imports forbidden module: ${specifier}`);
+            throw new Error(
+              `File ${relative(packageRoot, file)} imports forbidden module: ${specifier}`,
+            );
           }
         } else {
-          throw new Error(`File ${relative(packageRoot, file)} imports unauthorized external package: ${specifier}`);
+          throw new Error(
+            `File ${relative(packageRoot, file)} imports unauthorized external package: ${specifier}`,
+          );
         }
       }
     }
@@ -83,7 +92,9 @@ describe('Architectural Boundary Guards', () => {
           const resolved = join(file, '..', specifier);
           const relToSrc = relative(srcDir, resolved);
           if (relToSrc.startsWith('runtime') || relToSrc.startsWith('elements')) {
-            throw new Error(`File ${relative(packageRoot, file)} illegally imports runtime/elements: ${specifier}`);
+            throw new Error(
+              `File ${relative(packageRoot, file)} illegally imports runtime/elements: ${specifier}`,
+            );
           }
         }
       }

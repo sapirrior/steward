@@ -1,5 +1,5 @@
 /** @jsxImportSource stitchable */
-import { Component, Box, Text, parseInputChunk } from 'stitchable';
+import { Component, Box, Text, type InputEvent } from 'stitchable';
 import { figures } from '../../../theme/index.js';
 import { c, bold } from '../../../theme/style.js';
 import { renderModalBox } from '../../utils/modal-box.js';
@@ -77,74 +77,61 @@ export default class LoginPicker extends Component<LoginPickerProps, LoginPicker
     this.isMountedFlag = true;
     if (!this.engine) return;
 
-    this.removeInputListener = this.engine.addInputListener((chunk) => {
-      const rawStr = typeof chunk === 'string' ? chunk : String(chunk);
-      const events = parseInputChunk(rawStr);
+    this.removeInputListener = this.engine.addInputListener((ev: InputEvent) => {
+      const { key } = ev;
 
-      for (const ev of events) {
-        if (this.state.mode === 'SELECT') {
-          if (ev.key.escape) {
-            this.props.onClose();
-            return true;
-          }
+      if (this.state.mode === 'SELECT') {
+        if (key.escape) {
+          this.props.onClose();
+          return true;
+        }
 
-          const filtered = this.getFilteredItems();
+        const filtered = this.getFilteredItems();
 
-          if (ev.key.upArrow) {
-            if (filtered.length > 0) {
-              const next = (this.state.selectedIndex - 1 + filtered.length) % filtered.length;
-              this.setState({ selectedIndex: next });
-            }
-            return true;
+        if (key.upArrow) {
+          if (filtered.length > 0) {
+            const next = (this.state.selectedIndex - 1 + filtered.length) % filtered.length;
+            this.setState({ selectedIndex: next });
           }
-
-          if (ev.key.downArrow) {
-            if (filtered.length > 0) {
-              const next = (this.state.selectedIndex + 1) % filtered.length;
-              this.setState({ selectedIndex: next });
-            }
-            return true;
+          return true;
+        }
+        if (key.downArrow) {
+          if (filtered.length > 0) {
+            const next = (this.state.selectedIndex + 1) % filtered.length;
+            this.setState({ selectedIndex: next });
           }
-
-          if (ev.key.enter || ev.key.return) {
-            if (filtered.length > 0 && this.state.selectedIndex < filtered.length) {
-              const chosen = filtered[this.state.selectedIndex];
-              this.startAuth(chosen);
-            }
-            return true;
+          return true;
+        }
+        if (key.return) {
+          if (filtered.length > 0 && this.state.selectedIndex < filtered.length) {
+            this.startAuth(filtered[this.state.selectedIndex]);
           }
-
-          if (ev.key.backspace || ev.key.delete) {
-            if (this.state.query.length > 0) {
-              this.setState({
-                query: this.state.query.slice(0, -1),
-                selectedIndex: 0,
-              });
-            }
-            return true;
+          return true;
+        }
+        if (key.backspace || key.delete) {
+          if (this.state.query.length > 0) {
+            this.setState({ query: this.state.query.slice(0, -1), selectedIndex: 0 });
           }
-
-          if (ev.input && !ev.key.ctrl && !ev.key.meta && ev.input.length === 1) {
-            this.setState({
-              query: this.state.query + ev.input,
-              selectedIndex: 0,
-            });
-            return true;
-          }
-        } else if (this.state.mode === 'AUTH') {
-          if (ev.key.escape) {
-            this.cleanupTimers();
-            this.props.onClose();
-            return true;
-          }
-        } else if (this.state.mode === 'SUCCESS' || this.state.mode === 'ERROR') {
-          if (ev.key.enter || ev.key.return || ev.key.escape) {
-            this.cleanupTimers();
-            this.props.onClose();
-            return true;
-          }
+          return true;
+        }
+        if (ev.input && !key.ctrl && !key.meta && ev.input.length === 1) {
+          this.setState({ query: this.state.query + ev.input, selectedIndex: 0 });
+          return true;
+        }
+      } else if (this.state.mode === 'AUTH') {
+        if (key.escape) {
+          this.cleanupTimers();
+          this.props.onClose();
+          return true;
+        }
+      } else if (this.state.mode === 'SUCCESS' || this.state.mode === 'ERROR') {
+        if (key.return || key.escape) {
+          this.cleanupTimers();
+          this.props.onClose();
+          return true;
         }
       }
+
       return false;
     });
   }

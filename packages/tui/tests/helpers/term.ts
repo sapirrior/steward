@@ -24,7 +24,11 @@ export function makeEngine(opts: TestEngineOptions = {}): {
   return { engine, io };
 }
 
-export async function commitLines(engine: TerminalEngine, count: number, prefix: string = 'line'): Promise<void> {
+export async function commitLines(
+  engine: TerminalEngine,
+  count: number,
+  prefix: string = 'line',
+): Promise<void> {
   const lines: string[] = [];
   for (let i = 0; i < count; i++) {
     lines.push(`${prefix} ${i}`);

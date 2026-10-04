@@ -1,5 +1,13 @@
 /** @jsxImportSource stitchable */
-import { Component, Box, Text, renderElement, wrapVisualLine, parseInputChunk } from 'stitchable';
+import {
+  Component,
+  Box,
+  Text,
+  renderElement,
+  wrapVisualLine,
+  parseInputChunk,
+  type InputEvent,
+} from 'stitchable';
 import { figures } from '../../../theme/index.js';
 import { c, bg, bold, italic } from '../../../theme/style.js';
 import { type FilePermissionRequest, buildUnifiedDiff, type UnifiedDiff } from '@steward/agent';
@@ -67,83 +75,61 @@ export default class FilePermissionDock extends Component<
   private attachInput(): void {
     if (this.removeInputListener) return;
 
-    const handleChunk = (chunk: string | Buffer): boolean | void => {
-      const rawStr = Buffer.isBuffer(chunk)
-        ? chunk.toString('utf-8')
-        : typeof chunk === 'string'
-          ? chunk
-          : String(chunk);
-      const normalized = rawStr.replace(/\x1bO([A-D])/g, '\x1b[$1');
-      const events = parseInputChunk(normalized);
-
-      for (const ev of events) {
-        if (this.state.mode === 'NORMAL') {
-          // 'f' enters review mode
-          if (ev.input === 'f' || ev.input === 'F') {
-            this.setState({ mode: 'REVIEW', scrollOffset: 0 });
-            return true;
-          }
-
-          // Up / Down toggles selection
-          if (ev.key.upArrow || ev.key.downArrow) {
-            this.setState({
-              selectedIndex: this.state.selectedIndex === 0 ? 1 : 0,
-            });
-            return true;
-          }
-
-          // Numeric direct selection
-          if (ev.input === '1') {
-            this.setState({ selectedIndex: 0 });
-            return true;
-          }
-          if (ev.input === '2') {
-            this.setState({ selectedIndex: 1 });
-            return true;
-          }
-
-          // Submit
-          if (ev.key.return) {
-            this.props.onDecision(this.state.selectedIndex === 0);
-            return true;
-          }
-
-          // Esc cancels (denies)
-          if (ev.key.escape) {
-            this.props.onDecision(false);
-            return true;
-          }
-        } else if (this.state.mode === 'REVIEW') {
-          // 'f' or Esc returns to normal permission mode
-          if (ev.input === 'f' || ev.input === 'F' || ev.key.escape) {
-            this.setState({ mode: 'NORMAL', scrollOffset: 0 });
-            return true;
-          }
-
-          // Up / Down scrolls review output
-          if (ev.key.upArrow) {
-            this.setState({
-              scrollOffset: Math.max(0, this.state.scrollOffset - 1),
-            });
-            return true;
-          }
-          if (ev.key.downArrow) {
-            const maxScroll = this.getMaxScroll();
-            this.setState({
-              scrollOffset: Math.min(maxScroll, this.state.scrollOffset + 1),
-            });
-            return true;
-          }
+    const handleEvent = (ev: InputEvent): boolean | void => {
+      if (this.state.mode === 'NORMAL') {
+        if (ev.input === 'f' || ev.input === 'F') {
+          this.setState({ mode: 'REVIEW', scrollOffset: 0 });
+          return true;
+        }
+        if (ev.key.upArrow || ev.key.downArrow) {
+          this.setState({ selectedIndex: this.state.selectedIndex === 0 ? 1 : 0 });
+          return true;
+        }
+        if (ev.input === '1') {
+          this.setState({ selectedIndex: 0 });
+          return true;
+        }
+        if (ev.input === '2') {
+          this.setState({ selectedIndex: 1 });
+          return true;
+        }
+        if (ev.key.return) {
+          this.props.onDecision(this.state.selectedIndex === 0);
+          return true;
+        }
+        if (ev.key.escape) {
+          this.props.onDecision(false);
+          return true;
+        }
+      } else if (this.state.mode === 'REVIEW') {
+        if (ev.input === 'f' || ev.input === 'F' || ev.key.escape) {
+          this.setState({ mode: 'NORMAL', scrollOffset: 0 });
+          return true;
+        }
+        if (ev.key.upArrow) {
+          this.setState({ scrollOffset: Math.max(0, this.state.scrollOffset - 1) });
+          return true;
+        }
+        if (ev.key.downArrow) {
+          this.setState({
+            scrollOffset: Math.min(this.getMaxScroll(), this.state.scrollOffset + 1),
+          });
+          return true;
         }
       }
-
       return false;
     };
 
     if (this.engine) {
-      this.removeInputListener = this.engine.addInputListener(handleChunk);
+      this.removeInputListener = this.engine.addInputListener(handleEvent);
     } else if (typeof process !== 'undefined' && process.stdin && !process.stdin.isTTY) {
-      const stdinListener = (data: Buffer) => handleChunk(data);
+      // Non-TTY stdin fallback: raw Buffer arrives outside the engine pipeline.
+      const stdinListener = (data: Buffer) => {
+        const events = parseInputChunk(data.toString('utf-8'));
+        for (const ev of events) {
+          if (handleEvent(ev)) break;
+        }
+      };
       process.stdin.on('data', stdinListener);
       this.removeInputListener = () => {
         process.stdin.off('data', stdinListener);
