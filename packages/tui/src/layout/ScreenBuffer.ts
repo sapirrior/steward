@@ -43,7 +43,6 @@ export class ScreenBuffer {
   }
 
   clear(): void {
-    const totalCells = this.width * this.height;
     this.chars.fill(' ');
     this.styleIds.fill(0);
     this.widths.fill(1);

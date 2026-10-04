@@ -126,9 +126,25 @@ export class DocumentTree {
       const dropCount = this.cachedHistoryRows.length - this.historyLimit;
       this._prunedRowCount += dropCount;
       this.cachedHistoryRows = this.cachedHistoryRows.slice(dropCount);
-      // If historyNodes array grows excessively, keep it bounded
-      if (this.historyNodes.length > this.historyLimit * 2) {
-        this.historyNodes = this.historyNodes.slice(this.historyNodes.length - this.historyLimit);
+
+      if (this.historyNodes.length > this.historyLimit) {
+        let totalRetained = 0;
+        let keepFromIdx = this.historyNodes.length;
+        for (let i = this.historyNodes.length - 1; i >= 0; i--) {
+          const node = this.historyNodes[i]!;
+          const nodeRows = node.getLines(this.lastHistoryWidth > 0 ? this.lastHistoryWidth : 80).length;
+          totalRetained += Math.max(1, nodeRows);
+          keepFromIdx = i;
+          if (totalRetained >= this.historyLimit) {
+            break;
+          }
+        }
+
+        const dropped = this.historyNodes.slice(0, keepFromIdx);
+        for (const n of dropped) {
+          this.layoutCache.deleteNode(n.id);
+        }
+        this.historyNodes = this.historyNodes.slice(keepFromIdx);
       }
     }
   }

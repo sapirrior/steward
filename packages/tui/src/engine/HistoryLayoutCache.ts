@@ -13,12 +13,22 @@ export interface CachedEntryLayout {
  */
 export class HistoryLayoutCache {
   private cache = new Map<string, CachedEntryLayout>();
+  private currentWidth = -1;
+
+  public get size(): number {
+    return this.cache.size;
+  }
 
   public getOrCompute(
     entryId: string,
     width: number,
     compute: () => PhysicalRow[],
   ): CachedEntryLayout {
+    if (this.currentWidth !== -1 && this.currentWidth !== width) {
+      this.cache.clear();
+    }
+    this.currentWidth = width;
+
     const key = `${entryId}:${width}`;
     const cached = this.cache.get(key);
     if (cached) {
@@ -35,16 +45,24 @@ export class HistoryLayoutCache {
     return result;
   }
 
-  public invalidateWidth(width: number): void {
+  public deleteNode(entryId: string): void {
     for (const key of this.cache.keys()) {
-      if (key.endsWith(`:${width}`)) {
+      if (key.startsWith(`${entryId}:`)) {
         this.cache.delete(key);
       }
     }
   }
 
+  public invalidateWidth(width: number): void {
+    if (this.currentWidth === width) {
+      this.cache.clear();
+      this.currentWidth = -1;
+    }
+  }
+
   public clear(): void {
     this.cache.clear();
+    this.currentWidth = -1;
   }
 }
 

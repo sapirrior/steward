@@ -8,6 +8,12 @@ export interface HistoryEntry {
 export class HistoryStore {
   private entries: HistoryEntry[] = [];
   private idCounter = 0;
+  private totalLineCount = 0;
+  readonly historyLimit?: number;
+
+  constructor(options?: { historyLimit?: number }) {
+    this.historyLimit = options?.historyLimit;
+  }
 
   /**
    * Commit a new block of static content.
@@ -20,6 +26,17 @@ export class HistoryStore {
       createdAt: Date.now(),
     };
     this.entries.push(entry);
+    this.totalLineCount += lines.length;
+
+    if (this.historyLimit && this.historyLimit > 0) {
+      while (this.totalLineCount > this.historyLimit && this.entries.length > 1) {
+        const removed = this.entries.shift();
+        if (removed) {
+          this.totalLineCount -= removed.lines.length;
+        }
+      }
+    }
+
     return entry;
   }
 
@@ -47,6 +64,7 @@ export class HistoryStore {
 
   clearAll(): void {
     this.entries = [];
+    this.totalLineCount = 0;
   }
 }
 

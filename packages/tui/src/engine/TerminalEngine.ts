@@ -143,7 +143,7 @@ export class TerminalEngine {
     this.historyLimit = options.historyLimit;
 
     this.tree = new DocumentTree({ historyLimit: this.historyLimit });
-    this.history = new HistoryStore();
+    this.history = new HistoryStore({ historyLimit: this.historyLimit });
     this.components = [];
     this.adapters = new Map();
     this.renderer = new StateRenderer();
@@ -595,29 +595,31 @@ export class TerminalEngine {
     this.resolveFlushPromises();
   }
 
+  private renderScheduled = false;
+
   requestFrame(forceFull = false): void {
     this.pendingForceFull = this.pendingForceFull || forceFull;
     if (this.disposed) return;
+    this.dirty = true;
 
     if (this.maxFps && this.maxFps > 0) {
       const minInterval = 1000 / this.maxFps;
       const now = Date.now();
       const elapsed = now - this.lastRenderTime;
 
-      if (elapsed >= minInterval && !this.dirty && !this.renderTimer) {
-        // Leading edge: schedule via microtask
-        this.dirty = true;
+      if (elapsed >= minInterval && !this.renderScheduled && !this.renderTimer) {
+        this.renderScheduled = true;
         queueMicrotask(() => {
-          if (this.dirty && !this.disposed) {
+          this.renderScheduled = false;
+          if (this.dirty && !this.disposed && !this.renderTimer) {
             this.performRender();
           }
         });
-      } else if (!this.renderTimer) {
-        // Trailing edge: schedule timer
+      } else if (!this.renderTimer && !this.renderScheduled) {
         const wait = Math.max(1, minInterval - elapsed);
         this.renderTimer = setTimeout(() => {
           this.renderTimer = null;
-          if (!this.disposed) {
+          if (this.dirty && !this.disposed) {
             this.performRender();
           }
         }, wait);
@@ -625,29 +627,30 @@ export class TerminalEngine {
       return;
     }
 
-    if (this.dirty) return;
-    this.dirty = true;
-
-    queueMicrotask(() => {
-      if (this.dirty && !this.disposed) {
-        this.performRender();
-      }
-    });
+    if (!this.renderScheduled) {
+      this.renderScheduled = true;
+      queueMicrotask(() => {
+        this.renderScheduled = false;
+        if (this.dirty && !this.disposed) {
+          this.performRender();
+        }
+      });
+    }
   }
 
   flush(): Promise<void> {
     if (this.disposed) return Promise.resolve();
-    if (!this.dirty && !this.renderTimer && !this.pendingForceFull) {
+    if (!this.dirty && !this.renderTimer && !this.pendingForceFull && !this.renderScheduled) {
       return Promise.resolve();
     }
     return new Promise<void>((resolve) => {
       this.pendingFlushResolvers.push(resolve);
       if (this.renderTimer) {
-        // Expedite trailing timer
         clearTimeout(this.renderTimer);
         this.renderTimer = null;
-        this.performRender();
       }
+      this.renderScheduled = false;
+      this.performRender();
     });
   }
 }

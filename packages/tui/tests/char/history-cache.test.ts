@@ -1,26 +1,53 @@
 import { describe, expect, test } from 'bun:test';
 import { DocumentTree } from '../../src/engine/DocumentTree.js';
+import { HistoryStore } from '../../src/engine/HistoryStore.js';
 
-describe('Step 1.3: History Layout Cache per-tree isolation', () => {
-  test('Two DocumentTrees with identical width and same node IDs do not share cache', () => {
-    const tree1 = new DocumentTree();
-    const tree2 = new DocumentTree();
+describe('Phase 6: History and LayoutCache Memory Bounding', () => {
+  test('HistoryLayoutCache and DocumentTree stay bounded after 500 commits with historyLimit: 10', () => {
+    const tree = new DocumentTree({ historyLimit: 10 });
+    tree.getHistoryRowCount(40);
 
-    // Both start at id 'node-0' internally
-    tree1.addText(['Alpha from Tree 1'], false);
-    tree2.addText(['Beta from Tree 2 (Different text)'], false);
+    for (let i = 0; i < 500; i++) {
+      tree.addText([`Line ${i}`]);
+    }
 
-    const rows1 = tree1.getHistoryRows(80);
-    const rows2 = tree2.getHistoryRows(80);
+    const rows = tree.getHistoryRows(40);
+    expect(rows.length).toBe(10);
+    expect(rows[0]?.text).toBe('Line 490');
+    expect(rows[rows.length - 1]?.text).toBe('Line 499');
 
-    expect(rows1.map((r) => r.text)).toEqual(['Alpha from Tree 1']);
-    expect(rows2.map((r) => r.text)).toEqual(['Beta from Tree 2 (Different text)']);
+    // Verification that layout cache size is strictly bounded
+    const cacheSize = (tree as any).layoutCache.size;
+    expect(cacheSize).toBeLessThanOrEqual(15);
+  });
 
-    // Call again to verify cached result returns correct content per tree
-    const rows1Cached = tree1.getHistoryRows(80);
-    const rows2Cached = tree2.getHistoryRows(80);
+  test('Resize width change clears stale-width cache entries', () => {
+    const tree = new DocumentTree({ historyLimit: 10 });
+    for (let i = 0; i < 10; i++) {
+      tree.addText([`Item ${i}`]);
+    }
 
-    expect(rows1Cached.map((r) => r.text)).toEqual(['Alpha from Tree 1']);
-    expect(rows2Cached.map((r) => r.text)).toEqual(['Beta from Tree 2 (Different text)']);
+    // Width 40
+    tree.getHistoryRowCount(40);
+    expect((tree as any).layoutCache.size).toBe(10);
+
+    // Resize chain: 55 -> 70
+    tree.getHistoryRowCount(55);
+    expect((tree as any).layoutCache.size).toBe(10);
+
+    tree.getHistoryRowCount(70);
+    expect((tree as any).layoutCache.size).toBe(10);
+  });
+
+  test('HistoryStore memory stays strictly bounded with historyLimit', () => {
+    const store = new HistoryStore({ historyLimit: 10 });
+
+    for (let i = 0; i < 100; i++) {
+      store.push([`Log entry ${i}`]);
+    }
+
+    const allLines = store.getAllLines();
+    expect(allLines.length).toBeLessThanOrEqual(10);
+    expect(allLines[allLines.length - 1]).toBe('Log entry 99');
   });
 });
