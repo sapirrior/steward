@@ -1,7 +1,7 @@
 import { TerminalEngine } from '../engine/TerminalEngine.js';
 import Component from '../engine/Component.js';
 import { type TerminalIO } from '../terminal/io.js';
-import { InputParser, makeKey, type Key } from '../terminal/input.js';
+import { makeKey, type Key } from '../terminal/input.js';
 import { renderElement } from '../elements/index.js';
 
 export interface UIContext {
@@ -28,6 +28,8 @@ export interface MountOptions<S extends object> {
   onUnmount?(state: S): void;
   /** Exit process when Ctrl+C is pressed (default: true) */
   exitOnCtrlC?: boolean;
+  /** Internal: whether this mount owns and should dispose the engine on unmount */
+  ownsEngine?: boolean;
 }
 
 export interface UIHandle<S extends object> {
@@ -59,6 +61,7 @@ export function mount<S extends object = Record<string, any>>(
 ): UIHandle<S> {
   const state: S = options.state ?? ({} as S);
   const exitOnCtrlC = options.exitOnCtrlC ?? true;
+  const ownsEngine = options.ownsEngine ?? false;
   const cleanups: Array<() => void> = [];
 
   let isUnmounted = false;
@@ -125,13 +128,18 @@ export function mount<S extends object = Record<string, any>>(
   }
 
   class FunctionalRootComponent extends Component {
-    _getLines(width: number): string[] {
+    renderWithCursor(width?: number) {
+      const targetWidth = width ?? engine.io.columns;
       const rawTree = renderFn(state, ctx);
       const elementTree = resolveElementTree(rawTree);
-      return renderElement(elementTree, {
-        width,
+      const lines = renderElement(elementTree, {
+        width: targetWidth,
         colorLevel: engine.io.colorLevel,
       });
+      return {
+        lines,
+        cursor: null,
+      };
     }
   }
 
@@ -141,25 +149,20 @@ export function mount<S extends object = Record<string, any>>(
 
   engine.mount(rootComp);
 
-  const parser = new InputParser();
-
-  // Single persistent input listener
-  const removeInput = engine.addInputListener((chunk) => {
+  // Single persistent typed input listener
+  const removeInput = engine.addInputListener((ev) => {
     if (isUnmounted) return;
-    const events = parser.feed(typeof chunk === 'string' ? chunk : String(chunk));
-    for (const ev of events) {
-      if (ev.type === 'key') {
-        if (exitOnCtrlC && ev.key.ctrl && ev.key.name === 'c') {
-          ctx.exit();
-          return true;
-        }
-        if (options.onKey) {
-          options.onKey(ev.input, ev.key, state, ctx);
-        }
-      } else if (ev.type === 'paste') {
-        if (options.onKey) {
-          options.onKey(ev.text, makeKey('paste', { paste: true }), state, ctx);
-        }
+    if (ev.type === 'key') {
+      if (exitOnCtrlC && ev.key.ctrl && ev.key.name === 'c') {
+        ctx.exit();
+        return true;
+      }
+      if (options.onKey) {
+        options.onKey(ev.input, ev.key, state, ctx);
+      }
+    } else if (ev.type === 'paste') {
+      if (options.onKey) {
+        options.onKey(ev.text, makeKey('paste', { paste: true }), state, ctx);
       }
     }
   });
@@ -189,7 +192,10 @@ export function mount<S extends object = Record<string, any>>(
 
     removeInput();
     engine.unmount(rootComp);
-    engine.dispose();
+
+    if (ownsEngine) {
+      engine.dispose();
+    }
 
     if (err) {
       if (exitRejecter) exitRejecter(err);

@@ -310,13 +310,25 @@ const app = createApp<ChatState>(
         return;
       }
 
-      // Printable character typing (insert at cursor position)
-      if (input && input.length === 1 && input >= ' ') {
+      // Paste handling
+      if (key.paste && input) {
+        const sanitized = input.replace(/\n+/g, ' ');
+        state.inputText =
+          state.inputText.slice(0, state.cursorPos) +
+          sanitized +
+          state.inputText.slice(state.cursorPos);
+        state.cursorPos += sanitized.length;
+        ctx.invalidate();
+        return;
+      }
+
+      // Printable character typing (insert at cursor position for non-chords)
+      if (!key.ctrl && !key.meta && input && input.length > 0 && input >= ' ') {
         state.inputText =
           state.inputText.slice(0, state.cursorPos) +
           input +
           state.inputText.slice(state.cursorPos);
-        state.cursorPos++;
+        state.cursorPos += input.length;
         ctx.invalidate();
       }
     },

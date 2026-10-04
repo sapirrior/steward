@@ -1,4 +1,4 @@
-import { TerminalEngine, type TerminalEngineOptions } from '../engine/TerminalEngine.js';
+import { TerminalEngine } from '../engine/TerminalEngine.js';
 import { nodeIO, type TerminalIO } from '../terminal/io.js';
 import { mount, type UIContext, type UIHandle, type MountOptions } from './mount.js';
 
@@ -11,7 +11,6 @@ export interface CreateAppOptions<S extends object> extends MountOptions<S> {
   scrollKeys?: boolean;
   historyLimit?: number;
   onError?: (err: unknown) => void;
-  interactive?: boolean;
 }
 
 /**
@@ -35,23 +34,19 @@ export function createApp<S extends object = Record<string, any>>(
   options: CreateAppOptions<S> = {},
 ): UIHandle<S> {
   const io = options.io ?? nodeIO({ stdout: options.stdout, stdin: options.stdin });
-  const isInteractive =
-    options.interactive ?? (io.isTTY && !(typeof process !== 'undefined' && process.env.CI));
 
   const engine = new TerminalEngine({
     io,
     maxFps: options.maxFps ?? 30,
-    mouse: options.mouse ?? false,
+    mouse: options.mouse ?? true,
     scrollKeys: options.scrollKeys ?? true,
     historyLimit: options.historyLimit,
     onError: options.onError,
   });
 
-  if (isInteractive) {
-    engine.ensureAlternateScreen();
-  }
+  engine.ensureAlternateScreen();
 
-  return mount(engine, renderFn, options);
+  return mount(engine, renderFn, { ...options, ownsEngine: true });
 }
 
 export default createApp;
