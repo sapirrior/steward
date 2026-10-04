@@ -1,7 +1,7 @@
 import { TerminalEngine } from '../engine/TerminalEngine.js';
 import Component from '../engine/Component.js';
 import { type TerminalIO } from '../terminal/io.js';
-import { parseInputChunk, type Key } from '../terminal/input.js';
+import { InputParser, makeKey, type Key } from '../terminal/input.js';
 import { renderElement } from '../elements/index.js';
 
 export interface UIContext {
@@ -141,17 +141,25 @@ export function mount<S extends object = Record<string, any>>(
 
   engine.mount(rootComp);
 
+  const parser = new InputParser();
+
   // Single persistent input listener
   const removeInput = engine.addInputListener((chunk) => {
     if (isUnmounted) return;
-    const events = parseInputChunk(typeof chunk === 'string' ? chunk : String(chunk));
+    const events = parser.feed(typeof chunk === 'string' ? chunk : String(chunk));
     for (const ev of events) {
-      if (exitOnCtrlC && ev.key.ctrl && ev.key.name === 'c') {
-        ctx.exit();
-        return true;
-      }
-      if (options.onKey) {
-        options.onKey(ev.input, ev.key, state, ctx);
+      if (ev.type === 'key') {
+        if (exitOnCtrlC && ev.key.ctrl && ev.key.name === 'c') {
+          ctx.exit();
+          return true;
+        }
+        if (options.onKey) {
+          options.onKey(ev.input, ev.key, state, ctx);
+        }
+      } else if (ev.type === 'paste') {
+        if (options.onKey) {
+          options.onKey(ev.text, makeKey('paste', { paste: true }), state, ctx);
+        }
       }
     }
   });
