@@ -27,7 +27,8 @@ export async function launchBrowser(url: string): Promise<void> {
 
     // 2. Windows support
     if (platform === 'win32') {
-      const child = spawn('cmd.exe', ['/c', 'start', '""', url], {
+      const escapedUrl = url.replace(/&/g, '^&');
+      const child = spawn('cmd.exe', ['/c', 'start', '""', escapedUrl], {
         detached: true,
         stdio: 'ignore',
       });

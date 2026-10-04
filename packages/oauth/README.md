@@ -77,6 +77,8 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `pkce.ts` | `generatePKCE` | Function | Generates standard cryptographic PKCE verifier and S256 challenge. |
 | `callback-server.ts` | `startOAuthCallbackServer` | Function | Runs local loopback HTTP server with formatted status responses and cancellation support. |
 | `device-poller.ts` | `pollOAuthDeviceCodeFlow` | Function | Robust RFC 8628 interval-aware polling helper with `slow_down` throttling. |
+| `browser.ts` | `launchBrowser` | Function | Cross-platform browser launcher supporting Windows (with ampersand escaping), macOS, Linux, and Termux. |
+
 
 
 

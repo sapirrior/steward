@@ -185,7 +185,30 @@ export async function writeAuthStore(data: AuthStoreData): Promise<void> {
     await handle.close();
 
     await safeChmodAsync(tempPath, FILE_MODE);
-    await rename(tempPath, filePath);
+
+    // Cross-platform atomic rename with retry on Windows EPERM / EBUSY
+    let renameAttempts = 0;
+    const maxRenameAttempts = 5;
+    let renameDelay = 25;
+
+    while (true) {
+      try {
+        await rename(tempPath, filePath);
+        break;
+      } catch (err: any) {
+        if (
+          (err.code === 'EPERM' || err.code === 'EBUSY' || err.code === 'EACCES') &&
+          renameAttempts < maxRenameAttempts
+        ) {
+          renameAttempts++;
+          await new Promise((resolve) => setTimeout(resolve, renameDelay));
+          renameDelay *= 2;
+          continue;
+        }
+        throw err;
+      }
+    }
+
     await safeChmodAsync(filePath, FILE_MODE);
   } catch (err: any) {
     try {
