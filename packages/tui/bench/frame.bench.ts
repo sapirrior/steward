@@ -39,7 +39,6 @@ async function runBenchmark() {
     const liveComp = new DynamicRowComponent();
     tree.mountNode({
       id: 'live-bench-node',
-      kind: 'custom',
       wrap: false,
       clip: true,
       getLines: (w) => liveComp._getLines(w),

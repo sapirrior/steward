@@ -3,8 +3,7 @@ import { DocumentTree } from '../../src/engine/DocumentTree.js';
 import StateRenderer from '../../src/engine/StateRenderer.js';
 import Component from '../../src/engine/Component.js';
 import { memoryIO } from '../../src/terminal/io.js';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { verifyOrSaveGolden } from '../helpers/golden.js';
 
 class CursorTestComponent extends Component {
   private showCursorFlag: boolean;
@@ -18,15 +17,6 @@ class CursorTestComponent extends Component {
       cursor: this.showCursorFlag ? { logicalLineIndex: 0, characterOffsetWithinLine: 5 } : null,
     };
   }
-}
-
-function verifyOrSaveGolden(name: string, actual: string) {
-  const goldenPath = join(import.meta.dir, '../goldens', `${name}.txt`);
-  if (!existsSync(goldenPath)) {
-    writeFileSync(goldenPath, actual, 'utf8');
-  }
-  const expected = readFileSync(goldenPath, 'utf8');
-  expect(actual).toBe(expected);
 }
 
 describe('Characterization: StateRenderer Byte Stream Goldens', () => {
@@ -79,7 +69,6 @@ describe('Characterization: StateRenderer Byte Stream Goldens', () => {
     const comp = new CursorTestComponent(true);
     tree.mountNode({
       id: 'cursor-comp',
-      kind: 'custom',
       wrap: false,
       clip: true,
       getLines: (w) => comp._getLines(w),
@@ -98,7 +87,6 @@ describe('Characterization: StateRenderer Byte Stream Goldens', () => {
     const comp = new CursorTestComponent(false);
     tree.mountNode({
       id: 'no-cursor-comp',
-      kind: 'custom',
       wrap: false,
       clip: true,
       getLines: (w) => comp._getLines(w),
