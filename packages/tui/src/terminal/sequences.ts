@@ -36,16 +36,20 @@ export function cursorTo(row: number, col: number): string {
 export const ENABLE_FOCUS_REPORTING = '\x1b[?1004h';
 export const DISABLE_FOCUS_REPORTING = '\x1b[?1004l';
 
-// SGR / Normal Mouse Reporting
+// Bracketed Paste Mode (Mode 2004)
+export const ENABLE_BRACKETED_PASTE = '\x1b[?2004h';
+export const DISABLE_BRACKETED_PASTE = '\x1b[?2004l';
+
+// SGR Mouse Reporting (Mode 1000 + 1006)
 export const ENABLE_MOUSE_NORMAL = '\x1b[?1000h';
 export const DISABLE_MOUSE_NORMAL = '\x1b[?1000l';
-export const ENABLE_MOUSE_BUTTON = '\x1b[?1002h';
-export const DISABLE_MOUSE_BUTTON = '\x1b[?1002l';
 export const ENABLE_MOUSE_SGR = '\x1b[?1006h';
 export const DISABLE_MOUSE_SGR = '\x1b[?1006l';
 
-export const ENABLE_MOUSE_ALL = `${ENABLE_MOUSE_NORMAL}${ENABLE_MOUSE_BUTTON}${ENABLE_MOUSE_SGR}`;
-export const DISABLE_MOUSE_ALL = `${DISABLE_MOUSE_SGR}${DISABLE_MOUSE_BUTTON}${DISABLE_MOUSE_NORMAL}`;
+export const ENABLE_MOUSE = `${ENABLE_MOUSE_NORMAL}${ENABLE_MOUSE_SGR}`;
+export const DISABLE_MOUSE = `${DISABLE_MOUSE_SGR}${DISABLE_MOUSE_NORMAL}`;
+export const ENABLE_MOUSE_ALL = ENABLE_MOUSE;
+export const DISABLE_MOUSE_ALL = DISABLE_MOUSE;
 
 // Style Reset
 export const RESET_SGR = '\x1b[0m';

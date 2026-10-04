@@ -1,3 +1,5 @@
+import { StringDecoder } from 'node:string_decoder';
+
 export interface TerminalIO {
   readonly columns: number;
   readonly rows: number;
@@ -87,8 +89,12 @@ export function nodeIO(opts?: {
         }
       },
       onData(cb: (chunk: string) => void): () => void {
+        const decoder = new StringDecoder('utf8');
         const handler = (chunk: Buffer | string) => {
-          cb(typeof chunk === 'string' ? chunk : chunk.toString('utf8'));
+          const str = typeof chunk === 'string' ? chunk : decoder.write(chunk);
+          if (str.length > 0) {
+            cb(str);
+          }
         };
         stdin.on('data', handler);
         return () => {
@@ -105,7 +111,6 @@ export interface MemoryIO extends TerminalIO {
   feed(chunk: string): void;
   resize(cols: number, rows: number): void;
   clearOutput(): void;
-  clear(): void;
 }
 
 export function memoryIO(opts: {
@@ -166,9 +171,6 @@ export function memoryIO(opts: {
       }
     },
     clearOutput(): void {
-      output.length = 0;
-    },
-    clear(): void {
       output.length = 0;
     },
   };

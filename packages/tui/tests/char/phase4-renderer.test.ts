@@ -33,7 +33,7 @@ describe('Phase 4: Optimized Renderer, Viewport Slicing, Throttling & Scrolling'
 
     expect(io.written).toContain('Line 1');
     expect(io.written).toContain('Line 2');
-    io.clear();
+    io.clearOutput();
 
     // Second render with no changes should produce minimal/no diff output
     renderer.render(tree, 0, false, new Map(), io);
@@ -45,7 +45,7 @@ describe('Phase 4: Optimized Renderer, Viewport Slicing, Throttling & Scrolling'
     const io = memoryIO({ columns: 40, rows: 10 });
     const engine = new TerminalEngine({ io });
     engine.ensureAlternateScreen();
-    io.clear();
+    io.clearOutput();
 
     const hostileInputs = [
       '\x1b]52;c;c2VjcmV0\x07', // OSC 52 clipboard set
@@ -99,7 +99,7 @@ describe('Phase 4: Optimized Renderer, Viewport Slicing, Throttling & Scrolling'
     const io = memoryIO({ columns: 40, rows: 10 });
     const engine = new TerminalEngine({ io, maxFps: 60 });
     engine.ensureAlternateScreen();
-    io.clear();
+    io.clearOutput();
 
     engine.commit(['Frame 1']);
     engine.commit(['Frame 2']);

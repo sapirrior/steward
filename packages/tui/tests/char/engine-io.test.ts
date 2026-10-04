@@ -48,8 +48,9 @@ describe('Step 1.2: TerminalEngine IO Injection & Isolation', () => {
     engineMouse.ensureAlternateScreen();
     const mouseSeq = ioMouse.output.join('');
     expect(mouseSeq).toContain('\x1b[?1000h');
-    expect(mouseSeq).toContain('\x1b[?1002h');
+    expect(mouseSeq).not.toContain('\x1b[?1002h');
     expect(mouseSeq).toContain('\x1b[?1006h');
+    expect(mouseSeq).toContain('\x1b[?2004h');
     engineMouse.dispose();
   });
 

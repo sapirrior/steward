@@ -8,6 +8,8 @@ import {
   EXIT_ALTERNATE_SCREEN,
   ENABLE_FOCUS_REPORTING,
   DISABLE_FOCUS_REPORTING,
+  ENABLE_BRACKETED_PASTE,
+  DISABLE_BRACKETED_PASTE,
   ENABLE_MOUSE_ALL,
   DISABLE_MOUSE_ALL,
   ENABLE_AUTOWRAP,
@@ -301,6 +303,7 @@ export class TerminalEngine {
     if (!this.inAlternateScreen && !this.disposed) {
       let enterSeq = ENTER_ALTERNATE_SCREEN;
       if (this.focusReporting) enterSeq += ENABLE_FOCUS_REPORTING;
+      enterSeq += ENABLE_BRACKETED_PASTE;
       if (this.mouse) enterSeq += ENABLE_MOUSE_ALL;
       enterSeq += `${DISABLE_AUTOWRAP}${CURSOR_HOME}`;
 
@@ -326,6 +329,7 @@ export class TerminalEngine {
     if (this.inAlternateScreen) {
       let exitSeq = ENABLE_AUTOWRAP;
       if (this.mouse) exitSeq += DISABLE_MOUSE_ALL;
+      exitSeq += DISABLE_BRACKETED_PASTE;
       if (this.focusReporting) exitSeq += DISABLE_FOCUS_REPORTING;
       exitSeq += EXIT_ALTERNATE_SCREEN;
 
@@ -350,6 +354,7 @@ export class TerminalEngine {
     if (this.inAlternateScreen) {
       let exitSeq = ENABLE_AUTOWRAP;
       if (this.mouse) exitSeq += DISABLE_MOUSE_ALL;
+      exitSeq += DISABLE_BRACKETED_PASTE;
       if (this.focusReporting) exitSeq += DISABLE_FOCUS_REPORTING;
       exitSeq += EXIT_ALTERNATE_SCREEN;
 
