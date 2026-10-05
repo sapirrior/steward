@@ -37,6 +37,9 @@ The `@steward/cli` package serves as the application composition root and termin
 | `agent-event-router.ts` | Function | Translates AgentSession events to UI stream updates, commits, and flicker-free thinking transitions. | Coordinates multi-tool completion and model reasoning states. |
 | `modal-controller.ts` | Class | Coordinates modal docks (Pickers, Permission Docks, Help, Menus) and focus transitions. | Centralizes modal open/close lifecycle. |
 | `utils/permission-queue.ts` | Class | Serializes multiple permission requests into an asynchronous FIFO queue. | Displays one permission dock at a time. |
+| `utils/choice.ts` | `handleChoiceKey`, `renderChoiceOption` | Function | Unified keyboard selection logic and option rendering for binary and fixed-choice approval gates. | Discards bracketed paste; handles arrow keys, numbers 1-9, enter, and escape. |
+| `utils/select-list.ts` | `SelectList` | Component | Keyboard-driven filterable item picker dock. | Accepts multiline pasted queries safely; handles up/down wraparound and Enter selection. |
+| `utils/modal-box.ts` | `renderModalBox` | Function | Line-based modal enclosure renderer with title, subtitle, divider, and content. | Injected render width support; computes box layout. |
 | `utils/transcript.ts` | Function | Rehydrates past session turns and events into terminal engine history. | Renders historical user messages, assistant responses, and tool statuses. |
 | `utils/message-formatter.ts` | Function | Formats system messages, error badges, user prompts, assistant markdown, and tool execution status lines. | Tree connector prefixes and ANSI styles. |
 

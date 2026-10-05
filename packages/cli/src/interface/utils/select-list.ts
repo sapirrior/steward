@@ -82,9 +82,15 @@ export class SelectList<T> extends Component<SelectListOptions<T>, SelectListSta
         return true;
       }
 
-      if (ev.input && ev.input.length === 1 && ev.input >= ' ') {
-        this.setState({ query: this.state.query + ev.input, selectedIndex: 0 });
-        return true;
+      if (ev.input && ev.input.length > 0) {
+        // Strip or replace newlines and control characters with space for search filter
+        const sanitized = ev.input
+          .replace(/[\r\n\t]+/g, ' ')
+          .replace(/[^\x20-\x7E\u00A0-\uFFFF]/g, '');
+        if (sanitized.length > 0) {
+          this.setState({ query: this.state.query + sanitized, selectedIndex: 0 });
+          return true;
+        }
       }
 
       return false;

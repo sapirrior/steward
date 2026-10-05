@@ -1,19 +1,19 @@
 /** @jsxImportSource stitchable */
 import { Component, Box, Text, renderElement, wrapVisualLine, type InputEvent } from 'stitchable';
-import { figures } from '../../../theme/index.js';
-import { c, bold, italic } from '../../../theme/style.js';
+import { figures, c, bold, italic } from '../../../theme/index.js';
+import { handleChoiceKey } from '../../utils/choice.js';
 
 export interface BashPermissionDockProps {
   command: string;
   explanation: string;
-  onDecision: (allowed: boolean) => void;
+  onDecision: (approved: boolean) => void;
 }
 
 export type BashPermissionDockMode = 'NORMAL' | 'REVIEW';
 
 export interface BashPermissionDockState {
   mode: BashPermissionDockMode;
-  selectedIndex: number; // 0 = Yes, 1 = No
+  selectedIndex: number;
   scrollOffset: number;
 }
 
@@ -25,6 +25,7 @@ export default class BashPermissionDock extends Component<
   override clip = false;
 
   private removeInputListener: (() => void) | null = null;
+  private lastRenderWidth = 80;
 
   constructor(props: BashPermissionDockProps) {
     super(props);
@@ -40,32 +41,30 @@ export default class BashPermissionDock extends Component<
 
     this.removeInputListener = this.engine.addInputListener((ev: InputEvent) => {
       if (this.state.mode === 'NORMAL') {
-        if (ev.input === 'f' || ev.input === 'F') {
+        if (!ev.isPaste && (ev.input === 'f' || ev.input === 'F')) {
           this.setState({ mode: 'REVIEW', scrollOffset: 0 });
           return true;
         }
-        if (ev.key.upArrow || ev.key.downArrow) {
-          this.setState({ selectedIndex: this.state.selectedIndex === 0 ? 1 : 0 });
+
+        const action = handleChoiceKey(ev, this.state.selectedIndex, 2);
+        if (!action) return false;
+
+        if (action.type === 'move') {
+          this.setState({ selectedIndex: action.index });
           return true;
         }
-        if (ev.input === '1') {
-          this.setState({ selectedIndex: 0 });
+
+        if (action.type === 'confirm') {
+          this.props.onDecision(action.index === 0);
           return true;
         }
-        if (ev.input === '2') {
-          this.setState({ selectedIndex: 1 });
-          return true;
-        }
-        if (ev.key.return) {
-          this.props.onDecision(this.state.selectedIndex === 0);
-          return true;
-        }
-        if (ev.key.escape) {
+
+        if (action.type === 'cancel') {
           this.props.onDecision(false);
           return true;
         }
       } else if (this.state.mode === 'REVIEW') {
-        if (ev.input === 'f' || ev.input === 'F' || ev.key.escape) {
+        if (!ev.isPaste && (ev.input === 'f' || ev.input === 'F' || ev.key.escape)) {
           this.setState({ mode: 'NORMAL', scrollOffset: 0 });
           return true;
         }
@@ -92,14 +91,15 @@ export default class BashPermissionDock extends Component<
   }
 
   private getMaxScroll(): number {
-    const termWidth = process.stdout.columns || 80;
+    const termWidth = this.lastRenderWidth;
     const renderedCmdLines = wrapVisualLine(this.props.command, termWidth);
     const maxVisibleReviewLines = 15;
     return Math.max(0, renderedCmdLines.length - maxVisibleReviewLines);
   }
 
   override render(width?: number): string[] {
-    const termWidth = width ?? process.stdout.columns ?? 80;
+    const termWidth = width ?? 80;
+    this.lastRenderWidth = termWidth;
     const maxCols = Math.max(1, termWidth);
 
     const { mode, selectedIndex, scrollOffset } = this.state;
