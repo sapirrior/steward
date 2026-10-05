@@ -42,7 +42,7 @@ steward/
 ├── packages/
 │   ├── ai/          # @steward/ai — Zero-dependency streaming inference engine, wire protocols (Anthropic, Gemini, OpenAI Completions/Responses), and model discovery.
 │   ├── tui/         # stitchable (@steward/tui) — Alternate-screen diff rendering engine (Mode 2026), layout math, primitives, and JSX runtime.
-│   ├── agent/       # @steward/agent — Agent loop, turn runner, model ports, tool catalog (15 tools), policy/chat modes, session persistence, and CAS checkpoints.
+│   ├── agent/       # @steward/agent — Agent loop, turn runner, model ports, tool catalog (16 tools), policy/chat modes, session persistence, and CAS checkpoints.
 │   ├── oauth/       # @steward/oauth — Zero-dependency OAuth credential store, PKCE/Device flows, and token lifecycle management.
 │   └── cli/         # @steward/cli — Composition root (main.ts, runtime.ts), application orchestrator (app.ts), slash commands, and domain UI components.
 └── .agents/         # System skills and prompt rules (Human-managed only).

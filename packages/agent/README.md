@@ -1,6 +1,6 @@
 # @steward/agent
 
-The `@steward/agent` package provides the agent loop, tool catalog and execution, chat modes and policy, skill discovery, and core session, CAS checkpoint, rewind, background tasks, and settings services for Steward. It owns its own ports (`ports/model.ts`) and has zero dependencies on `@steward/ai` or any sibling packages.
+The `@steward/agent` package provides the agent loop, tool catalog and execution, chat modes and policy, skill discovery, and core session, CAS checkpoint, rewind, and background task services for Steward. It owns its own ports (`ports/model.ts`) and has zero dependencies on `@steward/ai` or any sibling packages.
 
 ---
 
@@ -43,6 +43,7 @@ Every tool has an implementation file in `src/tools/` and a corresponding schema
 | `grep/` | `grep` | Regular expression text search across workspace files. | Bounded regex search with line numbers. |
 | `sleep/` | `sleep` | Pauses execution for a specified number of seconds. | Safe async timer pause. |
 | `bash/` | `bash` | Runs a shell command securely in the workspace. | Gated by user permission; outputs stdout/stderr. |
+| `task-list/` | `task_list` | Lists all active and completed background shell tasks with statuses. | Read-only listing from `TaskManager`. |
 | `task-read/` | `task_read` | Reads recent output from a running background shell task. | Tail buffer retrieval from `TaskManager`. |
 | `task-send-input/` | `task_send_input` | Sends stdin input text to an active background task. | Pipes input directly to running child process. |
 | `task-kill/` | `task_kill` | Terminates a background task by ID. | Graceful SIGTERM with SIGKILL fallback. |

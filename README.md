@@ -22,7 +22,7 @@ Instead of heavy framework abstractions or sprawling plugin layers, Steward deli
 │ ✦ Fast, zero-lag Alternate-Screen TUI (Synchronized Mode 2026)│
 │ ✦ Zero-dependency native AI engine with automatic retry     │
 │ ✦ Ultra-lean system prompt (~450 tokens) & lazy skill loading│
-│ ✦ 15 native tools: search, read, edit, bash, tasks, fetch   │
+│ ✦ 16 native tools: search, read, edit, bash, tasks, fetch   │
 │ ✦ Content-addressed checkpoints & atomic rewind undo        │
 │ ✦ 11 providers: Anthropic, OpenAI, Gemini, OpenRouter, etc. │
 │ ✦ Plug-and-play: browser OAuth or standard environment keys │

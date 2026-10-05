@@ -18,20 +18,22 @@ Universal operational guidelines for AI coding agents working in the `steward` r
 
 ## 3. Architecture & Modular Package Boundaries
 
-All application source code resides in the root `packages/` directory across 4 isolated workspaces:
+All application source code resides in the root `packages/` directory across 5 isolated workspaces:
 
 - **AI Runtime Package (`packages/ai/` / `@steward/ai`):**
   - Zero-dependency streaming inference engine, provider adapters (OpenAI, Anthropic, Gemini, OpenAI-compatible), auth resolution via environment variables, and dynamic model discovery.
 - **TUI Package (`packages/tui/` / `stitchable`):**
-  - Alternate-screen diff rendering engine (`engine/`), physical cell layout math (`layout/`), content-blind primitives (`primitives/`, `elements/`), color themes (`terminal/`), and JSX runtime (`runtime/`).
+  - Alternate-screen diff rendering engine (`engine/`), physical cell layout math (`layout/`), content-blind primitives (`primitives/`), and JSX runtime (`runtime/`).
+- **OAuth Package (`packages/oauth/` / `@steward/oauth`):**
+  - Zero-dependency OAuth credential store, PKCE/Device flows, and token lifecycle management.
 - **Agent Package (`packages/agent/` / `@steward/agent`):**
-  - Agent session orchestration, multi-step turn runner, system prompt construction, chat modes/policy, tool catalog (15 tools), lifecycle hooks runtime (`hooks/`), and services (`services/` — session storage, CAS checkpoints, rewind, background tasks, settings).
+  - Agent session orchestration, multi-step turn runner, system prompt construction, chat modes/policy, tool catalog (16 tools), and services (`services/` — session storage, CAS checkpoints, rewind, background tasks).
 - **CLI Package (`packages/cli/` / `@steward/cli`):**
-  - CLI entry point (`src/main.ts`), application orchestrator (`src/app.ts`), slash commands (`src/commands/`), and domain UI components (`src/ui/components/`, `src/ui/utils/`).
+  - CLI entry point (`src/main.ts`), application orchestrator (`src/app.ts`), slash commands (`src/commands/`), settings & trust management (`src/settings/`), and domain UI components (`src/interface/components/`, `src/interface/utils/`).
 
 ## 4. Documentation & Package README Invariant
 
-- **Package README Invariant:** Whenever modifying or adding code inside a package (`packages/ai`, `packages/tui`, `packages/agent`, `packages/cli`), you **MUST update the package's `README.md`** with accurate function, export, and tool breakdowns.
+- **Package README Invariant:** Whenever modifying or adding code inside a package (`packages/ai`, `packages/tui`, `packages/agent`, `packages/cli`, `packages/oauth`), you **MUST update the package's `README.md`** with accurate function, export, and tool breakdowns.
 - Every package `README.md` must follow the Sonnet documentation convention (File $\to$ Export $\to$ Type $\to$ Description & Constraints).
 
 ## 5. Commands
