@@ -79,12 +79,14 @@ The `@steward/cli` package serves as the application composition root and termin
 | :--- | :--- | :--- | :--- | :--- |
 | `colors.ts` | `darkTheme` | Constant (`UITheme`) | Canonical dark theme palette containing foregrounds, backgrounds, diff markers, and syntax highlight colors. | Pure data structure with zero runtime side-effects. |
 | `colors.ts` | `UITheme`, `SyntaxTheme` | Interface | Semantic token definitions for UI components and code syntax highlighting. | Semantic tokens only; no hardcoded styling. |
-| `style.ts` | `c`, `bg` | Record | Direct static colorizer dictionaries for foregrounds (`c`) and backgrounds (`bg`). | Built once from `darkTheme`; returns unstyled identity strings when `chalk.level === 0`. |
-| `style.ts` | `resolveThemeColor` | Function | Resolves `rgb(...)`, `#hex`, or `default` token strings to chalk styling functions. | Respects `chalk.level === 0` for headless testing and plain-text terminals. |
-| `style.ts` | `bold`, `italic`, `underline`, `strikethrough` | Function | Text formatting wrappers guarded by `chalk.level`. | Preserves raw text when formatting is disabled. |
-| `syntax.ts` | `buildHighlightTheme`, `getHighlightTheme` | Function | Compiles `cli-highlight` theme from the dark theme palette. | Lazily cached; returns plain text highlighter when `chalk.level === 0`. |
-| `logo.ts` | `renderLogo` | Function | Renders the styled Steward terminal banner logo. | Formatted using palette brand colors. |
 | `figures.ts` | `figures` | Constant | Terminal Unicode glyphs and ASCII fallback symbols. | Bullet points, arrows, checkmarks, spinners. |
+| `figures.ts` | `LOGO_LINES` | Constant | Unicode ANSI art logo lines for the terminal banner header. | Uniformly padded lines. |
+| `style.ts` | `c`, `bg` | Record | Direct static colorizer dictionaries for foregrounds (`c`) and backgrounds (`bg`). | Built once from `darkTheme`; returns unstyled identity strings when `chalk.level === 0`. |
+| `helpers.ts` | `resolveThemeColor` | Function | Resolves `rgb(...)`, `#hex`, or `default` token strings to chalk styling functions. | Respects `chalk.level === 0` for headless testing and plain-text terminals. |
+| `helpers.ts` | `bold`, `italic`, `underline`, `strikethrough` | Function | Text formatting wrappers guarded by `chalk.level`. | Preserves raw text when formatting is disabled. |
+| `helpers.ts` | `buildHighlightTheme`, `getHighlightTheme` | Function | Compiles and lazily caches `cli-highlight` syntax theme. | Returns plain text highlighter when `chalk.level === 0`. |
+| `syntax.ts` | Re-exports | Module | Re-exports syntax highlighting helpers for backward compatibility. | Points to `helpers.ts`. |
+| `index.ts` | Barrel exports | Module | Unified entry point exporting all theme tokens, figures, styles, and helpers. | Single import source for UI components. |
 
 ---
 
