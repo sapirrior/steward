@@ -11,6 +11,10 @@
   <a href="#supported-providers"><img src="https://img.shields.io/badge/providers-11%20native-blue?style=flat-square" alt="providers" /></a>
 </p>
 
+<p align="center">
+  <img src="assets/demo.gif" alt="Steward Demo" />
+</p>
+
 ---
 
 **Steward** is a plug-and-play terminal pair programmer built with a focused philosophy: **maximum engineering leverage with zero bloat.** 
