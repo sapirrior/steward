@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import TerminalEngine from 'stitchable';
 import FilePermissionDock from '../../src/ui/components/docks/FilePermissionDock.js';
 import type { FilePermissionRequest } from '@steward/agent';
+import { makeEngine } from '../helpers/app.js';
 
 describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
   it('defaults to Yes selection, toggles with Up/Down and numeric keys 1/2, submits on Enter', () => {
@@ -20,32 +20,33 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
       },
     });
 
-    const engine = new TerminalEngine();
+    const { engine, io } = makeEngine();
+    engine.ensureAlternateScreen();
     engine.mount(dock);
 
     expect(dock.state.selectedIndex).toBe(0); // Yes
 
     // Down arrow -> select No
-    process.stdin.emit('data', Buffer.from('\x1b[B'));
+    io.feed('\x1b[B');
     expect(dock.state.selectedIndex).toBe(1); // No
 
     // Up arrow -> select Yes
-    process.stdin.emit('data', Buffer.from('\x1b[A'));
+    io.feed('\x1b[A');
     expect(dock.state.selectedIndex).toBe(0); // Yes
 
     // Direct numeric 2 -> select No
-    process.stdin.emit('data', Buffer.from('2'));
+    io.feed('2');
     expect(dock.state.selectedIndex).toBe(1); // No
 
     // Direct numeric 1 -> select Yes
-    process.stdin.emit('data', Buffer.from('1'));
+    io.feed('1');
     expect(dock.state.selectedIndex).toBe(0); // Yes
 
     // Submit with Enter
-    process.stdin.emit('data', Buffer.from('\r'));
+    io.feed('\r');
     expect(decision).toBe(true);
 
-    engine.cleanupSync();
+    engine.dispose();
   });
 
   it('submits allowed=false when Enter is pressed on No selection', () => {
@@ -62,18 +63,19 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
       },
     });
 
-    const engine = new TerminalEngine();
+    const { engine, io } = makeEngine();
+    engine.ensureAlternateScreen();
     engine.mount(dock);
 
     // Select No
-    process.stdin.emit('data', Buffer.from('2'));
+    io.feed('2');
     expect(dock.state.selectedIndex).toBe(1);
 
     // Enter
-    process.stdin.emit('data', Buffer.from('\r'));
+    io.feed('\r');
     expect(decision).toBe(false);
 
-    engine.cleanupSync();
+    engine.dispose();
   });
 
   it('cancels/denies on Esc key in normal mode', () => {
@@ -90,13 +92,15 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
       },
     });
 
-    const engine = new TerminalEngine();
+    const { engine, io } = makeEngine();
+    engine.ensureAlternateScreen();
     engine.mount(dock);
 
-    process.stdin.emit('data', Buffer.from('\x1b'));
+    io.feed('\x1b');
+    engine.flushInput();
     expect(decision).toBe(false);
 
-    engine.cleanupSync();
+    engine.dispose();
   });
 
   it('transitions to review mode on f/F and toggles back on f/F or Esc', () => {
@@ -110,28 +114,30 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
       onDecision: () => {},
     });
 
-    const engine = new TerminalEngine();
+    const { engine, io } = makeEngine();
+    engine.ensureAlternateScreen();
     engine.mount(dock);
 
     expect(dock.state.mode).toBe('NORMAL');
 
     // Press 'f' -> enter review mode
-    process.stdin.emit('data', Buffer.from('f'));
+    io.feed('f');
     expect(dock.state.mode).toBe('REVIEW');
 
     // Press 'f' again -> return to normal mode
-    process.stdin.emit('data', Buffer.from('f'));
+    io.feed('f');
     expect(dock.state.mode).toBe('NORMAL');
 
     // Press 'F' -> enter review mode
-    process.stdin.emit('data', Buffer.from('F'));
+    io.feed('F');
     expect(dock.state.mode).toBe('REVIEW');
 
     // Press Esc in review mode -> return to normal mode without deciding
-    process.stdin.emit('data', Buffer.from('\x1b'));
+    io.feed('\x1b');
+    engine.flushInput();
     expect(dock.state.mode).toBe('NORMAL');
 
-    engine.cleanupSync();
+    engine.dispose();
   });
 
   it('supports scrolling with Up/Down in review mode', () => {
@@ -146,26 +152,27 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
       onDecision: () => {},
     });
 
-    const engine = new TerminalEngine();
+    const { engine, io } = makeEngine();
+    engine.ensureAlternateScreen();
     engine.mount(dock);
 
-    process.stdin.emit('data', Buffer.from('f'));
+    io.feed('f');
     expect(dock.state.mode).toBe('REVIEW');
     expect(dock.state.scrollOffset).toBe(0);
 
     // Down arrow scrolls
-    process.stdin.emit('data', Buffer.from('\x1b[B'));
+    io.feed('\x1b[B');
     expect(dock.state.scrollOffset).toBe(1);
 
     // Up arrow scrolls back
-    process.stdin.emit('data', Buffer.from('\x1b[A'));
+    io.feed('\x1b[A');
     expect(dock.state.scrollOffset).toBe(0);
 
     // Up arrow at top does not go below 0
-    process.stdin.emit('data', Buffer.from('\x1b[A'));
+    io.feed('\x1b[A');
     expect(dock.state.scrollOffset).toBe(0);
 
-    engine.cleanupSync();
+    engine.dispose();
   });
 
   it('cleans up listener on unmount so subsequent inputs do not trigger decisions', () => {
@@ -182,15 +189,17 @@ describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {
       },
     });
 
-    const engine = new TerminalEngine();
+    const { engine, io } = makeEngine();
+    engine.ensureAlternateScreen();
     engine.mount(dock);
     engine.unmount(dock);
 
     // Inject input after unmount
-    process.stdin.emit('data', Buffer.from('\r'));
-    process.stdin.emit('data', Buffer.from('\x1b'));
+    io.feed('\r');
+    io.feed('\x1b');
+    engine.flushInput();
     expect(decisionCount).toBe(0);
 
-    engine.cleanupSync();
+    engine.dispose();
   });
 });

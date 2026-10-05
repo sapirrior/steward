@@ -18,7 +18,7 @@ import {
   formatUserMessage,
 } from '../../src/ui/utils/message-formatter.js';
 import { editFileTool } from '@steward/agent';
-import { captureHeadlessRender, assertGoldenMatch } from './harness.js';
+import { captureHeadlessRender, assertGoldenMatch } from '../helpers/app.js';
 import { StateRenderer } from 'stitchable';
 
 describe('TUI Engine Headless Golden Snapshots', () => {
