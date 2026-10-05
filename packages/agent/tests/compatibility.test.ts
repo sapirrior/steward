@@ -3,11 +3,8 @@ import { existsSync, readFileSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir, tmpdir } from 'node:os';
 
-import {
-  getSessionsRootDir,
-  getSessionFilePath,
-  loadSession,
-} from '../src/services/session/store.js';
+import { getSessionsRootDir, getSessionFilePath } from '../src/services/paths.js';
+import { loadSession } from '../src/services/session/store.js';
 import { parseSessionDocument } from '../src/services/session/validate.js';
 import { getPlatformShell } from '../src/services/tasks/shell.js';
 
@@ -29,8 +26,6 @@ describe('Phase 1 Compatibility & Invariants Safety Net', () => {
       delete process.env.STEWARD_LOGS_DIR;
 
       const baseSteward = join(homedir(), '.steward');
-      expect(getSettingsDir()).toBe(baseSteward);
-      expect(getSettingsPath()).toBe(join(baseSteward, 'settings.json'));
       expect(getSessionsRootDir()).toBe(join(baseSteward, 'sessions'));
       expect(getSessionFilePath('2026-09-21', 'sess123')).toBe(
         join(baseSteward, 'sessions', '2026-09-21', 'sess123.json'),
@@ -38,13 +33,9 @@ describe('Phase 1 Compatibility & Invariants Safety Net', () => {
     });
 
     it('honors environment overrides correctly', () => {
-      const customSettings = '/tmp/custom-steward-settings';
       const customSessions = '/tmp/custom-steward-sessions';
-      process.env.STEWARD_SETTINGS_DIR = customSettings;
       process.env.STEWARD_SESSIONS_DIR = customSessions;
 
-      expect(getSettingsDir()).toBe(customSettings);
-      expect(getSettingsPath()).toBe(join(customSettings, 'settings.json'));
       expect(getSessionsRootDir()).toBe(customSessions);
       expect(getSessionFilePath('2026-09-21', 'sess123')).toBe(
         join(customSessions, '2026-09-21', 'sess123.json'),

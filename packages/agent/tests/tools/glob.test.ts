@@ -6,7 +6,7 @@ describe('glob tool', () => {
   const cwd = process.cwd();
 
   it('discovers typescript files in packages with pattern', async () => {
-    const result = await globTool.execute({ pattern: 'packages/**/*.ts' }, { cwd });
+    const result = await globTool.execute({ pattern: 'packages/**/*.ts', limit: 500 }, { cwd });
 
     expect(result.files.length).toBeGreaterThan(0);
     expect(result.files.some((f) => f.includes('tools') || f.includes('engine'))).toBe(true);

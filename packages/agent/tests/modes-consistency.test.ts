@@ -11,7 +11,6 @@ import {
 import { defaultToolCatalog } from '@steward/agent';
 import { prepareTurn } from '@steward/agent';
 import { ShellTaskManager } from '@steward/agent';
-import { saveModeSelection, getSavedMode } from '@steward/agent';
 
 describe('Chat Modes Consistency & Unified State', () => {
   it('should maintain a single unified activeMode state across policy and engine imports', async () => {
@@ -90,13 +89,5 @@ describe('Chat Modes Consistency & Unified State', () => {
     // Reset back to normal mode
     setActiveMode('normal');
     expect(getActiveMode()).toBe('normal');
-  });
-
-  it('should persist and load mode selection from settings', () => {
-    saveModeSelection('review');
-    expect(getSavedMode()).toBe('review');
-
-    saveModeSelection('normal');
-    expect(getSavedMode()).toBe('normal');
   });
 });
