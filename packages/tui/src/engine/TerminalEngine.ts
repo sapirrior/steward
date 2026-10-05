@@ -7,6 +7,7 @@ import {
   InputParser,
   ESC_TIMEOUT_MS,
   PASTE_IDLE_MS,
+  toInputEvent,
   type InputEvent,
   type TerminalEvent,
 } from '../terminal/input.js';
@@ -113,6 +114,7 @@ export class TerminalEngine {
 
   private resizeHandler: () => void;
   private inputHandler: (str: string) => void;
+  private dispatchTerminalEvent: (ev: TerminalEvent) => void;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private renderTimer: ReturnType<typeof setTimeout> | null = null;
   private escTimer: ReturnType<typeof setTimeout> | null = null;
@@ -175,7 +177,7 @@ export class TerminalEngine {
       }, 50);
     };
 
-    const dispatchTerminalEvent = (ev: TerminalEvent) => {
+    this.dispatchTerminalEvent = (ev: TerminalEvent) => {
       if (ev.type === 'focus') {
         return;
       }
@@ -217,11 +219,14 @@ export class TerminalEngine {
           this.scrollToBottom();
         }
 
+        const inputEv = toInputEvent(ev);
+        if (!inputEv) return;
+
         // Deliver key event to registered listeners
         for (let i = this.customInputListeners.length - 1; i >= 0; i--) {
           const listener = this.customInputListeners[i];
           if (listener) {
-            const handled = listener(ev);
+            const handled = listener(inputEv);
             if (handled) return;
           }
         }
@@ -233,10 +238,13 @@ export class TerminalEngine {
           this.scrollToBottom();
         }
 
+        const inputEv = toInputEvent(ev);
+        if (!inputEv) return;
+
         for (let i = this.customInputListeners.length - 1; i >= 0; i--) {
           const listener = this.customInputListeners[i];
           if (listener) {
-            const handled = listener(ev);
+            const handled = listener(inputEv);
             if (handled) return;
           }
         }
@@ -256,7 +264,7 @@ export class TerminalEngine {
           this.escTimer = null;
           const flushed = this.inputParser.flush();
           for (const ev of flushed) {
-            dispatchTerminalEvent(ev);
+            this.dispatchTerminalEvent(ev);
           }
         }, ESC_TIMEOUT_MS);
       } else if (this.escTimer) {
@@ -270,7 +278,7 @@ export class TerminalEngine {
           this.pasteTimer = null;
           const flushed = this.inputParser.flushPaste();
           for (const ev of flushed) {
-            dispatchTerminalEvent(ev);
+            this.dispatchTerminalEvent(ev);
           }
         }, PASTE_IDLE_MS);
       } else if (this.pasteTimer) {
@@ -279,9 +287,36 @@ export class TerminalEngine {
       }
 
       for (const ev of events) {
-        dispatchTerminalEvent(ev);
+        this.dispatchTerminalEvent(ev);
       }
     };
+  }
+
+  /**
+   * Flushes any pending ESC or bracketed paste buffers synchronously.
+   */
+  flushInput(): void {
+    if (this.disposed) return;
+    if (this.escTimer) {
+      clearTimeout(this.escTimer);
+      this.escTimer = null;
+    }
+    if (this.inputParser.pending) {
+      const flushed = this.inputParser.flush();
+      for (const ev of flushed) {
+        this.dispatchTerminalEvent(ev);
+      }
+    }
+    if (this.pasteTimer) {
+      clearTimeout(this.pasteTimer);
+      this.pasteTimer = null;
+    }
+    if (this.inputParser.inPaste) {
+      const flushed = this.inputParser.flushPaste();
+      for (const ev of flushed) {
+        this.dispatchTerminalEvent(ev);
+      }
+    }
   }
 
   addInputListener(listener: (ev: InputEvent) => boolean | void): () => void {

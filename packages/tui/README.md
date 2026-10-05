@@ -61,8 +61,9 @@
 | `src/terminal/sequences.ts` | Escape Constants | `Constant` | Named ANSI/VT escape sequences for synchronized rendering, mouse, paste, and screen buffers. | Contains `SYNC_START`, `SYNC_END`, `ALT_SCREEN_ENTER`, `ALT_SCREEN_LEAVE`, `BRACKETED_PASTE_ENTER`, `BRACKETED_PASTE_LEAVE`, `MOUSE_TRACK_ENABLE`, `MOUSE_TRACK_DISABLE`. |
 | `src/terminal/color.ts` | `color` / `styleText` | Functions | Zero-dependency ANSI SGR color styling supporting Truecolor (24-bit), 256 colors, and 16 ANSI colors. | Automatically downsamples colors when terminal capabilities are constrained; respects `NO_COLOR` and `FORCE_COLOR`. |
 | `src/terminal/input.ts` | `InputParser` | `Class` | Stateful parser for standard VT/xterm input sequences, bracketed paste, SGR mouse tracking, and Unicode. | Implements 50ms ESC timeout disambiguation, 500ms paste fallback flush, non-BMP UTF-16 surrogate buffering, and atomic paste events (`feed`, `flush`, `flushPaste`, `reset`). |
-| `src/terminal/input.ts` | `parseInputChunk` | `(chunk: string \| Buffer \| InputEvent \| TerminalEvent) => InputEvent[]` | Stateless helper converting raw chunks, buffers, or structured events into discrete `InputEvent` records. | Handles legacy string chunks, Buffers, and structured `InputEvent`/`TerminalEvent` objects seamlessly. |
-| `src/terminal/input.ts` | `Key` / `InputEvent` / `TerminalEvent` | `Types / Interfaces` | Canonical event and key descriptor contracts. | `Key` provides boolean flags (`ctrl`, `meta`, `shift`, `return`, `escape`, `upArrow`, etc.); `InputEvent` carries `{ input, key, isPaste? }`. |
+| `src/terminal/input.ts` | `toInputEvent` | `(ev: TerminalEvent) => InputEvent \| null` | Converts raw TerminalEvents into safe typed InputEvents (returns null for mouse/focus). | Maps paste events with atomic text and key descriptor; guarantees non-null key on all listener events. |
+| `src/terminal/input.ts` | `parseInputChunk` | `(chunk: string \| Buffer \| InputEvent \| TerminalEvent) => InputEvent[]` | Helper converting raw chunks or structured events into discrete `InputEvent` records. | Handles legacy string chunks, Buffers, and structured events. |
+| `src/terminal/input.ts` | `Key` / `InputEvent` / `TerminalEvent` | `Types / Interfaces` | Canonical event and key descriptor contracts. | `Key` provides boolean flags (`ctrl`, `meta`, `shift`, etc.); `InputEvent` is a typed union (`type: 'key' \| 'paste'`). |
 
 ---
 
@@ -86,7 +87,7 @@
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| `src/engine/TerminalEngine.ts` | `TerminalEngine` | `Class` | Central orchestration engine managing IO, frame dispatch, document tree, and input listeners. | Features debounced `requestFrame()`, `flush()`, `addInputListener((ev: InputEvent) => boolean | void)`, scroll helpers (`scrollBy`, `scrollUp`, `scrollDown`, `scrollToTop`, `scrollToBottom`), scroll key handling (PageUp/Dn, Home/End, wheel), and automatic bottom snapping. |
+| `src/engine/TerminalEngine.ts` | `TerminalEngine` | `Class` | Central orchestration engine managing IO, frame dispatch, document tree, and input listeners. | Features debounced `requestFrame()`, `flush()`, `flushInput()`, `addInputListener((ev: InputEvent) => boolean \| void)`, scroll helpers (`scrollBy`, `scrollUp`, `scrollDown`, `scrollToTop`, `scrollToBottom`), scroll key handling (PageUp/Dn, Home/End, wheel), and automatic bottom snapping. |
 | `src/engine/DocumentTree.ts` | `DocumentTree` | `Class` | Maintains the hierarchical document model composed of committed history and live dynamic nodes. | Tracks `prunedRowCount`, bounds history size via `historyLimit`, and manages per-tree layout caching. |
 | `src/engine/HistoryStore.ts` | `HistoryStore` | `Class` | In-memory ring buffer storing committed history entries and layout metadata. | Hard-bounded to `historyLimit` (FIFO eviction); prevents unbounded memory growth. |
 | `src/engine/HistoryLayoutCache.ts` | `HistoryLayoutCache` | `Class` | Caches wrapped row layouts for static history entries keyed by width. | Purges entries on terminal width changes and dropped history node evictions. |

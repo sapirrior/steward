@@ -293,4 +293,62 @@ describe('Phase 4: Engine Input Dispatch and Scroll Bindings', () => {
 
     engine.dispose();
   });
+
+  test('Bracketed paste delivers atomic typed paste event without throwing on ev.key', () => {
+    const { engine, io } = makeEngine({ columns: 80, rows: 24 });
+    engine.ensureAlternateScreen();
+
+    const events: any[] = [];
+    engine.addInputListener((ev) => {
+      // Must not throw when accessing ev.key
+      const k = ev.key;
+      expect(k).toBeDefined();
+      expect(k.ctrl).toBe(false);
+      events.push(ev);
+      return false;
+    });
+
+    // Feeding typed character
+    io.feed('a');
+    expect(events).toHaveLength(1);
+    expect(events[0].type).toBe('key');
+    expect(events[0].input).toBe('a');
+
+    // Feeding bracketed paste with multiline text
+    io.feed('\x1b[200~hello\nworld\x1b[201~');
+    expect(events).toHaveLength(2);
+    expect(events[1].type).toBe('paste');
+    expect(events[1].isPaste).toBe(true);
+    expect(events[1].key.paste).toBe(true);
+    expect(events[1].text).toBe('hello\nworld');
+    expect(events[1].input).toBe('hello\nworld');
+
+    engine.dispose();
+  });
+
+  test('flushInput flushes unterminated paste and escape sequences deterministically', () => {
+    const { engine, io } = makeEngine({ columns: 80, rows: 24 });
+    engine.ensureAlternateScreen();
+
+    const events: any[] = [];
+    engine.addInputListener((ev) => {
+      events.push(ev);
+    });
+
+    // Feed lone ESC
+    io.feed('\x1b');
+    expect(events).toHaveLength(0); // Pending ESC timer
+    engine.flushInput();
+    expect(events).toHaveLength(1);
+    expect(events[0].key.name).toBe('escape');
+
+    // Feed unterminated paste
+    io.feed('\x1b[200~buffered text');
+    engine.flushInput();
+    expect(events).toHaveLength(2);
+    expect(events[1].type).toBe('paste');
+    expect(events[1].text).toBe('buffered text');
+
+    engine.dispose();
+  });
 });

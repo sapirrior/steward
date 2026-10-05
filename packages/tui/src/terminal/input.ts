@@ -35,10 +35,33 @@ export type TerminalEvent =
     }
   | { type: 'focus'; focused: boolean };
 
-export interface InputEvent {
-  input: string;
-  key: Key;
-  isPaste?: boolean;
+export type InputEvent =
+  | { type: 'key'; input: string; key: Key; isPaste?: false; text?: undefined }
+  | { type: 'paste'; input: string; text: string; key: Key; isPaste: true };
+
+/**
+ * Converts a raw TerminalEvent into a safe, typed InputEvent.
+ * Returns null for mouse and focus events which do not reach custom input listeners.
+ */
+export function toInputEvent(ev: TerminalEvent): InputEvent | null {
+  if (ev.type === 'key') {
+    return {
+      type: 'key',
+      input: ev.input,
+      key: ev.key,
+      isPaste: false,
+    };
+  }
+  if (ev.type === 'paste') {
+    return {
+      type: 'paste',
+      input: ev.text,
+      text: ev.text,
+      key: makeKey('paste', { paste: true }),
+      isPaste: true,
+    };
+  }
+  return null;
 }
 
 export const MAX_SEQUENCE_BYTES = 256;
@@ -591,13 +614,8 @@ export class InputParser {
 export function parseInputChunk(chunk: string | Buffer | InputEvent | TerminalEvent): InputEvent[] {
   if (typeof chunk === 'object' && chunk !== null && !Buffer.isBuffer(chunk)) {
     if ('type' in chunk) {
-      if (chunk.type === 'key') {
-        return [{ input: chunk.input, key: chunk.key, isPaste: false }];
-      }
-      if (chunk.type === 'paste') {
-        return [{ input: chunk.text, key: makeKey('paste', { paste: true }), isPaste: true }];
-      }
-      return [];
+      const ev = toInputEvent(chunk as TerminalEvent);
+      return ev ? [ev] : [];
     }
     if ('input' in chunk && 'key' in chunk) {
       return [chunk as InputEvent];
@@ -616,10 +634,9 @@ export function parseInputChunk(chunk: string | Buffer | InputEvent | TerminalEv
   const out: InputEvent[] = [];
 
   for (const ev of all) {
-    if (ev.type === 'key') {
-      out.push({ input: ev.input, key: ev.key, isPaste: false });
-    } else if (ev.type === 'paste') {
-      out.push({ input: ev.text, key: makeKey('paste', { paste: true }), isPaste: true });
+    const inputEv = toInputEvent(ev);
+    if (inputEv) {
+      out.push(inputEv);
     }
   }
 

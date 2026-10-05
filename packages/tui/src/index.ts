@@ -12,6 +12,7 @@ export * from './text/wrap.js';
 export * from './text/truncate.js';
 export * from './text/width.js';
 export * from './text/sanitize.js';
+export * from './text/ansi.js';
 export * from './terminal/io.js';
 export * from './terminal/sequences.js';
 export * from './terminal/color.js';

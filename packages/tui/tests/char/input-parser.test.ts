@@ -280,9 +280,11 @@ describe('Phase 2: Central Stateful InputParser', () => {
     expect(evs[0]).toEqual({ type: 'key', input: '🚀', key: makeKey('🚀') });
     expect(evs[1]).toEqual({ type: 'key', input: '😀', key: makeKey('😀') });
     // Check no surrogate halves in input
-    expect(evs[0]?.input.length).toBe(2); // UTF-16 code units length of surrogate pair is 2, but single code point string
-    expect(evs[0]?.input.charCodeAt(0)).toBe(0xd83d);
-    expect(evs[0]?.input.charCodeAt(1)).toBe(0xde80);
+    if (evs[0]?.type === 'key') {
+      expect(evs[0].input.length).toBe(2); // UTF-16 code units length of surrogate pair is 2, but single code point string
+      expect(evs[0].input.charCodeAt(0)).toBe(0xd83d);
+      expect(evs[0].input.charCodeAt(1)).toBe(0xde80);
+    }
   });
 
   test('Bracketed paste whole, split, and sanitized', () => {
