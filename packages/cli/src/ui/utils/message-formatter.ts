@@ -1,5 +1,4 @@
-import { figures } from '../../theme/index.js';
-import { c, bg, bold } from '../../theme/style.js';
+import { figures, c, bg, bold } from '../../theme/index.js';
 import {
   formatMarkdown,
   getStatusBullet,

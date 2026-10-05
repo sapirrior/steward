@@ -1,7 +1,7 @@
 /** @jsxImportSource stitchable */
 import { Component, Box, Text } from 'stitchable';
 import { renderModalBox } from '../../utils/modal-box.js';
-import { c } from '../../../theme/style.js';
+import { c } from '../../../theme/index.js';
 
 export interface ShortcutsMenuProps {
   onClose: () => void;

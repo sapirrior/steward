@@ -1,5 +1,4 @@
-import { figures } from '../../theme/index.js';
-import { c } from '../../theme/style.js';
+import { figures, c } from '../../theme/index.js';
 import { visibleWidth, truncateToWidth } from './format.js';
 import { renderElement } from 'stitchable';
 

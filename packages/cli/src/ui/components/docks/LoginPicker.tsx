@@ -1,7 +1,6 @@
 /** @jsxImportSource stitchable */
 import { Component, Box, Text, type InputEvent } from 'stitchable';
-import { figures } from '../../../theme/index.js';
-import { c, bold } from '../../../theme/style.js';
+import { figures, c, bold } from '../../../theme/index.js';
 import { renderModalBox } from '../../utils/modal-box.js';
 import { truncateToWidth } from '../../utils/format.js';
 

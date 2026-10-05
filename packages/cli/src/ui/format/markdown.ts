@@ -1,7 +1,7 @@
 import { marked, type Token, type Tokens } from 'marked';
 import stripAnsi from 'strip-ansi';
 import stringWidth from 'string-width';
-import { c, bold, italic, underline } from '../../theme/style.js';
+import { c, bold, italic, underline } from '../../theme/index.js';
 import { highlightCode } from './highlight.js';
 
 const EOL = '\n';

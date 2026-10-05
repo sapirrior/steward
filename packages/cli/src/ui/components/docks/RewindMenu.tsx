@@ -7,8 +7,7 @@ import {
   readCasBlob,
   computeWorkspaceHash,
 } from '@steward/agent';
-import { figures } from '../../../theme/index.js';
-import { c } from '../../../theme/style.js';
+import { figures, c } from '../../../theme/index.js';
 import { Box, Text } from 'stitchable';
 
 export interface RewindItem {

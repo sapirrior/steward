@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'bun:test';
 import chalk from 'chalk';
-import { c, bg, bold, italic, underline, resolveThemeColor } from '../src/theme/style.js';
-import { darkTheme } from '../src/theme/colors.js';
-import { getHighlightTheme, buildHighlightTheme } from '../src/theme/syntax.js';
+import {
+  c,
+  bg,
+  bold,
+  italic,
+  underline,
+  resolveThemeColor,
+  darkTheme,
+  getHighlightTheme,
+  buildHighlightTheme,
+} from '../src/theme/index.js';
 
 describe('CLI Theme Machinery (S6)', () => {
   it('exposes all declared foreground color tokens', () => {

@@ -1,8 +1,7 @@
 /** @jsxImportSource stitchable */
 import { SelectList } from '../../utils/select-list.js';
 import type { Model } from '@steward/ai';
-import { figures } from '../../../theme/index.js';
-import { c, bold } from '../../../theme/style.js';
+import { figures, c, bold } from '../../../theme/index.js';
 import { Box, Text } from 'stitchable';
 
 export interface ModelPickerProps {

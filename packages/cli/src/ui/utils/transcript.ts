@@ -18,7 +18,7 @@ import {
   formatAssistantMessage,
   formatUserMessage,
 } from './message-formatter.js';
-import { c } from '../../theme/style.js';
+import { c } from '../../theme/index.js';
 
 export function formatTurnFooter(
   engine: TerminalEngine,

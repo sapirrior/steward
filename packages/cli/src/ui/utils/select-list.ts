@@ -1,5 +1,5 @@
 import { Component, type InputEvent } from 'stitchable';
-import { c } from '../../theme/style.js';
+import { c } from '../../theme/index.js';
 import { renderModalBox } from './modal-box.js';
 
 export interface SelectListOptions<T> {
