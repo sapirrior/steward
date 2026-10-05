@@ -10,9 +10,6 @@ export * from './checkpoint/index.js';
 // Background shell tasks subsystem
 export * from './tasks/index.js';
 
-// Settings & Env configuration
-export * from './config/index.js';
-
 // Errors & diagnostic logging
 export * from './errors/index.js';
 

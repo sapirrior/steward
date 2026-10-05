@@ -2,12 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { existsSync, readFileSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir, tmpdir } from 'node:os';
-import {
-  loadSettings,
-  saveSettings,
-  getSettingsDir,
-  getSettingsPath,
-} from '../src/services/config/settings.js';
+
 import {
   getSessionsRootDir,
   getSessionFilePath,
@@ -54,42 +49,6 @@ describe('Phase 1 Compatibility & Invariants Safety Net', () => {
       expect(getSessionFilePath('2026-09-21', 'sess123')).toBe(
         join(customSessions, '2026-09-21', 'sess123.json'),
       );
-    });
-  });
-
-  describe('1.2 Settings Backward Compatibility & Key Preservation', () => {
-    it('loads settings with voiceLanguage and unknown custom fields without throwing', () => {
-      const fixtureDir = join(import.meta.dir, 'fixtures', 'steward-home');
-      process.env.STEWARD_SETTINGS_DIR = fixtureDir;
-
-      const settings = loadSettings();
-      expect(settings.theme).toBe('monokai');
-      expect(settings.mode).toBe('normal');
-      expect(settings.voiceLanguage).toBe('en-US');
-      expect((settings as any).customFieldForCompatibility).toBe('preserved-value');
-    });
-
-    it('preserves unknown/legacy keys when saving new settings', () => {
-      const testDir = join(tmpdir(), `steward-test-settings-${Date.now()}`);
-      mkdirSync(testDir, { recursive: true });
-      process.env.STEWARD_SETTINGS_DIR = testDir;
-
-      // Seed with legacy settings
-      saveSettings({
-        voiceLanguage: 'fr-FR',
-        theme: 'default',
-        ...({ customLegacyKey: 'must-not-be-stripped' } as any),
-      });
-
-      // Update theme
-      saveSettings({ theme: 'dracula' });
-
-      const loaded = loadSettings();
-      expect(loaded.theme).toBe('dracula');
-      expect(loaded.voiceLanguage).toBe('fr-FR');
-      expect((loaded as any).customLegacyKey).toBe('must-not-be-stripped');
-
-      rmSync(testDir, { recursive: true, force: true });
     });
   });
 

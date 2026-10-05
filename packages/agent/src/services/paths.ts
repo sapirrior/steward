@@ -12,23 +12,6 @@ export function getStewardHomeDir(): string {
 }
 
 /**
- * Resolves directory path for settings (~/.steward or overridden by STEWARD_SETTINGS_DIR).
- */
-export function getSettingsDir(): string {
-  if (process.env.STEWARD_SETTINGS_DIR) {
-    return process.env.STEWARD_SETTINGS_DIR;
-  }
-  return getStewardHomeDir();
-}
-
-/**
- * Resolves path to ~/.steward/settings.json.
- */
-export function getSettingsPath(): string {
-  return join(getSettingsDir(), 'settings.json');
-}
-
-/**
  * Resolves directory path for sessions (~/.steward/sessions or overridden by STEWARD_SESSIONS_DIR).
  */
 export function getSessionsRootDir(): string {

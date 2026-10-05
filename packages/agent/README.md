@@ -77,8 +77,7 @@ Every tool has an implementation file in `src/tools/` and a corresponding schema
 | `checkpoint/lock.ts` | `MutationLockManager` | Class | Manages deterministic fine-grained file mutation locks. | Lexicographical lock acquisition to avoid deadlocks. |
 | `checkpoint/rewind.ts` | `executeRewind` | Function | Performs atomic workspace rollback and history truncation to previous turns. | Restores pre-images, recalculates usage, and truncates session turns atomically. |
 | `tasks/manager.ts` | `TaskManager` | Class | Manages background shell tasks, streaming tail buffers, and process lifecycle. | Bounded ring buffer for task output streaming. |
-| `config/settings.ts` | `loadSettings` / `saveSettings` / `normalizeReasoningEffort` | Function | Reads and writes user preferences in `~/.steward/settings.json` and normalizes effort scale values. | Stores default model, theme, effort, and mode; normalizes legacy and arbitrary effort strings to canonical tiers. |
-| `config/trust.ts` | `isFolderTrusted` / `trustFolder` | Function | Manages trusted workspace folder list in `~/.steward/trusted-folders.json`. | Restricts operations in untrusted paths. |
+| `fs/normalize-path.ts` | `normalizeFolderPath` | Function | Resolves realpath, normalizes path separators, and ensures consistent cross-platform directory comparisons. | Used for workspace scoping and path verification. |
 | `errors/logger.ts` | `logError` | Function | Appends structured diagnostic error logs to `~/.steward/logs/`. | Serializes error codes, status, and redacted context. |
 
 ---

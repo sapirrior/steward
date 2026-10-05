@@ -6,14 +6,17 @@ import {
   type SessionData,
   SessionLogWriter,
   getSessionLogPath,
-  isFolderTrusted,
-  trustFolder,
   logError,
   cycleMode,
   setActiveMode,
+} from '@steward/agent';
+import {
+  isFolderTrusted,
+  trustFolder,
   getSavedMode,
   saveModeSelection,
-} from '@steward/agent';
+  getSavedModel,
+} from './settings/index.js';
 import { defaultCommandRegistry } from './commands/registry.js';
 import { c } from './theme/style.js';
 import Header from './interface/components/Header.js';
@@ -71,9 +74,20 @@ export class TUIApp {
     this.cwd = options.cwd ?? process.cwd();
     const runtime = options.ai ? undefined : createRuntime();
     this.ai = options.ai ?? (runtime!.ai as AI);
+    const savedModel = getSavedModel();
     this.session =
       options.initialSession ??
-      new AgentSession(undefined, undefined, { ai: runtime?.modelPort ?? (this.ai as any) });
+      new AgentSession(
+        savedModel
+          ? {
+              provider: savedModel.provider,
+              modelId: savedModel.modelId,
+              reasoningEffort: savedModel.effort,
+            }
+          : undefined,
+        undefined,
+        { ai: runtime?.modelPort ?? (this.ai as any) },
+      );
     this.onExitCallback = options.onExit;
     this.engine = new TerminalEngine({
       io: options.io,

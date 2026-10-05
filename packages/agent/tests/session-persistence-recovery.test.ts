@@ -8,22 +8,8 @@ import {
   saveSession,
 } from '../src/services/session/store.js';
 import { parseSessionDocument } from '../src/services/session/validate.js';
-import { normalizeReasoningEffort } from '../src/services/config/settings.js';
 
 describe('Session Persistence & Recovery', () => {
-  it('normalizeReasoningEffort correctly handles standard and non-standard strings', () => {
-    expect(normalizeReasoningEffort('none')).toBe('none');
-    expect(normalizeReasoningEffort('low')).toBe('low');
-    expect(normalizeReasoningEffort('medium')).toBe('medium');
-    expect(normalizeReasoningEffort('high')).toBe('high');
-    expect(normalizeReasoningEffort('xhigh')).toBe('xhigh');
-    expect(normalizeReasoningEffort('provider-default')).toBe('medium');
-    expect(normalizeReasoningEffort('default')).toBe('medium');
-    expect(normalizeReasoningEffort('auto')).toBe('medium');
-    expect(normalizeReasoningEffort(undefined)).toBe('medium');
-    expect(normalizeReasoningEffort(null)).toBe('medium');
-  });
-
   it('parseSessionDocument handles non-standard effort strings gracefully without failing schema validation', () => {
     const rawDoc = JSON.stringify({
       schemaVersion: 1,

@@ -25,10 +25,9 @@ import {
 import type { MutationCheckpointTracker } from '../services/checkpoint/index.js';
 import { defaultToolCatalog, summarizeToolResult, formatPlainToolSummary } from '../tools/index.js';
 import { ShellTaskManager } from '../services/tasks/manager.js';
-import { loadSettings, saveSettings, normalizeReasoningEffort } from '../services/config/index.js';
 import { logError } from '../services/errors/index.js';
 import { runAgentTurn, accumulateTokenUsage } from './agent-runner.js';
-import { SAFETY_STEP_CEILING } from './constants.js';
+import { SAFETY_STEP_CEILING, DEFAULT_MODEL } from './constants.js';
 import type { AgentEvent } from './events.js';
 import type { SessionConfig, SubmitPromptOptions, ToolResultInfo, TurnSummary } from './types.js';
 import { prepareTurn } from './turn-context.js';
@@ -153,13 +152,9 @@ export class AgentSession {
         this.sessionData.id,
       );
     } else {
-      const settings = loadSettings();
-      const rawProvider = initialConfig?.provider ?? settings.model?.provider ?? 'google';
-      const provider = (rawProvider === 'gemini' ? 'google' : rawProvider) as any;
-      const modelId = initialConfig?.modelId ?? settings.model?.modelId ?? 'gemini-2.5-flash';
-      const effort: ReasoningEffort =
-        initialConfig?.reasoningEffort ??
-        (settings.model?.effort ? normalizeReasoningEffort(settings.model.effort) : 'medium');
+      const provider = initialConfig?.provider ?? DEFAULT_MODEL.provider;
+      const modelId = initialConfig?.modelId ?? DEFAULT_MODEL.modelId;
+      const effort = initialConfig?.reasoningEffort ?? DEFAULT_MODEL.effort ?? 'medium';
 
       const selection: ModelSelection = {
         provider,
@@ -194,7 +189,7 @@ export class AgentSession {
     return this.ai;
   }
 
-  public setModel(selection: ModelSelection, persist = true): ModelSelection {
+  public setModel(selection: ModelSelection): ModelSelection {
     this.config.provider = selection.provider;
     this.config.modelId = selection.modelId;
     this.config.reasoningEffort = selection.effort ?? 'medium';
@@ -202,16 +197,6 @@ export class AgentSession {
     this.sessionData.model = { ...selection };
     this.sessionData.updatedAt = new Date().toISOString();
     saveSession(this.sessionData);
-
-    if (persist) {
-      saveSettings({
-        model: {
-          provider: selection.provider,
-          modelId: selection.modelId,
-          effort: selection.effort,
-        },
-      });
-    }
 
     return selection;
   }
@@ -228,21 +213,11 @@ export class AgentSession {
     return this.config.reasoningEffort ?? 'medium';
   }
 
-  public setEffort(effort: ReasoningEffort, persist = true): ReasoningEffort {
+  public setEffort(effort: ReasoningEffort): ReasoningEffort {
     this.config.reasoningEffort = effort;
     this.sessionData.model.effort = effort;
     this.sessionData.updatedAt = new Date().toISOString();
     saveSession(this.sessionData);
-
-    if (persist) {
-      saveSettings({
-        model: {
-          provider: this.config.provider,
-          modelId: this.config.modelId,
-          effort,
-        },
-      });
-    }
 
     return effort;
   }

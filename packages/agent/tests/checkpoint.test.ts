@@ -860,7 +860,7 @@ describe('Checkpoint Core (CAS, Path, Lock, Tracker, Rewind)', () => {
   describe('Rewind Line Diff Counts', () => {
     it('computes accurate additions and deletions for line diffs', async () => {
       const { computeLineDiffCounts } =
-        await import('../../cli/src/ui/components/docks/RewindMenu.js');
+        await import('../../cli/src/interface/components/docks/RewindMenu.js');
 
       // 1. Identical content
       expect(computeLineDiffCounts('hello\nworld', 'hello\nworld')).toEqual({
@@ -898,7 +898,8 @@ describe('Checkpoint Core (CAS, Path, Lock, Tracker, Rewind)', () => {
     });
 
     it('buildRewindItems calculates added and deleted lines from CAS blobs', async () => {
-      const { buildRewindItems } = await import('../../cli/src/ui/components/docks/RewindMenu.js');
+      const { buildRewindItems } =
+        await import('../../cli/src/interface/components/docks/RewindMenu.js');
 
       const tracker = new MutationCheckpointTracker({
         workspaceRoot: workspaceDir,

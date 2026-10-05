@@ -1,4 +1,4 @@
-import { saveSettings } from '@steward/agent';
+import { saveModel } from '../../settings/index.js';
 import { normalizeProviderId, type Model, type ProviderId } from '@steward/ai';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
@@ -86,13 +86,11 @@ export const modelCommand: SlashCommand = {
       effort: current.effort ?? 'medium',
     });
 
-    // 5. Save to ~/.steward/settings.json
-    saveSettings({
-      model: {
-        provider: updatedSelection.provider,
-        modelId: updatedSelection.modelId,
-        effort: updatedSelection.effort,
-      },
+    // 5. Save to settings.json
+    saveModel({
+      provider: updatedSelection.provider,
+      modelId: updatedSelection.modelId,
+      effort: updatedSelection.effort,
     });
 
     return {

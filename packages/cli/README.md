@@ -92,6 +92,18 @@ The `@steward/cli` package serves as the application composition root and termin
 
 ---
 
+### Settings System (`src/settings/`)
+
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `store.ts` | `loadSettings`, `saveSettings`, `getSettingsPath` | Function | Atomic persistence of user configuration in `~/.steward/settings.json`. | Uses atomic temp-file write + rename; safely returns `{}` on malformed files and preserves all unknown keys. |
+| `model.ts` | `getSavedModel`, `saveModel`, `normalizeReasoningEffort` | Function | Loads and updates persisted default LLM model selection and reasoning effort tier. | Remaps legacy `gemini` $\to$ `google`; normalizes numeric/descriptive effort strings. |
+| `mode.ts` | `getSavedMode`, `saveModeSelection` | Function | Loads and updates default chat mode (`normal`, `chat`, `review`, `build`). | Validated strictly against `MODE_NAMES`. |
+| `trust.ts` | `isFolderTrusted`, `trustFolder` | Function | Workspace trust verification and registration. | Resolves exact paths and ancestor directory permissions recursively using `normalizeFolderPath`. |
+| `index.ts` | Barrel exports | Module | Unified entry point exporting all CLI settings, model, mode, and trust management functions. | Single import source for settings across the CLI. |
+
+---
+
 ## Application Invariants
 
 1. **Trust Gate Ordering**: External project and user lifecycle hooks are disabled until the user explicitly approves workspace trust via the `TrustGate`.

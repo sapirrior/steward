@@ -1,4 +1,5 @@
 import type { ReasoningEffort } from '@steward/ai';
+import { saveModel } from '../../settings/index.js';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
 const EFFORT_HELP = `Reasoning Effort Levels:
@@ -54,6 +55,12 @@ export const effortCommand: SlashCommand = {
     }
 
     context.session.setEffort(parsed);
+    const updatedModel = context.session.getModel();
+    saveModel({
+      provider: updatedModel.provider,
+      modelId: updatedModel.modelId,
+      effort: parsed,
+    });
 
     return {
       handled: true,

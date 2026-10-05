@@ -1,12 +1,12 @@
 import { TerminalEngine } from 'stitchable';
 import {
   AgentSession,
-  saveSettings,
   executeRewind,
   recoverPendingCheckpoint,
   type SessionData,
   type FilePermissionRequest,
 } from '@steward/agent';
+import { saveModel } from '../settings/index.js';
 import type { Model, ProviderId } from '@steward/ai';
 import ModelPicker from './components/docks/ModelPicker.js';
 import LoginPicker, { type OAuthProviderItem } from './components/docks/LoginPicker.js';
@@ -121,12 +121,10 @@ export class ModalController {
           modelId: selected.modelId,
           effort: currentModel.effort ?? 'medium',
         });
-        saveSettings({
-          model: {
-            provider: updated.provider,
-            modelId: updated.modelId,
-            effort: updated.effort,
-          },
+        saveModel({
+          provider: updated.provider,
+          modelId: updated.modelId,
+          effort: updated.effort,
         });
         header.props.model = updated;
         this.deps.statusBar.update({ model: updated });
@@ -226,8 +224,15 @@ export class ModalController {
     const picker = new EffortPicker({
       currentEffort,
       onSelect: (selected, persist) => {
-        session.setEffort(selected, persist);
+        session.setEffort(selected);
         const updatedModel = session.getModel();
+        if (persist) {
+          saveModel({
+            provider: updatedModel.provider,
+            modelId: updatedModel.modelId,
+            effort: selected,
+          });
+        }
         header.props.model = updatedModel;
         statusBar.update({ model: updatedModel });
         const scope = persist ? 'saved globally to settings' : 'for this session only';

@@ -4,12 +4,10 @@ import {
   AgentSession,
   logError,
   setupGlobalErrorHandlers,
-  loadSettings,
-  getSavedMode,
-  saveModeSelection,
   type ChatMode,
   MODE_NAMES,
 } from '@steward/agent';
+import { loadSettings, getSavedMode, saveModeSelection, getSavedModel } from './settings/index.js';
 import { setupAuth } from '@steward/oauth';
 import { createRuntime } from './runtime.js';
 import pkg from '../package.json' with { type: 'json' };
@@ -99,7 +97,18 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<void>
   try {
     await setupAuth();
     const runtime = createRuntime();
-    const session = new AgentSession(undefined, undefined, { ai: runtime.modelPort });
+    const savedModel = getSavedModel();
+    const session = new AgentSession(
+      savedModel
+        ? {
+            provider: savedModel.provider,
+            modelId: savedModel.modelId,
+            reasoningEffort: savedModel.effort,
+          }
+        : undefined,
+      undefined,
+      { ai: runtime.modelPort },
+    );
     const app = new TUIApp({
       version: VERSION,
       ai: runtime.ai,
