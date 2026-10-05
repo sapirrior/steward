@@ -1,6 +1,9 @@
 import type { CommandResult } from './types.js';
 import { listSessions, loadSession } from '@steward/agent';
-import { formatSlashCommandOutput, formatUserMessage } from '../ui/utils/message-formatter.js';
+import {
+  formatSlashCommandOutput,
+  formatUserMessage,
+} from '../interface/utils/message-formatter.js';
 
 export interface SlashCommandHandlerCtx {
   engine: {

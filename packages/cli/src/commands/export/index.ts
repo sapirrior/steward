@@ -3,13 +3,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 import type { SessionDocument } from '@steward/agent';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
-
-/**
- * Strips terminal ANSI escape sequences.
- */
-function stripAnsi(str: string): string {
-  return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
-}
+import { stripAnsi } from 'stitchable';
 
 /**
  * Strips ASCII art logo blocks from header lines while preserving the header text.

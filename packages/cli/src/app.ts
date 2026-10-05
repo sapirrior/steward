@@ -16,25 +16,25 @@ import {
 } from '@steward/agent';
 import { defaultCommandRegistry } from './commands/registry.js';
 import { c } from './theme/style.js';
-import Header from './ui/components/Header.js';
-import StatusBar from './ui/components/StatusBar.js';
-import StreamingView from './ui/components/StreamingView.js';
-import PromptInput from './ui/components/PromptInput.js';
-import TrustGate from './ui/components/TrustGate.js';
-import BashPermissionDock from './ui/components/docks/BashPermissionDock.js';
-import FilePermissionDock from './ui/components/docks/FilePermissionDock.js';
-import { PermissionQueue } from './ui/utils/permission-queue.js';
+import Header from './interface/components/Header.js';
+import StatusBar from './interface/components/StatusBar.js';
+import StreamingView from './interface/components/StreamingView.js';
+import PromptInput from './interface/components/PromptInput.js';
+import TrustGate from './interface/components/TrustGate.js';
+import BashPermissionDock from './interface/components/docks/BashPermissionDock.js';
+import FilePermissionDock from './interface/components/docks/FilePermissionDock.js';
+import { PermissionQueue } from './interface/utils/permission-queue.js';
 import {
   formatSystemMessage,
   formatAssistantMessage,
   formatErrorBadge,
   formatUserMessage,
-} from './ui/utils/message-formatter.js';
-import { renderTranscript } from './ui/utils/transcript.js';
+} from './interface/utils/message-formatter.js';
+import { renderTranscript } from './interface/utils/transcript.js';
 import type { AI } from '@steward/ai';
 import { createRuntime } from './runtime.js';
-import { ModalController } from './ui/modal-controller.js';
-import { createAgentEventHandler, type AgentEventState } from './ui/agent-event-router.js';
+import { ModalController } from './interface/modal-controller.js';
+import { createAgentEventHandler, type AgentEventState } from './interface/agent-event-router.js';
 import { applyCommandResult } from './commands/handle-command-result.js';
 import { executeDirectBash } from './utils/bash.js';
 

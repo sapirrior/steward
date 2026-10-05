@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import TerminalEngine from 'stitchable';
-import PromptInput from '../../src/ui/components/PromptInput.js';
+import PromptInput from '../../src/interface/components/PromptInput.js';
 
 describe('PromptInput Spinner & Permission Dock Lifecycle (Section 17 & 18)', () => {
   it('resumes spinner frame animation after unmount and remount while disabled', async () => {

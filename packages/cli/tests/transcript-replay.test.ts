@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { TerminalEngine } from 'stitchable';
-import { renderTranscript } from '../src/ui/utils/transcript.js';
-import Header from '../src/ui/components/Header.js';
+import { renderTranscript } from '../src/interface/utils/transcript.js';
+import Header from '../src/interface/components/Header.js';
 import type { SessionData } from '@steward/agent';
 
 describe('cli/ui/utils/transcript — Session Transcript Replay', () => {

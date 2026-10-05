@@ -88,7 +88,7 @@ $$\text{File} \longrightarrow \text{Export} \longrightarrow \text{Type} \longrig
 All terminal user interface code adheres strictly to the 3-layer architecture:
 - **Layer 0 (Engine & Layout):** Frozen core (`TerminalEngine`, `DocumentTree`, `StateRenderer`, `cell-layout.ts`). Content-blind physical cell math and Mode 2026 synchronized output.
 - **Layer 1 (Primitives):** Generic layout building blocks (`Box`, `Text`, `Columns`, `Divider`).
-- **Layer 2 (Domain UI Components):** UI components in `packages/cli/src/ui/components/` (`Header.tsx`, `StatusBar.tsx`, `PromptInput.tsx`, `StreamingView.tsx`, Modal Docks).
+- **Layer 2 (Domain UI Components):** UI components in `packages/cli/src/interface/components/` (`Header.tsx`, `StatusBar.tsx`, `PromptInput.tsx`, `StreamingView.tsx`, Modal Docks).
 - **Golden Snapshots:** Visual characterization tests (`packages/tui/tests/char/`) ensure line-exact rendering.
 
 ### Error Presentation & Resilience

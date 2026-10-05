@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import PromptInput from '../../src/ui/components/PromptInput.js';
+import PromptInput from '../../src/interface/components/PromptInput.js';
 import { makeEngine } from '../helpers/app.js';
 
 describe('PromptInput Interaction & Typing', () => {

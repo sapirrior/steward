@@ -1,6 +1,5 @@
 import { marked, type Token, type Tokens } from 'marked';
-import stripAnsi from 'strip-ansi';
-import stringWidth from 'string-width';
+import { stripAnsi, visibleWidth as stringWidth } from 'stitchable';
 import { c, bold, italic, underline } from '../../theme/index.js';
 import { highlightCode } from './highlight.js';
 

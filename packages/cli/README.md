@@ -17,7 +17,7 @@ The `@steward/cli` package serves as the application composition root and termin
 
 ---
 
-### UI Components & Controllers (`src/ui/`)
+### Interface Components & Controllers (`src/interface/`)
 
 | File / Component | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- |

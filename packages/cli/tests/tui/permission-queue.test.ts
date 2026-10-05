@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { PermissionQueue, type QueuedPermissionItem } from '../../src/ui/utils/permission-queue.js';
+import {
+  PermissionQueue,
+  type QueuedPermissionItem,
+} from '../../src/interface/utils/permission-queue.js';
 
 import type { BashPermissionRequest, FilePermissionRequest } from '@steward/agent';
 

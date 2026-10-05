@@ -1,7 +1,6 @@
-import stripAnsi from 'strip-ansi';
-import stringWidth from 'string-width';
 import { figures, resolveThemeColor, c, bold } from '../../theme/index.js';
 import { applyMarkdown } from '../format/markdown.js';
+import { visibleWidth, truncateToWidth, stripAnsi } from 'stitchable';
 
 export function themeColor(color: string) {
   return resolveThemeColor(color, false);
@@ -9,10 +8,6 @@ export function themeColor(color: string) {
 
 export function themeBgColor(color: string) {
   return resolveThemeColor(color, true);
-}
-
-export function visibleWidth(text: string): number {
-  return stringWidth(stripAnsi(text));
 }
 
 export function formatMarkdown(md: string): string {
@@ -40,32 +35,34 @@ export function extractPrimaryToolParam(args: unknown): string {
     return String(args).split('\n')[0] ?? '';
   }
 
-  const record = args as Record<string, unknown>;
-  const primaryKeys = [
+  const obj = args as Record<string, unknown>;
+
+  // Common descriptive param priority
+  const prioritizedKeys = [
+    'command',
     'path',
     'file_path',
-    'command',
+    'filePath',
     'pattern',
     'query',
-    'target_file',
     'url',
-    'seconds',
-    'file',
-    'name',
+    'message',
+    'action',
     'prompt',
   ];
 
-  for (const k of primaryKeys) {
-    if (record[k] !== undefined && record[k] !== null && record[k] !== '') {
-      const val = record[k];
-      if (Array.isArray(val)) return `${val.length} item${val.length === 1 ? '' : 's'}`;
+  for (const key of prioritizedKeys) {
+    if (key in obj && obj[key] !== undefined && obj[key] !== null) {
+      const val = obj[key];
       const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
       return str.split('\n')[0] ?? '';
     }
   }
 
-  const firstVal = Object.values(record)[0];
-  if (firstVal !== undefined && firstVal !== null && firstVal !== '') {
+  // Fallback to first string or value
+  const keys = Object.keys(obj);
+  if (keys.length > 0) {
+    const firstVal = obj[keys[0]!];
     if (Array.isArray(firstVal))
       return `${firstVal.length} item${firstVal.length === 1 ? '' : 's'}`;
     const str = typeof firstVal === 'object' ? JSON.stringify(firstVal) : String(firstVal);
@@ -73,47 +70,6 @@ export function extractPrimaryToolParam(args: unknown): string {
   }
 
   return '';
-}
-
-export function truncateToWidth(styledText: string, maxWidth: number): string {
-  if (maxWidth <= 0) return '';
-  if (stringWidth(stripAnsi(styledText)) <= maxWidth) return styledText;
-
-  const ansiRegex = /\x1b\[[0-9;]*[a-zA-Z]/g;
-  let result = '';
-  let currentWidth = 0;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = ansiRegex.exec(styledText)) !== null) {
-    if (match.index > lastIndex) {
-      const plain = styledText.slice(lastIndex, match.index);
-      for (const char of plain) {
-        const w = stringWidth(char);
-        if (currentWidth + w > maxWidth) {
-          return result + '\x1b[0m';
-        }
-        result += char;
-        currentWidth += w;
-      }
-    }
-    result += match[0];
-    lastIndex = ansiRegex.lastIndex;
-  }
-
-  if (lastIndex < styledText.length) {
-    const plain = styledText.slice(lastIndex);
-    for (const char of plain) {
-      const w = stringWidth(char);
-      if (currentWidth + w > maxWidth) {
-        return result + '\x1b[0m';
-      }
-      result += char;
-      currentWidth += w;
-    }
-  }
-
-  return result.includes('\x1b') && !result.endsWith('\x1b[0m') ? result + '\x1b[0m' : result;
 }
 
 export function getStatusBullet(
@@ -132,4 +88,4 @@ export function getStatusBullet(
   return c.muted(figures.blackCircle);
 }
 
-export { stripAnsi, figures };
+export { visibleWidth, truncateToWidth, stripAnsi, figures };

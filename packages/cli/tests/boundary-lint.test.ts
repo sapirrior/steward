@@ -48,7 +48,7 @@ describe('Monorepo Package Boundary Rules', () => {
   const rootDir = join(import.meta.dir, '../../..');
   const tuiRoot = join(rootDir, 'packages/tui/src');
   const tuiPackageRoot = join(rootDir, 'packages/tui');
-  const uiRoot = join(rootDir, 'packages/cli/src/ui');
+  const uiRoot = join(rootDir, 'packages/cli/src/interface');
 
   const allTuiFiles = getAllTsFiles(tuiRoot);
   const allUiFiles = getAllTsFiles(uiRoot);

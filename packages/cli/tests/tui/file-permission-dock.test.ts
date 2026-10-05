@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import FilePermissionDock from '../../src/ui/components/docks/FilePermissionDock.js';
+import FilePermissionDock from '../../src/interface/components/docks/FilePermissionDock.js';
 import type { FilePermissionRequest } from '@steward/agent';
 import { makeEngine } from '../helpers/app.js';
 

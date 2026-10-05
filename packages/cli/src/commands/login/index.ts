@@ -5,7 +5,7 @@ import {
 } from '@steward/oauth';
 import { normalizeProviderId } from '@steward/ai';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
-import type { OAuthProviderItem } from '../../ui/components/docks/LoginPicker.js';
+import type { OAuthProviderItem } from '../../interface/components/docks/LoginPicker.js';
 
 const OAUTH_PROVIDERS: { id: string; name: string; description: string }[] = [
   {

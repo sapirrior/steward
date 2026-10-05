@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import StreamingView from '../../src/ui/components/StreamingView.js';
-import stripAnsi from 'strip-ansi';
+import StreamingView from '../../src/interface/components/StreamingView.js';
+import { stripAnsi } from 'stitchable';
 
 describe('StreamingView Thinking Indicator & Transitions', () => {
   it('renders blinking bullet with Thinking.. and subline status', () => {
@@ -60,7 +60,7 @@ describe('StreamingView Thinking Indicator & Transitions', () => {
   });
 
   it('suppresses Thinking.. between multi-tool calls in event router until all tools complete', () => {
-    const { createAgentEventHandler } = require('../../src/ui/agent-event-router.js');
+    const { createAgentEventHandler } = require('../../src/interface/agent-event-router.js');
     const view = new StreamingView();
     const state = {
       accumulatedText: '',

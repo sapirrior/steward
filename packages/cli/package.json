@@ -43,9 +43,7 @@
 
     "cli-highlight": "2.1.11",
     "marked": "18.0.12",
-    "stitchable": "*",
-    "string-width": "8.2.2",
-    "strip-ansi": "7.2.0"
+    "stitchable": "*"
   },
   "devDependencies": {
     "@types/bun": "1.4.2",

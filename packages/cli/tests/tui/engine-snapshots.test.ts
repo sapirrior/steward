@@ -1,22 +1,22 @@
 import { describe, it, expect } from 'bun:test';
 import TerminalEngine from 'stitchable';
-import Header from '../../src/ui/components/Header.js';
-import StatusBar from '../../src/ui/components/StatusBar.js';
-import PromptInput from '../../src/ui/components/PromptInput.js';
-import StreamingView from '../../src/ui/components/StreamingView.js';
-import ShortcutsMenu from '../../src/ui/components/docks/ShortcutsMenu.js';
-import ModelPicker from '../../src/ui/components/docks/ModelPicker.js';
-import SessionMenu from '../../src/ui/components/docks/SessionMenu.js';
-import EffortPicker from '../../src/ui/components/docks/EffortPicker.js';
-import RewindMenu from '../../src/ui/components/docks/RewindMenu.js';
-import BashPermissionDock from '../../src/ui/components/docks/BashPermissionDock.js';
-import FilePermissionDock from '../../src/ui/components/docks/FilePermissionDock.js';
-import TrustGate from '../../src/ui/components/TrustGate.js';
+import Header from '../../src/interface/components/Header.js';
+import StatusBar from '../../src/interface/components/StatusBar.js';
+import PromptInput from '../../src/interface/components/PromptInput.js';
+import StreamingView from '../../src/interface/components/StreamingView.js';
+import ShortcutsMenu from '../../src/interface/components/docks/ShortcutsMenu.js';
+import ModelPicker from '../../src/interface/components/docks/ModelPicker.js';
+import SessionMenu from '../../src/interface/components/docks/SessionMenu.js';
+import EffortPicker from '../../src/interface/components/docks/EffortPicker.js';
+import RewindMenu from '../../src/interface/components/docks/RewindMenu.js';
+import BashPermissionDock from '../../src/interface/components/docks/BashPermissionDock.js';
+import FilePermissionDock from '../../src/interface/components/docks/FilePermissionDock.js';
+import TrustGate from '../../src/interface/components/TrustGate.js';
 import {
   formatAssistantMessage,
   formatToolStatus,
   formatUserMessage,
-} from '../../src/ui/utils/message-formatter.js';
+} from '../../src/interface/utils/message-formatter.js';
 import { editFileTool } from '@steward/agent';
 import { captureHeadlessRender, assertGoldenMatch } from '../helpers/app.js';
 import { StateRenderer } from 'stitchable';
