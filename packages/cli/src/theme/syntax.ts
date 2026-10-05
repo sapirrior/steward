@@ -1,8 +1,7 @@
 import chalk from 'chalk';
 import type { Theme as HighlightTheme } from 'cli-highlight';
-import { getTheme, type UITheme } from './colors.js';
-import { resolveThemeColor } from './apply.js';
-import { themeVersion, bold, italic, underline } from './style.js';
+import { darkTheme, type UITheme } from './colors.js';
+import { resolveThemeColor, bold, italic, underline } from './style.js';
 
 export function buildHighlightTheme(theme: UITheme): HighlightTheme {
   const syn = theme.syntax;
@@ -68,16 +67,13 @@ export function buildHighlightTheme(theme: UITheme): HighlightTheme {
 }
 
 let cachedHighlightTheme: HighlightTheme | null = null;
-let cachedHighlightVersion = -1;
 
 export function getHighlightTheme(): HighlightTheme {
   if (chalk.level === 0) {
     return { default: (s: string) => s };
   }
-  const v = themeVersion();
-  if (!cachedHighlightTheme || v !== cachedHighlightVersion) {
-    cachedHighlightTheme = buildHighlightTheme(getTheme());
-    cachedHighlightVersion = v;
+  if (!cachedHighlightTheme) {
+    cachedHighlightTheme = buildHighlightTheme(darkTheme);
   }
   return cachedHighlightTheme;
 }

@@ -48,17 +48,6 @@ export interface UITheme {
   syntax: SyntaxTheme;
 }
 
-export type ThemeId = string;
-export type ThemeName = string;
-
-export interface ThemeMeta {
-  name: string;
-  label: string;
-  description: string;
-  theme: UITheme;
-  source?: 'built-in' | string;
-}
-
 /**
  * Canonical default dark theme palette.
  */
@@ -98,45 +87,7 @@ export const darkTheme: UITheme = {
     attr: '#79c0ff',
     meta: '#79c0ff',
     addition: '#7ee787',
-    deletion: '#ffa198',
+    deletion: '#ff7b72',
     default: '#c9d1d9',
   },
 };
-
-export const defaultTheme = darkTheme;
-
-export function getTheme(): UITheme {
-  return darkTheme;
-}
-
-export function getActiveThemeId(): string {
-  return 'dark';
-}
-
-export function getActiveThemeName(): string {
-  return 'dark';
-}
-
-export function setActiveTheme(_name: string): boolean {
-  return true;
-}
-
-export function listThemes(): ThemeMeta[] {
-  return [
-    {
-      name: 'dark',
-      label: 'Dark (Default)',
-      description: 'Default dark theme with terracotta and purple accents',
-      theme: darkTheme,
-      source: 'built-in',
-    },
-  ];
-}
-
-export function findTheme(query: string): ThemeMeta | undefined {
-  const q = query.trim().toLowerCase();
-  if (q === 'dark' || q === 'default') {
-    return listThemes()[0];
-  }
-  return undefined;
-}

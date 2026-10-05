@@ -1,6 +1,6 @@
 import stripAnsi from 'strip-ansi';
 import stringWidth from 'string-width';
-import { getTheme, figures, resolveThemeColor } from '../../theme/index.js';
+import { figures, resolveThemeColor } from '../../theme/index.js';
 import { c, bold } from '../../theme/style.js';
 import { applyMarkdown } from '../format/markdown.js';
 
@@ -133,4 +133,4 @@ export function getStatusBullet(
   return c.muted(figures.blackCircle);
 }
 
-export { stripAnsi, getTheme, figures };
+export { stripAnsi, figures };
