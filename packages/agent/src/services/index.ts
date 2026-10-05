@@ -20,3 +20,4 @@ export * from './errors/index.js';
 export * from './diff/diff.js';
 export * from './fs/atomic-write.js';
 export * from './fs/bounding.js';
+export * from './fs/normalize-path.js';

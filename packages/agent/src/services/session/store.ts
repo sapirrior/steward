@@ -24,16 +24,7 @@ import {
 } from './types.js';
 import { parseSessionDocument } from './validate.js';
 import { removeSessionLog } from './logs/store.js';
-
-/**
- * Resolves the base root directory for sessions: ~/.steward/sessions (or overridden by STEWARD_SESSIONS_DIR)
- */
-export function getSessionsRootDir(): string {
-  if (process.env.STEWARD_SESSIONS_DIR) {
-    return process.env.STEWARD_SESSIONS_DIR;
-  }
-  return join(homedir(), '.steward', 'sessions');
-}
+import { getSessionsRootDir, getSessionFilePath } from '../paths.js';
 
 /**
  * Returns current date formatted as YYYY-MM-DD.
@@ -51,13 +42,6 @@ export function getCurrentDateString(): string {
  */
 export function generateSessionId(): string {
   return randomUUID().replace(/-/g, '').slice(0, 12);
-}
-
-/**
- * Resolves the full file path for a session: ~/.steward/sessions/<date>/<sessionId>.json
- */
-export function getSessionFilePath(date: string, sessionId: string): string {
-  return join(getSessionsRootDir(), date, `${sessionId}.json`);
 }
 
 /**

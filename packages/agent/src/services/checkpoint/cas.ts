@@ -10,23 +10,8 @@ import {
   unlinkSync,
   writeSync,
 } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
-
-export function getCheckpointsRootDir(): string {
-  if (process.env.STEWARD_CHECKPOINTS_DIR) {
-    return process.env.STEWARD_CHECKPOINTS_DIR;
-  }
-  return join(homedir(), '.steward', 'checkpoints');
-}
-
-export function getWorkspaceCasDir(workspaceHash: string): string {
-  return join(getCheckpointsRootDir(), workspaceHash, 'cas');
-}
-
-export function getBlobPath(workspaceHash: string, sha256: string): string {
-  return join(getWorkspaceCasDir(workspaceHash), sha256);
-}
+import { getCheckpointsRootDir, getWorkspaceCasDir, getBlobPath } from '../paths.js';
 
 export function computeSha256(data: Buffer | Uint8Array | string): string {
   const hash = createHash('sha256');

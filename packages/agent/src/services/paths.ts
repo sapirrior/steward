@@ -80,20 +80,16 @@ export function getBlobPath(workspaceHash: string, sha256: string): string {
   return join(getWorkspaceCasDir(workspaceHash), sha256);
 }
 
-export function getManifestsDir(workspaceHash: string): string {
-  return join(getCheckpointsRootDir(), workspaceHash, 'manifests');
+export function getSessionCheckpointDir(workspaceHash: string, sessionId: string): string {
+  return join(getCheckpointsRootDir(), workspaceHash, 'sessions', sessionId);
 }
 
 export function getManifestPath(workspaceHash: string, sessionId: string): string {
-  return join(getManifestsDir(workspaceHash), `${sessionId}.json`);
+  return join(getSessionCheckpointDir(workspaceHash, sessionId), 'manifest.json');
 }
 
-export function getJournalsDir(workspaceHash: string): string {
-  return join(getCheckpointsRootDir(), workspaceHash, 'journals');
-}
-
-export function getJournalPath(workspaceHash: string, sessionId: string): string {
-  return join(getJournalsDir(workspaceHash), `${sessionId}.json`);
+export function getPendingJournalPath(workspaceHash: string, sessionId: string): string {
+  return join(getSessionCheckpointDir(workspaceHash, sessionId), 'pending.json');
 }
 
 /**

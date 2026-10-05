@@ -11,7 +11,6 @@ import {
   writeSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { getCheckpointsRootDir } from './cas.js';
 import {
   type PendingJournal,
   type SessionCheckpointManifest,
@@ -20,18 +19,7 @@ import {
   SessionCheckpointManifestSchema,
   CHECKPOINT_SCHEMA_VERSION,
 } from './types.js';
-
-export function getSessionCheckpointDir(workspaceHash: string, sessionId: string): string {
-  return join(getCheckpointsRootDir(), workspaceHash, 'sessions', sessionId);
-}
-
-export function getManifestPath(workspaceHash: string, sessionId: string): string {
-  return join(getSessionCheckpointDir(workspaceHash, sessionId), 'manifest.json');
-}
-
-export function getPendingJournalPath(workspaceHash: string, sessionId: string): string {
-  return join(getSessionCheckpointDir(workspaceHash, sessionId), 'pending.json');
-}
+import { getSessionCheckpointDir, getManifestPath, getPendingJournalPath } from '../paths.js';
 
 /**
  * Serializes writes per session directory to avoid racing on JSON updates.
