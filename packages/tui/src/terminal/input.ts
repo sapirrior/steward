@@ -607,38 +607,3 @@ export class InputParser {
     return events;
   }
 }
-
-/**
- * Parses a raw string chunk, Buffer, or structured TerminalEvent/InputEvent into discrete InputEvents.
- */
-export function parseInputChunk(chunk: string | Buffer | InputEvent | TerminalEvent): InputEvent[] {
-  if (typeof chunk === 'object' && chunk !== null && !Buffer.isBuffer(chunk)) {
-    if ('type' in chunk) {
-      const ev = toInputEvent(chunk as TerminalEvent);
-      return ev ? [ev] : [];
-    }
-    if ('input' in chunk && 'key' in chunk) {
-      return [chunk as InputEvent];
-    }
-    return [];
-  }
-
-  const str =
-    typeof chunk === 'string' ? chunk : Buffer.isBuffer(chunk) ? chunk.toString('utf-8') : '';
-  if (!str) return [];
-
-  const parser = new InputParser();
-  const events = parser.feed(str);
-  const flushed = parser.flush();
-  const all = [...events, ...flushed];
-  const out: InputEvent[] = [];
-
-  for (const ev of all) {
-    const inputEv = toInputEvent(ev);
-    if (inputEv) {
-      out.push(inputEv);
-    }
-  }
-
-  return out;
-}

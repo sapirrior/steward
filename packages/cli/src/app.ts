@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { TerminalEngine, type InputEvent } from 'stitchable';
+import { TerminalEngine, type InputEvent, type TerminalIO } from 'stitchable';
 import {
   AgentSession,
   defaultToolCatalog,
@@ -43,11 +43,12 @@ export interface TUIAppOptions {
   ai?: AI;
   initialSession?: AgentSession;
   cwd?: string;
+  io?: TerminalIO;
   onExit?: () => void;
 }
 
 export class TUIApp {
-  private engine: TerminalEngine;
+  public readonly engine: TerminalEngine;
   private ai: AI;
   private session: AgentSession;
   private cwd: string;
@@ -75,6 +76,7 @@ export class TUIApp {
       new AgentSession(undefined, undefined, { ai: runtime?.modelPort ?? (this.ai as any) });
     this.onExitCallback = options.onExit;
     this.engine = new TerminalEngine({
+      io: options.io,
       mouse: true,
       scrollKeys: true,
       onError: (err) => logError(err),
@@ -488,7 +490,7 @@ export class TUIApp {
   private exit(): void {
     this.permissionQueue.clear();
     this.session.shutdown().catch(() => {});
-    this.engine.cleanupSync();
+    this.engine.dispose();
     if (this.onExitCallback) {
       this.onExitCallback();
     } else {

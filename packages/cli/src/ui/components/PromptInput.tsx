@@ -1,4 +1,4 @@
-import { Component, parseInputChunk, type InputEvent } from 'stitchable';
+import { Component, type InputEvent } from 'stitchable';
 import { figures } from '../../theme/index.js';
 import { c, bold } from '../../theme/style.js';
 import { truncateToWidth } from '../utils/format.js';
@@ -54,7 +54,6 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
       escPending: false,
       spinnerFrame: 0,
     };
-    this.attachInput();
   }
 
   private attachInput(): void {
@@ -108,8 +107,8 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
         return false;
       }
 
-      // 3. Question mark when empty opens Help
-      if (ev.input === '?' && this.state.value.length === 0) {
+      // 3. Question mark when empty opens Help (typed only, not paste)
+      if (!ev.isPaste && ev.input === '?' && this.state.value.length === 0) {
         this.props.onToggleHelp?.();
         return true;
       }
@@ -360,19 +359,6 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
 
     if (this.engine) {
       this.removeInputListener = this.engine.addInputListener(handleEvent);
-    } else if (typeof process !== 'undefined' && process.stdin && !process.stdin.isTTY) {
-      // Non-TTY stdin fallback (headless / testing): raw Buffer arrives outside
-      // the engine so we still parse it manually here.
-      const stdinListener = (data: Buffer) => {
-        const events = parseInputChunk(data.toString('utf-8'));
-        for (const ev of events) {
-          if (handleEvent(ev)) break;
-        }
-      };
-      process.stdin.on('data', stdinListener);
-      this.removeInputListener = () => {
-        process.stdin.off('data', stdinListener);
-      };
     }
   }
 
@@ -445,7 +431,7 @@ export default class PromptInput extends Component<PromptInputProps, PromptInput
     lines: string[];
     cursor: { logicalLineIndex: number; characterOffsetWithinLine: number } | null;
   } {
-    const termWidth = width ?? process.stdout.columns ?? 80;
+    const termWidth = width ?? 80;
     const maxCols = Math.max(1, termWidth);
     const dividerWidth = maxCols;
     const { value, cursorPos, disabled, escPending } = this.state;

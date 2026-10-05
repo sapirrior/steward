@@ -1,13 +1,5 @@
 /** @jsxImportSource stitchable */
-import {
-  Component,
-  Box,
-  Text,
-  renderElement,
-  wrapVisualLine,
-  parseInputChunk,
-  type InputEvent,
-} from 'stitchable';
+import { Component, Box, Text, renderElement, wrapVisualLine, type InputEvent } from 'stitchable';
 import { figures } from '../../../theme/index.js';
 import { c, bg, bold, italic } from '../../../theme/style.js';
 import { type FilePermissionRequest, buildUnifiedDiff, type UnifiedDiff } from '@steward/agent';
@@ -122,18 +114,6 @@ export default class FilePermissionDock extends Component<
 
     if (this.engine) {
       this.removeInputListener = this.engine.addInputListener(handleEvent);
-    } else if (typeof process !== 'undefined' && process.stdin && !process.stdin.isTTY) {
-      // Non-TTY stdin fallback: raw Buffer arrives outside the engine pipeline.
-      const stdinListener = (data: Buffer) => {
-        const events = parseInputChunk(data.toString('utf-8'));
-        for (const ev of events) {
-          if (handleEvent(ev)) break;
-        }
-      };
-      process.stdin.on('data', stdinListener);
-      this.removeInputListener = () => {
-        process.stdin.off('data', stdinListener);
-      };
     }
   }
 

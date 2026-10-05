@@ -62,7 +62,6 @@
 | `src/terminal/color.ts` | `color` / `styleText` | Functions | Zero-dependency ANSI SGR color styling supporting Truecolor (24-bit), 256 colors, and 16 ANSI colors. | Automatically downsamples colors when terminal capabilities are constrained; respects `NO_COLOR` and `FORCE_COLOR`. |
 | `src/terminal/input.ts` | `InputParser` | `Class` | Stateful parser for standard VT/xterm input sequences, bracketed paste, SGR mouse tracking, and Unicode. | Implements 50ms ESC timeout disambiguation, 500ms paste fallback flush, non-BMP UTF-16 surrogate buffering, and atomic paste events (`feed`, `flush`, `flushPaste`, `reset`). |
 | `src/terminal/input.ts` | `toInputEvent` | `(ev: TerminalEvent) => InputEvent \| null` | Converts raw TerminalEvents into safe typed InputEvents (returns null for mouse/focus). | Maps paste events with atomic text and key descriptor; guarantees non-null key on all listener events. |
-| `src/terminal/input.ts` | `parseInputChunk` | `(chunk: string \| Buffer \| InputEvent \| TerminalEvent) => InputEvent[]` | Helper converting raw chunks or structured events into discrete `InputEvent` records. | Handles legacy string chunks, Buffers, and structured events. |
 | `src/terminal/input.ts` | `Key` / `InputEvent` / `TerminalEvent` | `Types / Interfaces` | Canonical event and key descriptor contracts. | `Key` provides boolean flags (`ctrl`, `meta`, `shift`, etc.); `InputEvent` is a typed union (`type: 'key' \| 'paste'`). |
 
 ---
