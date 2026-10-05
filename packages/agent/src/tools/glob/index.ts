@@ -298,7 +298,9 @@ export const globTool: ToolDefinition<typeof globInputSchema, GlobOutput> = {
     if (isAbsolute(pattern)) {
       const rel = relative(searchRoot, pattern);
       if (!isInside(searchRoot, resolve(searchRoot, rel))) {
-        throw new Error(`Pattern "${args.pattern}" points outside the search root. Use the "path" parameter.`);
+        throw new Error(
+          `Pattern "${args.pattern}" points outside the search root. Use the "path" parameter.`,
+        );
       }
       pattern = toPosix(rel);
     }
