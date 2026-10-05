@@ -8,7 +8,7 @@ import {
 import { defaultToolCatalog } from '../tools/index.js';
 import type { ToolContext } from '../tools/types.js';
 import { ShellTaskManager } from '../services/tasks/manager.js';
-import { getActiveMode, MODES } from './mode.js';
+import { getActiveMode, MODES } from '../policy/modes.js';
 import { buildSystemPrompt } from './system-prompt.js';
 import type { AgentEvent, AgentEventListener } from './events.js';
 import type { ModelSelection, SubmitPromptOptions } from './types.js';

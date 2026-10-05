@@ -5,10 +5,29 @@ import type {
   TokenUsage,
   Message,
   PortError,
+  ToolSpec,
 } from '../ports/model.js';
+import type { AgentEventListener } from './events.js';
+import type {
+  ToolContext,
+  BashPermissionRequest,
+  FilePermissionRequest,
+  PermissionResponse,
+} from '../tools/types.js';
 
-export type ProviderName = ProviderId;
 export type { ProviderId, ReasoningEffort, ModelSelection, TokenUsage, Message, PortError };
+
+/**
+ * Options passed when submitting a prompt to the agent session.
+ */
+export interface SubmitPromptOptions {
+  cwd?: string;
+  requestBashPermission?: (req: BashPermissionRequest) => Promise<PermissionResponse>;
+  requestFilePermission?: (req: FilePermissionRequest) => Promise<PermissionResponse>;
+  tools?: readonly ToolSpec[] | ((ctx: ToolContext) => readonly ToolSpec[]);
+  extraInstructions?: string;
+  onEvent?: AgentEventListener;
+}
 
 /**
  * Information describing a tool call requested by the model.
@@ -39,7 +58,7 @@ export type AgentMessage = Message;
  * Active configuration for an agent session.
  */
 export interface SessionConfig {
-  provider: ProviderName;
+  provider: ProviderId;
   modelId: string;
   reasoningEffort?: ReasoningEffort;
   temperature?: number;

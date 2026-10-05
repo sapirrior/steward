@@ -1,4 +1,4 @@
-import { MODES, type ChatMode } from './mode.js';
+import { MODES, type ChatMode } from '../policy/modes.js';
 import type { ToolSpec } from '../ports/model.js';
 
 export interface SystemPromptOptions {

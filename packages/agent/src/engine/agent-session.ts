@@ -33,8 +33,6 @@ import type { AgentEvent } from './events.js';
 import type { SessionConfig, SubmitPromptOptions, ToolResultInfo, TurnSummary } from './types.js';
 import { prepareTurn } from './turn-context.js';
 
-export { SubmitPromptOptions };
-
 /**
  * Pure helper to translate agent events into presentation journal log events.
  */
@@ -126,8 +124,8 @@ export class AgentSession {
   private shellTasks: ShellTaskManager = new ShellTaskManager();
 
   constructor(
-    initialConfig?: Partial<SessionConfig>,
-    existingSession?: SessionData,
+    initialConfig: Partial<SessionConfig> | undefined,
+    existingSession: SessionData | undefined,
     deps: AgentSessionDeps,
   ) {
     this.ai = deps.ai;

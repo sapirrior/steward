@@ -4,10 +4,10 @@ import type {
   MutationLockManager,
 } from '../services/checkpoint/index.js';
 import type { ShellTaskManager } from '../services/tasks/manager.js';
-import type { ChatMode } from '../policy/modes.js';
+import type { ChatMode, ToolAccess } from '../policy/modes.js';
 import type { DiffHunk } from '../services/diff/diff.js';
 
-export type ToolAccess = 'read' | 'write' | 'exec';
+export type { ToolAccess };
 
 export type ToolDetail =
   | { kind: 'text'; text: string }

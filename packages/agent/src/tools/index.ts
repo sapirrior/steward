@@ -1,4 +1,4 @@
-import { defaultToolCatalog, ToolCatalog } from './catalog.js';
+import { ToolCatalog } from './catalog.js';
 import { readFileTool } from './read-file/index.js';
 import { writeFileTool } from './write-file/index.js';
 import { editFileTool } from './edit-file/index.js';
