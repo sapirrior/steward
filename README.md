@@ -24,7 +24,7 @@ Instead of heavy framework abstractions or sprawling plugin layers, Steward deli
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ ✦ Fast, zero-lag Alternate-Screen TUI (Synchronized Mode 2026)│
-│ ✦ Zero-dependency native AI engine with automatic retry     │
+│ ✦ Unified streaming AI engine with automatic retry          │
 │ ✦ Ultra-lean system prompt (~450 tokens) & lazy skill loading│
 │ ✦ 16 native tools: search, read, edit, bash, tasks, fetch   │
 │ ✦ Content-addressed checkpoints & atomic rewind undo        │
@@ -83,8 +83,8 @@ Rather than burning thousands of tokens on monolithic boilerplate prompts or dum
 - **Permission Gated:** Destructive file modifications and shell commands always ask for your explicit approval with line-by-line diff previews.
 - **Atomic Rewind Checkpoints:** Every file edit automatically snapshots a pre-mutation image. Made a mistake or want to revert an approach? Use `/rewind` to cleanly roll back your workspace to any previous turn.
 
-### ⚡ Zero-Dependency AI Core
-Steward doesn't rely on third-party AI frameworks. All LLM streaming, SSE decoders, error parsers, and cross-protocol translations are maintained natively in `@steward/ai` for blistering startup times, reliable rate-limit recovery (with 10-attempt backoff), and robust offline resilience.
+### ⚡ Multi-Provider AI Core
+Steward delivers a unified inference and tool-calling engine powered by AI SDK v7, with resilient rate-limit recovery (with 10-attempt backoff), dynamic model discovery, thinking/reasoning control, and offline resilience across 11 providers.
 
 ### 🎨 Native Terminal UI (`stitchable`)
 Built on a custom line-differential rendering engine with Mode 2026 synchronized output. Enjoy flicker-free markdown streaming, real-time tool badges, fuzzy file searching (`@`), and interactive slash palettes (`/`).
@@ -120,7 +120,7 @@ Steward works with any model you prefer—frontier cloud models, unified gateway
 | `/mode` or `Ctrl+B` | Cycle chat modes (`normal`, `chat`, `review`, `build`) |
 | `/effort` | Adjust reasoning effort (`none`, `low`, `medium`, `high`, `xhigh`) |
 | `/rewind` | Revert file changes to previous session turns |
-| `/sessions` | Browse, resume, or export saved session transcripts |
+| `/resume` | Browse, resume, or switch saved session transcripts |
 | `/clear` | Clear active context and start a fresh turn |
 | `@filename` | Fuzzy find and mention workspace files into context |
 | `Escape` / `Ctrl+C` | Abort current generation or close open modal dock |
