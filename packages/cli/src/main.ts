@@ -1,15 +1,7 @@
 #!/usr/bin/env node
-import { TUIApp } from './app.js';
-import {
-  AgentSession,
-  logError,
-  setupGlobalErrorHandlers,
-  type ChatMode,
-  MODE_NAMES,
-} from '@steward/agent';
-import { loadSettings, getSavedMode, saveModeSelection, getSavedModel } from './settings/index.js';
-import { setupAuth } from '@steward/oauth';
-import { createRuntime } from './runtime.js';
+import { setupGlobalErrorHandlers, type ChatMode, MODE_NAMES } from '@steward/agent';
+import { loadSettings, getSavedMode, saveModeSelection } from './settings/index.js';
+import { launchInteractive } from './app/index.js';
 import pkg from '../package.json' with { type: 'json' };
 
 export const VERSION = pkg.version;
@@ -94,37 +86,7 @@ export async function run(argv: string[] = process.argv.slice(2)): Promise<void>
     process.exit(1);
   }
 
-  try {
-    await setupAuth();
-    const runtime = createRuntime();
-    const savedModel = getSavedModel();
-    const session = new AgentSession(
-      savedModel
-        ? {
-            provider: savedModel.provider,
-            modelId: savedModel.modelId,
-            reasoningEffort: savedModel.effort,
-          }
-        : undefined,
-      undefined,
-      { ai: runtime.modelPort },
-    );
-    const app = new TUIApp({
-      version: VERSION,
-      ai: runtime.ai,
-      initialSession: session,
-      cwd: process.cwd(),
-      onExit: () => process.exit(0),
-    });
-    await app.start();
-  } catch (err) {
-    logError(err, { phase: 'initialization' });
-    console.error(
-      'Failed to initialize steward:',
-      err instanceof Error ? err.message : String(err),
-    );
-    process.exit(1);
-  }
+  await launchInteractive({ version: VERSION });
 }
 
 // Auto-run entrypoint

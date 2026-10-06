@@ -16,30 +16,30 @@ import {
   getSavedMode,
   saveModeSelection,
   getSavedModel,
-} from './settings/index.js';
-import { defaultCommandRegistry } from './slash/index.js';
-import { c } from './theme/style.js';
-import Header from './interface/components/Header.js';
-import StatusBar from './interface/components/StatusBar.js';
-import StreamingView from './interface/components/StreamingView.js';
-import PromptInput from './interface/components/PromptInput.js';
-import TrustGate from './interface/components/TrustGate.js';
-import BashPermissionDock from './interface/components/docks/BashPermissionDock.js';
-import FilePermissionDock from './interface/components/docks/FilePermissionDock.js';
-import { PermissionQueue } from './interface/utils/permission-queue.js';
+} from '../settings/index.js';
+import { defaultCommandRegistry } from '../slash/index.js';
+import { c } from '../theme/index.js';
+import Header from '../interface/components/Header.js';
+import StatusBar from '../interface/components/StatusBar.js';
+import StreamingView from '../interface/components/StreamingView.js';
+import PromptInput from '../interface/components/PromptInput.js';
+import TrustGate from '../interface/components/TrustGate.js';
+import BashPermissionDock from '../interface/components/docks/BashPermissionDock.js';
+import FilePermissionDock from '../interface/components/docks/FilePermissionDock.js';
+import { PermissionQueue } from '../interface/utils/permission-queue.js';
 import {
   formatSystemMessage,
   formatAssistantMessage,
   formatErrorBadge,
   formatUserMessage,
-} from './interface/utils/message-formatter.js';
-import { renderTranscript } from './interface/utils/transcript.js';
+} from '../interface/utils/message-formatter.js';
+import { renderTranscript } from '../interface/utils/transcript.js';
 import type { AI } from '@steward/ai';
 import { createRuntime } from './runtime.js';
-import { ModalController } from './interface/modal-controller.js';
-import { createAgentEventHandler, type AgentEventState } from './interface/agent-event-router.js';
-import { applyCommandResult } from './interface/slash-result-handler.js';
-import { executeDirectBash } from './utils/bash.js';
+import { ModalController } from '../interface/modal-controller.js';
+import { createAgentEventHandler, type AgentEventState } from '../interface/agent-event-router.js';
+import { applyCommandResult } from '../interface/slash-result-handler.js';
+import { executeDirectBash } from '../utils/bash.js';
 
 export interface TUIAppOptions {
   version?: string;
