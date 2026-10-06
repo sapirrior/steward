@@ -203,4 +203,127 @@ describe('Monorepo Package Boundary Rules', () => {
 
     expect(violations).toEqual([]);
   });
+
+  it('Rule 7: Required layers must exist and interface/components must contain components', () => {
+    const cliSrc = join(rootDir, 'packages/cli/src');
+    const requiredLayers = [
+      'cli',
+      'app',
+      'interface',
+      'slash',
+      'settings',
+      'theme',
+      'errors',
+      'utils',
+    ];
+
+    for (const layer of requiredLayers) {
+      const layerPath = join(cliSrc, layer);
+      expect(existsSync(layerPath)).toBe(true);
+    }
+
+    const componentsPath = join(cliSrc, 'interface/components');
+    const componentFiles = getAllTsFiles(componentsPath);
+    expect(componentFiles.length).toBeGreaterThan(0);
+  });
+
+  it('Rule 8: Intra-package layering in packages/cli/src must follow allowed dependency flow', () => {
+    const cliSrc = join(rootDir, 'packages/cli/src');
+    const allCliFiles = getAllTsFiles(cliSrc);
+
+    // Allowed target layers per source layer
+    const allowedTargets: Record<string, string[]> = {
+      main: ['cli'],
+      cli: ['app', 'settings'],
+      app: ['interface', 'slash', 'settings', 'theme', 'utils', 'errors'],
+      interface: ['slash', 'settings', 'theme', 'errors', 'utils'],
+      slash: ['settings', 'utils'],
+      settings: [],
+      theme: [],
+      errors: [],
+      utils: [],
+    };
+
+    const violations: string[] = [];
+
+    for (const file of allCliFiles) {
+      const relPath = relative(cliSrc, file);
+      const parts = relPath.split('/');
+      const sourceLayer = parts.length === 1 ? 'main' : parts[0]!;
+
+      const content = readFileSync(file, 'utf-8');
+      // Match all import/export from relative specifiers
+      const importMatches = content.matchAll(
+        /(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?from\s+)?['"](\.[^'"]+)['"]/g,
+      );
+
+      for (const match of importMatches) {
+        const fullStatement = match[0];
+        const specifier = match[1]!;
+        // Resolve absolute path of imported module
+        const resolvedPath = join(file, '..', specifier);
+        const resolvedRel = relative(cliSrc, resolvedPath);
+
+        if (resolvedRel.startsWith('..')) {
+          continue; // outside packages/cli/src (e.g. package.json)
+        }
+
+        const resolvedParts = resolvedRel.split('/');
+        const targetLayer = resolvedParts.length === 1 ? 'main' : resolvedParts[0]!;
+
+        if (sourceLayer === targetLayer) {
+          continue; // same layer is always allowed
+        }
+
+        // slash -> interface is allowed for type-only imports (enforced by Rule 9)
+        if (
+          sourceLayer === 'slash' &&
+          targetLayer === 'interface' &&
+          /^(?:import|export)\s+type\s+/.test(fullStatement)
+        ) {
+          continue;
+        }
+
+        const allowed = allowedTargets[sourceLayer] ?? [];
+        if (!allowed.includes(targetLayer)) {
+          violations.push(
+            `${relPath} (layer: ${sourceLayer}) -> ${specifier} (layer: ${targetLayer})`,
+          );
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('Rule 9: slash to interface imports must be type-only', () => {
+    const cliSrc = join(rootDir, 'packages/cli/src');
+    const slashFiles = getAllTsFiles(join(cliSrc, 'slash'));
+    const violations: string[] = [];
+
+    for (const file of slashFiles) {
+      const rel = relative(cliSrc, file);
+      const content = readFileSync(file, 'utf-8');
+      const lines = content.split('\n');
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
+        if (line.includes('../interface') || line.includes('../../interface')) {
+          const isTypeOnly = /^\s*import\s+type\s+/.test(line);
+          if (!isTypeOnly) {
+            violations.push(`${rel}:${i + 1} -> non-type import from interface: ${line.trim()}`);
+          }
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('Rule 10: slash registry must remain command-agnostic (CommandRegistry class)', () => {
+    const cliSrc = join(rootDir, 'packages/cli/src');
+    const registryFile = join(cliSrc, 'slash/registry.ts');
+    const content = readFileSync(registryFile, 'utf-8');
+    expect(content).toContain('class CommandRegistry');
+  });
 });
