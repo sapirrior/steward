@@ -1,5 +1,4 @@
-import { defaultCommandRegistry } from '../../../commands/registry.js';
-import type { SlashCommand } from '../../../commands/types.js';
+import { defaultCommandRegistry, type SlashCommand } from '../../../slash/index.js';
 
 export class CommandPaletteController {
   private paletteIdx = 0;

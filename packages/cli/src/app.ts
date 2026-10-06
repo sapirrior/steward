@@ -17,7 +17,7 @@ import {
   saveModeSelection,
   getSavedModel,
 } from './settings/index.js';
-import { defaultCommandRegistry } from './commands/registry.js';
+import { defaultCommandRegistry } from './slash/index.js';
 import { c } from './theme/style.js';
 import Header from './interface/components/Header.js';
 import StatusBar from './interface/components/StatusBar.js';
@@ -38,7 +38,7 @@ import type { AI } from '@steward/ai';
 import { createRuntime } from './runtime.js';
 import { ModalController } from './interface/modal-controller.js';
 import { createAgentEventHandler, type AgentEventState } from './interface/agent-event-router.js';
-import { applyCommandResult } from './commands/handle-command-result.js';
+import { applyCommandResult } from './interface/slash-result-handler.js';
 import { executeDirectBash } from './utils/bash.js';
 
 export interface TUIAppOptions {

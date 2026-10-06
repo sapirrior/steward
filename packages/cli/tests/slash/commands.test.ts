@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { bugCommand } from '../src/commands/bug/index.js';
-import { initCommand } from '../src/commands/init/index.js';
-import { copyCommand } from '../src/commands/copy/index.js';
-import { exportCommand } from '../src/commands/export/index.js';
-import { usageCommand } from '../src/commands/usage/index.js';
+import { bugCommand } from '../../src/slash/bug/index.js';
+import { initCommand } from '../../src/slash/init/index.js';
+import { copyCommand } from '../../src/slash/copy/index.js';
+import { exportCommand } from '../../src/slash/export/index.js';
+import { usageCommand } from '../../src/slash/usage/index.js';
 
 describe('Slash Commands: /init, /copy, /usage, /export', () => {
   let tempDir: string;
