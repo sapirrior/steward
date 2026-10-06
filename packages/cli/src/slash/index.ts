@@ -16,4 +16,3 @@ export * from './mode/index.js';
 export * from './login/index.js';
 export * from './logout/index.js';
 export * from './registry.js';
-export * from './builtin.js';
