@@ -76,10 +76,10 @@ describe('CLI Entry Characterization', () => {
   it('handles unknown options and arguments', () => {
     const resOpt = runCli(['--bogus']);
     expect(resOpt.status).toBe(1);
-    expect(resOpt.stderr).toContain('Unknown option "--bogus". Run "steward --help" for usage.');
+    expect(resOpt.stderr).toContain('Unknown option "--bogus". Run "steward help" for usage.');
 
     const resArg = runCli(['bogus']);
     expect(resArg.status).toBe(1);
-    expect(resArg.stderr).toContain('Unknown argument "bogus". Run "steward --help" for usage.');
+    expect(resArg.stderr).toContain('Unknown argument "bogus". Run "steward help" for usage.');
   });
 });
