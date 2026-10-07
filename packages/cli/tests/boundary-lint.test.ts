@@ -234,16 +234,20 @@ describe('Monorepo Package Boundary Rules', () => {
     const cliSrc = join(rootDir, 'packages/cli/src');
     const allCliFiles = getAllTsFiles(cliSrc);
 
-    // Allowed target layers per source layer
     const allowedTargets: Record<string, string[]> = {
       main: ['cli'],
       cli: ['app', 'settings'],
-      app: ['interface', 'slash', 'settings', 'theme', 'utils', 'errors'],
-      interface: ['slash', 'settings', 'theme', 'errors', 'utils'],
-      slash: ['settings', 'utils'],
-      settings: [],
+      app: ['query', 'interface', 'slash', 'settings', 'theme', 'utils', 'errors', 'services', 'policy', 'tools'],
+      query: ['tools', 'policy', 'skills', 'services', 'settings', 'errors', 'utils'],
+      interface: ['slash', 'settings', 'theme', 'errors', 'utils', 'tools', 'services', 'policy'],
+      slash: ['settings', 'utils', 'services', 'policy', 'skills', 'tools'],
+      tools: ['services', 'policy', 'skills', 'utils'],
+      skills: ['services', 'utils'],
+      policy: [],
+      services: ['utils'],
+      settings: ['services', 'policy'],
+      errors: ['services'],
       theme: [],
-      errors: [],
       utils: [],
     };
 
