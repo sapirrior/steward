@@ -159,11 +159,6 @@ export interface Model {
   protocol: ProtocolId;
   baseUrl: string;
   reasoning: boolean;
-  /**
-   * Per-effort thinking level map. Missing key = provider default; null = unsupported.
-   * Values are strings (e.g. effort strings) or numbers (budget tokens).
-   */
-  thinkingLevelMap?: Partial<Record<ReasoningEffort, string | number | null>>;
   /** Input modalities supported by this model. */
   input?: readonly 'text'[];
   /** Context window in tokens. */
@@ -174,8 +169,6 @@ export interface Model {
   maxOutputTokens: number;
   /** Whether the model supports temperature adjustment. */
   temperature: boolean;
-  /** Field name used for replaying reasoning content. */
-  interleavedReasoningField?: 'reasoning_content' | 'reasoning_details';
   /** Model status if non-standard. */
   status?: 'alpha' | 'beta' | 'deprecated';
   /** Release date ISO string. */

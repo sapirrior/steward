@@ -14,7 +14,6 @@ AI streaming inference engine and model orchestrator for terminal engineering as
 - [Streaming & Event Handling](#streaming--event-handling)
 - [Tool Calling](#tool-calling)
 - [Thinking & Reasoning](#thinking--reasoning)
-- [models.dev Dynamic Catalog](#modelsdev-dynamic-catalog)
 - [Package API Reference (Sonnet Convention)](#package-api-reference)
 - [Architectural Invariants](#architectural-invariants)
 
@@ -24,9 +23,8 @@ AI streaming inference engine and model orchestrator for terminal engineering as
 
 - **Production-Grade Multi-Provider Inference:** Unified streaming inference across OpenAI, Anthropic, Google Gemini, DeepSeek, Groq, Mistral, xAI Grok, OpenRouter, Ollama, GitHub Copilot, and Custom (OpenAI-compatible) endpoints.
 - **Configurable Transformer Architecture:** Decoupled translation seam between domain types and underlying model streaming protocol.
-- **Dynamic Runtime Catalog:** Lightweight on-demand discovery from `models.dev` with in-memory caching (TTL & ETag).
 - **Accurate Token Usage & Cost:** Uncached input token resolution (`noCacheTokens`) preventing cached token double-counting.
-- **Canonical Reasoning Scale:** 5-tier reasoning effort scale (`'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`) with automatic clamping and provider-native thinking replay.
+- **Canonical Reasoning Scale:** 5-tier reasoning effort scale (`'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`) passed directly to AI SDK for native cross-provider level and budget mapping.
 - **Resilient Error Classification:** Standardized `AIError` taxonomy (`auth`, `rate-limit`, `context-overflow`, `invalid-request`, `provider`, `network`, `aborted`, `parse`).
 
 ---
@@ -120,18 +118,6 @@ const stream = ai.stream({
     },
   ],
 });
-```
-
----
-
-## Dynamic Model Discovery & On-Demand Metadata
-
-`@steward/ai` uses official provider endpoints for live model discovery and on-demand metadata:
-
-- **Live Official Discovery (`/v1/models`):** Queries authenticated provider endpoints directly (`https://api.individual.githubcopilot.com/models`, `https://api.openai.com/v1/models`, Anthropic, Gemini, Groq, Ollama) so your account's exact enabled models (e.g. Copilot Enterprise, local Ollama models) appear in `/model` instantly.
-- **On-Demand Metadata Lookup (`fetchModelMetadata(modelId)`):** Fetches token limits, pricing, context windows, and reasoning capabilities on demand by model ID directly from `models.dev` with in-memory caching.
-- **Resilient Fallbacks:** Operates seamlessly offline or when external catalog services are unreachable.
-
 ---
 
 ## Package API Reference
@@ -185,20 +171,12 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `src/provider/custom.ts` | `customProvider` | `() => Provider` | Custom OpenAI-compatible provider factory using `CUSTOM_API_URL`, `CUSTOM_API_KEY`, and `CUSTOM_MODEL_NAME`. |
 | `src/provider/compatible.ts` | `openAICompatibleProvider` | `(opts: OpenAICompatibleProviderOptions) => Provider` | Creates a custom OpenAI-compatible provider definition for local servers or proxies. |
 
-### 6. `src/models/discovery.ts`
-
-| Export | Type | Description & Constraints |
-| :--- | :--- | :--- |
-| `discoverProviderModels` | `(provider: Provider, auth: ResolvedAuth, fetchFn?: typeof fetch, timeoutMs?: number) => Promise<Model[]>` | Discovers live models from a provider's official `/v1/models` endpoint with non-chat filtering and on-demand metadata enrichment. |
-| `NON_CHAT_MODEL_REGEX` | `RegExp` | Filter matching non-chat models (`embed`, `whisper`, `tts`, `dall-e`, `moderation`). |
-| `DISCOVERY_CONFIGS` | `Partial<Record<ProviderId, ProviderDiscoveryConfig>>` | Declarative per-provider discovery endpoint and header configurations. |
-
-### 7. `src/transformer/index.ts`
+### 6. `src/transformer/index.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |
 | `normalizeMessages` | `(messages: readonly Message[]) => NormalizedMessagesResult` | Converts Steward messages to AI SDK `instructions` and `ModelMessage[]`. |
-| `normalizeOptions` | `(request: InferenceRequest, model: Model, config: NamespaceConfig) => NormalizedCallParams` | Translates request parameters, reasoning effort, and temperature clamping. |
+| `normalizeOptions` | `(request: InferenceRequest, model: Model, config: NamespaceConfig) => NormalizedCallParams` | Translates request parameters, forwarding reasoning effort directly to AI SDK. |
 | `normalizeTools` | `(tools?: readonly ToolSpec[]) => ToolSet \| undefined` | Converts Steward tool specifications to AI SDK `ToolSet` via `jsonSchema()`. |
 | `normalizeUsage` | `(sdkUsage: LanguageModelUsage) => TokenUsage` | Maps SDK usage to Steward `TokenUsage`, prioritizing `noCacheTokens`. |
 | `normalizeFinishReason`| `(sdkReason?: string, hasToolCalls?: boolean) => FinishReason` | Maps SDK finish reasons to canonical Steward finish reasons. |
@@ -206,32 +184,7 @@ Documentation organized according to the **Sonnet Convention** (*File $\to$ Expo
 | `pumpSdkStream` | `(sdkStream, stream, model, request) => Promise<void>` | Consumes `fullStream` and translates events into Steward `InferenceEvents`. |
 | `MessageBuilder` | `class` | Incrementally accumulates stream parts into final `AssistantMessage`. |
 
-### 8. `src/models/catalog.ts` & `src/models/models-dev.ts`
-
-| Export | Type | Description & Constraints |
-| :--- | :--- | :--- |
-| `parseModelsDevModel` | `(providerId, raw) => Model` | Parses raw `models.dev` API model definition into canonical `Model`. |
-| `fetchModelsDev` | `(opts?: FetchModelsDevOptions) => Promise<FetchModelsDevResult>` | Fetches `models.dev/api.json` with conditional ETag and force refresh support. |
-| `fetchModelMetadata` | `(modelId: string, opts?: FetchModelsDevOptions) => Promise<ModelMetadata \| undefined>` | Fetches rich token limits, pricing, and reasoning capabilities on demand by model ID. |
-| `supportsReasoning` | `(model: Model) => boolean` | Checks if model supports reasoning / thinking. |
-| `filterModels` | `(models: readonly Model[], filter: ModelFilter) => Model[]` | Filters models by provider, query string, or reasoning support. |
-
-### 9. `src/models/selection.ts`
-
-| Export | Type | Description & Constraints |
-| :--- | :--- | :--- |
-| `resolveModelSelection` | `(req?, ctx?) => Promise<ModelSelection>` | Resolves requested model or infers best available configured model in priority order. |
-| `inferProviderFromModelId` | `(modelId: string) => ProviderId \| null` | Heuristically infers provider from model ID prefixes. |
-| `normalizeProviderId` | `(provider?: string) => ProviderId \| undefined` | Normalizes provider ID aliases (e.g. `'gemini'` $\to$ `'google'`, `'xai'` $\to$ `'grok'`). |
-
-### 10. `src/models/thinking.ts`
-
-| Export | Type | Description & Constraints |
-| :--- | :--- | :--- |
-| `clampThinkingEffort` | `(model: Model, requested: ReasoningEffort) => ReasoningEffort` | Clamps reasoning effort to model's supported levels. |
-| `calculateAnthropicBudgetTokens` | `(effort: ReasoningEffort, maxOutputTokens: number) => number \| undefined` | Computes token budget for Anthropic thinking models. |
-
-### 11. `src/util/cost.ts`
+### 7. `src/util/cost.ts`
 
 | Export | Type | Description & Constraints |
 | :--- | :--- | :--- |

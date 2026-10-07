@@ -68,17 +68,13 @@ describe('provider definitions', () => {
 
 describe('transformer — usage normalizer', () => {
   it('prefers noCacheTokens over inputTokens for canonical input (D-G fix)', () => {
-    const config = getNamespaceConfig('anthropic');
-    const usage = normalizeUsage(
-      {
-        inputTokens: 1000,
-        inputTokenDetails: { noCacheTokens: 800, cacheReadTokens: 200, cacheWriteTokens: 0 },
-        outputTokens: 50,
-        outputTokenDetails: { textTokens: 50, reasoningTokens: 0 },
-        totalTokens: 1050,
-      },
-      config,
-    );
+    const usage = normalizeUsage({
+      inputTokens: 1000,
+      inputTokenDetails: { noCacheTokens: 800, cacheReadTokens: 200, cacheWriteTokens: 0 },
+      outputTokens: 50,
+      outputTokenDetails: { textTokens: 50, reasoningTokens: 0 },
+      totalTokens: 1050,
+    });
     expect(usage.input).toBe(800); // noCacheTokens, not 1000
     expect(usage.cacheRead).toBe(200);
     expect(usage.output).toBe(50);

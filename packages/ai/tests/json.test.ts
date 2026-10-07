@@ -4,7 +4,7 @@ import { AIError } from '../src/errors.ts';
 
 describe('util/json — parseJson', () => {
   it('parses valid JSON', () => {
-    expect(parseJson('{"a":1}')).toEqual({ a: 1 });
+    expect(parseJson<{ a: number }>('{"a":1}')).toEqual({ a: 1 });
   });
 
   it('throws AIError on invalid JSON', () => {
@@ -20,11 +20,11 @@ describe('util/json — parseJson', () => {
 
 describe('util/json — parseStreamingJson', () => {
   it('returns complete object', () => {
-    expect(parseStreamingJson('{"x":42}')).toEqual({ x: 42 });
+    expect(parseStreamingJson<{ x: number }>('{"x":42}')).toEqual({ x: 42 });
   });
 
   it('returns {} for empty string', () => {
-    expect(parseStreamingJson('')).toEqual({});
+    expect(parseStreamingJson<Record<string, unknown>>('')).toEqual({});
   });
 
   it('repairs open object with missing closing brace', () => {
@@ -54,6 +54,6 @@ describe('util/json — parseStreamingJson', () => {
   });
 
   it('returns {} for non-object input', () => {
-    expect(parseStreamingJson('[1,2')).toEqual({});
+    expect(parseStreamingJson<Record<string, unknown>>('[1,2')).toEqual({});
   });
 });

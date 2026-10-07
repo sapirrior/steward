@@ -11,7 +11,7 @@ import type { NamespaceConfig } from './config.js';
 export interface NormalizedCallParams {
   maxOutputTokens?: number;
   temperature?: number;
-  reasoning?: 'low' | 'medium' | 'high' | 'none';
+  reasoning?: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
   providerOptions?: Record<string, unknown>;
   headers?: Record<string, string>;
 }
@@ -34,13 +34,10 @@ export function normalizeOptions(
     }
   }
 
-  // Map Steward ReasoningEffort → SDK reasoning level
-  // ('xhigh' is Steward's top tier, maps to SDK 'high')
-  const effort = request.effort;
-  if (effort === 'none') params.reasoning = 'none';
-  else if (effort === 'low') params.reasoning = 'low';
-  else if (effort === 'medium') params.reasoning = 'medium';
-  else if (effort === 'high' || effort === 'xhigh') params.reasoning = 'high';
+  // Directly pass reasoning effort to AI SDK — AI SDK handles level mapping and budget normalization
+  if (request.effort) {
+    params.reasoning = request.effort;
+  }
 
   // Merge namespace request defaults (e.g. OpenAI store:false)
   if (config.requestDefaults.providerOptions) {

@@ -9,6 +9,8 @@ if (typeof globalThis !== 'undefined') {
   (globalThis as any).AI_SDK_LOG_WARNINGS = false;
 }
 
+import type { ProviderId } from './types.js';
+
 // ─── Domain Types & Contracts ────────────────────────────────────────────────
 export type {
   ProviderId,
@@ -66,47 +68,13 @@ export {
 export { AssistantMessageStream } from './event-stream.js';
 export { AIError, type AIErrorCode, type AIErrorOptions } from './errors.js';
 
-// ─── Models & Catalog ─────────────────────────────────────────────────────────
-export {
-  parseModelsDevModel,
-  inferProtocolForModel,
-  supportsReasoning,
-  filterModels,
-  fetchModelsDev,
-  fetchModelMetadata,
-  type FetchModelsDevOptions,
-  type FetchModelsDevResult,
-  type ModelMetadata,
-  type ModelFilter,
-  type ModelsDevApiResponse,
-  type ModelsDevRawModel,
-} from './models/catalog.js';
-
-export {
-  discoverProviderModels,
-  DISCOVERY_CONFIGS,
-  NON_CHAT_MODEL_REGEX,
-  type DiscoveredModel,
-  type ProviderDiscoveryConfig,
-} from './models/discovery.js';
-
-export {
-  getSupportedEfforts,
-  clampThinkingEffort,
-  calculateAnthropicBudgetTokens,
-  REASONING_EFFORTS,
-} from './models/thinking.js';
-
-export {
-  resolveModelSelection,
-  inferProviderFromModelId,
-  normalizeProviderId,
-  PROVIDER_SELECTION_PRIORITY,
-  DEFAULT_PROVIDER_MODELS,
-  CANONICAL_DEFAULT_EFFORT,
-  type ModelSelectionRequest,
-  type ModelResolutionContext,
-} from './models/selection.js';
+export function normalizeProviderId(provider?: string): ProviderId | undefined {
+  if (!provider) return undefined;
+  const lower = provider.trim().toLowerCase();
+  if (lower === 'gemini') return 'google';
+  if (lower === 'xai') return 'grok';
+  return lower as ProviderId;
+}
 
 // ─── Providers ────────────────────────────────────────────────────────────────
 export {

@@ -16,6 +16,7 @@ export interface RetryPolicy {
   baseDelayMs?: number;
   backoffMultiplier?: number;
   maxDelayMs?: number;
+  maxRetryDelayMs?: number;
   timeoutMs?: number;
   onRetry?: (info: { attempt: number; maxAttempts: number; delayMs: number; error: Error }) => void;
 }

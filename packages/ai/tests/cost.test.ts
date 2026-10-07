@@ -9,7 +9,9 @@ const baseModel: Model = {
   protocol: 'openai-completions',
   baseUrl: 'https://api.openai.com',
   reasoning: false,
+  contextWindow: 128000,
   maxOutputTokens: 4096,
+  temperature: true,
   cost: {
     input: 3.0, // $3.00 / M tokens
     output: 15.0, // $15.00 / M tokens

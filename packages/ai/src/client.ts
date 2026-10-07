@@ -15,15 +15,6 @@ import {
 } from './auth.js';
 import { AssistantMessageStream } from './event-stream.js';
 import { AIError } from './errors.js';
-import {
-  filterModels,
-  parseModelsDevModel,
-  inferProtocolForModel,
-  type ModelFilter,
-  type ModelsDevApiResponse,
-} from './models/catalog.js';
-import { discoverProviderModels } from './models/discovery.js';
-import { resolveModelSelection, type ModelSelectionRequest } from './models/selection.js';
 import { builtinProviders } from './provider/index.js';
 import { streamText, stepCountIs } from 'ai';
 import { getNamespaceConfig } from './transformer/config.js';
@@ -39,6 +30,7 @@ import type {
   ModelSelection,
   ProviderId,
   ProtocolId,
+  ReasoningEffort,
 } from './types.js';
 
 // ─── Provider interface ───────────────────────────────────────────────────────
@@ -109,22 +101,17 @@ export interface AI {
   registerProvider(p: Provider): void;
   unregisterProvider(id: ProviderId): void;
 
-  models(filter?: ModelFilter | ProviderId): readonly Model[];
+  models(filter?: ProviderId): readonly Model[];
   model(providerId: ProviderId, modelId: string): Model | undefined;
   registerModel(model: Model): void;
   refreshCatalog(opts?: RefreshCatalogOptions): Promise<{ updated: number }>;
 
-  /** Returns models only for configured providers. */
-  availableModels(filter?: ModelFilter | ProviderId): Promise<readonly Model[]>;
+  availableModels(filter?: ProviderId): Promise<readonly Model[]>;
 
   isConfigured(providerId: ProviderId): Promise<boolean>;
   authStatus(providerId: ProviderId): Promise<ProviderAuthStatus>;
-  resolveModel(request?: ModelSelectionRequest): Promise<ModelSelection>;
+  resolveModel(request?: { provider?: ProviderId; modelId?: string; effort?: ReasoningEffort }): Promise<ModelSelection>;
 
-  /**
-   * Start a streaming inference. NEVER throws synchronously.
-   * Unknown provider, missing credentials, setup errors -> single terminal error event.
-   */
   stream(request: InferenceRequest): InferenceStream;
   complete(request: InferenceRequest): Promise<InferenceResult>;
 }
@@ -135,26 +122,13 @@ export interface CreateAIOptions {
   env?: AuthEnvGetter;
   providers?: readonly Provider[];
   models?: readonly Model[];
-  /** Injectable fetch — defaults to globalThis.fetch. Used for tests and proxies. */
   fetch?: typeof globalThis.fetch;
-  /** Custom endpoint for dynamic models.dev metadata (default: 'https://models.dev/api.json') */
-  modelsDevUrl?: string;
-  /** Disable dynamic models.dev fetching */
-  disableModelsDev?: boolean;
 }
-
-// ─── Implementation ───────────────────────────────────────────────────────────
 
 export function createAI(opts: CreateAIOptions = {}): AI {
   const providersMap = new Map<ProviderId, Provider>();
   const modelsMap = new Map<string, Model>();
   const fetchFn = opts.fetch ?? globalThis.fetch;
-  const modelsDevUrl = opts.modelsDevUrl ?? 'https://models.dev/api.json';
-  const disableModelsDev = opts.disableModelsDev ?? false;
-
-  let catalogEtag: string | undefined;
-  let catalogFetchedAt = 0;
-  const CATALOG_TTL_MS = 60 * 60 * 1000; // 1 hour
 
   // Seed providers
   const initialProviders = opts.providers ?? builtinProviders();
@@ -177,11 +151,6 @@ export function createAI(opts: CreateAIOptions = {}): AI {
     return resolveApiKey(provider, authOptions, requestApiKey);
   }
 
-  function normalizeFilter(filter?: ModelFilter | ProviderId): ModelFilter | undefined {
-    if (typeof filter === 'string') return { provider: filter };
-    return filter;
-  }
-
   const ai: AI = {
     providers(): readonly Provider[] {
       return [...providersMap.values()];
@@ -199,9 +168,10 @@ export function createAI(opts: CreateAIOptions = {}): AI {
       providersMap.delete(id);
     },
 
-    models(filter?: ModelFilter | ProviderId): readonly Model[] {
+    models(filter?: ProviderId): readonly Model[] {
       const all = [...modelsMap.values()];
-      return filterModels(all, normalizeFilter(filter));
+      if (filter) return all.filter((m) => m.provider === filter);
+      return all;
     },
 
     model(providerId: ProviderId, modelId: string): Model | undefined {
@@ -212,69 +182,8 @@ export function createAI(opts: CreateAIOptions = {}): AI {
       modelsMap.set(`${model.provider}/${model.id}`, model);
     },
 
-    async refreshCatalog(refreshOpts?: RefreshCatalogOptions): Promise<{ updated: number }> {
-      if (disableModelsDev) {
-        return { updated: 0 };
-      }
-
-      const now = Date.now();
-      if (!refreshOpts?.force && catalogFetchedAt && now - catalogFetchedAt < CATALOG_TTL_MS) {
-        return { updated: 0 };
-      }
-
-      const headers: Record<string, string> = { Accept: 'application/json' };
-      if (catalogEtag) headers['If-None-Match'] = catalogEtag;
-
-      try {
-        const res = await fetchFn(modelsDevUrl, {
-          method: 'GET',
-          headers,
-          signal: refreshOpts?.signal,
-        });
-
-        if (res.status === 304) {
-          catalogFetchedAt = now;
-          return { updated: 0 };
-        }
-
-        if (!res.ok) {
-          return { updated: 0 };
-        }
-
-        const etag = res.headers.get('etag') ?? undefined;
-        if (etag) catalogEtag = etag;
-        catalogFetchedAt = now;
-
-        const data = (await res.json()) as ModelsDevApiResponse;
-        let count = 0;
-
-        for (const [providerKey, providerData] of Object.entries(data)) {
-          if (!providerData.models) continue;
-          const normalizedKey =
-            providerKey === 'github' || providerKey === 'copilot'
-              ? 'github-copilot'
-              : providerKey === 'xai'
-                ? 'grok'
-                : providerKey === 'gemini'
-                  ? 'google'
-                  : providerKey;
-          const providerId = normalizedKey as ProviderId;
-
-          for (const rawModel of Object.values(providerData.models)) {
-            const parsed = parseModelsDevModel(providerId, rawModel, {
-              baseUrl: providerData.api,
-              api: providerData.api,
-            });
-            if (parsed) {
-              modelsMap.set(`${providerId}/${parsed.id}`, parsed);
-              count++;
-            }
-          }
-        }
-        return { updated: count };
-      } catch {
-        return { updated: 0 };
-      }
+    async refreshCatalog(_refreshOpts?: RefreshCatalogOptions): Promise<{ updated: number }> {
+      return { updated: 0 };
     },
 
     async isConfigured(providerId: ProviderId): Promise<boolean> {
@@ -307,18 +216,11 @@ export function createAI(opts: CreateAIOptions = {}): AI {
       }
     },
 
-    async availableModels(filter?: ModelFilter | ProviderId): Promise<readonly Model[]> {
+    async availableModels(filter?: ProviderId): Promise<readonly Model[]> {
       const available: Model[] = [];
       for (const p of providersMap.values()) {
         try {
-          const auth = await resolveAuth(p);
-          // 1. Live discovery from provider's official endpoint
-          const discovered = await discoverProviderModels(p, auth, fetchFn);
-          for (const m of discovered) {
-            modelsMap.set(`${p.id}/${m.id}`, m);
-          }
-
-          // 2. Fetch all known models for this provider
+          await resolveAuth(p);
           const providerModels = ai.models(p.id);
           if (providerModels.length > 0) {
             available.push(...providerModels);
@@ -326,16 +228,26 @@ export function createAI(opts: CreateAIOptions = {}): AI {
             available.push(syntheticModel(p.id, p.defaultModelId, p));
           }
         } catch {
-          // Provider unconfigured or discovery failed — skip
+          // Provider unconfigured — skip
         }
       }
-      return filterModels(available, normalizeFilter(filter));
+      if (filter) return available.filter((m) => m.provider === filter);
+      return available;
     },
 
-    async resolveModel(request?: ModelSelectionRequest): Promise<ModelSelection> {
-      return resolveModelSelection(request, {
-        isConfigured: (id) => ai.isConfigured(id),
-      });
+    async resolveModel(request?: {
+      provider?: ProviderId;
+      modelId?: string;
+      effort?: ReasoningEffort;
+    }): Promise<ModelSelection> {
+      const providerId = request?.provider ?? 'anthropic';
+      const modelId = request?.modelId ?? 'claude-sonnet-4-5';
+      const effort: ReasoningEffort = request?.effort ?? 'medium';
+      return {
+        provider: providerId,
+        modelId,
+        effort,
+      };
     },
 
     stream(request: InferenceRequest): InferenceStream {
@@ -436,11 +348,15 @@ export function createAI(opts: CreateAIOptions = {}): AI {
   return ai;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+function inferProtocol(providerId: ProviderId): ProtocolId {
+  if (providerId === 'anthropic') return 'anthropic-messages';
+  if (providerId === 'google') return 'google-generative-ai';
+  if (providerId === 'openai') return 'openai-responses';
+  return 'openai-completions';
+}
 
-/** Synthetic fallback Model for unknown model ids. */
 function syntheticModel(providerId: ProviderId, modelId: string, provider: Provider): Model {
-  const inferred = inferProtocolForModel(providerId, modelId);
+  const inferred = inferProtocol(providerId);
   const streamKey = Object.keys(provider.streams)[0] as ProtocolId | undefined;
   const protocol = provider.streams[inferred] ? inferred : (streamKey ?? 'openai-completions');
 
