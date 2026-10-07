@@ -1,5 +1,5 @@
 import { Component, wrapVisualLine } from 'stitchable';
-import { figures } from '../../theme/index.js';
+import { figures } from '../../theme/figures.js';
 import { c, bold } from '../../theme/style.js';
 import {
   formatMarkdown,

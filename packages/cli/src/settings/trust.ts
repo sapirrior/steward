@@ -1,5 +1,5 @@
 import { sep } from 'node:path';
-import { normalizeFolderPath } from '@steward/agent';
+import { normalizeFolderPath } from '../utils/fs/normalizePath.js';
 import { loadSettings, saveSettings } from './store.js';
 
 /**

@@ -1,5 +1,5 @@
-import type { CommandResult } from '../slash/index.js';
-import { listSessions, loadSession } from '@steward/agent';
+import type { CommandResult } from '../slash/types.js';
+import { listSessions, loadSession } from '../services/session/store.js';
 import { formatSlashCommandOutput, formatUserMessage } from './utils/message-formatter.js';
 
 export interface SlashCommandHandlerCtx {

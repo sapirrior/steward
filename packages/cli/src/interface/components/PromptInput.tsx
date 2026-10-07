@@ -1,7 +1,6 @@
-import { Component, type InputEvent } from 'stitchable';
-import { figures } from '../../theme/index.js';
+import { Component, type InputEvent, truncateToWidth } from 'stitchable';
+import { figures } from '../../theme/figures.js';
 import { c, bold } from '../../theme/style.js';
-import { truncateToWidth } from '../utils/format.js';
 import { AutocompleteController } from './prompt-input/autocomplete-controller.js';
 import { CommandPaletteController } from './prompt-input/command-palette-controller.js';
 import { HistoryController } from './prompt-input/history-controller.js';

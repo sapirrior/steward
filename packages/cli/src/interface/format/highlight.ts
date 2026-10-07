@@ -1,6 +1,6 @@
 import { extname, basename } from 'node:path';
 import { highlight as cliHighlight, supportsLanguage } from 'cli-highlight';
-import { getHighlightTheme } from '../../theme/index.js';
+import { getHighlightTheme } from '../../theme/helpers.js';
 
 const EXTENSION_MAP: Record<string, string> = {
   '.ts': 'typescript',

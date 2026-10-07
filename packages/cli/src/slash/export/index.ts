@@ -1,9 +1,9 @@
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
-import type { SessionDocument } from '@steward/agent';
-import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 import { stripAnsi } from 'stitchable';
+import type { SessionDocument } from '../../services/session/index.js';
+import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
 /**
  * Strips ASCII art logo blocks from header lines while preserving the header text.
@@ -147,8 +147,8 @@ export function generateTranscriptFromSession(
               lines.push(``);
             }
           }
-        } else if (typeof msg.content === 'string' && msg.content.trim()) {
-          const textLines = msg.content.trim().split(/\r?\n/);
+        } else if (typeof msg.content === 'string' && (typeof msg.content === 'string' ? msg.content.trim() : '')) {
+          const textLines = (typeof msg.content === 'string' ? msg.content.trim() : '').split(/\r?\n/);
           for (let i = 0; i < textLines.length; i++) {
             lines.push(i === 0 ? `● ${textLines[i]}` : `  ${textLines[i]}`);
           }

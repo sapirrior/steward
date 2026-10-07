@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getStewardHomeDir, atomicWriteFileSync } from '@steward/agent';
-import type { ChatMode } from '@steward/agent';
+import { getStewardHomeDir } from '../utils/paths.js';
+import { atomicWriteFileSync } from '../utils/fs/atomicWrite.js';
+import type { ChatMode } from '../policy/modes.js';
 import type { ProviderId, ReasoningEffort } from '@steward/ai';
 
 export interface SavedModelSettings {

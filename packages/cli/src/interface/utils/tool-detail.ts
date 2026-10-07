@@ -1,7 +1,6 @@
-import type { ToolDetail } from '@steward/agent';
-import { c, bg, bold } from '../../theme/index.js';
+import type { ToolDetail } from '../../tools/types.js';
+import { c, bg, bold } from '../../theme/style.js';
 import { highlightCode } from '../format/highlight.js';
-import { stripAnsi } from 'stitchable';
 
 export function renderToolDetail(
   detail: ToolDetail,

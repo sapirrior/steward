@@ -1,7 +1,9 @@
 /** @jsxImportSource stitchable */
 import { Component, Box, Text, renderElement, wrapVisualLine, type InputEvent } from 'stitchable';
-import { figures, c, bg, bold, italic } from '../../../theme/index.js';
-import { type FilePermissionRequest, buildUnifiedDiff, type UnifiedDiff } from '@steward/agent';
+import { figures } from '../../../theme/figures.js';
+import { c, bg, bold, italic } from '../../../theme/style.js';
+import { type FilePermissionRequest } from '../../../tools/types.js';
+import { buildUnifiedDiff, type UnifiedDiff } from '../../../utils/diff/diff.js';
 import { highlightCode } from '../../format/highlight.js';
 import { handleChoiceKey } from '../../utils/choice.js';
 

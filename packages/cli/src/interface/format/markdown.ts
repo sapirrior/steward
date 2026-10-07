@@ -1,6 +1,6 @@
 import { marked, type Token, type Tokens } from 'marked';
-import { stripAnsi, visibleWidth as stringWidth } from 'stitchable';
-import { c, bold, italic, underline } from '../../theme/index.js';
+import { stripAnsi, visibleWidth } from 'stitchable';
+import { c, bold, italic, underline } from '../../theme/style.js';
 import { highlightCode } from './highlight.js';
 
 const EOL = '\n';
@@ -153,9 +153,9 @@ export function formatToken(
       }
 
       const columnWidths = tableToken.header.map((header, index) => {
-        let maxWidth = stringWidth(getDisplayText(header.tokens));
+        let maxWidth = visibleWidth(getDisplayText(header.tokens));
         for (const row of tableToken.rows) {
-          const cellLength = stringWidth(getDisplayText(row[index]?.tokens));
+          const cellLength = visibleWidth(getDisplayText(row[index]?.tokens));
           maxWidth = Math.max(maxWidth, cellLength);
         }
         return Math.max(maxWidth, 3);
@@ -176,7 +176,7 @@ export function formatToken(
             : '';
           const plain = stripAnsi(raw);
           const align = isHeader ? 'center' : (tableToken.align?.[i] ?? 'left');
-          const padded = padAligned(raw, stringWidth(plain), w, align);
+          const padded = padAligned(raw, visibleWidth(plain), w, align);
           return isHeader ? ` ${bold(padded)} ` : ` ${padded} `;
         });
         return D('│') + parts.join(D('│')) + D('│');

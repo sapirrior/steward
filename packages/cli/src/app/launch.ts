@@ -1,6 +1,7 @@
-import { AgentSession, logError } from '@steward/agent';
+import { AgentSession } from '../query/AgentSession.js';
+import { setupGlobalErrorHandlers, logError } from '../errors/index.js';
 import { setupAuth } from '@steward/oauth';
-import { getSavedModel } from '../settings/index.js';
+import { getSavedModel } from '../settings/model.js';
 import { createRuntime } from './runtime.js';
 import { TUIApp } from './tui-app.js';
 
@@ -9,6 +10,7 @@ export interface LaunchInteractiveOptions {
 }
 
 export async function launchInteractive(opts: LaunchInteractiveOptions): Promise<void> {
+  setupGlobalErrorHandlers();
   try {
     await setupAuth();
     const runtime = createRuntime();

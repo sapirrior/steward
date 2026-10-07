@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { getPlatformShell } from '@steward/agent';
+import { getPlatformShell } from './shell.js';
 
 export interface ExecuteDirectBashOptions {
   command: string;

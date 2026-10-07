@@ -10,11 +10,12 @@ The `@steward/cli` package serves as the executable entrypoint, command-line int
 - [Module & API Breakdown](#module--api-breakdown)
   - [1. Entry & CLI Executable Layer (`src/`, `src/cli/`)](#1-entry--cli-executable-layer-src-srccli)
   - [2. Application Composition & Orchestration (`src/app/`)](#2-application-composition--orchestration-srcapp)
-  - [3. Interface Components & Controllers (`src/interface/`)](#3-interface-components--controllers-srcinterface)
-  - [4. In-Session Slash Commands (`src/slash/`)](#4-in-session-slash-commands-srcslash)
-  - [5. Utilities (`src/utils/`)](#5-utilities-srcutils)
-  - [6. Theme System (`src/theme/`)](#6-theme-system-srctheme)
-  - [7. Settings System (`src/settings/`)](#7-settings-system-srcsettings)
+  - [3. Query Engine & Session Orchestration (`src/query/`)](#3-query-engine--session-orchestration-srcquery)
+  - [4. Interface Components & Controllers (`src/interface/`)](#4-interface-components--controllers-srcinterface)
+  - [5. In-Session Slash Commands (`src/slash/`)](#5-in-session-slash-commands-srcslash)
+  - [6. Utilities (`src/utils/`)](#6-utilities-srcutils)
+  - [7. Theme System (`src/theme/`)](#7-theme-system-srctheme)
+  - [8. Settings System (`src/settings/`)](#8-settings-system-srcsettings)
 - [Application Invariants & Architecture Rules](#application-invariants--architecture-rules)
 
 ---
@@ -71,7 +72,21 @@ Leaf libraries (independent): settings/, theme/, errors/, utils/
 
 ---
 
-### 3. Interface Components & Controllers (`src/interface/`)
+### 3. Query Engine & Session Orchestration (`src/query/`)
+
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `src/query/AgentSession.ts` | `AgentSession`, `accumulateTokenUsage` | Class / Function | Manages conversational turn lifecycle, message history, token usage accumulation, checkpoint tracking, and session data. | Tracks active `AbortController`, enforces turn serialization, logs turn events to session log writer. |
+| `src/query/QueryEngine.ts` | `runQueryTurn`, `RunQueryTurnOptions` | Function / Interface | Cleanly wraps `@steward/agent`'s `runAgentLoop` using `@steward/ai` model streaming and tool dispatch. | Translates loop events, computes turn summaries, and ensures 1:1 tool pairing. |
+| `src/query/toolRunner.ts` | `executeToolCall` | Function | Executes individual tool calls against `defaultToolCatalog` with timing and error isolation. | Catches tool failures, computes `durationMs`, and returns structured `ToolResult`. |
+| `src/query/turnContext.ts` | `prepareTurn`, `PreparedTurn` | Function / Interface | Prepares turn execution prerequisites including UUID, monotonic timestamps, CAS checkpoint tracker, and active tools. | Wires system prompt instructions, active mode permissions, and log adapter hooks. |
+| `src/query/eventAdapter.ts` | `translateAgentEventToLogEvent` | Function | Adapts `AgentTurnEvent` notifications to persistent `SessionLogEvent` objects. | Formats tool execution start/end records with summaries and error states. |
+| `src/query/types.ts` | Session, Turn, and Event contracts | Types / Interfaces | Domain types including `TurnSummary`, `AgentTurnEvent`, `SessionConfig`, and re-exported AI/tool types. | Pure type definitions for query and session consumers. |
+| `src/query/index.ts` | Unified barrel exports | Module | Re-exports all query engine classes, runner functions, context builders, and type definitions. | Single entry point for `src/query`. |
+
+---
+
+### 4. Interface Components & Controllers (`src/interface/`)
 
 | File / Component | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
@@ -101,7 +116,7 @@ Leaf libraries (independent): settings/, theme/, errors/, utils/
 
 ---
 
-### 4. In-Session Slash Commands (`src/slash/`)
+### 5. In-Session Slash Commands (`src/slash/`)
 
 | Command | Implementation Directory | Description |
 | :--- | :--- | :--- |
@@ -125,7 +140,7 @@ Leaf libraries (independent): settings/, theme/, errors/, utils/
 
 ---
 
-### 5. Utilities (`src/utils/`)
+### 6. Utilities (`src/utils/`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
@@ -134,7 +149,7 @@ Leaf libraries (independent): settings/, theme/, errors/, utils/
 
 ---
 
-### 6. Theme System (`src/theme/`)
+### 7. Theme System (`src/theme/`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
@@ -146,7 +161,7 @@ Leaf libraries (independent): settings/, theme/, errors/, utils/
 
 ---
 
-### 7. Settings System (`src/settings/`)
+### 8. Settings System (`src/settings/`)
 
 | File | Export / Item | Type | Description | Key Details / Constraints |
 | :--- | :--- | :--- | :--- | :--- |
@@ -158,6 +173,32 @@ Leaf libraries (independent): settings/, theme/, errors/, utils/
 
 ---
 
+### 9. Services (`src/services/`)
+
+| File | Export / Item | Type | Description | Key Details / Constraints |
+| :--- | :--- | :--- | :--- | :--- |
+| `session/store.ts` | `createSession`, `saveSession`, `loadSession`, `listSessions`, `recordSessionTurn`, `renameSession` | Functions | Atomic persistence and discovery of session JSON documents in `~/.steward/sessions/<date>/`. | Temp-file + fsync + atomic rename; quarantine on schema mismatch. |
+| `session/validate.ts` | `parseSessionDocument` | Function | Schema validation and error recovery for raw session JSON strings. | Validates version 1 schema; handles legacy aliases. |
+| `session/helpers.ts` | `rehydrateSessionHistory`, `formatToolOutputSummary`, `mergeSessionPresentation` | Functions | Transforms session document turns and presentation logs into UI history items. | Formats tool execution output summaries. |
+| `session/logs/store.ts` | `SessionLogWriter`, `loadSessionLog`, `buildSessionPresentationProjection`, `removeSessionLog` | Class / Functions | Append-only serialized JSONL writer and reader for turn presentation metadata. | Bounded output and error string limits. |
+| `checkpoint/cas.ts` | `writeCasBlob`, `readCasBlob`, `hasCasBlob`, `verifyCasBlob`, `computeSha256` | Functions | Content-addressed storage for file pre- and post-images during mutations. | SHA-256 deduplication and verification. |
+| `checkpoint/path.ts` | `resolveDirectMutationPath`, `computeWorkspaceHash`, `isPathInside` | Functions | Validates mutation target containment and symlink boundaries within workspace root. | Enforces workspace boundary safety. |
+| `checkpoint/lock.ts` | `MutationLockManager`, `globalMutationLockManager` | Class / Instance | Asynchronous per-path mutex manager with deadlock-free multi-path locking. | Lexicographical lock ordering. |
+| `checkpoint/store.ts` | `loadCheckpointManifest`, `saveCheckpointManifest`, `loadPendingJournal`, `savePendingJournal`, `commitTurnCheckpoint` | Functions | Manifest and journal persistence for multi-file workspace mutation checkpoints. | Serialized per-session atomic JSON writes. |
+| `checkpoint/tracker.ts` | `MutationCheckpointTracker` | Class | Single-turn mutation tracker recording file pre-states and post-states. | Acquires per-path lock, captures CAS preimage before mutation. |
+| `checkpoint/rewind.ts` | `executeRewind`, `recoverPendingCheckpoint` | Functions | Transactional rollback of conversation state and workspace files to target turn. | Multi-file locking, preflight CAS verification, and atomic rollback on conflict. |
+| `tasks/process.ts` | `ShellExecution`, `getFilteredChildEnv` | Class / Function | Manages child shell process lifecycle, streaming output, automatic handoff, and input. | Sanitizes provider API keys from environment. |
+| `tasks/manager.ts` | `ShellTaskManager` | Class | Lifecycle registry and cleanup manager for background and foreground shell tasks. | Enforces TTL eviction and capacity limits. |
+| `permissions/permissions.ts` | `evaluateBashPermission` | Function | Evaluates command safety against command policy and delegates to permission dock handler. | Auto-approves safe read-only commands. |
+| `permissions/shellRules.ts` | `classifyCommand` | Function | Pure classifier determining `SAFE_READ_ONLY` vs `REQUIRES_APPROVAL` for shell command strings. | Handles chained commands, quotes, and dangerous flags. |
+| `permissions/filesystem.ts` | `isPathAccessible` | Function | Workspace containment check for filesystem operations. | Resolves against workspace root. |
+| `context/systemPrompt.ts` | `buildSystemPrompt`, `buildSystemPromptSections`, `diffSystemPromptSections` | Functions | Modular system prompt builder with operating principles, date, cwd, and mode instructions. | Pure string template generation. |
+| `errors/logger.ts` | `logError`, `serializeError`, `sanitizeContext` | Functions | Structured diagnostic error logger with secret redaction and system diagnostics. | Persists logs to `~/.steward/logs/<date>/<time>.log`. |
+| `errors/globalHandler.ts` | `setupGlobalErrorHandlers`, `emergencyRestoreTerminal` | Functions | Installs uncaughtException and unhandledRejection handlers with terminal restoration. | Mode 2026 and mouse tracking reset. |
+| `index.ts` | Barrel exports | Module | Unified entry point exporting all services sub-domains. | Single entry point for `src/services`. |
+
+---
+
 ## Application Invariants & Architecture Rules
 
 1. **Intra-Package Layer Boundaries (Rules 7–10):** All modules must follow the strict one-way dependency chain: `main.ts` $\to$ `cli/` $\to$ `app/` $\to$ `interface/` $\to$ `slash/`. No circular or upward imports are permitted.
@@ -165,3 +206,4 @@ Leaf libraries (independent): settings/, theme/, errors/, utils/
 3. **Type-Only Slash Boundary:** Slash commands must never import UI implementation code at runtime; imports from `src/interface/` must be `import type` only.
 4. **Trust Gate Ordering:** External project and user lifecycle hooks are disabled until workspace trust is approved via `TrustGate`.
 5. **Direct Shell & Slash Command Bypass:** Direct bash executions (`!<command>`) and `/slash` commands bypass agent turn LLM history.
+

@@ -1,7 +1,7 @@
 /** @jsxImportSource stitchable */
 import { Component, Box, Text, type InputEvent } from 'stitchable';
 import type { ReasoningEffort } from '@steward/ai';
-import { figures } from '../../../theme/index.js';
+import { figures } from '../../../theme/figures.js';
 import { c, bold } from '../../../theme/style.js';
 import { renderModalBox } from '../../utils/modal-box.js';
 

@@ -14,7 +14,7 @@ import type { AgentEvent } from './events.js';
 
 function createMockStream(
   events: StreamEvent[],
-  result: StreamResult
+  result: StreamResult,
 ): (req: StreamRequest) => ModelStream {
   return () => {
     return {
@@ -37,14 +37,11 @@ describe('runAgentLoop', () => {
       content: [{ type: 'text', text: 'Hello, world!' }],
     };
 
-    const stream = createMockStream(
-      [{ type: 'text-delta', delta: 'Hello, world!' }],
-      {
-        message: assistantMsg,
-        usage: { input: 10, output: 5, total: 15 },
-        finishReason: 'stop',
-      }
-    );
+    const stream = createMockStream([{ type: 'text-delta', delta: 'Hello, world!' }], {
+      message: assistantMsg,
+      usage: { input: 10, output: 5, total: 15 },
+      finishReason: 'stop',
+    });
 
     const events: AgentEvent[] = [];
     const result = await runAgentLoop({
@@ -250,7 +247,10 @@ describe('runAgentLoop', () => {
         },
         async result() {
           return {
-            message: { role: 'assistant', content: [{ type: 'text', text: 'Recovered from error' }] },
+            message: {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'Recovered from error' }],
+            },
             usage: { input: 15, output: 5, total: 20 },
             finishReason: 'stop',
           };

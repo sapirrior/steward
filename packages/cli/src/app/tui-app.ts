@@ -1,15 +1,11 @@
 import { existsSync } from 'node:fs';
 import { TerminalEngine, type InputEvent, type TerminalIO } from 'stitchable';
-import {
-  AgentSession,
-  defaultToolCatalog,
-  type SessionData,
-  SessionLogWriter,
-  getSessionLogPath,
-  logError,
-  cycleMode,
-  setActiveMode,
-} from '@steward/agent';
+import { AgentSession } from '../query/AgentSession.js';
+import { defaultToolCatalog } from '../tools/index.js';
+import { SessionLogWriter } from '../services/session/logs/store.js';
+import { getSessionLogPath } from '../services/session/index.js';
+import { logError } from '../services/errors/logger.js';
+import { cycleMode, setActiveMode } from '../policy/modes.js';
 import {
   isFolderTrusted,
   trustFolder,
@@ -17,8 +13,8 @@ import {
   saveModeSelection,
   getSavedModel,
 } from '../settings/index.js';
-import { defaultCommandRegistry } from '../slash/index.js';
-import { c } from '../theme/index.js';
+import { defaultCommandRegistry } from '../slash/registry.js';
+import { c } from '../theme/style.js';
 import Header from '../interface/components/Header.js';
 import StatusBar from '../interface/components/StatusBar.js';
 import StreamingView from '../interface/components/StreamingView.js';
@@ -86,7 +82,7 @@ export class TUIApp {
             }
           : undefined,
         undefined,
-        { ai: runtime?.modelPort ?? (this.ai as any) },
+        { ai: this.ai },
       );
     this.onExitCallback = options.onExit;
     this.engine = new TerminalEngine({

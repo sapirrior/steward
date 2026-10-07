@@ -1,5 +1,5 @@
 import { darkTheme } from './colors.js';
-import { resolveThemeColor } from './helpers.js';
+import { resolveThemeColor } from './style.js';
 
 export type ColorToken =
   | 'text'

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { TerminalEngine } from 'stitchable';
 import { renderTranscript } from '../src/interface/utils/transcript.js';
 import Header from '../src/interface/components/Header.js';
-import type { SessionData } from '@steward/agent';
+import type { SessionData } from '../src/services/session/types.js';
 
 describe('cli/ui/utils/transcript — Session Transcript Replay', () => {
   it('renders error badge when replaying an errored session turn', () => {

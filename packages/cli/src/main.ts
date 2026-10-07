@@ -1,9 +1,8 @@
 #!/usr/bin/env node
-import { setupGlobalErrorHandlers } from '@steward/agent';
-import { run } from './cli/index.js';
-
-// Initialize production-grade global error handlers
-setupGlobalErrorHandlers();
+/**
+ * Steward CLI Entrypoint
+ */
+import { run } from './cli/run.js';
 
 // Auto-run entrypoint
 run();

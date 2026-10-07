@@ -10,7 +10,7 @@ import {
   type DocumentFrame,
   type Component,
 } from 'stitchable';
-import { TUIApp, type TUIAppOptions } from '../../src/app/index.js';
+import { TUIApp, type TUIAppOptions } from '../../src/app/tui-app.js';
 
 export interface TestEngineOptions {
   columns?: number;

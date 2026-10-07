@@ -4,7 +4,7 @@ import {
   type QueuedPermissionItem,
 } from '../../src/interface/utils/permission-queue.js';
 
-import type { BashPermissionRequest, FilePermissionRequest } from '@steward/agent';
+import type { BashPermissionRequest, FilePermissionRequest } from '../../src/tools/types.js';
 
 describe('PermissionQueue Concurrency & Abort Orchestration (Section 32)', () => {
   it('displays request A, queues request B, and transitions B to active on A approval', async () => {

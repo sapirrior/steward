@@ -1,14 +1,15 @@
-import { figures, c, bg, bold } from '../../theme/index.js';
+import { figures } from '../../theme/figures.js';
+import { c, bg, bold } from '../../theme/style.js';
 import {
   formatMarkdown,
   getStatusBullet,
   truncateMiddle,
   extractPrimaryToolParam,
-  visibleWidth,
 } from './format.js';
-import { wrapVisualLine } from 'stitchable';
-import type { ToolExecutionStatus } from '../types.js';
-import { type ToolSummary, chooseTurnStatusVerb, STATUS_VERBS } from '@steward/agent';
+import { wrapVisualLine, visibleWidth } from 'stitchable';
+import type { ToolExecutionStatus } from '../../services/session/types.js';
+import { type ToolSummary } from '../../tools/types.js';
+import { chooseTurnStatusVerb, STATUS_VERBS } from '../../services/session/index.js';
 import { presentError, type PresentedError } from '../../errors/present.js';
 import { renderToolDetail } from './tool-detail.js';
 

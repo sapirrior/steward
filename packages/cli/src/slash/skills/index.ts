@@ -1,4 +1,4 @@
-import { discoverSkills } from '@steward/agent';
+import { discoverSkills } from '../../skills/index.js';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
 /**

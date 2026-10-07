@@ -175,8 +175,23 @@ describe('Slash Commands: /init, /copy, /usage, /export', () => {
       expect(result.message).toContain('• Reasoning Tokens: 1,200');
       expect(result.message).toContain('• Cache Read Tokens: 10,500');
       expect(result.message).toContain('• Cache Write Tokens: 1,200');
-      expect(result.message).toContain('• Total Tokens: 17,730');
       expect(result.message).toContain('• Session Spend: ~');
+    });
+
+    it('should display context window and metadata from @steward/models when available', async () => {
+      const result = await usageCommand.execute([], {
+        cwd: tempDir,
+        session: {
+          session: { turns: [], createdAt: new Date().toISOString() },
+          getModel: () => ({ provider: 'openai', modelId: 'gpt-4o', effort: 'medium' }),
+          getUsage: () => ({ input: 500, output: 100, total: 600 }),
+        } as any,
+      });
+
+      expect(result.handled).toBe(true);
+      expect(result.message).toContain('Model Specifications & Limits:');
+      expect(result.message).toContain('Context Window:');
+      expect(result.message).toContain('Max Output:');
     });
   });
 

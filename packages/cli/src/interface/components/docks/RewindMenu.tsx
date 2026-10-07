@@ -1,13 +1,13 @@
 /** @jsxImportSource stitchable */
 import { SelectList } from '../../utils/select-list.js';
+import { type SessionData, type SessionTurn } from '../../../services/session/index.js';
 import {
-  type SessionData,
-  type SessionTurn,
   loadCheckpointManifest,
   readCasBlob,
   computeWorkspaceHash,
-} from '@steward/agent';
-import { figures, c } from '../../../theme/index.js';
+} from '../../../services/checkpoint/index.js';
+import { figures } from '../../../theme/figures.js';
+import { c } from '../../../theme/style.js';
 import { Box, Text } from 'stitchable';
 
 export interface RewindItem {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import FilePermissionDock from '../../src/interface/components/docks/FilePermissionDock.js';
-import type { FilePermissionRequest } from '@steward/agent';
+import type { FilePermissionRequest } from '../../src/tools/types.js';
 import { makeEngine } from '../helpers/app.js';
 
 describe('FilePermissionDock Interaction & State Machine (Section 28)', () => {

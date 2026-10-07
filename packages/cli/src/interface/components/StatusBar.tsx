@@ -1,7 +1,7 @@
 /** @jsxImportSource stitchable */
 import { Component, Box, Text, Spacer, renderElement } from 'stitchable';
-import { type ChatMode, MODES, getActiveMode } from '@steward/agent';
-import { figures } from '../../theme/index.js';
+import { type ChatMode, MODES, getActiveMode } from '../../policy/modes.js';
+import { figures } from '../../theme/figures.js';
 import { c, bold } from '../../theme/style.js';
 
 export interface StatusBarProps {

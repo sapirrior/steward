@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { createRuntime } from '../../src/app/index.js';
+import { createRuntime } from '../../src/app/runtime.js';
 import type { ModelPort } from '@steward/agent';
 
 describe('cli/runtime — createRuntime Composition Root', () => {

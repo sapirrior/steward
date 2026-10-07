@@ -3,7 +3,7 @@ import type {
   BashPermissionResponse,
   FilePermissionRequest,
   FilePermissionResponse,
-} from '@steward/agent';
+} from '../../tools/types.js';
 
 export type QueuedPermissionItem =
   | {
@@ -11,30 +11,23 @@ export type QueuedPermissionItem =
       kind: 'bash';
       request: BashPermissionRequest;
       resolve: (res: BashPermissionResponse) => void;
-      abortSignal?: AbortSignal;
-      settled: boolean;
+      signal?: AbortSignal;
+      abortListener?: () => void;
     }
   | {
       id: string;
       kind: 'file';
       request: FilePermissionRequest;
       resolve: (res: FilePermissionResponse) => void;
-      abortSignal?: AbortSignal;
-      settled: boolean;
+      signal?: AbortSignal;
+      abortListener?: () => void;
     };
+
+export type PermissionQueueItem = QueuedPermissionItem;
 
 export interface PermissionQueueOptions {
   onShow: (item: QueuedPermissionItem) => void;
   onHide: () => void;
-}
-
-function settleItem(item: QueuedPermissionItem, allowed: boolean): void {
-  item.settled = true;
-  if (item.kind === 'bash') {
-    item.resolve({ allowed });
-  } else {
-    item.resolve({ allowed });
-  }
 }
 
 export class PermissionQueue {
@@ -42,7 +35,7 @@ export class PermissionQueue {
   private activeItem: QueuedPermissionItem | null = null;
   private onShow: (item: QueuedPermissionItem) => void;
   private onHide: () => void;
-  private nextId = 1;
+  private counter = 0;
 
   constructor(options: PermissionQueueOptions) {
     this.onShow = options.onShow;
@@ -57,131 +50,122 @@ export class PermissionQueue {
     return this.queue.length;
   }
 
-  public get isEmpty(): boolean {
-    return this.activeItem === null && this.queue.length === 0;
+  public get isPending(): boolean {
+    return this.activeItem !== null || this.queue.length > 0;
   }
 
   public enqueueBash(
     request: BashPermissionRequest,
-    abortSignal?: AbortSignal,
+    signal?: AbortSignal,
   ): Promise<BashPermissionResponse> {
+    const id = `bash-${++this.counter}`;
     return new Promise((resolve) => {
-      if (abortSignal?.aborted) {
-        return resolve({ allowed: false });
+      if (signal?.aborted) {
+        resolve({ allowed: false });
+        return;
       }
 
       const item: QueuedPermissionItem = {
-        id: `bash-${this.nextId++}`,
+        id,
         kind: 'bash',
         request,
         resolve,
-        abortSignal,
-        settled: false,
+        signal,
       };
 
-      this.enqueueItem(item);
+      this.setupAbortListener(item);
+      this.queue.push(item);
+      this.processQueue();
     });
   }
 
   public enqueueFile(
     request: FilePermissionRequest,
-    abortSignal?: AbortSignal,
+    signal?: AbortSignal,
   ): Promise<FilePermissionResponse> {
+    const id = `file-${++this.counter}`;
     return new Promise((resolve) => {
-      if (abortSignal?.aborted) {
-        return resolve({ allowed: false });
+      if (signal?.aborted) {
+        resolve({ allowed: false });
+        return;
       }
 
       const item: QueuedPermissionItem = {
-        id: `file-${this.nextId++}`,
+        id,
         kind: 'file',
         request,
         resolve,
-        abortSignal,
-        settled: false,
+        signal,
       };
 
-      this.enqueueItem(item);
+      this.setupAbortListener(item);
+      this.queue.push(item);
+      this.processQueue();
     });
   }
 
-  private enqueueItem(item: QueuedPermissionItem): void {
-    if (item.abortSignal) {
-      const abortHandler = () => {
-        if (!item.settled) {
-          this.cancelItem(item);
+  private setupAbortListener(item: QueuedPermissionItem): void {
+    if (!item.signal) return;
+    const onAbort = () => {
+      if (this.activeItem === item) {
+        this.cleanupItem(item);
+        this.activeItem = null;
+        this.onHide();
+        item.resolve({ allowed: false });
+        this.processQueue();
+      } else {
+        const idx = this.queue.indexOf(item);
+        if (idx !== -1) {
+          this.queue.splice(idx, 1);
+          this.cleanupItem(item);
+          item.resolve({ allowed: false });
         }
-      };
-      item.abortSignal.addEventListener('abort', abortHandler, { once: true });
-    }
+      }
+    };
+    item.abortListener = onAbort;
+    item.signal.addEventListener('abort', onAbort, { once: true });
+  }
 
-    this.queue.push(item);
-    if (!this.activeItem) {
-      this.processNext();
+  private cleanupItem(item: QueuedPermissionItem): void {
+    if (item.signal && item.abortListener) {
+      item.signal.removeEventListener('abort', item.abortListener);
     }
   }
 
   public resolveActive(allowed: boolean): void {
-    const current = this.activeItem;
-    if (!current || current.settled) {
-      return;
-    }
-
+    if (!this.activeItem) return;
+    const item = this.activeItem;
+    this.cleanupItem(item);
     this.activeItem = null;
     this.onHide();
-
-    settleItem(current, allowed);
-    this.processNext();
-  }
-
-  private cancelItem(item: QueuedPermissionItem): void {
-    if (item.settled) return;
-
-    if (this.activeItem === item) {
-      this.activeItem = null;
-      this.onHide();
-      settleItem(item, false);
-      this.processNext();
-    } else {
-      const idx = this.queue.indexOf(item);
-      if (idx !== -1) {
-        this.queue.splice(idx, 1);
-      }
-      settleItem(item, false);
-    }
-  }
-
-  private processNext(): void {
-    while (this.queue.length > 0) {
-      const next = this.queue.shift()!;
-      if (next.settled || next.abortSignal?.aborted) {
-        if (!next.settled) {
-          settleItem(next, false);
-        }
-        continue;
-      }
-
-      this.activeItem = next;
-      this.onShow(next);
-      return;
-    }
-
-    this.activeItem = null;
+    item.resolve({ allowed });
+    this.processQueue();
   }
 
   public clear(): void {
-    if (this.activeItem && !this.activeItem.settled) {
-      const active = this.activeItem;
+    const queued = [...this.queue];
+    this.queue = [];
+    for (const item of queued) {
+      this.cleanupItem(item);
+      item.resolve({ allowed: false });
+    }
+    if (this.activeItem) {
+      const item = this.activeItem;
+      this.cleanupItem(item);
       this.activeItem = null;
-      this.onHide();
-      settleItem(active, false);
+      item.resolve({ allowed: false });
+    }
+    this.onHide();
+  }
+
+  private processQueue(): void {
+    if (this.activeItem) return;
+
+    if (this.queue.length === 0) {
+      return;
     }
 
-    while (this.queue.length > 0) {
-      const item = this.queue.shift()!;
-      if (!item.settled) {
-        settleItem(item, false);
-      }
-    }
+    this.activeItem = this.queue.shift()!;
+    this.onShow(this.activeItem);
   }
 }

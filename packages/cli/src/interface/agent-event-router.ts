@@ -1,11 +1,7 @@
 import { TerminalEngine } from 'stitchable';
-import {
-  type AgentEventListener,
-  defaultToolCatalog,
-  summarizeToolResult,
-  summarizeToolArgs,
-  logError,
-} from '@steward/agent';
+import type { AgentEventListener } from '../query/index.js';
+import { defaultToolCatalog, summarizeToolResult, summarizeToolArgs } from '../tools/index.js';
+import { logError } from '../services/index.js';
 import {
   formatAssistantMessage,
   formatToolStatus,

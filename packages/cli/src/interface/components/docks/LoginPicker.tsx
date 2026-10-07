@@ -1,8 +1,8 @@
 /** @jsxImportSource stitchable */
-import { Component, Box, Text, type InputEvent } from 'stitchable';
-import { figures, c, bold } from '../../../theme/index.js';
+import { Component, Box, Text, type InputEvent, truncateToWidth } from 'stitchable';
+import { figures } from '../../../theme/figures.js';
+import { c, bold } from '../../../theme/style.js';
 import { renderModalBox } from '../../utils/modal-box.js';
-import { truncateToWidth } from '../../utils/format.js';
 
 export interface OAuthProviderItem {
   id: string;

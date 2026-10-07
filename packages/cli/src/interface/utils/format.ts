@@ -1,4 +1,5 @@
-import { figures, resolveThemeColor, c, bold } from '../../theme/index.js';
+import { figures } from '../../theme/figures.js';
+import { resolveThemeColor, c, bold } from '../../theme/style.js';
 import { applyMarkdown } from '../format/markdown.js';
 import { visibleWidth, truncateToWidth, stripAnsi } from 'stitchable';
 

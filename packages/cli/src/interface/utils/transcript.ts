@@ -1,15 +1,13 @@
 import type { TerminalEngine } from 'stitchable';
 import type Header from '../components/Header.js';
 import {
-  type SessionData,
   loadSessionLog,
   buildSessionPresentationProjection,
-  type TurnPresentationEnd,
   rehydrateSessionHistory,
-  defaultToolCatalog,
-  summarizeToolResult,
-  summarizeToolArgs,
-} from '@steward/agent';
+  type SessionData,
+  type TurnPresentationEnd,
+} from '../../services/session/index.js';
+import { defaultToolCatalog, summarizeToolResult, summarizeToolArgs } from '../../tools/index.js';
 import {
   formatTurnStatus,
   formatSystemMessage,
@@ -18,7 +16,7 @@ import {
   formatAssistantMessage,
   formatUserMessage,
 } from './message-formatter.js';
-import { c } from '../../theme/index.js';
+import { c } from '../../theme/style.js';
 
 export function formatTurnFooter(
   engine: TerminalEngine,
@@ -125,7 +123,6 @@ export function renderTranscript(
       const toolDef = defaultToolCatalog.get(toolData.toolName);
       const displayName = toolData.displayName ?? toolDef?.displayName;
       const icon = toolData.icon ?? toolDef?.icon;
-      // Use tool-def-aware args summary (matches live session path in app.ts)
       const argsSummary =
         toolDef && toolData.args != null
           ? summarizeToolArgs(toolDef, toolData.args)

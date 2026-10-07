@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import type { Theme as HighlightTheme } from 'cli-highlight';
+import type { Theme } from 'cli-highlight';
 import { darkTheme, type UITheme } from './colors.js';
 
 /**
@@ -32,7 +32,7 @@ export const underline = (s: string): string => (chalk.level === 0 ? s : chalk.u
 export const strikethrough = (s: string): string =>
   chalk.level === 0 ? s : chalk.strikethrough(s);
 
-export function buildHighlightTheme(theme: UITheme): HighlightTheme {
+export function buildHighlightTheme(theme: UITheme): Theme {
   const syn = theme.syntax;
   const kw = resolveThemeColor(syn.keyword);
   const str = resolveThemeColor(syn.string);
@@ -95,9 +95,9 @@ export function buildHighlightTheme(theme: UITheme): HighlightTheme {
   };
 }
 
-let cachedHighlightTheme: HighlightTheme | null = null;
+let cachedHighlightTheme: Theme | null = null;
 
-export function getHighlightTheme(): HighlightTheme {
+export function getHighlightTheme(): Theme {
   if (chalk.level === 0) {
     return { default: (s: string) => s };
   }

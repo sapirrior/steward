@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import StreamingView from '../../src/interface/components/StreamingView.js';
-import { stripAnsi } from 'stitchable';
+import { stripAnsi } from '../../src/interface/utils/format.js';
 
 describe('StreamingView Thinking Indicator & Transitions', () => {
   it('renders blinking bullet with Thinking.. and subline status', () => {

@@ -1,6 +1,7 @@
 /** @jsxImportSource stitchable */
 import { Component, Box, Text, renderElement, wrapVisualLine, type InputEvent } from 'stitchable';
-import { figures, c, bold, italic } from '../../../theme/index.js';
+import { figures } from '../../../theme/figures.js';
+import { c, bold, italic } from '../../../theme/style.js';
 import { handleChoiceKey } from '../../utils/choice.js';
 
 export interface BashPermissionDockProps {

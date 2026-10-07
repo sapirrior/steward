@@ -1,4 +1,4 @@
-import { defaultCommandRegistry } from '../src/slash/index.js';
+import { defaultCommandRegistry } from '../src/slash/registry.js';
 
 describe('Slash Command Registry Characterization', () => {
   it('registers all 17 commands in exact order', () => {

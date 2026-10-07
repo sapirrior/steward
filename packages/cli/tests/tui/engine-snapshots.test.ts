@@ -17,7 +17,7 @@ import {
   formatToolStatus,
   formatUserMessage,
 } from '../../src/interface/utils/message-formatter.js';
-import { editFileTool } from '@steward/agent';
+import { editFileTool } from '../../src/tools/FileEditTool/index.js';
 import { captureHeadlessRender, assertGoldenMatch } from '../helpers/app.js';
 import { StateRenderer } from 'stitchable';
 

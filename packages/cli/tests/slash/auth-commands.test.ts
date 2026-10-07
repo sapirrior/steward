@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loginCommand } from '../../src/slash/login/index.js';
 import { logoutCommand } from '../../src/slash/logout/index.js';
-import { defaultCommandRegistry } from '../../src/slash/index.js';
+import { defaultCommandRegistry } from '../../src/slash/registry.js';
 
 describe('Slash Commands: /login and /logout', () => {
   let tempDir: string;

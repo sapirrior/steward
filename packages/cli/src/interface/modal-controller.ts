@@ -1,13 +1,9 @@
 import { TerminalEngine } from 'stitchable';
-import {
-  AgentSession,
-  executeRewind,
-  recoverPendingCheckpoint,
-  type SessionData,
-  type FilePermissionRequest,
-} from '@steward/agent';
-import { saveModel } from '../settings/index.js';
-import type { Model, ProviderId } from '@steward/ai';
+import { AgentSession } from '../query/index.js';
+import { executeRewind, recoverPendingCheckpoint } from '../services/checkpoint/index.js';
+import { saveModel } from '../settings/model.js';
+import type { ProviderId } from '@steward/ai';
+import type { Model } from '@steward/ai';
 import ModelPicker from './components/docks/ModelPicker.js';
 import LoginPicker, { type OAuthProviderItem } from './components/docks/LoginPicker.js';
 import SessionMenu from './components/docks/SessionMenu.js';

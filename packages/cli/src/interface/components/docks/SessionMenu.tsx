@@ -1,7 +1,9 @@
 /** @jsxImportSource stitchable */
 import { SelectList } from '../../utils/select-list.js';
-import type { SessionData, SessionTurn } from '@steward/agent';
-import { figures, c } from '../../../theme/index.js';
+import type { SessionData } from '../../../services/session/types.js';
+import type { SessionTurn } from '../../../services/session/schema.js';
+import { figures } from '../../../theme/figures.js';
+import { c } from '../../../theme/style.js';
 import { Box, Text } from 'stitchable';
 
 export interface SessionMenuProps {

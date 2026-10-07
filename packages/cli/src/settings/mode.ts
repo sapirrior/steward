@@ -1,5 +1,7 @@
-import { MODE_NAMES, type ChatMode } from '@steward/agent';
+import { MODE_NAMES, type ChatMode } from '../policy/modes.js';
 import { loadSettings, saveSettings } from './store.js';
+
+export { MODE_NAMES, type ChatMode };
 
 export function getSavedMode(): ChatMode | undefined {
   const settings = loadSettings();

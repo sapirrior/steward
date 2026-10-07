@@ -1,4 +1,4 @@
-import type { AgentSession } from '@steward/agent';
+import type { AgentSession } from '../query/index.js';
 
 export interface CommandContext {
   session: AgentSession;

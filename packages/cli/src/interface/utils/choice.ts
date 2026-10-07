@@ -1,5 +1,6 @@
 import type { InputEvent } from 'stitchable';
-import { figures, c, bold } from '../../theme/index.js';
+import { figures } from '../../theme/figures.js';
+import { c, bold } from '../../theme/style.js';
 
 export type ChoiceAction =
   { type: 'move'; index: number } | { type: 'confirm'; index: number } | { type: 'cancel' };

@@ -2,7 +2,7 @@
 import { homedir } from 'node:os';
 import pkg from '../../../package.json' with { type: 'json' };
 import { Component, Box, Text, renderElement } from 'stitchable';
-import { LOGO_LINES } from '../../theme/index.js';
+import { LOGO_LINES } from '../../theme/figures.js';
 import { c, bold } from '../../theme/style.js';
 
 const DEFAULT_VERSION = pkg.version || '0.0.0';

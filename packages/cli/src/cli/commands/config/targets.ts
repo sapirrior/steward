@@ -1,6 +1,11 @@
 import type { CliIO, CliExitCode } from '../../types.js';
-import { loadSettings, getSavedMode, saveModeSelection } from '../../../settings/index.js';
-import { MODE_NAMES, type ChatMode } from '@steward/agent';
+import { loadSettings } from '../../../settings/store.js';
+import {
+  getSavedMode,
+  saveModeSelection,
+  MODE_NAMES,
+  type ChatMode,
+} from '../../../settings/mode.js';
 
 export interface ConfigTarget {
   readonly name: string;

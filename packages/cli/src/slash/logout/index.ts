@@ -1,4 +1,4 @@
-import { logout as oauthLogout, logoutAll as oauthLogoutAll, authStatus } from '@steward/oauth';
+import { logout, logoutAll, authStatus } from '@steward/oauth';
 import { normalizeProviderId } from '@steward/ai';
 import type { CommandContext, CommandResult, SlashCommand } from '../types.js';
 
@@ -19,7 +19,7 @@ export const logoutCommand: SlashCommand = {
     const target = args[0]?.trim().toLowerCase();
 
     if (!target || target === 'all') {
-      const clearedCount = await oauthLogoutAll();
+      const clearedCount = await logoutAll();
       return {
         handled: true,
         message:
@@ -30,7 +30,7 @@ export const logoutCommand: SlashCommand = {
     }
 
     const providerId = normalizeProviderId(target) ?? target;
-    const removed = await oauthLogout(providerId);
+    const removed = await logout(providerId);
 
     if (removed) {
       return {

@@ -1,8 +1,9 @@
-import type { CliCommandRegistry, CliDeps, CliIO } from './types.js';
+import type { CliCommandRegistry, CliIO } from './types.js';
+import type { CliDeps } from './types.js';
 import { DefaultCliCommandRegistry } from './registry.js';
 import { builtInCliCommands } from './commands/index.js';
 import { VERSION } from './meta.js';
-import { launchInteractive } from '../app/index.js';
+import { launchInteractive } from '../app/launch.js';
 
 export interface RunOptions {
   registry?: CliCommandRegistry;
