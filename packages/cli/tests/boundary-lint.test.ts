@@ -131,6 +131,7 @@ describe('Monorepo Package Boundary Rules', () => {
     const packages: Array<{ name: string; dirName: string; selfNames: string[] }> = [
       { name: '@steward/ai', dirName: 'ai', selfNames: ['@steward/ai'] },
       { name: '@steward/agent', dirName: 'agent', selfNames: ['@steward/agent'] },
+      { name: '@steward/models', dirName: 'models', selfNames: ['@steward/models'] },
       { name: '@steward/oauth', dirName: 'oauth', selfNames: ['@steward/oauth'] },
       { name: 'stitchable', dirName: 'tui', selfNames: ['stitchable', '@steward/tui'] },
     ];
@@ -138,6 +139,7 @@ describe('Monorepo Package Boundary Rules', () => {
     const allPkgIdentities = [
       '@steward/ai',
       '@steward/agent',
+      '@steward/models',
       '@steward/oauth',
       '@steward/cli',
       '@steward/tui',
@@ -173,6 +175,7 @@ describe('Monorepo Package Boundary Rules', () => {
     const packages = [
       { dirName: 'ai', selfNames: ['@steward/ai'] },
       { dirName: 'agent', selfNames: ['@steward/agent'] },
+      { dirName: 'models', selfNames: ['@steward/models'] },
       { dirName: 'oauth', selfNames: ['@steward/oauth'] },
       { dirName: 'tui', selfNames: ['stitchable', '@steward/tui'] },
     ];

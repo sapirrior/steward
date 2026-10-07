@@ -13,7 +13,7 @@
     "format": "bun ./node_modules/prettier/bin/prettier.cjs --check \"packages/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/tests/**/*.{ts,tsx,js,jsx}\"",
     "format:fix": "bun ./node_modules/prettier/bin/prettier.cjs --write \"packages/*/src/**/*.{ts,tsx,js,jsx}\" \"packages/*/tests/**/*.{ts,tsx,js,jsx}\"",
     "lint:boundaries": "bun test packages/cli/tests/boundary-lint.test.ts",
-    "typecheck": "tsc --noEmit -p packages/ai && tsc --noEmit -p packages/tui && tsc --noEmit -p packages/oauth && tsc --noEmit -p packages/agent && tsc --noEmit -p packages/cli"
+    "typecheck": "tsc --noEmit -p packages/models && tsc --noEmit -p packages/ai && tsc --noEmit -p packages/tui && tsc --noEmit -p packages/oauth && tsc --noEmit -p packages/agent && tsc --noEmit -p packages/cli"
   },
   "devDependencies": {
     "prettier": "3.9.6",

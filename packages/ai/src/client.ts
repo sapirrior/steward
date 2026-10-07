@@ -110,7 +110,11 @@ export interface AI {
 
   isConfigured(providerId: ProviderId): Promise<boolean>;
   authStatus(providerId: ProviderId): Promise<ProviderAuthStatus>;
-  resolveModel(request?: { provider?: ProviderId; modelId?: string; effort?: ReasoningEffort }): Promise<ModelSelection>;
+  resolveModel(request?: {
+    provider?: ProviderId;
+    modelId?: string;
+    effort?: ReasoningEffort;
+  }): Promise<ModelSelection>;
 
   stream(request: InferenceRequest): InferenceStream;
   complete(request: InferenceRequest): Promise<InferenceResult>;
