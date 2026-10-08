@@ -1,60 +1,71 @@
 # AGENTS.md
 
-Universal operational guidelines for AI coding agents working in the `steward` repository.
+Operational guidelines and engineering rules for AI coding agents working in this repository.
 
-## 1. Project Overview & Tech Stack
+---
 
-`steward` is an interactive AI engineering assistant for the terminal — built with:
+## 1. Project Overview & Commands
 
-- **Language/Runtime:** TypeScript, executed natively by [Bun](https://bun.sh)
-- **Model Orchestration & Tool Calling:** First-party zero-dependency AI engine (`@steward/ai`) supporting 11 providers (OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, GitHub Copilot, Groq, xAI, Mistral, Ollama, Custom).
-- **Terminal User Interface (TUI):** Custom Alternate-Screen TUI Engine (`stitchable` / `@steward/tui`) with Mode 2026 Synchronized Output and line-differential rendering.
+- **Language / Runtime:** TypeScript with [Bun](https://bun.sh).
 
-> Do not introduce alternative UI frameworks or external LLM wrapper libraries (`ai`, `@ai-sdk/*`, langchain, etc.) without explicit maintainer approval.
-
-## 2. Source of Truth for Architecture
-
-- **Zero External AI SDKs:** All LLM communication, streaming parsers, and tool calling runtime are maintained directly in `packages/ai/`.
-
-## 3. Architecture & Modular Package Boundaries
-
-All application source code resides in the root `packages/` directory across 5 isolated workspaces:
-
-- **AI Runtime Package (`packages/ai/` / `@steward/ai`):**
-  - Zero-dependency streaming inference engine, provider adapters (OpenAI, Anthropic, Gemini, OpenAI-compatible), auth resolution via environment variables, and dynamic model discovery.
-- **TUI Package (`packages/tui/` / `stitchable`):**
-  - Alternate-screen diff rendering engine (`engine/`), physical cell layout math (`layout/`), content-blind primitives (`primitives/`), and JSX runtime (`runtime/`).
-- **OAuth Package (`packages/oauth/` / `@steward/oauth`):**
-  - Zero-dependency OAuth credential store, PKCE/Device flows, and token lifecycle management.
-- **Agent Package (`packages/agent/` / `@steward/agent`):**
-  - Agent session orchestration, multi-step turn runner, system prompt construction, chat modes/policy, tool catalog (16 tools), and services (`services/` — session storage, CAS checkpoints, rewind, background tasks).
-- **CLI Package (`packages/cli/` / `@steward/cli`):**
-  - CLI entry point (`src/main.ts`), application orchestrator (`src/app.ts`), slash commands (`src/commands/`), settings & trust management (`src/settings/`), and domain UI components (`src/interface/components/`, `src/interface/utils/`).
-
-## 4. Documentation & Package README Invariant
-
-- **Package README Invariant:** Whenever modifying or adding code inside a package (`packages/ai`, `packages/tui`, `packages/agent`, `packages/cli`, `packages/oauth`), you **MUST update the package's `README.md`** with accurate function, export, and tool breakdowns.
-- Every package `README.md` must follow the Sonnet documentation convention (File $\to$ Export $\to$ Type $\to$ Description & Constraints).
-
-## 5. Commands
-
-Standard scripts defined in workspace root `package.json`:
+### Standard Commands
 
 | Command | Description |
 | :--- | :--- |
-| `bun run dev` | Run CLI directly from source in watch mode |
-| `bun run start` | Run the CLI directly |
-| `bun run build` | Bundle CLI to `./packages/cli/dist/cli.js` (Node-compatible) |
-| `bun run compile` | Compile CLI to a standalone binary `./packages/cli/dist/steward` |
-| `bun run format` | Check formatting with Prettier across packages |
-| `bun run format:fix` | Auto-fix formatting across packages |
-| `bun run lint:boundaries` | Check package architecture boundary rules |
-| `bun test` | Run test suite across all workspace packages |
+| `bun test` | Run the test suite |
+| `bun run lint:boundaries` | Check package and module boundary rules |
+| `bun run format` | Check code formatting |
+| `bun run format:fix` | Fix code formatting |
+| `bun run dev` | Run development mode |
+| `bun run build` | Build / bundle the project |
 
-## 6. Rules & Boundaries
+---
 
-- **Strict Boundaries:** Never edit, delete, or generate files in `.agents/`. These are strictly human-managed.
-- **Permission & Checkpoint Protection:** Workspace mutations and bash commands are gated by user permission and automated rewind checkpoints.
-- **Secrets Policy:** Never commit secrets, API keys, credentials, or `.env*` files.
-- **Workflow & Style:** Follow Conventional Commits and code formatting guidelines defined in [CONTRIBUTING.md](CONTRIBUTING.md).
-- **Ambiguity:** Ask the maintainer for clarification instead of guessing or making unverified architectural assumptions.
+## 2. Core Agent Rules & Workflow
+
+AI agents working in this codebase must strictly adhere to the following rules:
+
+### A. Small, Atomic, and Targeted Edits
+- Make small, incremental modifications rather than large sweeping refactors.
+- Be specific about what exact changes are being made and why before editing.
+- Never rewrite entire files when targeted block replacements are sufficient.
+- Avoid introducing unrequested dependencies, files, or speculative cleanups.
+
+### B. Command Execution & Output Hygiene
+- Limit shell command output to prevent flooding the context window (e.g., truncate or pipe verbose output).
+- Never run unverified destructive commands.
+
+### C. Follow Explicit Instructions
+- Follow the user's explicit instructions strictly without assuming unstated requirements.
+- When requirements or architectural paths are ambiguous, ask for clarification instead of guessing.
+
+### D. Verification & Commits
+- Test all modifications with the relevant test commands before concluding tasks.
+- Keep tests green and ensure no regressions.
+- Follow Conventional Commits format (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`).
+
+---
+
+## 3. Code Standards & Naming Conventions
+
+- **Module Exports:** Import from established public entrypoints; avoid importing private deep file internals.
+- **Naming Conventions:**
+  - `PascalCase` for classes, interfaces, types, and primary class/component files.
+  - `camelCase` for functions, methods, variables, and standard filenames.
+- **Colocated Tests:** Place unit tests alongside the corresponding source files.
+- **Modular Boundaries:** Respect package and module boundaries without creating circular dependencies.
+
+---
+
+## 4. Documentation Standard (NOTEDOC)
+
+- **Per-Folder Documentation:** Follow the **[NOTEDOC.md](file:///home/nolan/works/steward/NOTEDOC.md)** specification.
+- **`NOTE.md` Invariant:** Every folder (except workspace root) must maintain a dedicated `NOTE.md` tailored for AI agents, featuring structured ASCII navigation trees, ASCII diagrams, exact symbol signatures, and invariants.
+- **Keep Synchronized:** Update the affected folder's `NOTE.md` within the same turn whenever adding, modifying, or removing code.
+
+---
+
+## 5. Security & Boundary Guardrails
+
+- **Protected Folders:** Files inside `.agents/` are strictly human-managed; do not edit, create, or delete files in `.agents/`.
+- **Secrets Policy:** Never commit secrets, API keys, credentials, or environment files.
