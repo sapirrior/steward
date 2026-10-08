@@ -57,11 +57,10 @@ AI agents working in this codebase must strictly adhere to the following rules:
 
 ---
 
-## 4. Documentation Standard (NOTEDOC)
+## 4. Documentation Standards (NOTEDOC & READMEDOC)
 
-- **Per-Folder Documentation:** Follow the **[NOTEDOC.md](file:///home/nolan/works/steward/NOTEDOC.md)** specification.
-- **`NOTE.md` Invariant:** Every folder (except workspace root) must maintain a dedicated `NOTE.md` tailored for AI agents, featuring structured ASCII navigation trees, ASCII diagrams, exact symbol signatures, and invariants.
-- **Keep Synchronized:** Update the affected folder's `NOTE.md` within the same turn whenever adding, modifying, or removing code.
+- **Per-Folder Agent Documentation (NOTEDOC):** Follow the **[NOTEDOC.md](file:///home/nolan/works/steward/NOTEDOC.md)** specification. Every folder (except workspace root) must maintain a dedicated `NOTE.md` tailored for AI agents, featuring structured ASCII navigation trees, ASCII diagrams, exact symbol signatures, and invariants. Keep local `NOTE.md` files synchronized on every code change.
+- **Human-Facing Package Overviews (READMEDOC):** Follow the **[READMEDOC.md](file:///home/nolan/works/steward/READMEDOC.md)** specification for all package and project `README.md` files (including title, overview, table of contents, installation, usage, and high-level file/module responsibility tables).
 
 ---
 

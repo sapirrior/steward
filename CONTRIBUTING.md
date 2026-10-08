@@ -80,11 +80,10 @@ Run these scripts from the repository root:
 
 ## 4. Coding Standards & Invariants
 
-### Documentation Standard (NOTEDOC)
-Every directory across all packages (except workspace root) **MUST maintain a dedicated `NOTE.md`** file strictly following the **[NOTEDOC.md](file:///home/nolan/works/steward/NOTEDOC.md)** specification.
-- Every `NOTE.md` must feature structured ASCII navigation trees, data flow/lifecycle diagrams, exact TypeScript signatures, purity tags, and operational constraints.
-- Whenever adding, modifying, or removing code in a folder, update that folder's `NOTE.md` within the same turn.
-- Package `README.md` files are high-level human overviews and are out of scope for deep technical API tables.
+### Documentation Standards (NOTEDOC & READMEDOC)
+- **Per-Folder Agent Notes (NOTEDOC):** Every directory across all packages (except workspace root) **MUST maintain a dedicated `NOTE.md`** file strictly following the **[NOTEDOC.md](file:///home/nolan/works/steward/NOTEDOC.md)** specification with structured ASCII navigation trees, data flow/lifecycle diagrams, exact TypeScript signatures, purity tags, and operational constraints. Update `NOTE.md` within the same turn as code edits.
+- **Human-Facing Package Overviews (READMEDOC):** Package `README.md` files must follow the **[READMEDOC.md](file:///home/nolan/works/steward/READMEDOC.md)** specification (providing title, overview, table of contents, installation, usage examples, and high-level file/directory responsibility breakdown).
+
 
 ### Naming Conventions
 - `PascalCase` for classes, interfaces, types, and primary class/component files.
