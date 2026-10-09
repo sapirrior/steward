@@ -20,5 +20,7 @@ export * from './elements/index.js';
 export * from './runtime/index.js';
 export * from './terminal/input.js';
 export * from './reconciler/hooks.js';
+export * from './reconciler/context.js';
+export * from './reconciler/memo.js';
 export { reconcileRoot, unmountTree } from './reconciler/reconcile.js';
 export { isElement, Fragment } from './reconciler/element.js';

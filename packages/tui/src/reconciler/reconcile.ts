@@ -9,6 +9,8 @@ import {
   finishRenderingInstance,
   cleanupInstanceEffects,
 } from './hooks.js';
+import { pushContextValue, popContextValue } from './context.js';
+import { shallowEqual } from './memo.js';
 
 export interface RuntimeContext {
   scheduleUpdate?(instance?: ComponentInstance): void;
@@ -311,11 +313,43 @@ function reconcileFunctionComponent(
 
   (inst as any)._runtime = runtime;
 
-  const func = type as (p: any) => ElementChild;
+  // 1. Context Provider special handling
+  if ((type as any).$$isProvider) {
+    const contextId = (type as any).$$contextId;
+    const prevContextVal = pushContextValue(contextId, props.value);
+    try {
+      inst.renderedChild = reconcileInstance(
+        inst.renderedChild,
+        (props as any).children,
+        inst,
+        runtime,
+      );
+      inst.isMounted = true;
+    } finally {
+      popContextValue(contextId, prevContextVal);
+    }
+    return inst;
+  }
+
+  // 2. Memoized Component skipping
+  if ((type as any).$$isMemo && inst.isMounted && inst.prevProps) {
+    const areEqual = (type as any).$$areEqual || shallowEqual;
+    if (areEqual(inst.prevProps, props)) {
+      inst.element = element;
+      inst.props = props as Record<string, any>;
+      return inst;
+    }
+  }
+
+  const targetFunc = (type as any).$$isMemo
+    ? (type as any).$$targetComponent
+    : (type as (p: any) => ElementChild);
+
   try {
     prepareToRenderInstance(inst);
-    const rendered = func(props);
+    const rendered = targetFunc(props);
     finishRenderingInstance();
+    inst.prevProps = props;
     inst.renderedChild = reconcileInstance(inst.renderedChild, rendered, inst, runtime);
     inst.isMounted = true;
   } catch (err: any) {

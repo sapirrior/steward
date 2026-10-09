@@ -124,10 +124,33 @@ export function renderAnyElement(node: any, context: RenderContext): Block {
   return { lines: [String(node)], width: visibleWidth(String(node)) };
 }
 
+const blockCache = new WeakMap<object, Map<string, Block>>();
+
+export function getCachedBlock(element: object, context: RenderContext): Block | undefined {
+  const map = blockCache.get(element);
+  if (!map) return undefined;
+  const key = `${context.width}:${context.height ?? 0}:${context.colorLevel}:${context.inheritedBg ?? ''}:${context.isNaturalMeasuring ? 1 : 0}`;
+  return map.get(key);
+}
+
+export function setCachedBlock(element: object, context: RenderContext, block: Block): void {
+  let map = blockCache.get(element);
+  if (!map) {
+    map = new Map<string, Block>();
+    blockCache.set(element, map);
+  }
+  const key = `${context.width}:${context.height ?? 0}:${context.colorLevel}:${context.inheritedBg ?? ''}:${context.isNaturalMeasuring ? 1 : 0}`;
+  map.set(key, block);
+}
+
 export function renderBoxElement(
   element: StitchableElement<BoxProps>,
   context: RenderContext,
 ): Block {
+  if (element && typeof element === 'object') {
+    const cached = getCachedBlock(element, context);
+    if (cached) return cached;
+  }
   const props = element.props || {};
   if (props.display === 'none') {
     return { lines: [], width: 0 };
@@ -467,10 +490,16 @@ export function renderBoxElement(
 
   const finalTotalWidth = boxWidth + marginLeft + marginRight;
 
-  return {
+  const blockResult: Block = {
     lines: resultWithMargin,
     width: finalTotalWidth,
   };
+
+  if (element && typeof element === 'object') {
+    setCachedBlock(element, context, blockResult);
+  }
+
+  return blockResult;
 }
 
 export function Box(
