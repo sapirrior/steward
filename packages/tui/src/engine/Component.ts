@@ -14,6 +14,8 @@ export class Component<
   _dirty = true;
   _lastWidth?: number;
   _cachedLines: string[] = [];
+  _updater: { enqueueSetState(inst: Component<any, any>, partial: Partial<any>): void } | null =
+    null;
 
   /** true = word-wrap across rows, false = single row */
   wrap = false;
@@ -33,12 +35,19 @@ export class Component<
   }
 
   componentDidMount?(): void;
+  componentDidUpdate?(previousProps: Props, previousState: State): void;
   componentWillUnmount?(): void;
+  componentDidCatch?(error: Error, info: { componentStack?: string }): void;
+  static getDerivedStateFromError?(error: Error): Partial<any> | null;
 
   /**
    * Updates component state and schedules a reactive re-render frame.
    */
   setState(newState: Partial<State>): void {
+    if (this._updater) {
+      this._updater.enqueueSetState(this, newState);
+      return;
+    }
     this.state = { ...this.state, ...newState };
     this._dirty = true;
     if (this.engine) {
@@ -112,13 +121,20 @@ export class Component<
     lines: string[];
     cursor?: { logicalLineIndex: number; characterOffsetWithinLine: number } | null;
   } {
+    const output = this.render(width);
+    if (Array.isArray(output) && (output.length === 0 || typeof output[0] === 'string')) {
+      return {
+        lines: output as string[],
+        cursor: null,
+      };
+    }
     return {
-      lines: this.render(width),
+      lines: [],
       cursor: null,
     };
   }
 
-  render(_width?: number): string[] {
+  render(_width?: number): any {
     return [];
   }
 }

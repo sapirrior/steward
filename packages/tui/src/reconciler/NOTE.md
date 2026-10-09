@@ -2,7 +2,7 @@
 
 ## 1. Overview & Single Responsibility
 
-Provides declarative JSX element descriptors, child normalization, and element validation contracts for the Stitchable terminal runtime.
+Implements declarative JSX element descriptors, synchronous keyed tree reconciliation, component instance identity preservation, class component lifecycles, and error boundary recovery for the Stitchable terminal UI runtime.
 
 ---
 
@@ -18,65 +18,71 @@ Provides declarative JSX element descriptors, child normalization, and element v
 ## 3. Architecture & Data Flow (ASCII Graphs)
 
 ```
-TSX / JSX Syntax
+Incoming ElementTree (Next)
        │
-       ▼
-┌───────────────────────────────┐
-│     jsx(type, props, key)     │
-└──────────────┬────────────────┘
-               │ Normalizes props, extracts key, flattens children
-               ▼
-┌───────────────────────────────┐
-│       ElementNode<P>          │ ──► [ Consumer / Reconciler / Renderer ]
-└───────────────────────────────┘
+       ├────────────────────────────────┐
+       ▼                                ▼
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│     reconcileRoot / Tree      │ │   Previous Instance Tree      │
+└──────────────┬────────────────┘ └──────────────┬────────────────┘
+               │                                 │
+               ▼                                 ▼
+      [ Key / Position Matching ] ───────────────┘
+               ├── Match ──► [ Reuse Instance + Update Props / Lifecycle ]
+               ├── New ────► [ Create Instance + Initial Render ]
+               └── Stale ──► [ Unmount Instance + Run Teardown ]
+               │
+               ▼ (on descendant render fault)
+      [ Error Boundary Lookup ] ──► [ getDerivedStateFromError + componentDidCatch ]
 ```
 
 ---
 
 ## 4. File Index & Responsibility Matrix
 
-| File              | Primary Responsibility                                                 | Exported Symbols                                                                             | Local / External Dependencies                                                   |
-| :---------------- | :--------------------------------------------------------------------- | :------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------ |
-| `element.ts`      | Factory functions for JSX element descriptors and child normalization. | `jsx`, `jsxs`, `jsxDEV`, `Fragment`, `ELEMENT_TYPE_SYMBOL`, `isElement`, `normalizeChildren` | `../types.ts`                                                                   |
-| `element.test.ts` | Targeted unit test suite for JSX descriptors and normalization.        | None (Test suite)                                                                            | `./element.ts`, `../types.ts`, `../elements/index.ts`, `../engine/Component.ts` |
+| File                | Primary Responsibility                                                                 | Exported Symbols                                                                             | Local / External Dependencies                                                           |
+| :------------------ | :------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
+| `element.ts`        | Factory functions for JSX element descriptors and child normalization.                 | `jsx`, `jsxs`, `jsxDEV`, `Fragment`, `ELEMENT_TYPE_SYMBOL`, `isElement`, `normalizeChildren` | `../types.ts`                                                                           |
+| `instance.ts`       | Component instance models, tags, and slot record initialization.                       | `createInstance`, `ComponentInstance`, `InstanceTag`                                         | `../types.ts`, `../engine/Component.js`                                                 |
+| `reconcile.ts`      | Keyed synchronous reconciler, instance lifecycle updates, and error boundary recovery. | `reconcileRoot`, `reconcileInstance`, `unmountTree`, `unmountInstance`, `RuntimeContext`     | `./element.js`, `./instance.js`, `./errors.js`, `../types.ts`, `../engine/Component.js` |
+| `errors.ts`         | Error boundary detection, diagnostic error classes, and error metadata.                | `isErrorBoundaryClass`, `ComponentRenderError`, `ErrorInfo`                                  | None                                                                                    |
+| `element.test.ts`   | Unit tests for JSX descriptors and normalization.                                      | None (Test suite)                                                                            | `./element.ts`, `../types.ts`, `../elements/index.ts`, `../engine/Component.ts`         |
+| `reconcile.test.ts` | Unit tests for keyed reconciliation, persistent instances, and error boundaries.       | None (Test suite)                                                                            | `./reconcile.ts`, `./element.ts`, `../engine/Component.ts`                              |
 
 ---
 
 ## 5. Detailed Symbol & Contract Breakdown
 
-### `element.ts`
+### `reconcile.ts`
 
-#### `jsx`
+#### `reconcileRoot`
 
-- **Type / Signature:** `<P = any>(type: ElementType<P> | string, rawProps?: Record<string, unknown> | null, keyOverride?: ElementKey) => ElementNode<P>`
-- **Category / Tags:** `[Pure]`
-- **Description:** Produces an immutable `ElementNode` descriptor without evaluating component functions or constructing class instances.
+- **Type / Signature:** `(previousTree: ComponentInstance | null, nextElement: ElementChild, runtime?: RuntimeContext) => ComponentInstance | null`
+- **Category / Tags:** `[Pure]` `[Stateful]`
+- **Description:** Reconciles the root element descriptor tree against existing instance records, reordering keyed siblings and preserving component identities.
 
-#### `isElement`
+#### `unmountTree`
 
-- **Type / Signature:** `(value: unknown) => value is ElementNode`
-- **Category / Tags:** `[Pure]`
-- **Description:** Type guard checking whether a value is a valid `ElementNode` matching `ELEMENT_TYPE_SYMBOL`.
-
-#### `normalizeChildren`
-
-- **Type / Signature:** `(children: unknown) => readonly ElementChild[]`
-- **Category / Tags:** `[Pure]`
-- **Description:** Filters booleans, null, and undefined while recursively flattening nested child arrays.
+- **Type / Signature:** `(root: ComponentInstance | null) => void`
+- **Category / Tags:** `[Stateful]`
+- **Description:** Recursively tears down an instance subtree, invoking `componentWillUnmount` on class components.
 
 ---
 
 ## 6. Lifecycle & State Machine (ASCII)
 
-`Stateless`
-
 ```
-[JSX Call] ──► [Extract Key & Props] ──► [Normalize Children] ──► [Return ElementNode]
+[reconcileInstance]
+       │
+       ├── First Render ──► [createInstance] ──► [render()] ──► componentDidMount() ──► [Mounted]
+       │                                                                                   │
+       ├── Rerender ─────► [props/state update] ──► [render()] ──► componentDidUpdate() ───┤
+       │                                                                                   │
+       └── Removed ──────► [unmountInstance] ──► componentWillUnmount() ──────────────► [Unmounted]
 ```
 
 ---
 
 ## 7. Security, Permissions & Error Handling
 
-- **Tag Validation:** Unknown intrinsic tags (strings other than `box` / `text`) are accepted at descriptor generation but rejected with descriptive errors during rendering/reconciliation.
-- **Pure Transformations:** Child normalization and descriptor creation perform zero side-effects and zero I/O.
+- **Transactional Publication:** Render-time faults in descendant trees are intercepted by ancestor error boundaries via `getDerivedStateFromError` and `componentDidCatch`. If unhandled, the error cleanly halts reconciliation without corrupting prior published state.
