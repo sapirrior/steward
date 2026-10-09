@@ -530,7 +530,9 @@ export function renderBoxElement(
     const bgSgr = colorToSgr(props.backgroundColor, true, context.colorLevel);
     if (bgSgr) {
       for (let i = 0; i < finalBoxLines.length; i++) {
-        finalBoxLines[i] = `${bgSgr}${finalBoxLines[i]}${RESET_SGR}`;
+        const line = finalBoxLines[i]!;
+        const lineWithRestoredBg = line.replace(/\x1b\[0?m/g, `${RESET_SGR}${bgSgr}`);
+        finalBoxLines[i] = `${bgSgr}${lineWithRestoredBg}${RESET_SGR}`;
       }
     }
   }

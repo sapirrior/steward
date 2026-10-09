@@ -19,20 +19,29 @@ export interface Key {
   paste: boolean;
 }
 
+export interface MouseEvent {
+  type: 'mouse';
+  action: 'press' | 'release' | 'move' | 'wheel';
+  button:
+    | 'left'
+    | 'middle'
+    | 'right'
+    | 'none'
+    | 'wheelUp'
+    | 'wheelDown'
+    | 'wheelLeft'
+    | 'wheelRight';
+  col: number;
+  row: number;
+  shift: boolean;
+  meta: boolean;
+  ctrl: boolean;
+}
+
 export type TerminalEvent =
   | { type: 'key'; input: string; key: Key }
   | { type: 'paste'; text: string }
-  | {
-      type: 'mouse';
-      action: 'press' | 'release' | 'move' | 'wheel';
-      button:
-        'left' | 'middle' | 'right' | 'none' | 'wheelUp' | 'wheelDown' | 'wheelLeft' | 'wheelRight';
-      col: number;
-      row: number;
-      shift: boolean;
-      meta: boolean;
-      ctrl: boolean;
-    }
+  | MouseEvent
   | { type: 'focus'; focused: boolean };
 
 export type InputEvent =

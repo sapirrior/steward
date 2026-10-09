@@ -2,7 +2,7 @@
 /**
  * Steward CLI Entrypoint
  */
-import { run } from './cli/run.js';
+import { createCliProgram } from './cli/index.js';
 
-// Auto-run entrypoint
-run();
+const program = createCliProgram();
+await program.parseAsync(process.argv);

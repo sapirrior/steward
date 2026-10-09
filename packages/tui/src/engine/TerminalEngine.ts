@@ -130,6 +130,7 @@ export class TerminalEngine {
   private pendingForceFull = false;
   private lineWidthCache: Map<string, number> = new Map();
   private customInputListeners: Array<(ev: InputEvent) => boolean | void> = [];
+  private customMouseListeners: Array<(ev: MouseEvent) => boolean | void> = [];
   private consecutiveRenderFailures = 0;
   private disposed = false;
 
@@ -188,6 +189,13 @@ export class TerminalEngine {
             this.scrollBy(3);
           } else if (ev.button === 'wheelDown') {
             this.scrollBy(-3);
+          }
+        }
+        for (let i = this.customMouseListeners.length - 1; i >= 0; i--) {
+          const listener = this.customMouseListeners[i];
+          if (listener) {
+            const handled = listener(ev);
+            if (handled) return;
           }
         }
         return;
@@ -323,6 +331,13 @@ export class TerminalEngine {
     this.customInputListeners.push(listener);
     return () => {
       this.customInputListeners = this.customInputListeners.filter((l) => l !== listener);
+    };
+  }
+
+  addMouseListener(listener: (ev: MouseEvent) => boolean | void): () => void {
+    this.customMouseListeners.push(listener);
+    return () => {
+      this.customMouseListeners = this.customMouseListeners.filter((l) => l !== listener);
     };
   }
 
@@ -508,6 +523,7 @@ export class TerminalEngine {
     this.components = [];
     this.adapters.clear();
     this.customInputListeners = [];
+    this.customMouseListeners = [];
   }
 
   hideCursor(): void {

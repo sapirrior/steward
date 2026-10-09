@@ -11,5 +11,6 @@ export { useTerminalSize } from './useTerminalSize.js';
 export { useCursor } from './useCursor.js';
 export { useFocus } from './useFocus.js';
 export { useInput } from './useInput.js';
+export { useMouse } from './useMouse.js';
 export { useCommitHistory } from './useCommitHistory.js';
 export type { DependencyList } from '../reconciler/hookState.js';

@@ -1,24 +1,0 @@
-[?2026h[H[J● Find_files(src/**/*.ts)
-  └ Searching files matching src/**/*.ts
-    Found 36 results
-
-● Checking current codebase architecture...
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-[?25l[?2026l

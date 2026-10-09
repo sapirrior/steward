@@ -1,24 +1,0 @@
-[?2026h[H[J────────────────────────────────────────────────────────────────────────────────
-Shortcuts
-  /           Commands          Shift+Enter   Newline
-  @           Mention files     Ctrl+C        Abort / exit
-  ?           Shortcuts menu    PgUp/PgDn     Scroll history
-  Ctrl+B      Switch mode       ↑ / ↓         History navigation
-  Esc Esc     Clear input
-Esc or Enter to dismiss
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-[?25l[?2026l

@@ -1,86 +1,48 @@
-import type {
-  ProviderId,
-  ReasoningEffort,
-  ModelSelection,
-  TokenUsage,
-  Message,
-  PortError,
-  ToolSpec,
-} from '@steward/ai';
-import type {
-  ToolContext,
-  BashPermissionRequest,
-  FilePermissionRequest,
-  BashPermissionResponse,
-  FilePermissionResponse,
-} from '../tools/types.js';
+import type { Message, TokenUsage, ToolResult, AgentRunStopReason } from '@steward/agent';
+import type { ReasoningEffort } from '@steward/ai';
+import type { ToolProgress, PermissionRequest } from '../tools/Tool.js';
+import type { SettingsStore } from '../settings/settingsStore.js';
+import type { ThreadStore } from '../threads/threadStore.js';
+import type { ToolRegistry } from '../tools/ToolRegistry.js';
+import type { AI } from '@steward/ai';
 
-export type { ProviderId, ReasoningEffort, ModelSelection, TokenUsage, Message, PortError };
-
-export interface SubmitPromptOptions {
+export interface QueryEngineConfig {
   cwd?: string;
-  requestBashPermission?: (req: BashPermissionRequest) => Promise<BashPermissionResponse>;
-  requestFilePermission?: (req: FilePermissionRequest) => Promise<FilePermissionResponse>;
-  tools?: readonly ToolSpec[] | ((ctx: ToolContext) => readonly ToolSpec[]);
+  threadId?: string;
+  initialMessages?: Message[];
+  customSystemPrompt?: string;
   extraInstructions?: string;
-  onEvent?: AgentEventListener;
-}
-
-export interface ToolCallInfo {
-  id: string;
-  name: string;
-  args: Record<string, unknown>;
-}
-
-export interface ToolResultInfo extends ToolCallInfo {
-  result: unknown;
-  isError: boolean;
-  durationMs?: number;
-  startedAt?: string;
-  finishedAt?: string;
-}
-
-export type AgentMessage = Message;
-
-export interface SessionConfig {
-  provider: ProviderId;
-  modelId: string;
-  reasoningEffort?: ReasoningEffort;
-  temperature?: number;
+  isHeadless?: boolean;
   maxSteps?: number;
+  provider?: string;
+  model?: string;
+  reasoningEffort?: ReasoningEffort;
+  settingsStore?: SettingsStore;
+  threadStore?: ThreadStore;
+  toolRegistry?: ToolRegistry;
+  ai?: AI;
+  askPermission?: (request: PermissionRequest) => Promise<boolean>;
 }
 
-export type TurnStopReason = 'natural' | 'step-limit' | 'aborted' | 'error';
+export type QueryEngineEvent =
+  | { type: 'turn-start'; step: number }
+  | { type: 'text-delta'; delta: string; accumulatedText: string }
+  | { type: 'reasoning-delta'; delta: string; accumulatedReasoning: string }
+  | { type: 'tool-call-start'; id: string; name: string; args: Record<string, unknown>; glyph: string; badge?: string }
+  | { type: 'tool-progress'; id: string; progress: ToolProgress }
+  | { type: 'tool-call-end'; id: string; name: string; result: ToolResult; glyph: string; badge?: string }
+  | { type: 'turn-end'; step: number; toolResults: readonly ToolResult[]; usage?: TokenUsage }
+  | { type: 'retry'; attempt: number; maxAttempts: number; delayMs: number; error: Error }
+  | { type: 'done'; result: QueryTurnResult }
+  | { type: 'error'; error: Error };
 
-export interface TurnSummary {
+export interface QueryTurnResult {
   text: string;
   reasoning?: string;
-  toolCalls: ToolResultInfo[];
-  usage: TokenUsage;
-  finishReason: string;
-  stopReason?: TurnStopReason;
-  rawMessages?: Message[];
-  error?: PortError;
-  durationMs?: number;
-  startedAt?: string;
-  finishedAt?: string;
-  statusVerb?: string;
+  toolResults: readonly ToolResult[];
+  newMessages: Message[];
+  totalUsage: TokenUsage;
+  stopReason: AgentRunStopReason;
+  durationMs: number;
+  error?: Error;
 }
-
-export type AgentTurnEvent =
-  | { type: 'text-delta'; text: string }
-  | { type: 'reasoning-delta'; reasoning: string }
-  | { type: 'tool-call'; toolCall: ToolCallInfo }
-  | { type: 'tool-result'; toolResult: ToolResultInfo }
-  | { type: 'step-end'; stepIndex: number; usage?: TokenUsage }
-  | {
-      type: 'retry';
-      attempt: number;
-      maxAttempts: number;
-      delayMs: number;
-      error: Error | PortError;
-    }
-  | { type: 'turn-complete'; summary: TurnSummary }
-  | { type: 'error'; error: Error; isFatal: boolean };
-
-export type AgentEventListener = (event: AgentTurnEvent) => void;

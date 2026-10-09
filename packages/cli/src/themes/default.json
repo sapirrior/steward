@@ -1,0 +1,19 @@
+{
+  "name": "default",
+  "isDark": true,
+  "colors": {
+    "cardBackground": "#303030",
+    "dialogBackground": "#242424",
+    "selectionBackground": "#3a3a3a",
+    "text": "#ffffff",
+    "textMuted": "#a3a3a3",
+    "textDim": "#737373",
+    "accent": "#3b82f6",
+    "accentActive": "#60a5fa",
+    "success": "#22c55e",
+    "error": "#ef4444",
+    "warning": "#d97706",
+    "border": "#525252",
+    "borderActive": "#3b82f6"
+  }
+}

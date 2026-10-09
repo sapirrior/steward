@@ -30,6 +30,7 @@ Stitchable merges reflowing scrollback history with a live differential viewport
    - [`useContext`](#usecontext)
 6. [Terminal-Aware Hooks](#6-terminal-aware-hooks)
    - [`useInput`](#useinput)
+   - [`useMouse`](#usemouse)
    - [`useApp`](#useapp)
    - [`useTerminalSize`](#useterminalsize)
    - [`useFocus`](#usefocus)
@@ -438,6 +439,27 @@ useInput((ev) => {
   }
 }, { whenFocused: true });
 ```
+
+### `useMouse`
+Listens for terminal mouse clicks, releases, movements, and scroll events (supporting SGR 1006 mouse tracking).
+
+```tsx
+import { useMouse, type MouseEvent } from 'stitchable';
+
+useMouse((ev: MouseEvent) => {
+  if (ev.action === 'press' && ev.button === 'left') {
+    console.log(`Clicked at column ${ev.col}, row ${ev.row}`);
+    return true; // Consumes event
+  }
+});
+```
+
+#### `MouseEvent` Properties:
+- `action`: `'press' | 'release' | 'move' | 'wheel'`
+- `button`: `'left' | 'middle' | 'right' | 'none' | 'wheelUp' | 'wheelDown' | 'wheelLeft' | 'wheelRight'`
+- `col`: 1-indexed terminal column
+- `row`: 1-indexed terminal row
+- `shift`, `ctrl`, `meta`: Boolean modifier keys
 
 ### `useApp`
 Returns the application handle to exit the process cleanly, trigger explicit redraws, or access raw engine IO:

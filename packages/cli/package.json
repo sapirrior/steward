@@ -42,9 +42,10 @@
     "@steward/oauth": "*",
     "chalk": "6.0.0",
     "cli-highlight": "2.1.11",
+    "commander": "15.0.0",
     "marked": "18.0.12",
     "stitchable": "*",
-    "zod": "^4.6.5"
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@types/bun": "1.4.2",
