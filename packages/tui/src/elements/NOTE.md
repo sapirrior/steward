@@ -50,6 +50,7 @@ ElementNode / StitchableElement
 | `border.ts`    | Border style glyph sets and resolution.                                      | `resolveBorderStyle`, `BORDER_STYLES`                           | `./types.js`                                                 |
 | `flex.ts`      | Pure 1D flex space distribution algorithm.                                   | `distributeFlexSpace`, `computeJustifyGaps`, `alignBlockInRow`  | None                                                         |
 | `style.ts`     | Style extraction and inheritance utilities.                                  | `extractTextStyle`                                              | `./types.js`                                                 |
+| `elements.test.ts` | Unit tests for all declarative layout elements (Box, Text, Spacer, Newline, Transform, Fragment). | None | `./index.js`, `../reconciler/element.js` |
 | `index.ts`     | Public export barrel and `renderElement` entry function.                     | `renderElement`, all element exports                            | Submodules                                                   |
 
 ---
