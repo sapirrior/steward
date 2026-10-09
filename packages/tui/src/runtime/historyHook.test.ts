@@ -3,7 +3,7 @@ import { memoryIO } from '../terminal/io.js';
 import { TerminalEngine } from '../engine/TerminalEngine.js';
 import { AppRoot } from './AppRoot.js';
 import { useState, useCommitHistory } from '../hooks/index.js';
-import { renderStatic } from '../reconciler/static-render.js';
+import { renderStatic } from '../reconciler/renderStatic.js';
 import { jsx } from '../reconciler/element.js';
 import Component from '../engine/Component.js';
 

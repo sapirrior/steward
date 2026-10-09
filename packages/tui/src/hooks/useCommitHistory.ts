@@ -3,7 +3,7 @@ import { useRef } from './useRef.js';
 import { useState } from './useState.js';
 import { useApp } from './useApp.js';
 import { areDepsEqual, type DependencyList } from '../reconciler/hookState.js';
-import { renderStatic } from '../reconciler/static-render.js';
+import { renderStatic } from '../reconciler/renderStatic.js';
 import type { ElementChild, CommitHistoryOptions } from '../types.js';
 
 export function useCommitHistory(

@@ -24,5 +24,5 @@ export * from './reconciler/context.js';
 export * from './reconciler/memo.js';
 export { reconcileRoot, unmountTree } from './reconciler/reconcile.js';
 export { isElement, Fragment } from './reconciler/element.js';
-export { renderStatic } from './reconciler/static-render.js';
+export { renderStatic } from './reconciler/renderStatic.js';
 export * from './types.js';
