@@ -1,19 +1,26 @@
 import { createContext, useContext } from '../reconciler/context.js';
-import { useEffect, useState, useRef, getCurrentRenderingInstance } from '../reconciler/hooks.js';
+import {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef,
+  getCurrentRenderingInstance,
+} from '../reconciler/hooks.js';
+import { renderStatic } from '../reconciler/static-render.js';
 import type { TerminalEngine } from '../engine/TerminalEngine.js';
 import type { TerminalIO } from '../terminal/io.js';
 import type { InputEvent } from '../terminal/input.js';
 import type { InputDispatcher } from './InputDispatcher.js';
+import type {
+  ElementChild,
+  DependencyList,
+  CommitHistoryOptions,
+  CursorPosition,
+  TerminalSize,
+} from '../types.js';
 
-export interface CursorPosition {
-  line: number;
-  characterOffset: number;
-}
+export type { CursorPosition, TerminalSize, CommitHistoryOptions };
 
-export interface TerminalSize {
-  columns: number;
-  rows: number;
-}
 
 export interface AppContextValue {
   readonly engine: TerminalEngine;
@@ -152,3 +159,63 @@ export function useInput(
     });
   }, [app.inputDispatcher, options.whenFocused]);
 }
+
+export function useCommitHistory(
+  element: ElementChild,
+  deps: DependencyList,
+  options?: CommitHistoryOptions,
+): { readonly committed: boolean } {
+  if (!deps || !Array.isArray(deps)) {
+    throw new Error('useCommitHistory requires a dependency array');
+  }
+
+  const app = useApp();
+  const enabled = options?.enabled ?? true;
+  const lastCommittedDepsRef = useRef<DependencyList | null>(null);
+  const [, setTick] = useState<number>(0);
+
+  const areDepsEqual = (a: DependencyList | null, b: DependencyList): boolean => {
+    if (!a || a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!Object.is(a[i], b[i])) return false;
+    }
+    return true;
+  };
+
+  const isCommitted = Boolean(
+    enabled &&
+      lastCommittedDepsRef.current !== null &&
+      areDepsEqual(lastCommittedDepsRef.current, deps),
+  );
+
+  useLayoutEffect(() => {
+    if (!enabled) return;
+    if (lastCommittedDepsRef.current && areDepsEqual(lastCommittedDepsRef.current, deps)) {
+      return;
+    }
+
+    const capturedElement = element;
+    const opts = {
+      tag: options?.tag,
+      wrap: options?.wrap,
+      clip: options?.clip,
+      hangingIndent: options?.hangingIndent,
+    };
+
+    if (app && app.engine) {
+      app.engine.batch(() => {
+        app.engine.commit((width: number) => {
+          return renderStatic(capturedElement, {
+            width,
+            colorLevel: app.io ? app.io.colorLevel : 3,
+          });
+        }, opts);
+        lastCommittedDepsRef.current = deps;
+        setTick((t) => t + 1);
+      });
+    }
+  }, [enabled, ...deps]);
+
+  return { committed: isCommitted };
+}
+

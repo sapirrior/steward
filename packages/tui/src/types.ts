@@ -27,3 +27,29 @@ export interface ElementNode<P = any> {
   readonly props: Readonly<P & { children?: ElementChild }>;
   readonly children: readonly ElementChild[];
 }
+
+export type DependencyList = readonly unknown[];
+export type StateAction<S> = S | ((previous: S) => S);
+export type Reducer<S, A> = (state: S, action: A) => S;
+export interface MutableRef<T> {
+  current: T;
+}
+
+export interface CursorPosition {
+  line: number;
+  characterOffset: number;
+}
+
+export interface TerminalSize {
+  columns: number;
+  rows: number;
+}
+
+export interface CommitHistoryOptions {
+  enabled?: boolean;
+  tag?: string;
+  wrap?: boolean;
+  clip?: boolean;
+  hangingIndent?: number;
+}
+

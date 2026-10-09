@@ -123,10 +123,11 @@ export class AppRoot {
       if (this.onError) {
         this.onError(err);
       } else {
-        console.error('Uncaught error during app render:', err);
+        throw err;
       }
     }
   }
+
 
   unmount(): void {
     if (this.isUnmounted) return;
