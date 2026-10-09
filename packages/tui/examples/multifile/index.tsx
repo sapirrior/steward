@@ -6,6 +6,7 @@
 import {
   render,
   useState,
+  useRef,
   useEffect,
   useInput,
   useApp,
@@ -73,6 +74,11 @@ export function ChatApp() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamIndex, setStreamIndex] = useState(0);
 
+  const inputTextRef = useRef(inputText);
+  inputTextRef.current = inputText;
+  const cursorPosRef = useRef(cursorPos);
+  cursorPosRef.current = cursorPos;
+
   const app = useApp();
 
   useInput((ev) => {
@@ -87,42 +93,62 @@ export function ChatApp() {
       }
 
       if (ev.key.leftArrow) {
-        if (cursorPos > 0) setCursorPos((p) => p - 1);
+        if (cursorPosRef.current > 0) {
+          const next = cursorPosRef.current - 1;
+          cursorPosRef.current = next;
+          setCursorPos(next);
+        }
         return true;
       }
 
       if (ev.key.rightArrow) {
-        if (cursorPos < inputText.length) setCursorPos((p) => p + 1);
+        if (cursorPosRef.current < inputTextRef.current.length) {
+          const next = cursorPosRef.current + 1;
+          cursorPosRef.current = next;
+          setCursorPos(next);
+        }
         return true;
       }
 
       if (ev.key.home || (ev.key.ctrl && ev.key.name === 'a')) {
+        cursorPosRef.current = 0;
         setCursorPos(0);
         return true;
       }
 
       if (ev.key.end || (ev.key.ctrl && ev.key.name === 'e')) {
-        setCursorPos(inputText.length);
+        const endPos = inputTextRef.current.length;
+        cursorPosRef.current = endPos;
+        setCursorPos(endPos);
         return true;
       }
 
       if (ev.key.backspace) {
-        if (cursorPos > 0) {
-          setInputText((t) => t.slice(0, cursorPos - 1) + t.slice(cursorPos));
-          setCursorPos((p) => p - 1);
+        if (cursorPosRef.current > 0) {
+          const pos = cursorPosRef.current;
+          const current = inputTextRef.current;
+          const updated = current.slice(0, pos - 1) + current.slice(pos);
+          inputTextRef.current = updated;
+          cursorPosRef.current = pos - 1;
+          setInputText(updated);
+          setCursorPos(pos - 1);
         }
         return true;
       }
 
       if (ev.key.delete) {
-        if (cursorPos < inputText.length) {
-          setInputText((t) => t.slice(0, cursorPos) + t.slice(cursorPos + 1));
+        const pos = cursorPosRef.current;
+        const current = inputTextRef.current;
+        if (pos < current.length) {
+          const updated = current.slice(0, pos) + current.slice(pos + 1);
+          inputTextRef.current = updated;
+          setInputText(updated);
         }
         return true;
       }
 
       if (ev.key.return) {
-        const text = inputText.trim();
+        const text = inputTextRef.current.trim();
         if (text.length > 0) {
           const userMsg: ChatMessage = {
             id: `usr-${Date.now()}`,
@@ -133,6 +159,8 @@ export function ChatApp() {
           };
 
           setMessages((prev) => [...prev, userMsg]);
+          inputTextRef.current = '';
+          cursorPosRef.current = 0;
           setInputText('');
           setCursorPos(0);
           setIsStreaming(true);
@@ -143,15 +171,27 @@ export function ChatApp() {
       }
 
       if (!ev.key.ctrl && !ev.key.meta && ev.input && ev.input >= ' ') {
-        setInputText((t) => t.slice(0, cursorPos) + ev.input + t.slice(cursorPos));
-        setCursorPos((p) => p + ev.input.length);
+        const pos = cursorPosRef.current;
+        const current = inputTextRef.current;
+        const updated = current.slice(0, pos) + ev.input + current.slice(pos);
+        const nextPos = pos + ev.input.length;
+        inputTextRef.current = updated;
+        cursorPosRef.current = nextPos;
+        setInputText(updated);
+        setCursorPos(nextPos);
         return true;
       }
     } else if (ev.type === 'paste' && ev.text) {
       if (!isStreaming) {
-        const sanitized = ev.text.replace(/\n+/g, ' ');
-        setInputText((t) => t.slice(0, cursorPos) + sanitized + t.slice(cursorPos));
-        setCursorPos((p) => p + sanitized.length);
+        const sanitized = ev.text.replace(/\r\n|\r|\n/g, ' ');
+        const pos = cursorPosRef.current;
+        const current = inputTextRef.current;
+        const updated = current.slice(0, pos) + sanitized + current.slice(pos);
+        const nextPos = pos + sanitized.length;
+        inputTextRef.current = updated;
+        cursorPosRef.current = nextPos;
+        setInputText(updated);
+        setCursorPos(nextPos);
         return true;
       }
     }
