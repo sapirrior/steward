@@ -1,7 +1,6 @@
 /** @jsxImportSource stitchable */
-import { Box, Text } from 'stitchable';
+import { Box, Text, Spacer } from 'stitchable';
 import { theme } from '../theme.js';
-
 
 interface InputBarProps {
   inputText: string;
@@ -17,22 +16,28 @@ export function InputBar({ inputText, cursorPos, isStreaming }: InputBarProps) {
   return (
     <Box
       flexDirection="column"
-      borderStyle="round"
+      borderStyle="single"
+      borderLeft={false}
+      borderRight={false}
+      borderTop={true}
+      borderBottom={true}
       borderColor={isStreaming ? theme.borderMuted : theme.borderPrimary}
-      paddingX={1}
+      paddingY={0}
+      paddingX={0}
       marginTop={1}
       width="100%"
     >
-      <Box flexDirection="row" justifyContent="space-between">
+      <Box flexDirection="row" width="100%">
         <Text bold color={isStreaming ? theme.textMuted : theme.textBrand}>
-          {isStreaming ? '⚡ Generating response...' : '▸ Message / Command'}
+          {isStreaming ? '⚡ Generating...' : '▸ Prompt'}
         </Text>
+        <Spacer />
         <Text color={theme.textMuted}>
           {isStreaming ? 'Busy' : `${inputText.length} chars`}
         </Text>
       </Box>
 
-      <Text color={theme.textSecondary}>
+      <Text color={theme.textSecondary} wrap="wrap">
         <Text color={theme.textBrand}>&gt; </Text>
         {beforeCursor}
         {!isStreaming && (

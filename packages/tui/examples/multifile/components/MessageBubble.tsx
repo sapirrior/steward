@@ -1,7 +1,6 @@
 /** @jsxImportSource stitchable */
-import { Box, Text } from 'stitchable';
+import { Box, Text, Spacer, Newline, Transform } from 'stitchable';
 import { theme } from '../theme.js';
-
 import type { ChatMessage } from '../types.js';
 
 interface MessageBubbleProps {
@@ -19,31 +18,26 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       : theme.badgeAssistant;
 
   const roleLabel = isUser ? 'USER' : isSystem ? 'SYSTEM' : 'CLAUDE 3.7';
-  const borderColor = isUser ? theme.borderUser : theme.borderAssistant;
 
   return (
     <Box flexDirection="column" marginTop={1} width="100%">
-      <Box flexDirection="row" justifyContent="space-between">
-        <Box flexDirection="row">
+      <Box flexDirection="row" width="100%">
+        <Transform transform={(line) => line}>
           <Text bold color={roleColor}>
             {roleLabel}
           </Text>
-          <Text color={theme.textMuted}> · {message.timestamp}</Text>
-        </Box>
+        </Transform>
+        <Text color={theme.textMuted}> · {message.timestamp}</Text>
         {message.tokens && (
-          <Text color={theme.textMuted}>{message.tokens} tokens</Text>
+          <>
+            <Spacer />
+            <Text color={theme.textMuted}>{message.tokens} tokens</Text>
+          </>
         )}
       </Box>
-
-      <Box
-        borderStyle="single"
-        borderColor={borderColor}
-        paddingX={1}
-        marginTop={0}
-        width="100%"
-      >
-        <Text color={theme.textSecondary}>{message.content}</Text>
-      </Box>
+      <Text color={theme.textSecondary} wrap="wrap">
+        {message.content}
+      </Text>
     </Box>
   );
 }

@@ -212,18 +212,32 @@ export function renderBoxElement(
   };
 
   // 3. Child extraction & Flex layout
+  const extractFlatChildren = (nodes: any[]): any[] => {
+    const list: any[] = [];
+    for (const c of nodes) {
+      if (c === null || c === undefined || typeof c === 'boolean') {
+        continue;
+      }
+      if (Array.isArray(c)) {
+        list.push(...extractFlatChildren(c));
+      } else if (
+        typeof c === 'object' &&
+        (c.type === Fragment || c.type === Symbol.for('stitchable.fragment'))
+      ) {
+        const fragChildren = c.props?.children ?? c.children ?? [];
+        list.push(...extractFlatChildren(Array.isArray(fragChildren) ? fragChildren : [fragChildren]));
+      } else {
+        list.push(c);
+      }
+    }
+    return list;
+  };
+
   let rawChildren = props.children ?? element.children ?? [];
   if (!Array.isArray(rawChildren)) {
     rawChildren = [rawChildren];
   }
-  const childrenList: any[] = [];
-  for (const c of rawChildren) {
-    if (Array.isArray(c)) {
-      childrenList.push(...c);
-    } else if (c !== null && c !== undefined && typeof c !== 'boolean') {
-      childrenList.push(c);
-    }
-  }
+  const childrenList = extractFlatChildren(rawChildren);
 
   const direction = props.flexDirection ?? 'row';
   const isRow = direction === 'row' || direction === 'row-reverse';
@@ -414,14 +428,18 @@ export function renderBoxElement(
     };
 
     if (hasBorderTop) {
-      const tl = colorizeBorder(
-        borderGlyphs.topLeft,
-        props.borderTopColor ?? props.borderLeftColor,
-      );
-      const tr = colorizeBorder(
-        borderGlyphs.topRight,
-        props.borderTopColor ?? props.borderRightColor,
-      );
+      const tl = hasBorderLeft
+        ? colorizeBorder(
+            borderGlyphs.topLeft,
+            props.borderTopColor ?? props.borderLeftColor,
+          )
+        : '';
+      const tr = hasBorderRight
+        ? colorizeBorder(
+            borderGlyphs.topRight,
+            props.borderTopColor ?? props.borderRightColor,
+          )
+        : '';
       const horiz = colorizeBorder(
         borderGlyphs.horizontal.repeat(innerWidth),
         props.borderTopColor,
@@ -440,14 +458,18 @@ export function renderBoxElement(
     }
 
     if (hasBorderBottom) {
-      const bl = colorizeBorder(
-        borderGlyphs.bottomLeft,
-        props.borderBottomColor ?? props.borderLeftColor,
-      );
-      const br = colorizeBorder(
-        borderGlyphs.bottomRight,
-        props.borderBottomColor ?? props.borderRightColor,
-      );
+      const bl = hasBorderLeft
+        ? colorizeBorder(
+            borderGlyphs.bottomLeft,
+            props.borderBottomColor ?? props.borderLeftColor,
+          )
+        : '';
+      const br = hasBorderRight
+        ? colorizeBorder(
+            borderGlyphs.bottomRight,
+            props.borderBottomColor ?? props.borderRightColor,
+          )
+        : '';
       const horiz = colorizeBorder(
         borderGlyphs.horizontal.repeat(innerWidth),
         props.borderBottomColor,

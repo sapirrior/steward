@@ -192,7 +192,7 @@ export function ChatApp() {
   }, [isStreaming, streamIndex]);
 
   return (
-    <Box flexDirection="column" paddingX={1} width="100%">
+    <Box flexDirection="column" paddingX={0} width="100%">
       <StaticBootstrap model={model} />
 
       {messages.map((msg) => (
