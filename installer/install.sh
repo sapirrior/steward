@@ -1,152 +1,476 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
+APP=steward
 
-# Colors
+MUTED='\033[0;2m'
 RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-NC='\033[0m'
+ORANGE='\033[38;5;214m'
+WHITE='\033[1;37m'
+NC='\033[0m' # No Color
 
-REPO="sapirrior/steward"
+usage() {
+    cat <<EOF
+Steward Installer
 
-echo -e "${CYAN}${BOLD}[+] Installing Steward — Engineering Agent...${NC}"
+Usage: install.sh [options]
 
-# Detect OS
-OS_RAW="$(uname -s)"
-case "${OS_RAW}" in
-  Linux*)   OS="linux" ;;
-  Darwin*)  OS="darwin" ;;
-  *)
-    echo -e "${RED}[x] Unsupported operating system: ${OS_RAW}${NC}"
-    exit 1
-    ;;
-esac
+Options:
+    -h, --help              Display this help message
+    -v, --version <version> Install a specific version (e.g., 0.1.0)
+    -b, --binary <path>     Install from a local binary instead of downloading
+        --no-modify-path    Don't modify shell config files (.zshrc, .bashrc, etc.)
 
-# Detect Architecture
-ARCH_RAW="$(uname -m)"
-case "${ARCH_RAW}" in
-  x86_64|amd64)
-    ARCH="x64"
-    ;;
-  aarch64|arm64|armv8*)
-    ARCH="arm64"
-    ;;
-  *)
-    echo -e "${RED}[x] Unsupported CPU architecture: ${ARCH_RAW}${NC}"
-    exit 1
-    ;;
-esac
-
-# Determine installation directory and target asset
-IS_TERMUX=false
-if [ -n "${PREFIX}" ] && [ -d "${PREFIX}/bin" ]; then
-  IS_TERMUX=true
-  INSTALL_DIR="${PREFIX}/bin"
-  SHARE_DIR="${PREFIX}/share/steward"
-  ASSET_NAME="steward-dist-cli.tar.gz"
-elif [ -d "$HOME/.local/bin" ] || mkdir -p "$HOME/.local/bin" 2>/dev/null; then
-  INSTALL_DIR="$HOME/.local/bin"
-  ASSET_NAME="steward-${OS}-${ARCH}.tar.gz"
-else
-  INSTALL_DIR="/usr/local/bin"
-  ASSET_NAME="steward-${OS}-${ARCH}.tar.gz"
-fi
-
-mkdir -p "${INSTALL_DIR}"
-DOWNLOAD_URL="https://github.com/${REPO}/releases/latest/download/${ASSET_NAME}"
-
-echo -e "  ${BLUE}•${NC} Platform:     ${BOLD}${OS}-${ARCH}$([ "$IS_TERMUX" = true ] && echo " (Termux)")${NC}"
-echo -e "  ${BLUE}•${NC} Install path: ${BOLD}${INSTALL_DIR}/steward${NC}"
-echo -e "  ${BLUE}•${NC} Downloading:  ${CYAN}${DOWNLOAD_URL}${NC}"
-
-TMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t 'steward-install')"
-cleanup() {
-  rm -rf "${TMP_DIR}"
+Examples:
+    curl -fsSL https://raw.githubusercontent.com/sapirrior/steward/main/installer/install.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/sapirrior/steward/main/installer/install.sh | bash -s -- --version 0.1.0
+    ./install.sh --binary /path/to/steward
+EOF
 }
-trap cleanup EXIT
 
-# Download archive with timeouts and retries to prevent indefinite freezes
-TARGET_FILE="${TMP_DIR}/${ASSET_NAME}"
+requested_version=${VERSION:-}
+no_modify_path=false
+binary_path=""
 
-if command -v curl >/dev/null 2>&1; then
-  if ! curl -fL --connect-timeout 15 --max-time 300 --retry 3 --retry-delay 2 -# "${DOWNLOAD_URL}" -o "${TARGET_FILE}"; then
-    echo -e "${RED}[x] Download failed with curl. Please check your internet connection and try again.${NC}"
-    exit 1
-  fi
-elif command -v wget >/dev/null 2>&1; then
-  if ! wget --timeout=15 --tries=3 --show-progress -O "${TARGET_FILE}" "${DOWNLOAD_URL}"; then
-    echo -e "${RED}[x] Download failed with wget. Please check your internet connection and try again.${NC}"
-    exit 1
-  fi
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -v|--version)
+            if [[ -n "${2:-}" ]]; then
+                requested_version="$2"
+                shift 2
+            else
+                echo -e "${RED}Error: --version requires a version argument${NC}"
+                exit 1
+            fi
+            ;;
+        -b|--binary)
+            if [[ -n "${2:-}" ]]; then
+                binary_path="$2"
+                shift 2
+            else
+                echo -e "${RED}Error: --binary requires a path argument${NC}"
+                exit 1
+            fi
+            ;;
+        --no-modify-path)
+            no_modify_path=true
+            shift
+            ;;
+        *)
+            echo -e "${ORANGE}Warning: Unknown option '$1'${NC}" >&2
+            shift
+            ;;
+    esac
+done
+
+# Detect Termux vs default ~/.steward/bin
+is_termux=false
+if [ -n "${PREFIX:-}" ] && [ -d "${PREFIX}/bin" ]; then
+    is_termux=true
+    INSTALL_DIR="${PREFIX}/bin"
+    SHARE_DIR="${PREFIX}/share/$APP"
 else
-  echo -e "${RED}[x] Neither curl nor wget was found. Please install curl or wget.${NC}"
-  exit 1
+    INSTALL_DIR=$HOME/.steward/bin
+    SHARE_DIR=$HOME/.steward/share
 fi
 
-if [ ! -s "${TARGET_FILE}" ]; then
-  echo -e "${RED}[x] Downloaded asset is empty or corrupted. Please verify release assets at https://github.com/${REPO}/releases${NC}"
-  exit 1
+mkdir -p "$INSTALL_DIR"
+
+# If --binary is provided, skip all download/detection logic
+if [ -n "$binary_path" ]; then
+    if [ ! -f "$binary_path" ]; then
+        echo -e "${RED}Error: Binary not found at ${binary_path}${NC}"
+        exit 1
+    fi
+    specific_version="local"
+else
+    raw_os=$(uname -s)
+    os=$(echo "$raw_os" | tr '[:upper:]' '[:lower:]')
+    case "$raw_os" in
+      Darwin*) os="darwin" ;;
+      Linux*) os="linux" ;;
+      MINGW*|MSYS*|CYGWIN*) os="windows" ;;
+    esac
+
+    arch=$(uname -m)
+    if [[ "$arch" == "aarch64" ]]; then
+      arch="arm64"
+    fi
+    if [[ "$arch" == "x86_64" ]]; then
+      arch="x64"
+    fi
+
+    if [ "$os" = "darwin" ] && [ "$arch" = "x64" ]; then
+      rosetta_flag=$(sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)
+      if [ "$rosetta_flag" = "1" ]; then
+        arch="arm64"
+      fi
+    fi
+
+    combo="$os-$arch"
+    case "$combo" in
+      linux-x64|linux-arm64|darwin-x64|darwin-arm64|windows-x64)
+        ;;
+      *)
+        if [ "$is_termux" != "true" ]; then
+          echo -e "${RED}Unsupported OS/Arch: $os/$arch${NC}"
+          exit 1
+        fi
+        ;;
+    esac
+
+    archive_ext=".tar.gz"
+    if [ "$os" = "windows" ]; then
+      archive_ext=".zip"
+    fi
+
+    if [ "$is_termux" = "true" ]; then
+      filename="$APP-dist-cli.tar.gz"
+    else
+      filename="$APP-$os-$arch$archive_ext"
+    fi
+
+    if [ "$os" = "windows" ]; then
+        if ! command -v unzip >/dev/null 2>&1; then
+            echo -e "${RED}Error: 'unzip' is required but not installed.${NC}"
+            exit 1
+        fi
+    else
+        if ! command -v tar >/dev/null 2>&1; then
+             echo -e "${RED}Error: 'tar' is required but not installed.${NC}"
+             exit 1
+        fi
+    fi
+
+    if [ -z "$requested_version" ]; then
+        url="https://github.com/sapirrior/steward/releases/latest/download/$filename"
+        specific_version=$(curl -s https://api.github.com/repos/sapirrior/steward/releases/latest | sed -n 's/.*"tag_name": *"v\?\([^"]*\)".*/\1/p' | head -n 1)
+
+        if [[ -z "$specific_version" ]]; then
+            specific_version="latest"
+        fi
+    else
+        # Strip leading 'v' if present
+        requested_version="${requested_version#v}"
+        url="https://github.com/sapirrior/steward/releases/download/v${requested_version}/$filename"
+        specific_version=$requested_version
+
+        # Verify the release exists before downloading
+        http_status=$(curl -sI -o /dev/null -w "%{http_code}" "https://github.com/sapirrior/steward/releases/tag/v${requested_version}")
+        if [ "$http_status" = "404" ]; then
+            echo -e "${RED}Error: Release v${requested_version} not found${NC}"
+            echo -e "${MUTED}Available releases: https://github.com/sapirrior/steward/releases${NC}"
+            exit 1
+        fi
+    fi
 fi
 
-echo -e "  ${BLUE}•${NC} Extracting archive..."
+print_message() {
+    local level=$1
+    local message=$2
+    local color=""
 
-# Extract and install
-if ! tar -xzf "${TARGET_FILE}" -C "${TMP_DIR}"; then
-  echo -e "${RED}[x] Failed to extract archive ${ASSET_NAME}.${NC}"
-  exit 1
+    case $level in
+        info) color="${NC}" ;;
+        warning) color="${NC}" ;;
+        error) color="${RED}" ;;
+    esac
+
+    echo -e "${color}${message}${NC}"
+}
+
+print_logo_and_footer() {
+    echo -e ""
+    echo -e "${WHITE}                                  ▄ ${NC}"
+    echo -e "${WHITE}█▀▀▀ ▀█▀▀ █▀▀█ █ █ █ ▀▀▀█ █▀▀▄ █▀▀█${NC}"
+    echo -e "${WHITE}▀▀▀█  █   █▀▀▀ █░█░█ █▀▀█ █    █░░█${NC}"
+    echo -e "${WHITE}▀▀▀▀  ▀   ▀▀▀▀ ▀▀ ▀▀ ▀▀▀▀ ▀    ▀▀▀▀${NC}"
+    echo -e ""
+    echo -e ""
+    echo -e "${MUTED}to start:${NC}"
+    echo -e ""
+    echo -e "cd <project>  ${MUTED}# Open directory${NC}"
+    echo -e "steward       ${MUTED}# Run command${NC}"
+    echo -e ""
+    echo -e "${MUTED}For more information visit ${NC}https://github.com/sapirrior/steward"
+    echo -e ""
+    echo -e ""
+}
+
+check_version() {
+    local bin_target="${INSTALL_DIR}/$APP"
+    if command -v "$APP" >/dev/null 2>&1 || [ -x "$bin_target" ]; then
+        local installed_version=""
+        if [ -x "$bin_target" ]; then
+            installed_version=$("$bin_target" --version 2>/dev/null || echo "")
+        else
+            installed_version=$("$APP" --version 2>/dev/null || echo "")
+        fi
+
+        installed_version=$(echo "$installed_version" | tr -d 'v' | awk '{print $1}')
+        local target_clean=$(echo "$specific_version" | tr -d 'v')
+
+        if [ "$specific_version" != "latest" ] && [ -n "$installed_version" ] && [ "$installed_version" = "$target_clean" ]; then
+            print_message info "${MUTED}Version ${NC}$specific_version${MUTED} already installed"
+            print_logo_and_footer
+            exit 0
+        elif [ -n "$installed_version" ]; then
+            print_message info "${MUTED}Installed version: ${NC}$installed_version."
+        fi
+    fi
+}
+
+unbuffered_sed() {
+    if echo | sed -u -e "" >/dev/null 2>&1; then
+        sed -nu "$@"
+    elif echo | sed -l -e "" >/dev/null 2>&1; then
+        sed -nl "$@"
+    else
+        local pad="$(printf "\n%512s" "")"
+        sed -ne "s/$/\\${pad}/" "$@"
+    fi
+}
+
+print_progress() {
+    local bytes="$1"
+    local length="$2"
+    [ "$length" -gt 0 ] || return 0
+
+    local width=50
+    local percent=$(( bytes * 100 / length ))
+    [ "$percent" -gt 100 ] && percent=100
+    local on=$(( percent * width / 100 ))
+    local off=$(( width - on ))
+
+    local filled=$(printf "%*s" "$on" "")
+    filled=${filled// /■}
+    local empty=$(printf "%*s" "$off" "")
+    empty=${empty// /･}
+
+    printf "\r${ORANGE}%s%s %3d%%${NC}" "$filled" "$empty" "$percent" >&4
+}
+
+download_with_progress() {
+    local url="$1"
+    local output="$2"
+
+    if [ -t 2 ]; then
+        exec 4>&2
+    else
+        exec 4>/dev/null
+    fi
+
+    local tmp_dir=${TMPDIR:-/tmp}
+    local basename="${tmp_dir}/steward_install_$$"
+    local tracefile="${basename}.trace"
+
+    rm -f "$tracefile"
+    mkfifo "$tracefile"
+
+    # Hide cursor
+    printf "\033[?25l" >&4
+
+    trap "trap - RETURN; rm -f \"$tracefile\"; printf '\033[?25h' >&4; exec 4>&-" RETURN
+
+    (
+        curl --trace-ascii "$tracefile" -s -L -o "$output" "$url"
+    ) &
+    local curl_pid=$!
+
+    unbuffered_sed \
+        -e 'y/ACDEGHLNORTV/acdeghlnortv/' \
+        -e '/^0000: content-length:/p' \
+        -e '/^<= recv data/p' \
+        "$tracefile" | \
+    {
+        local length=0
+        local bytes=0
+
+        while IFS=" " read -r -a line; do
+            [ "${#line[@]}" -lt 2 ] && continue
+            local tag="${line[0]} ${line[1]}"
+
+            if [ "$tag" = "0000: content-length:" ]; then
+                length="${line[2]}"
+                length=$(echo "$length" | tr -d '\r')
+                bytes=0
+            elif [ "$tag" = "<= recv" ]; then
+                local size="${line[3]}"
+                bytes=$(( bytes + size ))
+                if [ "$length" -gt 0 ]; then
+                    print_progress "$bytes" "$length"
+                fi
+            fi
+        done
+    }
+
+    wait $curl_pid
+    local ret=$?
+    echo "" >&4
+    return $ret
+}
+
+download_and_install() {
+    print_message info "\n${MUTED}Installing ${NC}$APP ${MUTED}version: ${NC}$specific_version"
+    local tmp_dir="${TMPDIR:-/tmp}/steward_install_$$"
+    mkdir -p "$tmp_dir"
+
+    if [[ "$os" == "windows" ]] || ! [ -t 2 ] || ! download_with_progress "$url" "$tmp_dir/$filename"; then
+        # Fallback to standard curl on Windows, non-TTY environments, or if custom progress fails
+        curl -# -L -o "$tmp_dir/$filename" "$url"
+    fi
+
+    if [ "$os" = "windows" ]; then
+        unzip -q "$tmp_dir/$filename" -d "$tmp_dir"
+    else
+        tar -xzf "$tmp_dir/$filename" -C "$tmp_dir"
+    fi
+
+    # Handle Node bundle / Termux cli.js installation
+    if [ "$is_termux" = "true" ] || [ -f "$tmp_dir/cli.js" ]; then
+        mkdir -p "$SHARE_DIR"
+        mv "$tmp_dir/cli.js" "$SHARE_DIR/cli.js"
+        rm -f "${INSTALL_DIR}/$APP"
+
+        cat << 'EOF' > "${INSTALL_DIR}/steward"
+#!/usr/bin/env sh
+CLI_PATH=""
+if [ -n "${PREFIX}" ] && [ -f "${PREFIX}/share/steward/cli.js" ]; then
+  CLI_PATH="${PREFIX}/share/steward/cli.js"
+elif [ -f "${HOME}/.steward/share/cli.js" ]; then
+  CLI_PATH="${HOME}/.steward/share/cli.js"
 fi
 
-if [ "$IS_TERMUX" = true ]; then
-  mkdir -p "${SHARE_DIR}"
-  if [ ! -f "${TMP_DIR}/cli.js" ]; then
-    echo -e "${RED}[x] Failed to extract cli.js from ${ASSET_NAME}.${NC}"
-    exit 1
-  fi
-  mv "${TMP_DIR}/cli.js" "${SHARE_DIR}/cli.js"
-
-  cat << EOF > "${INSTALL_DIR}/steward"
-#!${INSTALL_DIR}/sh
-CLI_PATH="${SHARE_DIR}/cli.js"
-if [ ! -f "\${CLI_PATH}" ]; then
-  CLI_PATH="\${PREFIX:-/data/data/com.termux/files/usr}/share/steward/cli.js"
+if [ -z "${CLI_PATH}" ] || [ ! -f "${CLI_PATH}" ]; then
+  echo "[x] Error: Steward cli.js runtime not found." >&2
+  exit 1
 fi
 
 if command -v bun >/dev/null 2>&1; then
-  exec bun "\${CLI_PATH}" "\$@"
+  exec bun "${CLI_PATH}" "$@"
 elif command -v node >/dev/null 2>&1; then
-  exec node "\${CLI_PATH}" "\$@"
+  exec node "${CLI_PATH}" "$@"
 else
-  echo "[x] Neither bun nor node was found. Please run: pkg install nodejs or pkg install bun"
+  echo "[x] Error: Neither 'bun' nor 'node' was found in PATH. Please install Node.js or Bun." >&2
   exit 1
 fi
 EOF
-  chmod +x "${INSTALL_DIR}/steward"
-  if command -v termux-fix-shebang >/dev/null 2>&1; then
-    termux-fix-shebang "${INSTALL_DIR}/steward" 2>/dev/null || true
-  fi
+        chmod 755 "${INSTALL_DIR}/$APP"
+        if command -v termux-fix-shebang >/dev/null 2>&1; then
+            termux-fix-shebang "${INSTALL_DIR}/$APP" 2>/dev/null || true
+        fi
+    else
+        # Standalone binary installation
+        rm -rf "$SHARE_DIR"
+        rm -f "${INSTALL_DIR}/$APP"
+
+        mv "$tmp_dir/$APP" "$INSTALL_DIR"
+        chmod 755 "${INSTALL_DIR}/$APP"
+    fi
+
+    rm -rf "$tmp_dir"
+}
+
+install_from_binary() {
+    print_message info "\n${MUTED}Installing ${NC}$APP ${MUTED}from: ${NC}$binary_path"
+    rm -rf "$SHARE_DIR"
+    rm -f "${INSTALL_DIR}/$APP"
+    cp "$binary_path" "${INSTALL_DIR}/$APP"
+    chmod 755 "${INSTALL_DIR}/$APP"
+}
+
+if [ -n "$binary_path" ]; then
+    install_from_binary
 else
-  if [ ! -f "${TMP_DIR}/steward" ]; then
-    echo -e "${RED}[x] Failed to extract steward binary from archive.${NC}"
-    exit 1
-  fi
-  chmod +x "${TMP_DIR}/steward"
-  mv "${TMP_DIR}/steward" "${INSTALL_DIR}/steward"
+    check_version
+    download_and_install
 fi
 
-echo -e "${GREEN}${BOLD}[✔] Successfully installed steward to ${INSTALL_DIR}/steward!${NC}"
+add_to_path() {
+    local config_file=$1
+    local command=$2
 
-# Check PATH
-case ":$PATH:" in
-  *":${INSTALL_DIR}:"*) ;;
-  *)
-    echo -e ""
-    echo -e "${CYAN}[i] Notice: ${INSTALL_DIR} is not in your \$PATH.${NC}"
-    echo -e "  Add it to your shell configuration:"
-    echo -e "    ${BOLD}export PATH=\"${INSTALL_DIR}:\$PATH\"${NC}"
-    echo -e ""
+    if grep -Fxq "$command" "$config_file" 2>/dev/null; then
+        print_message info "Command already exists in $config_file, skipping write."
+    elif [[ -w $config_file ]] || [[ ! -e $config_file ]]; then
+        echo -e "\n# steward" >> "$config_file"
+        echo "$command" >> "$config_file"
+        print_message info "${MUTED}Successfully added ${NC}steward ${MUTED}to \$PATH in ${NC}$config_file"
+    else
+        print_message warning "Manually add the directory to $config_file (or similar):"
+        print_message info "  $command"
+    fi
+}
+
+XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
+
+current_shell=$(basename "${SHELL:-bash}")
+case $current_shell in
+    fish)
+        config_files="$HOME/.config/fish/config.fish"
+    ;;
+    zsh)
+        config_files="${ZDOTDIR:-$HOME}/.zshrc ${ZDOTDIR:-$HOME}/.zshenv $XDG_CONFIG_HOME/zsh/.zshrc $XDG_CONFIG_HOME/zsh/.zshenv"
+    ;;
+    bash)
+        config_files="$HOME/.bashrc $HOME/.bash_profile $HOME/.profile $XDG_CONFIG_HOME/bash/.bashrc $XDG_CONFIG_HOME/bash/.bash_profile"
+    ;;
+    ash)
+        config_files="$HOME/.ashrc $HOME/.profile /etc/profile"
+    ;;
+    sh)
+        config_files="$HOME/.ashrc $HOME/.profile /etc/profile"
+    ;;
+    *)
+        # Default case if none of the above matches
+        config_files="$HOME/.bashrc $HOME/.bash_profile $XDG_CONFIG_HOME/bash/.bashrc $XDG_CONFIG_HOME/bash/.bash_profile"
     ;;
 esac
 
-echo -e "Run ${BOLD}steward${NC} to get started."
+if [[ "$no_modify_path" != "true" ]] && [[ "$is_termux" != "true" ]]; then
+    config_file=""
+    for file in $config_files; do
+        if [[ -f $file ]]; then
+            config_file=$file
+            break
+        fi
+    done
+
+    if [[ -z $config_file ]]; then
+        print_message warning "No config file found for $current_shell. You may need to manually add to PATH:"
+        print_message info "  export PATH=$INSTALL_DIR:\$PATH"
+    elif [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+        case $current_shell in
+            fish)
+                add_to_path "$config_file" "fish_add_path $INSTALL_DIR"
+            ;;
+            zsh)
+                add_to_path "$config_file" "export PATH=$INSTALL_DIR:\$PATH"
+            ;;
+            bash)
+                add_to_path "$config_file" "export PATH=$INSTALL_DIR:\$PATH"
+            ;;
+            ash)
+                add_to_path "$config_file" "export PATH=$INSTALL_DIR:\$PATH"
+            ;;
+            sh)
+                add_to_path "$config_file" "export PATH=$INSTALL_DIR:\$PATH"
+            ;;
+            *)
+                export PATH=$INSTALL_DIR:$PATH
+                print_message warning "Manually add the directory to $config_file (or similar):"
+                print_message info "  export PATH=$INSTALL_DIR:\$PATH"
+            ;;
+        esac
+    fi
+fi
+
+if [ -n "${GITHUB_ACTIONS-}" ] && [ "${GITHUB_ACTIONS}" == "true" ]; then
+    echo "$INSTALL_DIR" >> $GITHUB_PATH
+    print_message info "Added $INSTALL_DIR to \$GITHUB_PATH"
+fi
+
+print_logo_and_footer
