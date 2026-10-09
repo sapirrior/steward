@@ -80,11 +80,10 @@ Run these scripts from the repository root:
 
 ## 4. Coding Standards & Invariants
 
-### Documentation Standard (NOTEDOC)
-Every directory across all packages (except workspace root) **MUST maintain a dedicated `NOTE.md`** file strictly following the **[NOTEDOC.md](file:///home/nolan/works/steward/NOTEDOC.md)** specification.
-- Every `NOTE.md` must feature structured ASCII navigation trees, data flow/lifecycle diagrams, exact TypeScript signatures, purity tags, and operational constraints.
-- Whenever adding, modifying, or removing code in a folder, update that folder's `NOTE.md` within the same turn.
-- Package `README.md` files are high-level human overviews and are out of scope for deep technical API tables.
+### Documentation Standard (READMEDOC)
+Every workspace package **MUST maintain a comprehensive `README.md`** file strictly following the **[READMEDOC.md](READMEDOC.md)** specification.
+- Each package `README.md` serves as the authoritative, self-contained guide for both human developers and AI agents.
+- Whenever adding, modifying, or removing code in a package, update that package's `README.md` within the same turn.
 
 ### Naming Conventions
 - `PascalCase` for classes, interfaces, types, and primary class/component files.
@@ -152,7 +151,7 @@ We enforce [Conventional Commits](https://www.conventionalcommits.org/):
    - `fix/error-badge-rendering`
 2. **Focused Scope:** Keep pull requests focused on a single concern.
 3. **Verification:** Verify that `bun test`, `bun run lint:boundaries`, and `bun run format` pass locally.
-4. **Documentation:** Ensure all affected folders' `NOTE.md` files are updated with accurate file indexes, ASCII diagrams, and symbol breakdowns per [NOTEDOC.md](file:///home/nolan/works/steward/NOTEDOC.md).
+4. **Documentation:** Ensure all affected packages' `README.md` files are updated with accurate guides, ASCII diagrams, and symbol breakdowns per [READMEDOC.md](READMEDOC.md).
 5. **Open PR:** Submit your pull request to the `main` branch with a clear description of the problem solved, approach taken, and testing performed.
 
 Thank you for helping make Steward the most resilient, powerful AI engineering terminal assistant!

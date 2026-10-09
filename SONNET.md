@@ -1,11 +1,11 @@
-# Sonnet Documentation Convention (Superseded by NOTEDOC)
+# Sonnet Documentation Convention (Superseded by READMEDOC)
 
 > [!IMPORTANT]
-> **The Sonnet Documentation Convention is DEPRECATED and SUPERSEDED.**
-> The Steward repository now strictly follows the **[NOTEDOC.md](file:///home/nolan/works/steward/NOTEDOC.md)** standard.
+> **The Sonnet and NOTEDOC Documentation Conventions are DEPRECATED and SUPERSEDED.**
+> The Steward repository now strictly follows the **[READMEDOC.md](READMEDOC.md)** standard.
 > 
-> - **Monolithic Package README API Tables are no longer used.** Package `README.md` files are now standard, human-readable package overviews.
-> - **Every directory** across all packages (except workspace root) now maintains a dedicated, agent-specialized **`NOTE.md`** file containing deterministic file maps, exact TypeScript signatures, purity indicators, permissions, and architectural invariants.
+> - **Unified Package README:** Every workspace package maintains a single, comprehensive, master `README.md` that serves as the definitive manual for both human developers and AI agents.
+> - **No Fragmented Notes:** Per-folder `NOTE.md` files are deprecated in favor of self-contained, guide-driven package `README.md` documents.
 
-Please refer directly to **[NOTEDOC.md](file:///home/nolan/works/steward/NOTEDOC.md)** for complete specifications, schemas, table layouts, and agent maintenance workflows.
+Please refer directly to **[READMEDOC.md](READMEDOC.md)** for complete specifications, schemas, guidelines, and agent maintenance workflows.
 
