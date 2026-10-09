@@ -25,6 +25,9 @@ export function parseDimension(
   return isNaN(parsed) ? undefined : Math.max(0, parsed);
 }
 
+import Component from '../engine/Component.js';
+import { Fragment } from './types.js';
+
 export function renderAnyElement(node: any, context: RenderContext): Block {
   if (node === null || node === undefined || typeof node === 'boolean') {
     return { lines: [], width: 0 };
@@ -55,6 +58,20 @@ export function renderAnyElement(node: any, context: RenderContext): Block {
   }
 
   if (typeof node === 'object') {
+    // Handle Fragment
+    if (node.type === Fragment || node.type === Symbol.for('stitchable.fragment')) {
+      return renderAnyElement(node.children ?? node.props?.children, context);
+    }
+
+    // Direct object with render(width) method
+    if (typeof node.render === 'function') {
+      const lines = node.render(context.width);
+      return {
+        lines,
+        width: lines.reduce((max: number, l: string) => Math.max(max, visibleWidth(l)), 0),
+      };
+    }
+
     if (typeof node.type === 'function') {
       const typeName = node.type.name;
       if (node.type === Text || typeName === 'Text') {
@@ -72,16 +89,35 @@ export function renderAnyElement(node: any, context: RenderContext): Block {
       if (node.type === Box || typeName === 'Box') {
         return renderBoxElement(node, context);
       }
-      try {
-        const rendered = node.type({ ...(node.props || {}), children: node.children });
+
+      // Check if it's a class component
+      if (
+        node.type.prototype &&
+        ('render' in node.type.prototype || node.type.prototype instanceof Component)
+      ) {
+        const instance = new node.type(node.props || {});
+        const rendered = instance.render(context.width);
         return renderAnyElement(rendered, context);
-      } catch {
-        return { lines: [], width: 0 };
       }
+
+      const rendered = node.type({
+        ...(node.props || {}),
+        children: node.children ?? node.props?.children,
+      });
+      return renderAnyElement(rendered, context);
     }
-    if (node.type === 'Text' || node.type === 'text') {
-      return renderTextElement(node, context);
+
+    if (typeof node.type === 'string') {
+      const typeLower = node.type.toLowerCase();
+      if (typeLower === 'text') {
+        return renderTextElement(node, context);
+      }
+      if (typeLower === 'box') {
+        return renderBoxElement(node, context);
+      }
+      throw new Error(`Unknown intrinsic element: <${node.type}>`);
     }
+
     return renderBoxElement(node, context);
   }
 

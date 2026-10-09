@@ -1,6 +1,6 @@
 import type { ColorLevel } from '../terminal/color.js';
 
-export const Fragment = Symbol.for('stitchable.fragment');
+export * from '../types.js';
 
 export type ColorValue = string | ((str: string) => string);
 

@@ -3,6 +3,7 @@ import Component from '../engine/Component.js';
 import { type TerminalIO } from '../terminal/io.js';
 import { makeKey, type Key } from '../terminal/input.js';
 import { renderElement } from '../elements/index.js';
+import { Fragment } from '../types.js';
 
 export interface UIContext {
   /** Mark component dirty and request next frame */
@@ -109,8 +110,21 @@ export function mount<S extends object = Record<string, any>>(
       return node.map(resolveElementTree);
     }
     if (typeof node === 'object') {
+      if (node.type === Fragment || node.type === Symbol.for('stitchable.fragment')) {
+        return resolveElementTree(node.children ?? node.props?.children);
+      }
       if (typeof node.type === 'function' && typeof node.render !== 'function') {
-        const res = node.type({ ...(node.props || {}), children: node.children });
+        if (
+          node.type.prototype &&
+          ('render' in node.type.prototype || node.type.prototype instanceof Component)
+        ) {
+          const instance = new node.type(node.props || {});
+          return resolveElementTree(instance.render(engine.io.columns));
+        }
+        const res = node.type({
+          ...(node.props || {}),
+          children: node.children ?? node.props?.children,
+        });
         return resolveElementTree(res);
       }
       if (node.children) {
