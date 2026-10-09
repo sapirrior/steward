@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { jsx } from '../reconciler/element.js';
 import { AppRoot } from './AppRoot.js';
-import { useInput, useFocus, useTerminalSize, useCursor, useApp } from './AppContext.js';
+import { useInput, useFocus, useTerminalSize, useCursor, useApp } from '../hooks/index.js';
 import { TerminalEngine } from '../engine/TerminalEngine.js';
 import { memoryIO } from '../terminal/io.js';
 import { makeKey } from '../terminal/input.js';

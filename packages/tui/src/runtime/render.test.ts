@@ -2,8 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { memoryIO } from '../terminal/io.js';
 import { render } from './render.js';
 import { jsx } from '../reconciler/element.js';
-import { useState } from '../reconciler/hooks.js';
-import { useInput } from './AppContext.js';
+import { useState, useInput } from '../hooks/index.js';
 
 describe('render(<App />) Public API (Phase 7)', () => {
   it('mounts, renders, and responds to useInput', async () => {

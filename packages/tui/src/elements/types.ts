@@ -89,7 +89,19 @@ export interface BoxProps {
   borderBottomColor?: ColorValue;
   borderLeftColor?: ColorValue;
   borderRightColor?: ColorValue;
+
+  borderBackgroundColor?: ColorValue;
+  borderTopBackgroundColor?: ColorValue;
+  borderBottomBackgroundColor?: ColorValue;
+  borderLeftBackgroundColor?: ColorValue;
+  borderRightBackgroundColor?: ColorValue;
+
   borderDimColor?: boolean;
+  borderTopDimColor?: boolean;
+  borderBottomDimColor?: boolean;
+  borderLeftDimColor?: boolean;
+  borderRightDimColor?: boolean;
+
   borderTop?: boolean;
   borderBottom?: boolean;
   borderLeft?: boolean;

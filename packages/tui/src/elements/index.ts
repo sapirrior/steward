@@ -8,6 +8,7 @@ export * from './Box.js';
 export * from './Newline.js';
 export * from './Spacer.js';
 export * from './Transform.js';
+export * from './Static.js';
 export * from './border.js';
 export * from './style.js';
 export * from './flex.js';

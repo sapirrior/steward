@@ -13,6 +13,7 @@ Root source folder for `@steward/tui` (`stitchable`), housing core terminal I/O,
 ├── [NOTE.md](./NOTE.md) (Current Folder)
 ├── [elements/](./elements/NOTE.md) ── Declarative Box/Text layout primitives and flex distribution
 ├── [engine/](./engine/NOTE.md) ── State renderer, document history, frame buffer, and terminal engine
+├── [hooks/](./hooks/NOTE.md) ── Modular fundamental and terminal-aware hooks
 ├── [layout/](./layout/NOTE.md) ── ScreenBuffer double-buffering and cell formatting
 ├── [reconciler/](./reconciler/NOTE.md) ── JSX element descriptors, child normalization, and future reconciliation
 ├── [runtime/](./runtime/NOTE.md) ── App mounting, renderToString, and application handles

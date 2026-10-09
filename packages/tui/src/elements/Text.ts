@@ -110,7 +110,16 @@ export function renderTextElement(
         ? visibleWidth(props.hangingIndent)
         : 0;
 
-  const styledContent = flattenStyledChildren(props.children ?? element.children, props, context);
+  const effectiveStyle: TextProps = {
+    ...props,
+    backgroundColor: props.backgroundColor ?? context.inheritedBg,
+  };
+
+  const styledContent = flattenStyledChildren(
+    props.children ?? element.children,
+    effectiveStyle,
+    context,
+  );
 
   const rawLines = styledContent.split('\n');
   const resultLines: string[] = [];

@@ -417,62 +417,103 @@ export function renderBoxElement(
 
   if (borderGlyphs) {
     const borderColor = props.borderColor;
-    const colorizeBorder = (glyph: string, sideColor?: any) => {
-      const col = sideColor ?? borderColor;
-      if (!col && !props.borderDimColor) return glyph;
+    const borderBgColor = props.borderBackgroundColor;
+    const borderDim = props.borderDimColor ?? false;
+
+    const colorizeBorder = (
+      glyph: string,
+      sideColor?: any,
+      sideBgColor?: any,
+      sideDim?: boolean,
+    ) => {
+      const fg = sideColor ?? borderColor;
+      const bg = sideBgColor ?? borderBgColor;
+      const dim = sideDim ?? borderDim;
+      if (!fg && !bg && !dim) return glyph;
       return styleText(glyph, {
-        color: col,
-        dim: props.borderDimColor,
+        color: fg,
+        backgroundColor: bg,
+        dim,
         colorLevel: context.colorLevel,
       });
     };
 
     if (hasBorderTop) {
+      const topFg = props.borderTopColor;
+      const topBg = props.borderTopBackgroundColor;
+      const topDim = props.borderTopDimColor;
+
       const tl = hasBorderLeft
         ? colorizeBorder(
             borderGlyphs.topLeft,
-            props.borderTopColor ?? props.borderLeftColor,
+            topFg ?? props.borderLeftColor,
+            topBg ?? props.borderLeftBackgroundColor,
+            topDim ?? props.borderLeftDimColor,
           )
         : '';
       const tr = hasBorderRight
         ? colorizeBorder(
             borderGlyphs.topRight,
-            props.borderTopColor ?? props.borderRightColor,
+            topFg ?? props.borderRightColor,
+            topBg ?? props.borderRightBackgroundColor,
+            topDim ?? props.borderRightDimColor,
           )
         : '';
       const horiz = colorizeBorder(
         borderGlyphs.horizontal.repeat(innerWidth),
-        props.borderTopColor,
+        topFg,
+        topBg,
+        topDim,
       );
       finalBoxLines.push(`${tl}${horiz}${tr}`);
     }
 
     for (const rowLine of paddedLines) {
       const left = hasBorderLeft
-        ? colorizeBorder(borderGlyphs.vertical, props.borderLeftColor)
+        ? colorizeBorder(
+            borderGlyphs.vertical,
+            props.borderLeftColor,
+            props.borderLeftBackgroundColor,
+            props.borderLeftDimColor,
+          )
         : '';
       const right = hasBorderRight
-        ? colorizeBorder(borderGlyphs.vertical, props.borderRightColor)
+        ? colorizeBorder(
+            borderGlyphs.vertical,
+            props.borderRightColor,
+            props.borderRightBackgroundColor,
+            props.borderRightDimColor,
+          )
         : '';
       finalBoxLines.push(`${left}${rowLine}${right}`);
     }
 
     if (hasBorderBottom) {
+      const botFg = props.borderBottomColor;
+      const botBg = props.borderBottomBackgroundColor;
+      const botDim = props.borderBottomDimColor;
+
       const bl = hasBorderLeft
         ? colorizeBorder(
             borderGlyphs.bottomLeft,
-            props.borderBottomColor ?? props.borderLeftColor,
+            botFg ?? props.borderLeftColor,
+            botBg ?? props.borderLeftBackgroundColor,
+            botDim ?? props.borderLeftDimColor,
           )
         : '';
       const br = hasBorderRight
         ? colorizeBorder(
             borderGlyphs.bottomRight,
-            props.borderBottomColor ?? props.borderRightColor,
+            botFg ?? props.borderRightColor,
+            botBg ?? props.borderRightBackgroundColor,
+            botDim ?? props.borderRightDimColor,
           )
         : '';
       const horiz = colorizeBorder(
         borderGlyphs.horizontal.repeat(innerWidth),
-        props.borderBottomColor,
+        botFg,
+        botBg,
+        botDim,
       );
       finalBoxLines.push(`${bl}${horiz}${br}`);
     }

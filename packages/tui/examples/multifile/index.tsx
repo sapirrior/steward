@@ -11,6 +11,7 @@ import {
   useApp,
   useCommitHistory,
   Box,
+  Static,
 } from 'stitchable';
 
 
@@ -195,9 +196,9 @@ export function ChatApp() {
     <Box flexDirection="column" paddingX={0} width="100%">
       <StaticBootstrap model={model} />
 
-      {messages.map((msg) => (
-        <CommittedMessageItem key={msg.id} message={msg} />
-      ))}
+      <Static items={messages}>
+        {(msg) => <MessageBubble key={msg.id} message={msg} />}
+      </Static>
 
       {isStreaming && (
         <MessageBubble

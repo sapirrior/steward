@@ -46,9 +46,35 @@ describe('Declarative Elements Suite (src/elements)', () => {
       expect(lines.length).toBeGreaterThan(1);
       expect(lines.some((l) => l.includes('Margin Content'))).toBe(true);
     });
+
+    it('supports border background colors and per-side dimming', () => {
+      const el = jsx(Box, {
+        borderStyle: 'single',
+        borderColor: 'cyan',
+        borderBackgroundColor: 'blue',
+        borderTopDimColor: true,
+        children: jsx(Text, { children: 'Border Bg' }),
+      });
+
+      const lines = renderElement(el, { width: 20, colorLevel: 3 });
+      expect(lines.length).toBeGreaterThan(2);
+      // ANSI escape codes for border styling should be present
+      expect(lines[0]).toContain('\x1b[');
+    });
   });
 
   describe('<Text>', () => {
+    it('cascades inherited background color from parent container', () => {
+      const el = jsx(Box, {
+        backgroundColor: 'blue',
+        children: jsx(Text, { color: 'white', children: 'Inherited Text' }),
+      });
+
+      const lines = renderElement(el, { width: 30, colorLevel: 3 });
+      expect(lines[0]).toContain('Inherited Text');
+      expect(lines[0]).toContain('\x1b[');
+    });
+
     it('applies text styling (bold, color, inverse)', () => {
       const el = jsx(Text, {
         bold: true,
@@ -60,7 +86,6 @@ describe('Declarative Elements Suite (src/elements)', () => {
       const lines = renderElement(el, { width: 40, colorLevel: 3 });
       expect(lines.length).toBe(1);
       expect(lines[0]).toContain('Styled Text');
-      // ANSI escape codes should be present for colorLevel 3
       expect(lines[0]).toContain('\x1b[');
     });
 
