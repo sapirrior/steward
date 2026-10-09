@@ -12,6 +12,7 @@ import { AppContext, type AppContextValue, type CursorPosition } from './AppCont
 export interface AppRootOptions {
   engine?: TerminalEngine;
   onError?: (error: Error) => void;
+  onExit?: (errorOrValue?: unknown) => void;
   exitOnCtrlC?: boolean;
 }
 
@@ -24,6 +25,7 @@ export class AppRoot {
   private inputDispatcher: InputDispatcher;
   private isUnmounted = false;
   private onError?: (error: Error) => void;
+  private onExit?: (errorOrValue?: unknown) => void;
   private removeInputListener?: () => void;
   private currentCursor: CursorPosition | null = null;
 
@@ -31,6 +33,7 @@ export class AppRoot {
     this.rootElement = element;
     this.engine = options.engine ?? new TerminalEngine();
     this.onError = options.onError;
+    this.onExit = options.onExit;
     this.inputDispatcher = new InputDispatcher();
 
     const exitOnCtrlC = options.exitOnCtrlC ?? true;
@@ -57,6 +60,9 @@ export class AppRoot {
       if (this.isUnmounted) return;
       if (exitOnCtrlC && ev.type === 'key' && ev.key.ctrl && ev.key.name === 'c') {
         this.unmount();
+        if (this.onExit) {
+          this.onExit();
+        }
         return true;
       }
       return this.inputDispatcher.dispatch(ev);
@@ -88,10 +94,14 @@ export class AppRoot {
       io: this.engine.io,
       exit: (errorOrValue?: unknown) => {
         this.unmount();
+        if (this.onExit) {
+          this.onExit(errorOrValue);
+        }
         if (errorOrValue instanceof Error && this.onError) {
           this.onError(errorOrValue);
         }
       },
+
       invalidate: () => {
         this.scheduler.scheduleUpdate();
       },
@@ -185,6 +195,9 @@ export function extractReconciledElement(instance: ComponentInstance | null): an
     return instance.children.map(extractReconciledElement);
   }
   if (instance.tag === 'host') {
+    if (!instance.type) {
+      return instance.element;
+    }
     const extractedChildren = instance.children.map(extractReconciledElement);
     return {
       type: instance.type,
@@ -195,5 +208,6 @@ export function extractReconciledElement(instance: ComponentInstance | null): an
       children: extractedChildren,
     };
   }
+
   return instance.element;
 }

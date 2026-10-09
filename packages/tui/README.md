@@ -1,35 +1,145 @@
 # @steward/tui (stitchable)
 
-`@steward/tui` (`stitchable`) is a zero-dependency (except `string-width`), double-buffered terminal user interface and layout engine for TypeScript and Bun/Node.js. It stitches responsive, reflowing scrollback history with a live differential viewport using Mode 2026 Synchronized Output for flicker-free terminal applications.
+`@steward/tui` (`stitchable`) is a high-performance, double-buffered terminal user interface framework for TypeScript, Bun, and Node.js. It features a lightweight, synchronous, React-style runtime and keyed reconciler with zero external React/Fiber/Yoga dependencies.
+
+Stitchable merges reflowing scrollback history with a live differential viewport using Mode 2026 Synchronized Output for flicker-free terminal applications.
 
 ---
 
 ## Table of Contents
 
-- [Package Architecture & Boundaries](#package-architecture--boundaries)
-- [Module & API Breakdown](#module--api-breakdown)
-  - [1. Terminal IO, Sequences & Input Parsing (`src/terminal/`)](#1-terminal-io-sequences--input-parsing-srcterminal)
-  - [2. Text Measurement, Wrapping & ANSI Parsing (`src/text/`)](#2-text-measurement-wrapping--ansi-parsing-srctext)
-  - [3. Layout, Diffing & Rendering Engine (`src/engine/` & `src/layout/`)](#3-layout-diffing--rendering-engine-srcengine--srclayout)
-  - [4. Declarative Elements & Layout Primitives (`src/elements/`)](#4-declarative-elements--layout-primitives-srcelements)
-  - [5. Application Runtime & Mounting (`src/runtime/`)](#5-application-runtime--mounting-srcruntime)
-- [Architectural Invariants & Constraints](#architectural-invariants--constraints)
+1. [Quick Start](#1-quick-start)
+2. [Architecture & Layer Boundaries](#2-architecture--layer-boundaries)
+3. [JSX Runtime & Intrinsic Elements](#3-jsx-runtime--intrinsic-elements)
+4. [Declarative UI Components](#4-declarative-ui-components)
+   - [`<Box>`](#box)
+   - [`<Text>`](#text)
+   - [`<Spacer>`](#spacer)
+   - [`<Newline>`](#newline)
+   - [`<Transform>`](#transform)
+   - [`<Fragment>`](#fragment)
+5. [React-Style Hooks API](#5-react-style-hooks-api)
+   - [`useState`](#usestate)
+   - [`useReducer`](#usereducer)
+   - [`useRef`](#useref)
+   - [`useMemo`](#usememo)
+   - [`useCallback`](#usecallback)
+   - [`useEffect`](#useeffect)
+   - [`useLayoutEffect`](#uselayouteffect)
+   - [`useContext`](#usecontext)
+6. [Terminal-Aware Hooks](#6-terminal-aware-hooks)
+   - [`useInput`](#useinput)
+   - [`useApp`](#useapp)
+   - [`useTerminalSize`](#useterminalsize)
+   - [`useFocus`](#usefocus)
+   - [`useCursor`](#usecursor)
+   - [`useCommitHistory`](#usecommithistory)
+7. [Context API & Memoization](#7-context-api--memoization)
+   - [`createContext`](#createcontext)
+   - [`memo`](#memo)
+8. [Runtime & Rendering APIs](#8-runtime--rendering-apis)
+   - [`render(<App />)`](#renderapp-)
+   - [`createApp`](#createapp)
+   - [`mount`](#mount)
+   - [`renderToString`](#rendertostring)
+   - [`renderStatic`](#renderstatic)
+9. [Class Components & Error Boundaries](#9-class-components--error-boundaries)
+10. [Styling, Color & Border Reference](#10-styling-color--border-reference)
+11. [Multi-File Component Architecture](#11-multi-file-component-architecture)
+12. [Architectural Invariants & Constraints](#12-architectural-invariants--constraints)
 
 ---
 
-## Package Architecture & Boundaries
+## 1. Quick Start
 
-`@steward/tui` is structured into strictly isolated internal layers with one-way dependency boundaries:
+### Installation
+
+```bash
+bun add stitchable
+# or
+npm install stitchable
+```
+
+### TypeScript Configuration (`tsconfig.json`)
+
+Configure your `tsconfig.json` to enable native JSX support:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "jsxImportSource": "stitchable"
+  }
+}
+```
+
+### Interactive Counter Example
+
+```tsx
+/** @jsxImportSource stitchable */
+import { render, useState, useInput, useApp, Box, Text } from 'stitchable';
+
+function CounterApp() {
+  const [count, setCount] = useState(0);
+  const app = useApp();
+
+  useInput((ev) => {
+    if (ev.type === 'key') {
+      if (ev.input === 'q' || ev.input === 'Q') {
+        app.exit();
+        return true;
+      }
+      if (ev.input === '+' || ev.key.upArrow) {
+        setCount((c) => c + 1);
+        return true;
+      }
+      if (ev.input === '-' || ev.key.downArrow) {
+        setCount((c) => c - 1);
+        return true;
+      }
+    }
+  });
+
+  return (
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor="cyan"
+      paddingX={2}
+      paddingY={1}
+    >
+      <Text bold color="green">
+        Count: {count}
+      </Text>
+      <Text dimColor>
+        [+] Increment · [-] Decrement · [q] Quit
+      </Text>
+    </Box>
+  );
+}
+
+const handle = render(<CounterApp />);
+await handle.waitUntilExit();
+```
+
+---
+
+## 2. Architecture & Layer Boundaries
+
+Stitchable enforces a strict, unidirectional layered architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. RUNTIME (src/runtime/)                                   │
-│    createApp, mount, renderToString                         │
+│ 5. APPLICATION RUNTIME & RECONCILER (runtime/, reconciler/) │
+│    render, createApp, AppRoot, hooks, context, memo         │
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
 │ 4. DECLARATIVE ELEMENTS (src/elements/)                     │
-│    Box, Text, Newline, Spacer, Transform, flex/border layout │
+│    Box, Text, Newline, Spacer, Transform, flex, border      │
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
@@ -39,97 +149,571 @@
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
 │ 1 & 2. TEXT & TERMINAL BASE (src/text/, src/terminal/)      │
-│    InputParser, TerminalIO, SgrState, width/wrap/sanitize   │
+│    InputParser, TerminalIO, SgrState, width, wrap, color    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **Zero Framework Reconcilers:** No virtual DOM or React fibers; component updates mark dirty flags and trigger batched differential renders.
-- **Strict Boundary Guard:** Layer 0 (`engine/`, `layout/`) cannot import from Layer 1 (`elements/`) or Layer 2 (`runtime/`). `src/terminal/` imports nothing outside `src/terminal/`.
-- **Mode 2026 Synchronized Output:** Emits atomic frame updates wrapped in `\x1b[?2026h` ... `\x1b[?2026l` to prevent terminal tearing.
+- **Zero React Dependency:** Custom synchronous reconciler optimized for terminal performance and $O(1)$ viewport clipping.
+- **Synchronized Output:** Emits Mode 2026 escape codes (`\x1b[?2026h` ... `\x1b[?2026l`) to ensure zero-flicker terminal paints.
+- **Single Persistent Input Listener:** The root application subscribes once to the engine; hooks and focus managers dispatch internally without competing event listeners.
 
 ---
 
-## Module & API Breakdown
+## 3. JSX Runtime & Intrinsic Elements
 
-### 1. Terminal IO, Sequences & Input Parsing (`src/terminal/`)
+Stitchable provides a standard JSX runtime in `stitchable/jsx-runtime` and `stitchable/jsx-dev-runtime`.
 
-| File | Export / Item | Type | Description | Key Details / Constraints |
-| :--- | :--- | :--- | :--- | :--- |
-| `src/terminal/io.ts` | `TerminalIO` | `Interface` | Abstract stream and TTY interface decoupling the engine from process globals. | Defines `write`, `onData`, `columns`, `rows`, `setRawMode`, `isTTY`, `dispose`. |
-| `src/terminal/io.ts` | `nodeIO` | `(stdin?, stdout?) => TerminalIO` | Production TTY IO wrapper around standard Node/Bun streams. | Employs `StringDecoder('utf8')` to prevent split multibyte/emoji byte streams. |
-| `src/terminal/io.ts` | `memoryIO` | `(opts?) => MemoryIO` | In-memory mock IO for unit tests, headless goldens, and benchmarking. | Supports simulated input injection, programmatic resize, and written byte log. |
-| `src/terminal/sequences.ts` | Escape Constants | `Constant` | Named ANSI/VT escape sequences for synchronized rendering, mouse, paste, and screen buffers. | Contains `SYNC_START`, `SYNC_END`, `ALT_SCREEN_ENTER`, `ALT_SCREEN_LEAVE`, `BRACKETED_PASTE_ENTER`, `BRACKETED_PASTE_LEAVE`, `MOUSE_TRACK_ENABLE`, `MOUSE_TRACK_DISABLE`. |
-| `src/terminal/color.ts` | `color` / `styleText` | Functions | Zero-dependency ANSI SGR color styling supporting Truecolor (24-bit), 256 colors, and 16 ANSI colors. | Automatically downsamples colors when terminal capabilities are constrained; respects `NO_COLOR` and `FORCE_COLOR`. |
-| `src/terminal/input.ts` | `InputParser` | `Class` | Stateful parser for standard VT/xterm input sequences, bracketed paste, SGR mouse tracking, and Unicode. | Implements 50ms ESC timeout disambiguation, 500ms paste fallback flush, non-BMP UTF-16 surrogate buffering, and atomic paste events (`feed`, `flush`, `flushPaste`, `reset`). |
-| `src/terminal/input.ts` | `toInputEvent` | `(ev: TerminalEvent) => InputEvent \| null` | Converts raw TerminalEvents into safe typed InputEvents (returns null for mouse/focus). | Maps paste events with atomic text and key descriptor; guarantees non-null key on all listener events. |
-| `src/terminal/input.ts` | `Key` / `InputEvent` / `TerminalEvent` | `Types / Interfaces` | Canonical event and key descriptor contracts. | `Key` provides boolean flags (`ctrl`, `meta`, `shift`, etc.); `InputEvent` is a typed union (`type: 'key' \| 'paste'`). |
+### Supported Intrinsic Tags
+
+- `<box>` / `<Box>`: Container with flexbox layout, borders, padding, and margins.
+- `<text>` / `<Text>`: Text node with word wrapping, colors, ANSI styling, and text truncation.
+
+Both lowercase (`<box>`, `<text>`) and PascalCase (`<Box>`, `<Text>`) component tags are fully supported and interchangeable.
 
 ---
 
-### 2. Text Measurement, Wrapping & ANSI Parsing (`src/text/`)
+## 4. Declarative UI Components
 
-| File | Export / Item | Type | Description | Key Details / Constraints |
-| :--- | :--- | :--- | :--- | :--- |
-| `src/text/ansi.ts` | `SgrState` | `Class` | Tracks active SGR styling state (fg, bg, modifiers) across string segments. | Serializes and restores style stacks across wrapped line breaks without style leakage. |
-| `src/text/ansi.ts` | `stripAnsi` | `(text: string) => string` | Zero-dependency regex-based ANSI escape stripper. | Strips CSI, OSC, and DEC private sequences. |
-| `src/text/width.ts` | `visibleWidth` | `(text: string) => number` | Computes visual display column width of a string ignoring ANSI escapes. | Evaluates East Asian wide characters and grapheme clusters via `Intl.Segmenter` and `string-width`. |
-| `src/text/width.ts` | `visibleColumnAtOffset` | `(text: string, charOffset: number) => number` | Computes 1-indexed display column corresponding to a logical character offset. | Skips invisible ANSI SGR escape sequences; factors double-width CJK characters. |
-| `src/text/width.ts` | `expandTabs` | `(text: string, tabWidth?: number) => string` | Expands tab characters (`\t`) to alignment spaces (default: 4). | Computes column modulo to advance precisely to the next tab stop. |
-| `src/text/wrap.ts` | `wrapVisualLine` | `(text, maxCols, hangingIndent?) => string[]` | Soft-wraps text to display columns with word-boundary awareness and hanging indent. | Preserves active SGR color/style across wrapped line continuations. |
-| `src/text/wrap.ts` | `wrapVisualLineWithCursor` | `(text, maxCols, offset, hangingIndent?) => WrapResultWithCursor` | Simultaneously wraps text and maps a logical character cursor to its wrapped row and column. | Single-pass cursor mapping; preserves offset alignment on CRLF normalization. |
-| `src/text/truncate.ts` | `truncate` | `(text, maxCols, opts?) => string` | Truncates text to fit within column constraints (`'start'`, `'middle'`, `'end'`). | Supports optional custom ellipsis (e.g. `'…'`) and preserves ANSI style boundaries. |
-| `src/text/sanitize.ts` | `sanitizeLine` | `(line: string) => string` | Sanitizes control characters and non-printable escape injection attempts. | Strips dangerous OSC sequences while preserving valid SGR formatting. |
+### `<Box>`
 
----
+The primary flexbox layout container.
 
-### 3. Layout, Diffing & Rendering Engine (`src/engine/` & `src/layout/`)
+#### Props (`BoxProps`)
 
-| File | Export / Item | Type | Description | Key Details / Constraints |
-| :--- | :--- | :--- | :--- | :--- |
-| `src/engine/TerminalEngine.ts` | `TerminalEngine` | `Class` | Central orchestration engine managing IO, frame dispatch, document tree, and input listeners. | Features debounced `requestFrame()`, `flush()`, `flushInput()`, `addInputListener((ev: InputEvent) => boolean \| void)`, scroll helpers (`scrollBy`, `scrollUp`, `scrollDown`, `scrollToTop`, `scrollToBottom`), scroll key handling (PageUp/Dn, Home/End, wheel), and automatic bottom snapping. |
-| `src/engine/DocumentTree.ts` | `DocumentTree` | `Class` | Maintains the hierarchical document model composed of committed history and live dynamic nodes. | Tracks `prunedRowCount`, bounds history size via `historyLimit`, and manages per-tree layout caching. |
-| `src/engine/HistoryStore.ts` | `HistoryStore` | `Class` | In-memory ring buffer storing committed history entries and layout metadata. | Hard-bounded to `historyLimit` (FIFO eviction); prevents unbounded memory growth. |
-| `src/engine/HistoryLayoutCache.ts` | `HistoryLayoutCache` | `Class` | Caches wrapped row layouts for static history entries keyed by width. | Purges entries on terminal width changes and dropped history node evictions. |
-| `src/engine/StateRenderer.ts` | `StateRenderer` | `Class` | Double-buffered differential renderer calculating character and style cell diffs. | Emits minimal ANSI cursor positioning and color sequences wrapped in Mode 2026 sync output. |
-| `src/engine/FrameBuffer.ts` | `computeDocumentFrame` | `(tree, width, height, scroll?, forceAll?, cache?, onOverflow?) => DocumentFrame` | Top-level frame computation coordinating document measurement and viewport slicing. | Slices viewport rows in $O(\text{viewport})$ time independent of total history size. |
-| `src/engine/FrameBuffer.ts` | `measureDocument` | `(tree, width, forceAll?, onOverflow?) => DocumentMeasurement` | Computes physical line counts and cursor coordinates across history and live nodes. | Returns measurement summary without mutating layout state. |
-| `src/engine/FrameBuffer.ts` | `sliceViewport` | `(tree, measure, width, height, scrollOffset) => DocumentFrame` | Extracts viewport lines and maps physical cursor coordinates to relative screen rows. | Clamps cursor column coordinates to `[1, width]`. |
-| `src/engine/scroll.ts` | `ScrollModel` | `Class` | Pure mathematical model managing scroll state (`follow` vs `anchored` modes). | Anchors viewport to monotonic top row IDs; survives history pruning and dynamic streaming. |
-| `src/engine/layout.ts` | `measureNode` | `(node, width, forceAll?, onOverflow?) => { rows, cursorWithinNode }` | Breaks logical component lines into physical rows respecting wrapping and clipping rules. | Evaluates single-pass cursor positioning and asserts row width bounds. |
-| `src/engine/layout.ts` | `layoutDocument` | `(tree, width, forceAll?, cache?, onOverflow?) => CellLayoutResult` | Lays out full document tree into flat physical rows and absolute cursor position. | Used for headless full-tree measurement and layout verification. |
-| `src/layout/ScreenBuffer.ts` | `ScreenBuffer` | `Class` | Flat 2D grid storing character codepoints, style IDs, and cell widths. | Employs `Uint32Array` style interning and `Uint8Array` cell widths for low heap overhead. |
-
----
-
-### 4. Declarative Elements & Layout Primitives (`src/elements/`)
-
-| File | Export / Item | Type | Description | Key Details / Constraints |
-| :--- | :--- | :--- | :--- | :--- |
-| `src/elements/Box.ts` | `<Box>` | `Function Component` | Primary layout container supporting flexbox positioning, borders, padding, and margins. | Supports `flexDirection`, `flexGrow`, `flexShrink`, `flexBasis`, `justifyContent`, `alignItems`, and percentage dimensions. |
-| `src/elements/Text.ts` | `<Text>` | `Function Component` | Text presentation component supporting styling, wrapping modes, and hanging indentation. | Supports `color`, `backgroundColor`, `bold`, `dimColor`, `italic`, `underline`, `strikethrough`, `inverse`, and `wrap`. |
-| `src/elements/Newline.ts` | `<Newline>` | `Function Component` | Inserts one or more vertical blank line rows (`count?: number`). | Rendered as empty string lines in the parent flex flow. |
-| `src/elements/Spacer.ts` | `<Spacer>` | `Function Component` | Flexible spacing element that expands to fill available flex space. | Equates to `<Box flexGrow={1} />`. |
-| `src/elements/Transform.ts` | `<Transform>` | `Function Component` | Applies arbitrary string transformation functions across rendered child output lines. | Useful for custom masking, casing, or syntax highlighter pipelines. |
-| `src/elements/flex.ts` | `computeFlexLayout` | Function | Deterministic integer flexbox layout calculator. | Implements largest remainder fractional allocation to eliminate rounding gaps. |
-| `src/elements/border.ts` | `renderBorder` | Function | Draws box borders using single, double, round, bold, or custom glyph maps. | Supports individual border side colors and dimming attributes. |
-
----
-
-### 5. Application Runtime & Mounting (`src/runtime/`)
-
-| File | Export / Item | Type | Description | Key Details / Constraints |
-| :--- | :--- | :--- | :--- | :--- |
-| `src/runtime/createApp.ts` | `createApp` | `<S>(renderFn, options?) => UIHandle<S>` | High-level orchestrator initializing alternate-screen UI, raw input dispatch, and event loops. | Automatically restores terminal state on exit; handles `Ctrl+C` exit signals cleanly. |
-| `src/runtime/mount.ts` | `mount` | `<S>(engine, renderFn, options?) => MountedApp<S>` | Mounts a functional declarative component into an existing `TerminalEngine` instance. | Caches `renderWithCursor` across scroll frames; respects engine ownership flags. |
-| `src/runtime/renderToString.ts` | `renderToString` / `renderElement` | `(element, options?) => string` | Renders a declarative element tree to a standalone ANSI string without an active engine. | Ideal for snapshot testing, CLI stdout printing, or headless generation. |
-| `src/jsx-runtime.ts` | `jsx` / `jsxs` / `Fragment` | Functions | Native JSX factory enabling `@jsxImportSource stitchable` syntax. | Returns plain Element objects; requires no React dependencies. |
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `flexDirection` | `'row' \| 'column' \| 'row-reverse' \| 'column-reverse'` | `'row'` | Direction of flex items. |
+| `flexGrow` | `number` | `0` | Flex grow factor. |
+| `flexShrink` | `number` | `1` | Flex shrink factor. |
+| `flexBasis` | `number \| string` | `undefined` | Initial flex main size. |
+| `justifyContent` | `'flex-start' \| 'flex-end' \| 'center' \| 'space-between' \| 'space-around'` | `'flex-start'` | Distribution along the main axis. |
+| `alignItems` | `'flex-start' \| 'flex-end' \| 'center' \| 'stretch'` | `'stretch'` | Alignment along the cross axis. |
+| `width` | `number \| string` | `undefined` | Explicit width in columns or percentage (e.g., `'100%'`, `40`). |
+| `height` | `number \| string` | `undefined` | Explicit height in rows or percentage (e.g., `'50%'`, `10`). |
+| `minWidth` | `number` | `undefined` | Minimum box width in columns. |
+| `maxWidth` | `number` | `undefined` | Maximum box width in columns. |
+| `minHeight` | `number` | `undefined` | Minimum box height in rows. |
+| `maxHeight` | `number` | `undefined` | Maximum box height in rows. |
+| `borderStyle` | `'single' \| 'double' \| 'round' \| 'bold' \| 'singleDouble' \| 'doubleSingle' \| 'classic'` | `undefined` | Border style preset. |
+| `borderColor` | `string` | `undefined` | Color for all four border sides (named color or hex `#rrggbb`). |
+| `borderTopColor` | `string` | `undefined` | Color for the top border side. |
+| `borderBottomColor` | `string` | `undefined` | Color for the bottom border side. |
+| `borderLeftColor` | `string` | `undefined` | Color for the left border side. |
+| `borderRightColor` | `string` | `undefined` | Color for the right border side. |
+| `borderDimColor` | `boolean` | `false` | Apply dimming attribute to border glyphs. |
+| `borderTop` | `boolean` | `true` (when borderStyle set) | Enable or disable the top border. |
+| `borderBottom` | `boolean` | `true` (when borderStyle set) | Enable or disable the bottom border. |
+| `borderLeft` | `boolean` | `true` (when borderStyle set) | Enable or disable the left border. |
+| `borderRight` | `boolean` | `true` (when borderStyle set) | Enable or disable the right border. |
+| `padding` | `number` | `0` | Uniform padding inside all sides. |
+| `paddingX` | `number` | `0` | Horizontal padding (left and right). |
+| `paddingY` | `number` | `0` | Vertical padding (top and bottom). |
+| `paddingTop` | `number` | `0` | Top padding. |
+| `paddingBottom` | `number` | `0` | Bottom padding. |
+| `paddingLeft` | `number` | `0` | Left padding. |
+| `paddingRight` | `number` | `0` | Right padding. |
+| `margin` | `number` | `0` | Uniform margin outside all sides. |
+| `marginX` | `number` | `0` | Horizontal margin (left and right). |
+| `marginY` | `number` | `0` | Vertical margin (top and bottom). |
+| `marginTop` | `number` | `0` | Top margin. |
+| `marginBottom` | `number` | `0` | Bottom margin. |
+| `marginLeft` | `number` | `0` | Left margin. |
+| `marginRight` | `number` | `0` | Right margin. |
+| `gap` | `number` | `0` | Uniform gap between children along main axis. |
+| `columnGap` | `number` | `0` | Gap between columns in row direction. |
+| `rowGap` | `number` | `0` | Gap between rows in column direction. |
+| `backgroundColor` | `string` | `undefined` | Background fill color (named color or hex `#rrggbb`). |
 
 ---
 
-## Architectural Invariants & Constraints
+### `<Text>`
 
-1. **Rule 1 — Layer Boundaries:** Dependency flow is strictly unidirectional (`runtime` $\to$ `elements` $\to$ `engine` $\to$ `text` / `terminal`). Layer 0 files never import from Layer 1 or Layer 2.
-2. **Rule 2 — Layer 0 Frozen Contract:** Files in `src/engine/` and `src/layout/` may only be modified for Reason A (terminal escape protocol), Reason B (demonstrable plain-text layout bug), or Reason C (measured render loop regression).
-3. **Rule 3 — Content-Blind Layout:** Layout routines must never sniff string contents (e.g. searching for bullets or markdown tags) to infer formatting. All indentation and wrapping parameters must be passed explicitly.
-4. **Rule 5 — Single-Pass Cursor Invariant:** The cursor position is derived in the exact same render pass as line generation (`renderWithCursor`), never computed post-facto with magic line offsets.
-5. **Rule 11 — Injected Width Invariant:** Terminal column width is always passed in from the engine render loop; components must never consult `process.stdout.columns` directly during rendering.
+Renders styled text with wrapping, truncation, and color support.
+
+#### Props (`TextProps`)
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `color` | `string` | `undefined` | Foreground text color (named color or hex `#rrggbb`). |
+| `backgroundColor` | `string` | `undefined` | Background text color (named color or hex `#rrggbb`). |
+| `bold` | `boolean` | `false` | Bold / heavy text styling. |
+| `dimColor` | `boolean` | `false` | Dim / faint text styling. |
+| `italic` | `boolean` | `false` | Italic text styling. |
+| `underline` | `boolean` | `false` | Underlined text. |
+| `strikethrough` | `boolean` | `false` | Crossed-out / strikethrough text. |
+| `inverse` | `boolean` | `false` | Invert foreground and background colors. |
+| `wrap` | `'wrap' \| 'truncate' \| 'truncate-start' \| 'truncate-middle' \| 'truncate-end'` | `'wrap'` | Text wrapping and truncation strategy. |
+| `hangingIndent` | `number \| string` | `0` | Hanging indentation for wrapped continuation rows. |
+
+---
+
+### `<Spacer>`
+
+Fills available space along the parent's flex direction. Equivalent to `<Box flexGrow={1} />`.
+
+```tsx
+<Box flexDirection="row" width="100%">
+  <Text bold>Left Title</Text>
+  <Spacer />
+  <Text dimColor>Right Status</Text>
+</Box>
+```
+
+---
+
+### `<Newline>`
+
+Inserts one or more empty line breaks.
+
+#### Props
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `count` | `number` | `1` | Number of empty line rows to insert. |
+
+---
+
+### `<Transform>`
+
+Transforms rendered string lines of its children through a custom mapper function.
+
+#### Props
+
+| Prop | Type | Description |
+| :--- | :--- | :--- |
+| `transform` | `(line: string, index: number) => string` | Transformation function applied line-by-line. |
+
+```tsx
+<Transform transform={(line) => line.toUpperCase()}>
+  <Text>this text will be transformed to uppercase</Text>
+</Transform>
+```
+
+---
+
+### `<Fragment>`
+
+Groups multiple child elements without creating an extra container in the layout.
+
+```tsx
+import { Fragment } from 'stitchable';
+
+function ItemList() {
+  return (
+    <Fragment>
+      <Text>Item 1</Text>
+      <Text>Item 2</Text>
+    </Fragment>
+  );
+}
+```
+
+---
+
+## 5. React-Style Hooks API
+
+Stitchable provides a complete suite of standard React-style hooks with deterministic slot dispatching and batch updates.
+
+### `useState`
+
+```tsx
+const [state, setState] = useState<S>(initialState);
+```
+
+- Supports direct values and lazy initializers (`useState(() => computeExpensiveState())`).
+- Functional updates: `setState((prev) => prev + 1)`.
+- Updates are automatically batched within the current microtask.
+
+### `useReducer`
+
+```tsx
+const [state, dispatch] = useReducer(reducer, initialArg, init?);
+```
+
+- Dispatches actions through a pure reducer function `(state, action) => newState`.
+
+### `useRef`
+
+```tsx
+const myRef = useRef<T>(initialValue);
+```
+
+- Preserves a mutable reference `{ current: T }` across re-renders without triggering re-renders on mutation.
+
+### `useMemo`
+
+```tsx
+const memoizedValue = useMemo(() => computeValue(a, b), [a, b]);
+```
+
+- Recomputes only when values in the dependency array change (compared via `Object.is`).
+
+### `useCallback`
+
+```tsx
+const memoizedCallback = useCallback((arg) => { ... }, [deps]);
+```
+
+- Returns a stable function reference between renders.
+
+### `useEffect`
+
+```tsx
+useEffect(() => {
+  const timer = setInterval(() => { ... }, 1000);
+  return () => clearInterval(timer);
+}, [deps]);
+```
+
+- Runs asynchronously after the terminal frame has been written to the output stream.
+- Cleanup functions execute before the next effect or on component unmount.
+
+### `useLayoutEffect`
+
+```tsx
+useLayoutEffect(() => {
+  // Runs synchronously immediately after tree reconciliation, before next paint
+}, [deps]);
+```
+
+### `useContext`
+
+```tsx
+const value = useContext(MyContext);
+```
+
+- Reads the current value from the nearest matching `MyContext.Provider` up the tree.
+
+---
+
+## 6. Terminal-Aware Hooks
+
+Specialized hooks connecting components directly to terminal input, size, focus, and history.
+
+### `useInput`
+
+Subscribes a keyboard and paste listener to the application input dispatcher.
+
+```tsx
+useInput((event) => {
+  if (event.type === 'key') {
+    if (event.key.name === 'return') {
+      submit();
+      return true; // Return true to consume event and stop propagation
+    }
+  } else if (event.type === 'paste') {
+    insertText(event.text);
+    return true;
+  }
+}, { whenFocused?: boolean });
+```
+
+#### Options
+
+- `whenFocused` (`boolean`, optional): When `true`, the input handler only triggers if the owning component currently holds logical focus (via `useFocus`).
+
+---
+
+### `useApp`
+
+Returns the active application context handle.
+
+```tsx
+const app = useApp();
+
+app.exit();        // Cleanly exit application
+app.invalidate();  // Force a re-render
+```
+
+---
+
+### `useTerminalSize`
+
+Returns the reactive terminal dimensions.
+
+```tsx
+const { columns, rows } = useTerminalSize();
+```
+
+- Automatically re-renders the component when the user resizes their terminal window.
+
+---
+
+### `useFocus`
+
+Manages logical component focus state.
+
+```tsx
+const { id, isFocused, focus, blur } = useFocus({
+  id?: string,
+  autoFocus?: boolean,
+});
+```
+
+---
+
+### `useCursor`
+
+Positions the visible terminal cursor at a specific line and character offset within the rendered component.
+
+```tsx
+useCursor({
+  line: 0,              // Zero-based line index in this component
+  characterOffset: 5,   // Character column offset within that line
+});
+```
+
+---
+
+### `useCommitHistory`
+
+Graduates an immutable snapshot of content into the terminal scrollback history once, leaving live dynamic components in the active frame with $O(1)$ constant rendering performance.
+
+```tsx
+const { committed } = useCommitHistory(
+  <MessageBubble msg={completedMessage} />,
+  [completedMessage.id, completedMessage.content],
+  {
+    enabled: isComplete,
+    tag: 'assistant-message',
+  }
+);
+```
+
+---
+
+## 7. Context API & Memoization
+
+### `createContext`
+
+```tsx
+import { createContext, useContext } from 'stitchable';
+
+interface ThemeContextValue {
+  primary: string;
+}
+
+const ThemeContext = createContext<ThemeContextValue>({ primary: 'cyan' });
+
+function ThemedComponent() {
+  const { primary } = useContext(ThemeContext);
+  return <Text color={primary}>Themed Text</Text>;
+}
+
+function Root() {
+  return (
+    <ThemeContext.Provider value={{ primary: '#7aa2f7' }}>
+      <ThemedComponent />
+    </ThemeContext.Provider>
+  );
+}
+```
+
+### `memo`
+
+Wraps a function component to skip re-rendering when props have not changed (compared via shallow equality `Object.is`).
+
+```tsx
+import { memo } from 'stitchable';
+
+export const ExpensiveMessage = memo(function Message({ text }: { text: string }) {
+  return (
+    <Box borderStyle="round" borderColor="cyan" paddingX={1}>
+      <Text>{text}</Text>
+    </Box>
+  );
+});
+```
+
+---
+
+## 8. Runtime & Rendering APIs
+
+### `render(<App />)`
+
+The primary public entrypoint for mounting and rendering applications to the terminal.
+
+```tsx
+import { render } from 'stitchable';
+import { App } from './App.js';
+
+const handle = render(<App />, {
+  maxFps: 30,
+  exitOnCtrlC: true,
+});
+
+await handle.waitUntilExit();
+```
+
+#### `RenderOptions`
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `io` | `TerminalIO` | `nodeIO()` | Custom terminal IO stream (e.g. `memoryIO` for tests). |
+| `stdout` | `NodeJS.WriteStream` | `process.stdout` | Target stdout stream. |
+| `stdin` | `NodeJS.ReadStream` | `process.stdin` | Target stdin stream. |
+| `maxFps` | `number` | `30` | Maximum frame rate cap. |
+| `mouse` | `boolean` | `true` | Enable SGR mouse tracking. |
+| `scrollKeys` | `boolean` | `true` | Enable default PageUp/PageDown scrolling. |
+| `historyLimit` | `number` | `undefined` | Maximum scrollback lines before FIFO pruning. |
+| `exitOnCtrlC` | `boolean` | `true` | Automatically exit process on Ctrl+C. |
+| `onError` | `(err: unknown) => void` | `undefined` | Uncaught render error handler. |
+
+#### `RenderHandle`
+
+- `handle.engine`: Active `TerminalEngine` instance.
+- `handle.invalidate()`: Requests an immediate re-render.
+- `handle.exit(errorOrValue?)`: Triggers clean application exit.
+- `handle.unmount(error?)`: Synchronously unmounts components and restores terminal.
+- `handle.waitUntilExit()`: Returns a `Promise<void>` resolved on exit.
+
+---
+
+### `createApp`
+
+Legacy compatibility facade wrapping `mount()`.
+
+```tsx
+import { createApp, Box, Text } from 'stitchable';
+
+const app = createApp((state, ctx) => {
+  return (
+    <Box>
+      <Text>Count: {state.count}</Text>
+    </Box>
+  );
+}, {
+  state: { count: 0 },
+});
+```
+
+---
+
+### `renderToString`
+
+Renders an element tree directly to an ANSI string without opening alternate screens or event loops.
+
+```tsx
+import { renderToString, Box, Text } from 'stitchable';
+
+const ansi = renderToString(
+  <Box borderStyle="round" borderColor="green" paddingX={1}>
+    <Text bold color="green">SUCCESS</Text>
+  </Box>,
+  { columns: 40 }
+);
+
+console.log(ansi);
+```
+
+---
+
+### `renderStatic`
+
+Evaluates an element tree statically for history snapshot creation, enforcing hook-free pure functional evaluation.
+
+```tsx
+import { renderStatic } from 'stitchable';
+
+const lines = renderStatic(
+  <Box borderStyle="single"><Text>Static Log</Text></Box>,
+  { width: 80, colorLevel: 3 }
+);
+```
+
+---
+
+## 9. Class Components & Error Boundaries
+
+Class components extending `Component<P, S>` support lifecycle methods and error boundaries:
+
+```tsx
+import { Component, Box, Text } from 'stitchable';
+
+interface State {
+  hasError: boolean;
+}
+
+export class ErrorBoundary extends Component<{ children: any }, State> {
+  state: State = { hasError: false };
+
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: { componentStack: string }) {
+    console.error('Captured error in subtree:', error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Box borderStyle="round" borderColor="red" paddingX={1}>
+          <Text color="red" bold>An error occurred in this view.</Text>
+        </Box>
+      );
+    }
+    return this.props.children;
+  }
+}
+```
+
+---
+
+## 10. Styling, Color & Border Reference
+
+### Color Palette Options
+
+Colors can be specified in any format:
+- **Named colors:** `'black'`, `'red'`, `'green'`, `'yellow'`, `'blue'`, `'magenta'`, `'cyan'`, `'white'`, `'gray'`, `'grey'`
+- **Bright named colors:** `'redBright'`, `'greenBright'`, `'yellowBright'`, `'blueBright'`, `'magentaBright'`, `'cyanBright'`, `'whiteBright'`
+- **Hex RGB:** `'#7aa2f7'`, `'#bb9af7'`, `'#7dcfff'`, `'#9ece6a'`, `'#e0af68'`, `'#f7768e'`
+- **RGB functional:** `'rgb(122, 162, 247)'`
+
+Colors are automatically downsampled to Truecolor (24-bit), 256 colors, or 16 ANSI colors based on terminal support.
+
+### Border Styles
+
+- `'single'`: `┌ ─ ┐ │ └ ─ ┘`
+- `'double'`: `╔ ═ ╗ ║ ╚ ═ ╝`
+- `'round'`: `╭ ─ ╮ │ ╰ ─ ╯`
+- `'bold'`: `┏ ━ ┓ ┃ ┗ ━ ┛`
+- `'singleDouble'`: `╓ ─ ╖ ║ ╙ ─ ╜`
+- `'doubleSingle'`: `╒ ═ ╕ │ ╘ ═ ╛`
+- `'classic'`: `+ - + | + - +`
+
+---
+
+## 11. Multi-File Component Architecture
+
+You can structure large terminal applications across multiple files using standard TypeScript imports:
+
+```
+src/
+├── components/
+│   ├── ChatHeader.tsx
+│   ├── MessageBubble.tsx
+│   ├── InputBar.tsx
+│   └── StatusFooter.tsx
+├── hooks/
+│   └── useDoubleCtrlCExit.ts
+├── theme.ts
+├── types.ts
+└── App.tsx
+```
+
+---
+
+## 12. Architectural Invariants & Constraints
+
+1. **Rule 1 — Layer Boundaries:** Dependency flow is strictly unidirectional (`runtime` $\to$ `elements` $\to$ `engine` $\to$ `text` / `terminal`). Layer 0 files never import higher layers.
+2. **Rule 2 — Zero Unnecessary Dependencies:** The only external runtime dependency is `string-width` for visual unicode width calculations.
+3. **Rule 3 — Content-Blind Layout:** Layout routines never parse or guess markdown or list formatting from string contents; formatting parameters are always passed explicitly via props.
+4. **Rule 5 — Single-Pass Cursor Invariant:** Cursor position calculation occurs in the exact same render pass as line layout (`renderWithCursor`), never inferred post-facto.
+5. **Rule 11 — Injected Width Invariant:** Terminal column width is always passed in from the engine render loop; components never consult `process.stdout.columns` directly during rendering.
+
+---
+
+## License
+
+MIT

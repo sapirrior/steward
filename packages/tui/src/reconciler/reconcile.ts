@@ -56,6 +56,30 @@ function matchKeyAndType(
   return instance.type === type && instance.key === key;
 }
 
+function isHostType(type: unknown): boolean {
+  if (typeof type === 'string') {
+    const lower = type.toLowerCase();
+    return (
+      lower === 'box' ||
+      lower === 'text' ||
+      lower === 'spacer' ||
+      lower === 'newline' ||
+      lower === 'transform'
+    );
+  }
+  if (typeof type === 'function') {
+    const name = type.name;
+    return (
+      name === 'Box' ||
+      name === 'Text' ||
+      name === 'Spacer' ||
+      name === 'Newline' ||
+      name === 'Transform'
+    );
+  }
+  return false;
+}
+
 export function reconcileInstance(
   prevInstance: ComponentInstance | null,
   element: ElementChild,
@@ -96,7 +120,7 @@ export function reconcileInstance(
       return reconcileFragment(prevInstance, element, children, parent, runtime);
     }
 
-    if (type === 'box' || type === 'text') {
+    if (isHostType(type)) {
       return reconcileHost(prevInstance, element, parent, runtime);
     }
 
@@ -112,6 +136,7 @@ export function reconcileInstance(
 
     throw new Error(`Unknown intrinsic element or type: <${String(type)}>`);
   }
+
 
   // Fallback for raw objects or legacy descriptors
   if (typeof element === 'object') {
@@ -145,10 +170,21 @@ function reconcileHost(
     inst.element = element;
   }
 
-  inst.children = reconcileChildList(inst.children, children, inst, runtime);
+  const childNodes =
+    children && children.length > 0
+      ? children
+      : (props as any).children !== undefined
+        ? Array.isArray((props as any).children)
+          ? (props as any).children
+          : [(props as any).children]
+        : [];
+
+  inst.children = reconcileChildList(inst.children, childNodes, inst, runtime);
   inst.isMounted = true;
   return inst;
 }
+
+
 
 function reconcileFragment(
   prevInstance: ComponentInstance | null,

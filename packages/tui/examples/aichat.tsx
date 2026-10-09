@@ -1,24 +1,25 @@
 /** @jsxImportSource ../src */
 /**
  * examples/aichat.tsx
- * High-performance AI Assistant Chat using Engine Scrollback History Commits
- * 
+ * High-performance AI Assistant Chat using Declarative Hooks and useCommitHistory
+ *
  * Header and completed turns are committed to history once (O(1) constant paint time).
  * Only the active streaming response and input prompt live in the dynamic frame.
  */
-import { createApp, Box, Text, renderElement } from '../src/index.js';
+import {
+  render,
+  useState,
+  useEffect,
+  useInput,
+  useApp,
+  useCommitHistory,
+  Box,
+  Text,
+} from '../src/index.js';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-}
-
-interface ChatState {
-  model: string;
-  inputText: string;
-  cursorPos: number;
-  isStreaming: boolean;
-  streamingContent: string;
 }
 
 // Header component (committed once to history)
@@ -61,6 +62,36 @@ function MessageBubble({ msg }: { msg: Message }) {
   );
 }
 
+// Static Header & Welcome initializers using useCommitHistory
+function ChatHistoryBootstrap({ model }: { model: string }) {
+  useCommitHistory(<ChatHeader model={model} />, ['header-init'], { tag: 'header' });
+  useCommitHistory(
+    <MessageBubble
+      msg={{
+        role: 'assistant',
+        content:
+          'Hello! I am your terminal AI assistant. Header and completed turns are committed to history scrollback with O(1) performance. Type a message below and press Enter.',
+      }}
+    />,
+    ['welcome-init'],
+    { tag: 'welcome' },
+  );
+
+  return null;
+}
+
+// Completed Message committed to history
+function CommittedTurn({ msg, id }: { msg: Message; id: string }) {
+  const { committed } = useCommitHistory(<MessageBubble msg={msg} />, [id, msg.content], {
+    tag: msg.role,
+  });
+
+  if (committed) {
+    return null;
+  }
+  return <MessageBubble msg={msg} />;
+}
+
 // Full-width Input Box with Cursor Movement
 function InputPrompt({
   inputText,
@@ -98,25 +129,164 @@ function InputPrompt({
   );
 }
 
-// Live Dynamic View (Active Stream + Input Prompt)
-function AIChatApp({ state }: { state: ChatState }) {
+const DUMMY_RESPONSES = [
+  'I analyzed the system architecture. Completed turns and headers are committed to history scrollback and never re-wrapped.',
+  'Stitchable uses double-buffering and differential ANSI rendering for flicker-free terminal UI.',
+  'All background processes and terminal input listeners are cleaned up automatically on exit.',
+  'Component rendering is pure and zero-allocation with stitchable render().',
+];
+
+function AIChatApp() {
+  const model = 'anthropic/claude-3-7-sonnet';
+  const [inputText, setInputText] = useState('');
+  const [cursorPos, setCursorPos] = useState(0);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [completedTurns, setCompletedTurns] = useState<{ msg: Message; id: string }[]>([]);
+  const [streamIndex, setStreamIndex] = useState(0);
+
+  const app = useApp();
+
+  useInput((ev) => {
+    if (ev.type === 'key') {
+      if (ev.key.ctrl && ev.key.name === 'c') {
+        app.exit();
+        return true;
+      }
+
+      if (isStreaming) {
+        return true; // Ignore keyboard input while streaming
+      }
+
+      // Cursor movement
+      if (ev.key.leftArrow) {
+        if (cursorPos > 0) {
+          setCursorPos((pos) => pos - 1);
+        }
+        return true;
+      }
+
+      if (ev.key.rightArrow) {
+        if (cursorPos < inputText.length) {
+          setCursorPos((pos) => pos + 1);
+        }
+        return true;
+      }
+
+      if (ev.key.home || (ev.key.ctrl && ev.key.name === 'a')) {
+        setCursorPos(0);
+        return true;
+      }
+
+      if (ev.key.end || (ev.key.ctrl && ev.key.name === 'e')) {
+        setCursorPos(inputText.length);
+        return true;
+      }
+
+      // Deletion
+      if (ev.key.backspace) {
+        if (cursorPos > 0) {
+          setInputText((txt) => txt.slice(0, cursorPos - 1) + txt.slice(cursorPos));
+          setCursorPos((pos) => pos - 1);
+        }
+        return true;
+      }
+
+      if (ev.key.delete) {
+        if (cursorPos < inputText.length) {
+          setInputText((txt) => txt.slice(0, cursorPos) + txt.slice(cursorPos + 1));
+        }
+        return true;
+      }
+
+      // Submit prompt
+      if (ev.key.return) {
+        const text = inputText.trim();
+        if (text.length > 0) {
+          const userMsg: Message = { role: 'user', content: text };
+          setCompletedTurns((prev) => [
+            ...prev,
+            { msg: userMsg, id: `user-${Date.now()}-${prev.length}` },
+          ]);
+          setInputText('');
+          setCursorPos(0);
+          setIsStreaming(true);
+          setStreamingContent('');
+          setStreamIndex((i) => i + 1);
+        }
+        return true;
+      }
+
+      // Printable character typing
+      if (!ev.key.ctrl && !ev.key.meta && ev.input && ev.input.length > 0 && ev.input >= ' ') {
+        setInputText((txt) => txt.slice(0, cursorPos) + ev.input + txt.slice(cursorPos));
+        setCursorPos((pos) => pos + ev.input.length);
+        return true;
+      }
+    } else if (ev.type === 'paste' && ev.text) {
+      if (!isStreaming) {
+        const sanitized = ev.text.replace(/\n+/g, ' ');
+        setInputText((txt) => txt.slice(0, cursorPos) + sanitized + txt.slice(cursorPos));
+        setCursorPos((pos) => pos + sanitized.length);
+        return true;
+      }
+    }
+  });
+
+  // Streaming effect
+  useEffect(() => {
+    if (!isStreaming) return;
+
+    const responseIndex = (streamIndex - 1) % DUMMY_RESPONSES.length;
+    const fullText = `Regarding your prompt: ${DUMMY_RESPONSES[responseIndex]}`;
+    const words = fullText.split(' ');
+    let wordIdx = 0;
+
+    const interval = setInterval(() => {
+      if (wordIdx < words.length) {
+        const nextWord = words[wordIdx];
+        setStreamingContent((prev) => (wordIdx === 0 ? nextWord : `${prev} ${nextWord}`));
+        wordIdx++;
+      } else {
+        clearInterval(interval);
+        const finalMsg: Message = { role: 'assistant', content: fullText };
+        setCompletedTurns((prev) => [
+          ...prev,
+          { msg: finalMsg, id: `asst-${Date.now()}-${prev.length}` },
+        ]);
+        setIsStreaming(false);
+        setStreamingContent('');
+      }
+    }, 45);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isStreaming, streamIndex]);
+
   return (
     <Box flexDirection="column" paddingX={1} width="100%">
+      <ChatHistoryBootstrap model={model} />
+
+      {completedTurns.map((turn) => (
+        <CommittedTurn key={turn.id} msg={turn.msg} id={turn.id} />
+      ))}
+
       {/* Active Streaming Response (Only rendered while generating) */}
-      {state.isStreaming && (
+      {isStreaming && (
         <MessageBubble
           msg={{
             role: 'assistant',
-            content: state.streamingContent,
+            content: streamingContent,
           }}
         />
       )}
 
       {/* Input Prompt Box */}
       <InputPrompt
-        inputText={state.inputText}
-        cursorPos={state.cursorPos}
-        isStreaming={state.isStreaming}
+        inputText={inputText}
+        cursorPos={cursorPos}
+        isStreaming={isStreaming}
       />
 
       <Text dimColor marginTop={1}>
@@ -126,214 +296,6 @@ function AIChatApp({ state }: { state: ChatState }) {
   );
 }
 
-// Canned dummy responses to simulate streaming
-const DUMMY_RESPONSES = [
-  'I analyzed the system architecture. Completed turns and headers are committed to history scrollback and never re-wrapped.',
-  'Stitchable uses double-buffering and differential ANSI rendering for flicker-free terminal UI.',
-  'All background processes and terminal input listeners are cleaned up automatically on exit.',
-  'Component rendering is pure and zero-allocation with stitchable createApp.',
-];
-
-let streamTimer: ReturnType<typeof setInterval> | null = null;
-let responseCount = 0;
-
-function simulateStreamingResponse(
-  prompt: string,
-  state: ChatState,
-  engine: any,
-  invalidate: () => void
-) {
-  state.isStreaming = true;
-  state.streamingContent = '';
-
-  const responseIndex = responseCount++ % DUMMY_RESPONSES.length;
-  const fullText = `Regarding "${prompt}": ${DUMMY_RESPONSES[responseIndex]}`;
-  const words = fullText.split(' ');
-  let wordIdx = 0;
-
-  streamTimer = setInterval(() => {
-    if (wordIdx < words.length) {
-      state.streamingContent += (wordIdx === 0 ? '' : ' ') + words[wordIdx];
-      wordIdx++;
-      invalidate();
-    } else {
-      if (streamTimer) clearInterval(streamTimer);
-      streamTimer = null;
-
-      // Commit the finished assistant response to scrollback history ONCE
-      const finalMsg: Message = {
-        role: 'assistant',
-        content: state.streamingContent,
-      };
-
-      engine.commit(
-        (width: number) =>
-          renderElement(<MessageBubble msg={finalMsg} />, {
-            width,
-            colorLevel: engine.io.colorLevel,
-          }),
-        { tag: 'assistant' }
-      );
-
-      state.isStreaming = false;
-      state.streamingContent = '';
-      invalidate();
-    }
-  }, 45);
-}
-
-const app = createApp<ChatState>(
-  (state) => <AIChatApp state={state} />,
-  {
-    state: {
-      model: 'anthropic/claude-3-7-sonnet',
-      inputText: '',
-      cursorPos: 0,
-      isStreaming: false,
-      streamingContent: '',
-    },
-    onMount(state, ctx) {
-      // 1. Commit Header to scrollback history once
-      ctx.engine.commit(
-        (width: number) =>
-          renderElement(<ChatHeader model={state.model} />, {
-            width,
-            colorLevel: ctx.io.colorLevel,
-          }),
-        { tag: 'header' }
-      );
-
-      // 2. Commit initial Welcome Message to history
-      const welcomeMsg: Message = {
-        role: 'assistant',
-        content:
-          'Hello! I am your terminal AI assistant. Header and completed turns are committed to history scrollback with O(1) performance. Type a message below and press Enter.',
-      };
-      ctx.engine.commit(
-        (width: number) =>
-          renderElement(<MessageBubble msg={welcomeMsg} />, {
-            width,
-            colorLevel: ctx.io.colorLevel,
-          }),
-        { tag: 'welcome' }
-      );
-
-      ctx.addCleanup(() => {
-        if (streamTimer) {
-          clearInterval(streamTimer);
-          streamTimer = null;
-        }
-      });
-    },
-    onKey(input, key, state, ctx) {
-      if (key.ctrl && key.name === 'c') {
-        ctx.exit();
-        return;
-      }
-
-      if (state.isStreaming) {
-        return; // Ignore keyboard input while streaming
-      }
-
-      // Cursor movement
-      if (key.leftArrow) {
-        if (state.cursorPos > 0) {
-          state.cursorPos--;
-          ctx.invalidate();
-        }
-        return;
-      }
-
-      if (key.rightArrow) {
-        if (state.cursorPos < state.inputText.length) {
-          state.cursorPos++;
-          ctx.invalidate();
-        }
-        return;
-      }
-
-      if (key.home || (key.ctrl && key.name === 'a')) {
-        state.cursorPos = 0;
-        ctx.invalidate();
-        return;
-      }
-
-      if (key.end || (key.ctrl && key.name === 'e')) {
-        state.cursorPos = state.inputText.length;
-        ctx.invalidate();
-        return;
-      }
-
-      // Deletion
-      if (key.backspace) {
-        if (state.cursorPos > 0) {
-          state.inputText =
-            state.inputText.slice(0, state.cursorPos - 1) +
-            state.inputText.slice(state.cursorPos);
-          state.cursorPos--;
-          ctx.invalidate();
-        }
-        return;
-      }
-
-      if (key.delete) {
-        if (state.cursorPos < state.inputText.length) {
-          state.inputText =
-            state.inputText.slice(0, state.cursorPos) +
-            state.inputText.slice(state.cursorPos + 1);
-          ctx.invalidate();
-        }
-        return;
-      }
-
-      // Submit prompt
-      if (key.return) {
-        const text = state.inputText.trim();
-        if (text.length > 0) {
-          const userMsg: Message = { role: 'user', content: text };
-
-          // Commit user message to history scrollback immediately
-          ctx.engine.commit(
-            (width: number) =>
-              renderElement(<MessageBubble msg={userMsg} />, {
-                width,
-                colorLevel: ctx.io.colorLevel,
-              }),
-            { tag: 'user' }
-          );
-
-          state.inputText = '';
-          state.cursorPos = 0;
-          simulateStreamingResponse(text, state, ctx.engine, () => ctx.invalidate());
-          ctx.invalidate();
-        }
-        return;
-      }
-
-      // Paste handling
-      if (key.paste && input) {
-        const sanitized = input.replace(/\n+/g, ' ');
-        state.inputText =
-          state.inputText.slice(0, state.cursorPos) +
-          sanitized +
-          state.inputText.slice(state.cursorPos);
-        state.cursorPos += sanitized.length;
-        ctx.invalidate();
-        return;
-      }
-
-      // Printable character typing (insert at cursor position for non-chords)
-      if (!key.ctrl && !key.meta && input && input.length > 0 && input >= ' ') {
-        state.inputText =
-          state.inputText.slice(0, state.cursorPos) +
-          input +
-          state.inputText.slice(state.cursorPos);
-        state.cursorPos += input.length;
-        ctx.invalidate();
-      }
-    },
-  }
-);
-
-await app.waitUntilExit();
+const handle = render(<AIChatApp />);
+await handle.waitUntilExit();
 console.log('AI Chat session ended.');

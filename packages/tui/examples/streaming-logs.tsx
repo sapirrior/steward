@@ -1,14 +1,9 @@
 /** @jsxImportSource ../src */
 /**
  * examples/streaming-logs.tsx
- * Real-time streaming logs using TSX syntax and createApp()
+ * Real-time streaming logs using TSX syntax, React-style hooks, and render()
  */
-import { createApp, Box, Text } from '../src/index.js';
-
-interface LogState {
-  logs: string[];
-  status: string;
-}
+import { render, useState, useEffect, useInput, useApp, Box, Text } from '../src/index.js';
 
 function LogViewer({ logs, status }: { logs: string[]; status: string }) {
   return (
@@ -30,7 +25,7 @@ function LogViewer({ logs, status }: { logs: string[]; status: string }) {
         </Text>
         {logs.map((msg, idx) => (
           <Text
-            key={idx}
+            key={msg}
             dimColor={idx < logs.length - 1}
             color={idx === logs.length - 1 ? 'green' : undefined}
           >
@@ -45,36 +40,38 @@ function LogViewer({ logs, status }: { logs: string[]; status: string }) {
   );
 }
 
-const app = createApp<LogState>(
-  (state) => {
-    return <LogViewer logs={state.logs} status={state.status} />;
-  },
-  {
-    state: {
-      logs: ['[INIT] System started...'],
-      status: 'Streaming active',
-    },
-    onMount(state, ctx) {
-      let counter = 1;
-      const interval = setInterval(() => {
-        state.logs.push(`[LOG #${counter++}] Data packet received at ${new Date().toLocaleTimeString()}`);
-        if (state.logs.length > 8) {
-          state.logs.shift();
+function StreamingLogsApp() {
+  const [logs, setLogs] = useState<string[]>(['[INIT] System started...']);
+  const [status] = useState('Streaming active');
+  const app = useApp();
+
+  useInput((ev) => {
+    if (ev.type === 'key' && (ev.input === 'q' || ev.input === 'Q')) {
+      app.exit();
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    let counter = 1;
+    const interval = setInterval(() => {
+      setLogs((prev) => {
+        const next = [...prev, `[LOG #${counter++}] Data packet received at ${new Date().toLocaleTimeString()}`];
+        if (next.length > 8) {
+          return next.slice(next.length - 8);
         }
-        ctx.invalidate();
-      }, 300);
-
-      ctx.addCleanup(() => {
-        clearInterval(interval);
+        return next;
       });
-    },
-    onKey(input, _key, _state, ctx) {
-      if (input === 'q' || input === 'Q') {
-        ctx.exit();
-      }
-    },
-  }
-);
+    }, 300);
 
-await app.waitUntilExit();
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
+  return <LogViewer logs={logs} status={status} />;
+}
+
+const handle = render(<StreamingLogsApp />);
+await handle.waitUntilExit();
 console.log('Streaming logs application stopped.');

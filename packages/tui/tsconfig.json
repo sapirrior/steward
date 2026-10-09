@@ -9,7 +9,12 @@
     "strict": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "stitchable": ["./src/index.ts"],
+      "stitchable/*": ["./src/*"]
+    }
   },
+
   "include": ["src", "tests", "bench", "examples"]
 }

@@ -1,13 +1,9 @@
 /** @jsxImportSource ../src */
 /**
  * examples/counter.tsx
- * Interactive counter using TSX syntax and createApp()
+ * Interactive counter using TSX syntax, React-style hooks, and render()
  */
-import { createApp, Box, Text } from '../src/index.js';
-
-interface CounterState {
-  count: number;
-}
+import { render, useState, useInput, useApp, Box, Text } from '../src/index.js';
 
 // Subcomponent in pure TSX
 function CounterHeader({ count }: { count: number }) {
@@ -23,32 +19,34 @@ function CounterHeader({ count }: { count: number }) {
   );
 }
 
-const app = createApp<CounterState>(
-  (state) => {
-    return (
-      <Box flexDirection="column">
-        <CounterHeader count={state.count} />
-      </Box>
-    );
-  },
-  {
-    state: { count: 0 },
-    onKey(input, key, state, ctx) {
-      if (input === 'q' || input === 'Q') {
-        ctx.exit();
-        return;
-      }
+function CounterApp() {
+  const [count, setCount] = useState(0);
+  const app = useApp();
 
-      if (input === '+' || key.upArrow || key.rightArrow) {
-        state.count++;
-        ctx.invalidate();
-      } else if (input === '-' || key.downArrow || key.leftArrow) {
-        state.count--;
-        ctx.invalidate();
+  useInput((ev) => {
+    if (ev.type === 'key') {
+      if (ev.input === 'q' || ev.input === 'Q') {
+        app.exit();
+        return true;
       }
-    },
-  }
-);
+      if (ev.input === '+' || ev.key.upArrow || ev.key.rightArrow) {
+        setCount((c) => c + 1);
+        return true;
+      }
+      if (ev.input === '-' || ev.key.downArrow || ev.key.leftArrow) {
+        setCount((c) => c - 1);
+        return true;
+      }
+    }
+  });
 
-await app.waitUntilExit();
+  return (
+    <Box flexDirection="column">
+      <CounterHeader count={count} />
+    </Box>
+  );
+}
+
+const handle = render(<CounterApp />);
+await handle.waitUntilExit();
 console.log('TSX Counter application exited cleanly.');
