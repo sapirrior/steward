@@ -60,6 +60,5 @@ export function openAICompatibleProvider(opts: OpenAICompatibleProviderOptions):
     languageModel(modelId, auth, fetchFn) {
       return buildOpenAICompatibleModel(opts, modelId, auth, fetchFn);
     },
-    streams: {},
   };
 }

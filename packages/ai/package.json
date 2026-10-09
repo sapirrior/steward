@@ -13,17 +13,11 @@
       "import": "./src/index.ts",
       "default": "./src/index.ts",
       "types": "./src/index.ts"
-    },
-    "./testing": {
-      "bun": "./src/testing/faux.ts",
-      "import": "./src/testing/faux.ts",
-      "default": "./src/testing/faux.ts",
-      "types": "./src/testing/faux.ts"
     }
   },
   "files": ["dist", "src", "README.md"],
   "scripts": {
-    "build": "bun build ./src/index.ts ./src/testing/faux.ts --outdir ./dist --target node",
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
     "typecheck": "tsc --noEmit",
     "test": "bun test ./tests"
   },

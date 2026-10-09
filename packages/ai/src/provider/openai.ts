@@ -32,6 +32,5 @@ export function openAIProvider(): Provider {
     languageModel(modelId, auth, fetchFn) {
       return createOpenAILanguageModel(modelId, auth, fetchFn);
     },
-    streams: {},
   };
 }

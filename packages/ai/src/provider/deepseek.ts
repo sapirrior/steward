@@ -32,6 +32,5 @@ export function deepseekProvider(): Provider {
     languageModel(modelId, auth, fetchFn) {
       return createDeepSeekLanguageModel(modelId, auth, fetchFn);
     },
-    streams: {},
   };
 }

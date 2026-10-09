@@ -32,6 +32,5 @@ export function mistralProvider(): Provider {
     languageModel(modelId, auth, fetchFn) {
       return createMistralLanguageModel(modelId, auth, fetchFn);
     },
-    streams: {},
   };
 }

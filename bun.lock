@@ -12,9 +12,6 @@
     "packages/agent": {
       "name": "@steward/agent",
       "version": "0.1.0",
-      "dependencies": {
-        "zod": "^4.6.5",
-      },
       "devDependencies": {
         "@types/bun": "1.4.2",
       },
@@ -39,7 +36,7 @@
     },
     "packages/cli": {
       "name": "steward-cli",
-      "version": "0.35.0",
+      "version": "0.36.0",
       "bin": {
         "steward": "dist/cli.js",
         "steward-cli": "dist/cli.js",
@@ -47,15 +44,24 @@
       "dependencies": {
         "@steward/agent": "*",
         "@steward/ai": "*",
+        "@steward/models": "*",
         "@steward/oauth": "*",
         "chalk": "6.0.0",
         "cli-highlight": "2.1.11",
         "marked": "18.0.12",
         "stitchable": "*",
+        "zod": "^4.6.5",
       },
       "devDependencies": {
         "@types/bun": "1.4.2",
         "prettier": "3.9.6",
+      },
+    },
+    "packages/models": {
+      "name": "@steward/models",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@types/bun": "1.4.2",
       },
     },
     "packages/oauth": {
@@ -104,6 +110,8 @@
     "@steward/agent": ["@steward/agent@workspace:packages/agent"],
 
     "@steward/ai": ["@steward/ai@workspace:packages/ai"],
+
+    "@steward/models": ["@steward/models@workspace:packages/models"],
 
     "@steward/oauth": ["@steward/oauth@workspace:packages/oauth"],
 

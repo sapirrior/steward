@@ -34,6 +34,5 @@ export function ollamaProvider(): Provider {
     languageModel(modelId, auth, fetchFn) {
       return createOllamaLanguageModel(modelId, auth, fetchFn);
     },
-    streams: {},
   };
 }

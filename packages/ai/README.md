@@ -297,11 +297,6 @@ Resolves credentials in priority order without disk I/O.
 | `isContextOverflow(result, limit)`| `src/util/overflow.ts` | Detects explicit, silent, and length-stop context overflow conditions. |
 | `normalizeProviderId(name)` | `src/index.ts` | Normalizes aliases (e.g. `'gemini'` $\to$ `'google'`, `'xai'` $\to$ `'grok'`). |
 
-### Testing Module (`@steward/ai/testing`)
-
-#### `createFauxProvider(steps: readonly FauxStep[] | (() => readonly FauxStep[])): Provider`
-Instantiates an offline mock provider that replays deterministic scripts (text, thinking, tool calls, delays, errors) for unit testing without live network connections.
-
 ---
 
 ## 6. Advanced Patterns & Practical Guides
@@ -405,8 +400,6 @@ packages/ai/
 │   │   ├── errors.ts            # SDK error normalization
 │   │   ├── stream.ts            # pumpSdkStream fullStream event pump
 │   │   └── config.ts            # Namespace configuration
-│   ├── testing/
-│   │   └── faux.ts              # createFauxProvider for offline script replay testing
 │   └── util/
 │       ├── retry.ts             # Request retry, backoff, jitter, and timeouts
 │       ├── cost.ts              # USD cost calculation

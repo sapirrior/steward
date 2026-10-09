@@ -50,6 +50,5 @@ export function customProvider(): Provider {
       });
       return p(modelId || defaultModelId);
     },
-    streams: {},
   };
 }

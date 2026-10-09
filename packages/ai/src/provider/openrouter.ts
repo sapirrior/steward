@@ -34,6 +34,5 @@ export function openRouterProvider(): Provider {
     languageModel(modelId, auth, fetchFn) {
       return createOpenRouterLanguageModel(modelId, auth, fetchFn);
     },
-    streams: {},
   };
 }

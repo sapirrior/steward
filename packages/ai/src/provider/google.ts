@@ -32,6 +32,5 @@ export function googleProvider(): Provider {
     languageModel(modelId, auth, fetchFn) {
       return createGoogleLanguageModel(modelId, auth, fetchFn);
     },
-    streams: {},
   };
 }

@@ -137,21 +137,6 @@ export type FinishReason = 'stop' | 'length' | 'tool-use' | 'error' | 'aborted';
 
 // ─── Model ────────────────────────────────────────────────────────────────────
 
-/** Per-protocol compatibility flags. Added only when a test or provider needs one. */
-export interface ProtocolCompat {
-  // Anthropic
-  forceAdaptiveThinking?: boolean;
-  supportsTemperature?: boolean;
-  supportsLongCacheRetention?: boolean;
-  // OpenAI Completions
-  maxTokensField?: 'max_tokens' | 'max_completion_tokens';
-  supportsDeveloperRole?: boolean;
-  supportsReasoningEffort?: boolean;
-  supportsUsageInStreaming?: boolean;
-  requiresToolResultName?: boolean;
-  requiresAssistantAfterToolResult?: boolean;
-}
-
 export interface Model {
   id: string;
   name: string;
@@ -182,7 +167,6 @@ export interface Model {
   };
   /** Additional headers to send with every request to this model. */
   headers?: Record<string, string>;
-  compat?: ProtocolCompat;
   /** Whether this model is the default for its provider. */
   default?: boolean;
 }

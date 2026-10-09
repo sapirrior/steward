@@ -32,6 +32,5 @@ export function anthropicProvider(): Provider {
     languageModel(modelId, auth, fetchFn) {
       return createAnthropicLanguageModel(modelId, auth, fetchFn);
     },
-    streams: {},
   };
 }

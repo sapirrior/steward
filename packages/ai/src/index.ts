@@ -36,7 +36,6 @@ export type {
   FinishReason,
   AssistantMeta,
   Model,
-  ProtocolCompat,
   ModelSelection,
   InferenceRequest,
   InferenceEvent,
@@ -61,7 +60,6 @@ export {
   type AI,
   type CreateAIOptions,
   type Provider,
-  type ProtocolStream,
   type ProviderAuthStatus,
 } from './client.js';
 

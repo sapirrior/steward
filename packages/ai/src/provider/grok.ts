@@ -32,6 +32,5 @@ export function grokProvider(): Provider {
     languageModel(modelId, auth, fetchFn) {
       return createGrokLanguageModel(modelId, auth, fetchFn);
     },
-    streams: {},
   };
 }

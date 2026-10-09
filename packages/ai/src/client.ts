@@ -35,14 +35,6 @@ import type {
 
 // ─── Provider interface ───────────────────────────────────────────────────────
 
-export type ProtocolStream = (
-  model: Model,
-  request: InferenceRequest,
-  auth: ResolvedAuth,
-  fetchFn: typeof fetch,
-  stream: AssistantMessageStream,
-) => Promise<void>;
-
 export interface Provider {
   readonly id: ProviderId;
   readonly name: string;
@@ -53,25 +45,16 @@ export interface Provider {
   readonly defaultModelId?: string;
   /**
    * SDK namespace key used in providerMetadata / providerOptions lookups.
-   * Set by built-in providers; undefined for legacy/faux providers.
    */
   readonly namespace?: string;
   /**
-   * Additive SDK factory hook (plan.md Decision D2 — strangler pattern).
-   * When present, client.ts dispatches through the SDK pipeline.
-   * When absent, falls back to the legacy `streams` map.
+   * LanguageModel factory hook.
    */
-  languageModel?(
+  languageModel(
     modelId: string,
     auth: ResolvedAuth,
     fetchFn?: typeof fetch,
   ): import('ai').LanguageModel;
-  streams: Partial<Record<ProtocolId, ProtocolStream>>;
-  prepare?(
-    model: Model,
-    request: InferenceRequest,
-    auth: ResolvedAuth,
-  ): { headers?: Record<string, string>; baseUrl?: string };
 }
 
 // ─── Provider & Auth Status ───────────────────────────────────────────────────
@@ -286,48 +269,29 @@ export function createAI(opts: CreateAIOptions = {}): AI {
 
           const auth = await resolveAuth(p, request.apiKey);
 
-          // ── SDK dispatch (plan.md Decision D2 — strangler pattern) ──────────
-          if (p.languageModel) {
-            const namespace = p.namespace ?? p.id;
-            const config = getNamespaceConfig(namespace);
-            const { instructions, messages } = normalizeMessages(request.messages);
-            const opts = normalizeOptions(request, model, config);
-            const tools = normalizeTools(request.tools);
-            const sdkModel = p.languageModel(model.id, auth, fetchFn);
-            const sdkStream = streamText({
-              model: sdkModel,
-              instructions,
-              messages,
-              tools,
-              stopWhen: stepCountIs(1),
-              maxOutputTokens: opts.maxOutputTokens,
-              temperature: opts.temperature,
-              reasoning: opts.reasoning,
-              providerOptions: opts.providerOptions as any,
-              headers: opts.headers,
-              abortSignal: request.abortSignal,
-              maxRetries: 0,
-              onError: () => {}, // Suppress direct console.error logging — handled via pumpSdkStream
-            });
-            await pumpSdkStream(sdkStream, stream, model, request);
-            return;
-          }
-
-          // ── Legacy protocol dispatch ─────────────────────────────────────────
-          const protocolFn = p.streams[model.protocol];
-          if (!protocolFn) {
-            throw new AIError(
-              `Provider ${providerId} does not implement protocol ${model.protocol}`,
-              { code: 'invalid-request', provider: providerId },
-            );
-          }
-          const prepared = p.prepare?.(model, request, auth);
-          const effectiveAuth: ResolvedAuth = {
-            ...auth,
-            headers: { ...auth.headers, ...prepared?.headers },
-            baseUrl: prepared?.baseUrl ?? auth.baseUrl,
-          };
-          await protocolFn(model, request, effectiveAuth, fetchFn, stream);
+          // ── SDK dispatch ────────────────────────────────────────────────────
+          const namespace = p.namespace ?? p.id;
+          const config = getNamespaceConfig(namespace);
+          const { instructions, messages } = normalizeMessages(request.messages);
+          const opts = normalizeOptions(request, model, config);
+          const tools = normalizeTools(request.tools);
+          const sdkModel = p.languageModel(model.id, auth, fetchFn);
+          const sdkStream = streamText({
+            model: sdkModel,
+            instructions,
+            messages,
+            tools,
+            stopWhen: stepCountIs(1),
+            maxOutputTokens: opts.maxOutputTokens,
+            temperature: opts.temperature,
+            reasoning: opts.reasoning,
+            providerOptions: opts.providerOptions as any,
+            headers: opts.headers,
+            abortSignal: request.abortSignal,
+            maxRetries: 0,
+            onError: () => {}, // Suppress direct console.error logging — handled via pumpSdkStream
+          });
+          await pumpSdkStream(sdkStream, stream, model, request);
         } catch (err) {
           stream.push({
             type: 'error',
@@ -360,9 +324,7 @@ function inferProtocol(providerId: ProviderId): ProtocolId {
 }
 
 function syntheticModel(providerId: ProviderId, modelId: string, provider: Provider): Model {
-  const inferred = inferProtocol(providerId);
-  const streamKey = Object.keys(provider.streams)[0] as ProtocolId | undefined;
-  const protocol = provider.streams[inferred] ? inferred : (streamKey ?? 'openai-completions');
+  const protocol = inferProtocol(providerId);
 
   return {
     id: modelId,

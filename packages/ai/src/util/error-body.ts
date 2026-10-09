@@ -104,12 +104,3 @@ export async function readErrorBody(response: Response): Promise<string | undefi
     return undefined;
   }
 }
-
-export function safeJsonStringify(value: unknown): string {
-  try {
-    const s = JSON.stringify(value);
-    return s === undefined ? String(value) : s;
-  } catch {
-    return String(value);
-  }
-}

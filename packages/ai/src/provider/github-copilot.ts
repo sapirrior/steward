@@ -65,6 +65,5 @@ export function githubCopilotProvider(): Provider {
     languageModel(modelId, auth, fetchFn) {
       return createCopilotLanguageModel(modelId, auth, fetchFn);
     },
-    streams: {},
   };
 }
