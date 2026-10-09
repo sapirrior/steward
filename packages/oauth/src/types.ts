@@ -1,4 +1,4 @@
-export type OAuthProviderId = 'anthropic' | 'openrouter' | 'github-copilot' | (string & {});
+export type OAuthProviderId = 'openrouter' | 'github-copilot' | (string & {});
 
 export interface DeviceCodePrompt {
   userCode: string;

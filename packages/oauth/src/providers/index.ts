@@ -1,21 +1,18 @@
 import { registerTokenRefresher } from '../refresh.js';
-import { saveStoredToken, deleteStoredToken } from '../store.js';
+import { saveStoredToken } from '../store.js';
 import { OAuthError } from '../errors.js';
 import type { LoginOptions, LoginResult, TokenRecord } from '../types.js';
 
-import { loginAnthropic, refreshAnthropic } from './anthropic.js';
 import { loginOpenRouter, refreshOpenRouter } from './openrouter.js';
 import { loginGitHubCopilot, refreshGitHubCopilot } from './github-copilot.js';
 
 // Auto-register token refresh handlers
-registerTokenRefresher('anthropic', refreshAnthropic);
 registerTokenRefresher('openrouter', refreshOpenRouter);
 registerTokenRefresher('github-copilot', refreshGitHubCopilot);
 
 export type ProviderLoginHandler = (options?: LoginOptions) => Promise<TokenRecord>;
 
 const loginHandlers: Record<string, ProviderLoginHandler> = {
-  anthropic: loginAnthropic,
   openrouter: loginOpenRouter,
   'github-copilot': loginGitHubCopilot,
 };
@@ -33,7 +30,7 @@ export async function executeProviderLogin(
     return {
       provider,
       success: false,
-      error: `Unsupported OAuth provider: "${provider}". Supported: anthropic, openrouter, github-copilot`,
+      error: `Unsupported OAuth provider: "${provider}". Supported: openrouter, github-copilot`,
     };
   }
 

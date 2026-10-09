@@ -1,7 +1,7 @@
 import { readAuthStore } from './store.js';
-import type { AuthStatus, ProviderAuthStatus } from './types.js';
+import type { AuthStatus } from './types.js';
 
-const KNOWN_PROVIDERS = ['anthropic', 'openrouter', 'github-copilot'] as const;
+const KNOWN_PROVIDERS = ['openrouter', 'github-copilot'] as const;
 
 /**
  * Returns safe authentication status for all configured and known providers.
