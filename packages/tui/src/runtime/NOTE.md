@@ -2,7 +2,7 @@
 
 ## 1. Overview & Single Responsibility
 
-Application mount runtime, UI lifecycle management, deterministic update batching, post-frame effect queues, static string rendering (`renderToString`), and compatibility facades (`createApp`, `mount`).
+Application mount runtime, UI lifecycle management, deterministic update batching, post-frame effect queues, typed terminal input dispatching (`useInput`), size tracking (`useTerminalSize`), logical focus (`useFocus`), single-pass cursor emission (`useCursor`), static string rendering (`renderToString`), and compatibility facades (`createApp`, `mount`).
 
 ---
 
@@ -18,26 +18,21 @@ Application mount runtime, UI lifecycle management, deterministic update batchin
 ## 3. Architecture & Data Flow (ASCII Graphs)
 
 ```
-State Update / Setter Trigger
+Terminal Events (Keys / Bracketed Paste / Resize)
        │
        ▼
 ┌───────────────────────────────┐
-│         AppScheduler          │ ──► Coalesces rapid updates into microtask batch
+│        TerminalEngine         │ ──► Mode 2026 Synchronized I/O
 └──────────────┬────────────────┘
                │
                ▼
 ┌───────────────────────────────┐
-│            AppRoot            │ ──► reconcileRoot() ──► RootLineComponent
+│       InputDispatcher         │ ──► Reverse-registration dispatch & focus filtering
 └──────────────┬────────────────┘
                │
                ▼
 ┌───────────────────────────────┐
-│        TerminalEngine         │ ──► Double-buffering & synchronized output (Mode 2026)
-└──────────────┬────────────────┘
-               │
-               ▼ (after successful frame write)
-┌───────────────────────────────┐
-│     flushEffects() (Queue)    │ ──► 1. useLayoutEffect (Sync) ──► 2. useEffect (Microtask)
+│  useInput / useFocus / App    │ ──► Handlers consume event or pass to fallback
 └───────────────────────────────┘
 ```
 
@@ -45,38 +40,49 @@ State Update / Setter Trigger
 
 ## 4. File Index & Responsibility Matrix
 
-| File                | Primary Responsibility                                                                              | Exported Symbols                                 | Local / External Dependencies                                                                                          |
-| :------------------ | :-------------------------------------------------------------------------------------------------- | :----------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
-| `AppRoot.ts`        | Root component container orchestrating reconciliation and engine line mounting.                     | `AppRoot`, `AppRootOptions`                      | `../engine/TerminalEngine.js`, `../reconciler/reconcile.js`, `./AppScheduler.js`                                       |
-| `AppScheduler.ts`   | Microtask update batcher and post-frame effect dispatcher.                                          | `AppScheduler`                                   | `../engine/TerminalEngine.js`, `../reconciler/hooks.js`                                                                |
-| `mount.ts`          | Mounts functional UI root into `TerminalEngine`, handles lifecycle, state updates, and typed input. | `mount`, `UIContext`, `MountOptions`, `UIHandle` | `../engine/TerminalEngine.js`, `../engine/Component.js`, `../terminal/input.js`, `../elements/index.js`, `../types.js` |
-| `createApp.ts`      | High-level application bootstrap helper with engine instantiation.                                  | `createApp`, `CreateAppOptions`                  | `./mount.js`, `../engine/TerminalEngine.js`, `../terminal/io.js`                                                       |
-| `renderToString.ts` | Synchronous static rendering of declarative element trees to plain terminal strings.                | `renderToString`, `RenderToStringOptions`        | `../elements/index.js`, `../terminal/color.js`                                                                         |
-| `instance.ts`       | Base runtime instance contracts and identity tokens.                                                | `RuntimeInstance`                                | None                                                                                                                   |
-| `index.ts`          | Public runtime barrel export.                                                                       | All runtime exports                              | Submodules                                                                                                             |
-| `Scheduler.test.ts` | Targeted unit test suite for update coalescing and post-frame lifecycles.                           | None (Test suite)                                | `./AppScheduler.js`, `../engine/TerminalEngine.js`, `../terminal/io.js`                                                |
+| File                     | Primary Responsibility                                                                              | Exported Symbols                                                                                                                    | Local / External Dependencies                                                                                               |
+| :----------------------- | :-------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- |
+| `AppRoot.ts`             | Root component container orchestrating reconciliation, AppContext, and engine line mounting.        | `AppRoot`, `AppRootOptions`, `extractReconciledElement`                                                                             | `../engine/TerminalEngine.js`, `../reconciler/reconcile.js`, `./AppScheduler.js`, `./InputDispatcher.js`, `./AppContext.js` |
+| `AppScheduler.ts`        | Microtask update batcher and post-frame effect dispatcher.                                          | `AppScheduler`                                                                                                                      | `../engine/TerminalEngine.js`, `../reconciler/hooks.js`                                                                     |
+| `AppContext.ts`          | Terminal-aware hooks and root application context.                                                  | `useApp`, `useTerminalSize`, `useCursor`, `useFocus`, `useInput`, `AppContext`, `AppContextValue`, `CursorPosition`, `TerminalSize` | `../reconciler/context.js`, `../reconciler/hooks.js`, `./InputDispatcher.js`                                                |
+| `InputDispatcher.ts`     | Reverse-registration input event routing and logical focus coordinator.                             | `InputDispatcher`, `InputHandlerRecord`                                                                                             | `../terminal/input.js`                                                                                                      |
+| `mount.ts`               | Mounts functional UI root into `TerminalEngine`, handles lifecycle, state updates, and typed input. | `mount`, `UIContext`, `MountOptions`, `UIHandle`                                                                                    | `../engine/TerminalEngine.js`, `../engine/Component.js`, `../terminal/input.js`, `../elements/index.js`, `../types.js`      |
+| `createApp.ts`           | High-level application bootstrap helper with engine instantiation.                                  | `createApp`, `CreateAppOptions`                                                                                                     | `./mount.js`, `../engine/TerminalEngine.js`, `../terminal/io.js`                                                            |
+| `renderToString.ts`      | Synchronous static rendering of declarative element trees to plain terminal strings.                | `renderToString`, `RenderToStringOptions`                                                                                           | `../elements/index.js`, `../terminal/color.js`                                                                              |
+| `instance.ts`            | Base runtime instance contracts and identity tokens.                                                | `RuntimeInstance`                                                                                                                   | None                                                                                                                        |
+| `index.ts`               | Public runtime barrel export.                                                                       | All runtime exports                                                                                                                 | Submodules                                                                                                                  |
+| `Scheduler.test.ts`      | Targeted unit test suite for update coalescing and post-frame lifecycles.                           | None (Test suite)                                                                                                                   | `./AppScheduler.js`, `../engine/TerminalEngine.js`, `../terminal/io.js`                                                     |
+| `terminal-hooks.test.ts` | Targeted unit test suite for useInput, useFocus, useTerminalSize, and useCursor.                    | None (Test suite)                                                                                                                   | `./AppRoot.js`, `./AppContext.js`, `../terminal/io.js`                                                                      |
 
 ---
 
 ## 5. Detailed Symbol & Contract Breakdown
 
-### `AppRoot.ts`
+### `AppContext.ts`
 
-#### `AppRoot`
+#### `useInput`
 
-- **Type / Signature:** `class AppRoot`
-- **Category / Tags:** `[Stateful]` `[I/O]`
-- **Description:** Mounts and reconciles declarative root elements onto `TerminalEngine`, binding updates to `AppScheduler`.
-
----
-
-### `AppScheduler.ts`
-
-#### `AppScheduler`
-
-- **Type / Signature:** `class AppScheduler`
+- **Type / Signature:** `(handler: (event: InputEvent) => boolean | void, options?: { whenFocused?: boolean }) => void`
 - **Category / Tags:** `[Stateful]`
-- **Description:** Coalesces multiple state setter dispatches within a microtask and executes `useLayoutEffect` and `useEffect` lifecycle queues strictly post-frame.
+- **Description:** Subscribes a typed input listener to the root dispatcher, supporting focus-filtered interception and bracketed paste handling.
+
+#### `useTerminalSize`
+
+- **Type / Signature:** `() => TerminalSize`
+- **Category / Tags:** `[Stateful]`
+- **Description:** Returns reactive terminal dimensions updated on engine resize events.
+
+#### `useCursor`
+
+- **Type / Signature:** `(position: CursorPosition | null) => void`
+- **Category / Tags:** `[Stateful]`
+- **Description:** Declares the active cursor line and character offset emitted by the root line component in the same render pass.
+
+#### `useFocus`
+
+- **Type / Signature:** `(options?: { id?: string; autoFocus?: boolean }) => { readonly id: string; readonly isFocused: boolean; focus(): void; blur(): void }`
+- **Category / Tags:** `[Stateful]`
+- **Description:** Manages logical component focus state and active focus ID in the application dispatcher.
 
 ---
 
@@ -93,4 +99,4 @@ State Update / Setter Trigger
 
 ## 7. Security, Permissions & Error Handling
 
-- **Safe Lifecycle:** Registered cleanup functions and unmount callbacks execute in strict `try...catch` blocks to prevent unhandled rejections during application teardown.
+- **Safe Input Containment:** Handlers in `useInput` execute synchronously inside the event dispatcher loop; unhandled errors do not leave raw terminal state hanging or break terminal modes.

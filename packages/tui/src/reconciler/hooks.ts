@@ -35,6 +35,10 @@ export interface EffectRecord {
 
 let pendingEffects: EffectRecord[] = [];
 
+export function getCurrentRenderingInstance(): ComponentInstance | null {
+  return currentInstance;
+}
+
 export function getPendingEffects(): EffectRecord[] {
   const effects = pendingEffects;
   pendingEffects = [];
