@@ -225,7 +225,9 @@ export function renderBoxElement(
         (c.type === Fragment || c.type === Symbol.for('stitchable.fragment'))
       ) {
         const fragChildren = c.props?.children ?? c.children ?? [];
-        list.push(...extractFlatChildren(Array.isArray(fragChildren) ? fragChildren : [fragChildren]));
+        list.push(
+          ...extractFlatChildren(Array.isArray(fragChildren) ? fragChildren : [fragChildren]),
+        );
       } else {
         list.push(c);
       }

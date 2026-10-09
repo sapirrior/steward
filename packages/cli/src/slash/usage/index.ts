@@ -84,7 +84,8 @@ function estimateCost(usage: any, metadata?: ModelMetadata, modelId = '', provid
  */
 export const usageCommand: SlashCommand = {
   name: 'usage',
-  description: 'Displays token usage metrics, model metadata, and statistics for the current session',
+  description:
+    'Displays token usage metrics, model metadata, and statistics for the current session',
   usage: '/usage',
 
   async execute(_args: string[], context: CommandContext): Promise<CommandResult> {
@@ -163,8 +164,10 @@ export const usageCommand: SlashCommand = {
         lines.push(`• Output Modalities: ${metadata.outputModalities.join(', ')}`);
       }
       if (metadata.pricing) {
-        const inP = metadata.pricing.input !== undefined ? `$${metadata.pricing.input}/1M` : undefined;
-        const outP = metadata.pricing.output !== undefined ? `$${metadata.pricing.output}/1M` : undefined;
+        const inP =
+          metadata.pricing.input !== undefined ? `$${metadata.pricing.input}/1M` : undefined;
+        const outP =
+          metadata.pricing.output !== undefined ? `$${metadata.pricing.output}/1M` : undefined;
         if (inP && outP) {
           lines.push(`• Pricing: ${inP} in / ${outP} out`);
         }

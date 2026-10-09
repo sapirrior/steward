@@ -137,7 +137,6 @@ export function reconcileInstance(
     throw new Error(`Unknown intrinsic element or type: <${String(type)}>`);
   }
 
-
   // Fallback for raw objects or legacy descriptors
   if (typeof element === 'object') {
     if (prevInstance) {
@@ -183,8 +182,6 @@ function reconcileHost(
   inst.isMounted = true;
   return inst;
 }
-
-
 
 function reconcileFragment(
   prevInstance: ComponentInstance | null,

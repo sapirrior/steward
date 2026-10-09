@@ -15,7 +15,13 @@ export interface RenderStaticOptions {
  * hook instances or state.
  */
 function resolveStaticTree(node: any): any {
-  if (node === null || node === undefined || typeof node === 'boolean' || typeof node === 'string' || typeof node === 'number') {
+  if (
+    node === null ||
+    node === undefined ||
+    typeof node === 'boolean' ||
+    typeof node === 'string' ||
+    typeof node === 'number'
+  ) {
     return node;
   }
 
@@ -30,13 +36,14 @@ function resolveStaticTree(node: any): any {
     if (
       typeof type === 'function' &&
       (type.prototype instanceof Component ||
-        (type.prototype && 'render' in type.prototype && typeof type.prototype.render === 'function'))
+        (type.prototype &&
+          'render' in type.prototype &&
+          typeof type.prototype.render === 'function'))
     ) {
       throw new Error(
         `Class components cannot be rendered in static history: <${type.name || 'Component'}>`,
       );
     }
-
 
     // Pure function components
     if (typeof type === 'function') {
@@ -82,10 +89,7 @@ function resolveStaticTree(node: any): any {
 /**
  * Renders an element snapshot statically for history without creating component instances or hook slots.
  */
-export function renderStatic(
-  element: ElementChild,
-  options: RenderStaticOptions,
-): string[] {
+export function renderStatic(element: ElementChild, options: RenderStaticOptions): string[] {
   const resolved = resolveStaticTree(element);
   const context = {
     width: options.width,

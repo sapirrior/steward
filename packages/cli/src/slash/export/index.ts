@@ -147,8 +147,13 @@ export function generateTranscriptFromSession(
               lines.push(``);
             }
           }
-        } else if (typeof msg.content === 'string' && (typeof msg.content === 'string' ? msg.content.trim() : '')) {
-          const textLines = (typeof msg.content === 'string' ? msg.content.trim() : '').split(/\r?\n/);
+        } else if (
+          typeof msg.content === 'string' &&
+          (typeof msg.content === 'string' ? msg.content.trim() : '')
+        ) {
+          const textLines = (typeof msg.content === 'string' ? msg.content.trim() : '').split(
+            /\r?\n/,
+          );
           for (let i = 0; i < textLines.length; i++) {
             lines.push(i === 0 ? `● ${textLines[i]}` : `  ${textLines[i]}`);
           }

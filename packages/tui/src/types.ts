@@ -52,4 +52,3 @@ export interface CommitHistoryOptions {
   clip?: boolean;
   hangingIndent?: number;
 }
-

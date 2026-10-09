@@ -20,10 +20,7 @@ export const modelCommand: SlashCommand = {
     const ai = context.session.aiClient;
 
     // Refresh dynamic models client and ai catalog
-    await Promise.allSettled([
-      modelsClient.refresh(),
-      ai.refreshCatalog(),
-    ]);
+    await Promise.allSettled([modelsClient.refresh(), ai.refreshCatalog()]);
 
     // Fetch available text-capable models from @steward/models
     let catalogModels: readonly ModelMetadata[] = [];
@@ -76,7 +73,8 @@ export const modelCommand: SlashCommand = {
         const id = m.id.toLowerCase();
         const name = m.name ? m.name.toLowerCase() : '';
         const query = targetModelId.toLowerCase();
-        const idMatch = id === query || name === query || id.includes(query) || name.includes(query);
+        const idMatch =
+          id === query || name === query || id.includes(query) || name.includes(query);
         if (targetProvider) {
           return m.provider.toLowerCase() === targetProvider.toLowerCase() && idMatch;
         }

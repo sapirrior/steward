@@ -138,7 +138,6 @@ export class AppRoot {
     }
   }
 
-
   unmount(): void {
     if (this.isUnmounted) return;
     this.isUnmounted = true;

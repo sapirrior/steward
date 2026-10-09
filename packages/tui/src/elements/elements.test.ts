@@ -24,10 +24,7 @@ describe('Declarative Elements Suite (src/elements)', () => {
     it('renders row layout with multiple children', () => {
       const el = jsxs(Box, {
         flexDirection: 'row',
-        children: [
-          jsx(Text, { children: 'Left' }),
-          jsx(Text, { children: 'Right' }),
-        ],
+        children: [jsx(Text, { children: 'Left' }), jsx(Text, { children: 'Right' })],
       });
 
       const lines = renderElement(el, { width: 40, colorLevel: 0 });
@@ -90,7 +87,8 @@ describe('Declarative Elements Suite (src/elements)', () => {
     });
 
     it('wraps long text across multiple lines', () => {
-      const longText = 'This is a very long text string that should wrap into multiple lines cleanly.';
+      const longText =
+        'This is a very long text string that should wrap into multiple lines cleanly.';
       const el = jsx(Text, { wrap: 'wrap', children: longText });
 
       const lines = renderElement(el, { width: 20, colorLevel: 0 });
@@ -163,10 +161,7 @@ describe('Declarative Elements Suite (src/elements)', () => {
       const el = jsx(Box, {
         flexDirection: 'column',
         children: jsx(Fragment, {
-          children: [
-            jsx(Text, { children: 'Item A' }),
-            jsx(Text, { children: 'Item B' }),
-          ],
+          children: [jsx(Text, { children: 'Item A' }), jsx(Text, { children: 'Item B' })],
         }),
       });
 

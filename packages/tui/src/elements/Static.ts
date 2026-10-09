@@ -34,10 +34,7 @@ export function Static<T>(props: StaticProps<T>): StitchableElement<BoxProps> | 
   const { items, children: renderItem, style: customStyle } = props;
   const [lastCommittedIndex, setLastCommittedIndex] = useState(0);
 
-  const newItems = useMemo(
-    () => items.slice(lastCommittedIndex),
-    [items, lastCommittedIndex],
-  );
+  const newItems = useMemo(() => items.slice(lastCommittedIndex), [items, lastCommittedIndex]);
 
   const staticChildren = useMemo(() => {
     return newItems.map((item, idx) => renderItem(item, lastCommittedIndex + idx));

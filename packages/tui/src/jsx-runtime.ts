@@ -16,4 +16,3 @@ export namespace JSX {
     text: TextProps & { children?: any };
   }
 }
-

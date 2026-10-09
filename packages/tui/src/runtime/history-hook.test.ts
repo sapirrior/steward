@@ -169,10 +169,7 @@ describe('Phase 6 — Static, Responsive History and useCommitHistory', () => {
     it('reflows committed history entries when terminal width changes', async () => {
       const longMessage = 'This is a very long log line that wraps on narrower terminal screens.';
       function Logger() {
-        useCommitHistory(
-          jsx('text', { children: longMessage, wrap: 'wrap' }),
-          ['fixed'],
-        );
+        useCommitHistory(jsx('text', { children: longMessage, wrap: 'wrap' }), ['fixed']);
         return jsx('text', { children: 'Done' });
       }
 

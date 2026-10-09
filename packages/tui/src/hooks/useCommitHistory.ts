@@ -22,8 +22,8 @@ export function useCommitHistory(
 
   const isCommitted = Boolean(
     enabled &&
-      lastCommittedDepsRef.current !== null &&
-      areDepsEqual(lastCommittedDepsRef.current, deps),
+    lastCommittedDepsRef.current !== null &&
+    areDepsEqual(lastCommittedDepsRef.current, deps),
   );
 
   useLayoutEffect(() => {

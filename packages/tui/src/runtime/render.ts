@@ -32,10 +32,7 @@ export interface RenderHandle {
  * await waitUntilExit();
  * ```
  */
-export function render(
-  element: ElementChild,
-  options: RenderOptions = {},
-): RenderHandle {
+export function render(element: ElementChild, options: RenderOptions = {}): RenderHandle {
   const io = options.io ?? nodeIO({ stdout: options.stdout, stdin: options.stdin });
 
   const engine = new TerminalEngine({
@@ -98,7 +95,6 @@ export function render(
     },
     exitOnCtrlC: options.exitOnCtrlC ?? true,
   });
-
 
   return handle;
 }
