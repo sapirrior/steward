@@ -1,8 +1,7 @@
-import type { ColorLevel } from '../terminal/color.js';
+import type { ColorLevel, ColorValue } from '../terminal/color.js';
 
 export * from '../types.js';
-
-export type ColorValue = string | ((str: string) => string);
+export type { ColorValue };
 
 export interface TextStyleProps {
   color?: ColorValue;

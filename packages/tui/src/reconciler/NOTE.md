@@ -2,7 +2,7 @@
 
 ## 1. Overview & Single Responsibility
 
-Implements declarative JSX element descriptors, synchronous keyed tree reconciliation, component instance identity preservation, class component lifecycles, and error boundary recovery for the Stitchable terminal UI runtime.
+Implements declarative JSX element descriptors, synchronous keyed tree reconciliation, component instance identity preservation, fundamental React-style hooks (`useState`, `useReducer`, `useRef`, `useMemo`, `useCallback`, `useEffect`, `useLayoutEffect`), class component lifecycles, and error boundary recovery for the Stitchable terminal UI runtime.
 
 ---
 
@@ -18,54 +18,68 @@ Implements declarative JSX element descriptors, synchronous keyed tree reconcili
 ## 3. Architecture & Data Flow (ASCII Graphs)
 
 ```
-Incoming ElementTree (Next)
+Function Component Execution
        │
-       ├────────────────────────────────┐
-       ▼                                ▼
-┌───────────────────────────────┐ ┌───────────────────────────────┐
-│     reconcileRoot / Tree      │ │   Previous Instance Tree      │
-└──────────────┬────────────────┘ └──────────────┬────────────────┘
-               │                                 │
-               ▼                                 ▼
-      [ Key / Position Matching ] ───────────────┘
-               ├── Match ──► [ Reuse Instance + Update Props / Lifecycle ]
-               ├── New ────► [ Create Instance + Initial Render ]
-               └── Stale ──► [ Unmount Instance + Run Teardown ]
+       ▼
+┌───────────────────────────────┐
+│   prepareToRenderInstance()   │ ──► Sets active ComponentInstance slot pointer
+└──────────────┬────────────────┘
                │
-               ▼ (on descendant render fault)
-      [ Error Boundary Lookup ] ──► [ getDerivedStateFromError + componentDidCatch ]
+               ▼
+┌───────────────────────────────┐
+│     Hooks Invocation Loop     │
+│   (useState, useEffect, ...)  │ ──► Reads/writes HookSlot records on instance
+└──────────────┬────────────────┘
+               │
+               ▼
+┌───────────────────────────────┐
+│   finishRenderingInstance()   │ ──► Validates hook count & cleans active pointer
+└──────────────┬────────────────┘
+               │
+               ▼
+┌───────────────────────────────┐
+│     reconcileChildList()      │ ──► Keyed matching & child subtree reuse
+└───────────────────────────────┘
 ```
 
 ---
 
 ## 4. File Index & Responsibility Matrix
 
-| File                | Primary Responsibility                                                                 | Exported Symbols                                                                             | Local / External Dependencies                                                           |
-| :------------------ | :------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
-| `element.ts`        | Factory functions for JSX element descriptors and child normalization.                 | `jsx`, `jsxs`, `jsxDEV`, `Fragment`, `ELEMENT_TYPE_SYMBOL`, `isElement`, `normalizeChildren` | `../types.ts`                                                                           |
-| `instance.ts`       | Component instance models, tags, and slot record initialization.                       | `createInstance`, `ComponentInstance`, `InstanceTag`                                         | `../types.ts`, `../engine/Component.js`                                                 |
-| `reconcile.ts`      | Keyed synchronous reconciler, instance lifecycle updates, and error boundary recovery. | `reconcileRoot`, `reconcileInstance`, `unmountTree`, `unmountInstance`, `RuntimeContext`     | `./element.js`, `./instance.js`, `./errors.js`, `../types.ts`, `../engine/Component.js` |
-| `errors.ts`         | Error boundary detection, diagnostic error classes, and error metadata.                | `isErrorBoundaryClass`, `ComponentRenderError`, `ErrorInfo`                                  | None                                                                                    |
-| `element.test.ts`   | Unit tests for JSX descriptors and normalization.                                      | None (Test suite)                                                                            | `./element.ts`, `../types.ts`, `../elements/index.ts`, `../engine/Component.ts`         |
-| `reconcile.test.ts` | Unit tests for keyed reconciliation, persistent instances, and error boundaries.       | None (Test suite)                                                                            | `./reconcile.ts`, `./element.ts`, `../engine/Component.ts`                              |
+| File                | Primary Responsibility                                                                 | Exported Symbols                                                                                                                                                                                  | Local / External Dependencies                                                                               |
+| :------------------ | :------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------- |
+| `element.ts`        | Factory functions for JSX element descriptors and child normalization.                 | `jsx`, `jsxs`, `jsxDEV`, `Fragment`, `ELEMENT_TYPE_SYMBOL`, `isElement`, `normalizeChildren`                                                                                                      | `../types.ts`                                                                                               |
+| `instance.ts`       | Component instance models, tags, and slot record initialization.                       | `createInstance`, `ComponentInstance`, `InstanceTag`                                                                                                                                              | `../types.ts`, `../engine/Component.js`                                                                     |
+| `hooks.ts`          | Fundamental React-style hook primitives, slot records, and hook dispatcher.            | `useState`, `useReducer`, `useRef`, `useMemo`, `useCallback`, `useEffect`, `useLayoutEffect`, `prepareToRenderInstance`, `finishRenderingInstance`, `cleanupInstanceEffects`, `getPendingEffects` | `./instance.js`                                                                                             |
+| `reconcile.ts`      | Keyed synchronous reconciler, instance lifecycle updates, and error boundary recovery. | `reconcileRoot`, `reconcileInstance`, `unmountTree`, `unmountInstance`, `RuntimeContext`                                                                                                          | `./element.js`, `./instance.js`, `./hooks.js`, `./errors.js`, `../types.ts`, `../engine/Component.js`       |
+| `errors.ts`         | Error boundary detection, diagnostic error classes, and error metadata.                | `isErrorBoundaryClass`, `ComponentRenderError`, `ErrorInfo`                                                                                                                                       | None                                                                                                        |
+| `element.test.ts`   | Unit tests for JSX descriptors and normalization.                                      | None (Test suite)                                                                                                                                                                                 | `./element.ts`, `../types.ts`, `../elements/index.ts`, `../engine/Component.ts`                             |
+| `reconcile.test.ts` | Unit tests for keyed reconciliation, persistent instances, and error boundaries.       | None (Test suite)                                                                                                                                                                                 | `./reconcile.ts`, `./element.ts`, `../engine/Component.ts`                                                  |
+| `hooks.test.ts`     | Unit tests for fundamental hook slots, state updates, memoization, and effects.        | None (Test suite)                                                                                                                                                                                 | `./hooks.ts`, `./reconcile.ts`, `./element.ts`, `../runtime/AppScheduler.js`, `../engine/TerminalEngine.js` |
 
 ---
 
 ## 5. Detailed Symbol & Contract Breakdown
 
-### `reconcile.ts`
+### `hooks.ts`
 
-#### `reconcileRoot`
+#### `useState`
 
-- **Type / Signature:** `(previousTree: ComponentInstance | null, nextElement: ElementChild, runtime?: RuntimeContext) => ComponentInstance | null`
-- **Category / Tags:** `[Pure]` `[Stateful]`
-- **Description:** Reconciles the root element descriptor tree against existing instance records, reordering keyed siblings and preserving component identities.
-
-#### `unmountTree`
-
-- **Type / Signature:** `(root: ComponentInstance | null) => void`
+- **Type / Signature:** `<S>(initial: S | (() => S)) => [S, (action: StateAction<S>) => void]`
 - **Category / Tags:** `[Stateful]`
-- **Description:** Recursively tears down an instance subtree, invoking `componentWillUnmount` on class components.
+- **Description:** Allocates or retrieves a persistent state slot for the current component instance and returns state with an updater function.
+
+#### `useEffect`
+
+- **Type / Signature:** `(effect: () => void | (() => void), deps?: DependencyList) => void`
+- **Category / Tags:** `[Stateful]`
+- **Description:** Enqueues a passive side-effect to execute in a microtask after the terminal frame is rendered.
+
+#### `useLayoutEffect`
+
+- **Type / Signature:** `(effect: () => void | (() => void), deps?: DependencyList) => void`
+- **Category / Tags:** `[Stateful]`
+- **Description:** Enqueues a layout effect to execute synchronously in the engine's post-frame flush immediately after `StateRenderer` writes bytes.
 
 ---
 
@@ -78,11 +92,12 @@ Incoming ElementTree (Next)
        │                                                                                   │
        ├── Rerender ─────► [props/state update] ──► [render()] ──► componentDidUpdate() ───┤
        │                                                                                   │
-       └── Removed ──────► [unmountInstance] ──► componentWillUnmount() ──────────────► [Unmounted]
+       └── Removed ──────► [unmountInstance] ──► cleanupInstanceEffects() ─────────────► [Unmounted]
 ```
 
 ---
 
 ## 7. Security, Permissions & Error Handling
 
-- **Transactional Publication:** Render-time faults in descendant trees are intercepted by ancestor error boundaries via `getDerivedStateFromError` and `componentDidCatch`. If unhandled, the error cleanly halts reconciliation without corrupting prior published state.
+- **Rules-of-Hooks Enforcement:** Invocations outside of function components or order/count alterations throw descriptive errors immediately.
+- **Render-Phase State Guard:** State mutations during component render execution are prohibited and throw explicit diagnostics.

@@ -4,6 +4,12 @@ import { createInstance, type ComponentInstance, type InstanceTag } from './inst
 import { isErrorBoundaryClass, ComponentRenderError } from './errors.js';
 import Component from '../engine/Component.js';
 
+import {
+  prepareToRenderInstance,
+  finishRenderingInstance,
+  cleanupInstanceEffects,
+} from './hooks.js';
+
 export interface RuntimeContext {
   scheduleUpdate?(instance?: ComponentInstance): void;
   onError?(error: Error): void;
@@ -11,6 +17,8 @@ export interface RuntimeContext {
 
 export function unmountInstance(instance: ComponentInstance | null): void {
   if (!instance) return;
+
+  cleanupInstanceEffects(instance);
 
   if (instance.tag === 'class' && instance.classInstance) {
     try {
@@ -301,12 +309,17 @@ function reconcileFunctionComponent(
     inst.element = element;
   }
 
+  (inst as any)._runtime = runtime;
+
   const func = type as (p: any) => ElementChild;
   try {
+    prepareToRenderInstance(inst);
     const rendered = func(props);
+    finishRenderingInstance();
     inst.renderedChild = reconcileInstance(inst.renderedChild, rendered, inst, runtime);
     inst.isMounted = true;
   } catch (err: any) {
+    finishRenderingInstance();
     throw new ComponentRenderError(getComponentName(type), err);
   }
 

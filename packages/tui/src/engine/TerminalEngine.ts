@@ -598,6 +598,34 @@ export class TerminalEngine {
     }
   }
 
+  private batchDepth = 0;
+  private postFrameCallbacks: Array<() => void> = [];
+
+  /**
+   * Executes a synchronous batch of operations, deferring frame requests until complete.
+   */
+  batch<T>(work: () => T): T {
+    this.batchDepth++;
+    try {
+      return work();
+    } finally {
+      this.batchDepth--;
+      if (this.batchDepth === 0 && this.dirty) {
+        this.requestFrame();
+      }
+    }
+  }
+
+  /**
+   * Registers a callback to run after the next successful frame write.
+   */
+  afterNextFrame(callback: () => void): () => void {
+    this.postFrameCallbacks.push(callback);
+    return () => {
+      this.postFrameCallbacks = this.postFrameCallbacks.filter((cb) => cb !== callback);
+    };
+  }
+
   private performRender(): void {
     this.dirty = false;
     this.lastRenderTime = Date.now();
@@ -635,6 +663,21 @@ export class TerminalEngine {
       return;
     }
 
+    // Post-frame lifecycle callback execution
+    if (this.postFrameCallbacks.length > 0) {
+      const callbacks = this.postFrameCallbacks;
+      this.postFrameCallbacks = [];
+      for (const cb of callbacks) {
+        try {
+          cb();
+        } catch (err) {
+          if (this.onError) {
+            this.onError(err, { source: 'post-frame', forcedFull: false });
+          }
+        }
+      }
+    }
+
     this.resolveFlushPromises();
   }
 
@@ -644,6 +687,10 @@ export class TerminalEngine {
     this.pendingForceFull = this.pendingForceFull || forceFull;
     if (this.disposed) return;
     this.dirty = true;
+
+    if (this.batchDepth > 0) {
+      return;
+    }
 
     if (this.maxFps && this.maxFps > 0) {
       const minInterval = 1000 / this.maxFps;
