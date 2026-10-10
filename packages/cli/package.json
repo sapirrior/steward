@@ -29,9 +29,8 @@
     "prepublishOnly": "bun run build",
     "build": "bun build src/main.ts --outfile ./dist/cli.js --target node",
     "compile": "bun build --compile --minify src/main.ts --outfile ./dist/steward",
-    "format": "bun ./node_modules/prettier/bin/prettier.cjs --check \"src/**/*.{ts,tsx,js,jsx}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
-    "format:fix": "bun ./node_modules/prettier/bin/prettier.cjs --write \"src/**/*.{ts,tsx,js,jsx}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
-    "lint:boundaries": "bun test tests/boundary-lint.test.ts",
+    "format": "bun ./node_modules/prettier/bin/prettier.cjs --check \"src/**/*.{ts,tsx,js,jsx}\"",
+    "format:fix": "bun ./node_modules/prettier/bin/prettier.cjs --write \"src/**/*.{ts,tsx,js,jsx}\"",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

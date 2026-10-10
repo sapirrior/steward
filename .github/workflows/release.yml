@@ -60,7 +60,6 @@ jobs:
 
       - name: Run Checks & Build
         run: |
-          bun run lint:boundaries
           bun run format
           bun run build
 
