@@ -12,6 +12,96 @@ import { WebFetchTool } from '../tools/WebFetchTool/index.js';
 import { WebSearchTool } from '../tools/WebSearchTool/index.js';
 import type { ResolvedCliConfig } from './types.js';
 
+const MAX_STDIN_BYTES = 10 * 1024 * 1024; // 10MB safety cap
+
+/**
+ * Safely reads piped input from process.stdin if non-TTY.
+ * Handles binary stripping, size capping, and stream lifecycle.
+ */
+export async function readPipedStdin(
+  maxBytes: number = MAX_STDIN_BYTES,
+): Promise<string | undefined> {
+  if (process.stdin.isTTY || process.stdin.destroyed) {
+    return undefined;
+  }
+
+  return new Promise<string | undefined>((resolve, reject) => {
+    let accumulated = '';
+    let totalBytes = 0;
+    let exceeded = false;
+
+    process.stdin.setEncoding('utf8');
+
+    const onData = (chunk: string) => {
+      if (exceeded) return;
+      totalBytes += Buffer.byteLength(chunk, 'utf8');
+      if (totalBytes > maxBytes) {
+        exceeded = true;
+        process.stdin.pause();
+        // Take substring up to limit
+        accumulated += chunk;
+        cleanup();
+        resolve(accumulated.replace(/\0/g, '').trim());
+        return;
+      }
+      accumulated += chunk;
+    };
+
+    const onEnd = () => {
+      cleanup();
+      const cleaned = accumulated.replace(/\0/g, '').trim();
+      resolve(cleaned.length > 0 ? cleaned : undefined);
+    };
+
+    const onError = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+
+    const cleanup = () => {
+      process.stdin.removeListener('data', onData);
+      process.stdin.removeListener('end', onEnd);
+      process.stdin.removeListener('error', onError);
+    };
+
+    process.stdin.on('data', onData);
+    process.stdin.once('end', onEnd);
+    process.stdin.once('error', onError);
+
+    // If stream is already ended or paused with no data flowing
+    if (process.stdin.readableEnded) {
+      onEnd();
+    } else {
+      process.stdin.resume();
+    }
+  });
+}
+
+/**
+ * Formats combined user prompt and piped stdin for optimal LLM comprehension.
+ */
+export function formatEffectivePrompt(
+  promptText?: string,
+  pipedInput?: string,
+): string | undefined {
+  const trimmedPrompt = promptText?.trim();
+  const trimmedPiped = pipedInput?.trim();
+
+  if (!trimmedPrompt && !trimmedPiped) {
+    return undefined;
+  }
+
+  if (trimmedPiped && trimmedPrompt) {
+    return `<piped_stdin>\n${trimmedPiped}\n</piped_stdin>\n\n${trimmedPrompt}`;
+  }
+
+  if (trimmedPiped && !trimmedPrompt) {
+    return `Please analyze and respond to the following input:\n\n<piped_stdin>\n${trimmedPiped}\n</piped_stdin>`;
+  }
+
+  return trimmedPrompt;
+}
+
 /**
  * Executes a one-shot query in headless mode, streaming output directly to stdout.
  *
@@ -22,7 +112,31 @@ import type { ResolvedCliConfig } from './types.js';
 export async function runHeadless(prompt: string, config: ResolvedCliConfig): Promise<void> {
   const colors = themeManager.theme.colors;
 
-  // 1. Assemble safe inspection tools (obeying config.tools toggles)
+  // 1. Capture any piped stdin input
+  let pipedStdin: string | undefined;
+  try {
+    pipedStdin = await readPipedStdin();
+  } catch (err: any) {
+    const cross = chalk.hex(colors.error)(UI_GLYPHS.cross);
+    console.error(
+      `\n${cross} ${chalk.hex(colors.error)(`Failed to read piped stdin: ${err?.message || err}`)}\n`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  // 2. Build the effective prompt with LLM optimization
+  const effectivePrompt = formatEffectivePrompt(prompt, pipedStdin);
+  if (!effectivePrompt) {
+    const cross = chalk.hex(colors.error)(UI_GLYPHS.cross);
+    console.error(
+      `\n${cross} ${chalk.hex(colors.error)('Error: No prompt or piped input provided.')}\n`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  // 3. Assemble safe inspection tools (obeying config.tools toggles)
   const activeTools: any[] = [];
   if (config.tools.read) activeTools.push(new FileReadTool());
   if (config.tools.glob) activeTools.push(new GlobTool());
@@ -30,10 +144,10 @@ export async function runHeadless(prompt: string, config: ResolvedCliConfig): Pr
   if (config.tools.websearch) activeTools.push(new WebSearchTool());
   if (config.tools.webfetch) activeTools.push(new WebFetchTool());
 
-  // 2. Prepare user message & in-memory session
+  // 4. Prepare user message & in-memory session
   const userMessage: ModelMessage = {
     role: 'user',
-    content: prompt.trim(),
+    content: effectivePrompt,
   };
   const messages: ModelMessage[] = [userMessage];
 
@@ -54,7 +168,8 @@ export async function runHeadless(prompt: string, config: ResolvedCliConfig): Pr
 
   // Print prompt header
   const chevron = chalk.hex(colors.accentActive)(UI_GLYPHS.promptChevron);
-  const promptDisplay = chalk.hex(colors.text)(`Prompt: "${prompt}"`);
+  const promptSummary = prompt.trim() || '[Piped Stdin]';
+  const promptDisplay = chalk.hex(colors.text)(`Prompt: "${promptSummary}"`);
   const meta = chalk.hex(colors.textDim)(
     `· ${config.modelRef.provider}/${config.modelRef.modelId} · effort: ${config.reasoningEffort}`,
   );

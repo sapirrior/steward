@@ -136,11 +136,12 @@ export function createCliProgram(handlers?: CliRunHandlers): Command {
       }
 
       // 5. Headless vs Interactive Dispatch
-      if (config.prompt) {
+      const isPiped = !process.stdin.isTTY;
+      if (config.prompt || isPiped) {
         if (handlers?.onHeadless) {
-          await handlers.onHeadless(config.prompt, config);
+          await handlers.onHeadless(config.prompt ?? '', config);
         } else {
-          await runHeadless(config.prompt, config);
+          await runHeadless(config.prompt ?? '', config);
         }
       } else {
         if (handlers?.onInteractive) {

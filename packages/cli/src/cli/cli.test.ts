@@ -169,4 +169,31 @@ describe('Steward CLI Core Engine (Hardcore Integration Test Suite)', () => {
       }),
     ).toThrow(/Unknown tool/);
   });
+
+  it('correctly formats and frames piped stdin with LLM optimizations', async () => {
+    const { formatEffectivePrompt } = await import('./headless.js');
+
+    // Case 1: Both user prompt and piped stdin
+    const combined = formatEffectivePrompt(
+      'Review these changes for regressions',
+      'diff --git a/file.ts b/file.ts\n+const x = 1;',
+    );
+    expect(combined).toBe(
+      '<piped_stdin>\ndiff --git a/file.ts b/file.ts\n+const x = 1;\n</piped_stdin>\n\nReview these changes for regressions',
+    );
+
+    // Case 2: Only piped stdin (no prompt)
+    const pipedOnly = formatEffectivePrompt(undefined, 'error: unhandled exception in main.ts:12');
+    expect(pipedOnly).toBe(
+      'Please analyze and respond to the following input:\n\n<piped_stdin>\nerror: unhandled exception in main.ts:12\n</piped_stdin>',
+    );
+
+    // Case 3: Only user prompt (no piped stdin)
+    const promptOnly = formatEffectivePrompt('Explain quantum computing', undefined);
+    expect(promptOnly).toBe('Explain quantum computing');
+
+    // Case 4: Neither (empty)
+    const empty = formatEffectivePrompt('', '   ');
+    expect(empty).toBeUndefined();
+  });
 });
