@@ -46,4 +46,3 @@ export const STEWARD_UNICODE_LOGO = [
   '▀▀▀█  █   █▀▀▀ █░█░█ █▀▀█ █    █░░█ ',
   '▀▀▀▀  ▀   ▀▀▀▀ ▀▀ ▀▀ ▀▀▀▀ ▀    ▀▀▀▀ ',
 ].join('\n');
-
