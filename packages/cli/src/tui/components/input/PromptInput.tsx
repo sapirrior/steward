@@ -12,6 +12,7 @@ export interface PromptInputProps {
   reasoningEffort: ReasoningEffort;
   isRunning?: boolean;
   theme: Theme;
+  placeholder?: string;
 }
 
 export function PromptInput({
@@ -21,6 +22,7 @@ export function PromptInput({
   reasoningEffort,
   isRunning = false,
   theme,
+  placeholder: customPlaceholder,
 }: PromptInputProps) {
   const colors = theme.colors;
 
@@ -28,7 +30,7 @@ export function PromptInput({
   const cursorChar = inputText[cursorPos] || ' ';
   const afterCursor = inputText.slice(cursorPos + 1);
 
-  const placeholder = 'Ask anything... "Fix broken tests"';
+  const placeholder = customPlaceholder ?? 'Ask anything... "Fix broken tests"';
 
   return (
     <Box

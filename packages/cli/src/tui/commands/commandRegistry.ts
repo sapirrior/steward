@@ -7,24 +7,9 @@ export interface SlashCommand {
 
 export const BUILTIN_COMMANDS: SlashCommand[] = [
   {
-    name: 'clear',
-    description: 'Clear active terminal viewport and turn history',
-    execute: () => {},
-  },
-  {
-    name: 'compact',
-    description: 'Compact conversation context',
-    execute: () => {},
-  },
-  {
-    name: 'exit',
-    aliases: ['quit', 'q'],
-    description: 'Exit Steward TUI session',
-    execute: () => {},
-  },
-  {
-    name: 'theme',
-    description: 'Switch visual theme (default, github)',
+    name: 'new',
+    aliases: ['clear', 'reset'],
+    description: 'Start a new session / reset conversation thread',
     execute: () => {},
   },
   {
@@ -34,18 +19,34 @@ export const BUILTIN_COMMANDS: SlashCommand[] = [
   },
   {
     name: 'effort',
-    description: 'Set reasoning effort: none, low, medium, high',
+    description: 'Set reasoning effort: none, low, medium, high, max',
     execute: () => {},
   },
   {
-    name: 'tools',
-    description: 'Display list of active tools',
+    name: 'theme',
+    description: 'Switch visual theme (default, github)',
+    execute: () => {},
+  },
+  {
+    name: 'resume',
+    description: 'Resume a saved conversation thread',
+    execute: () => {},
+  },
+  {
+    name: 'compact',
+    description: 'Compact conversation context',
     execute: () => {},
   },
   {
     name: 'settings',
     aliases: ['config'],
     description: 'Display persistent settings from ~/.steward/settings.json',
+    execute: () => {},
+  },
+  {
+    name: 'exit',
+    aliases: ['quit', 'q'],
+    description: 'Exit Steward TUI session',
     execute: () => {},
   },
 ];

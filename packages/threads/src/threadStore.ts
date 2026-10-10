@@ -125,11 +125,23 @@ export class ThreadStore {
       if (
         !data ||
         typeof data !== 'object' ||
-        data.version !== 1 ||
+        (data.version !== undefined && data.version !== 1) ||
         !Array.isArray(data.messages) ||
         typeof data.id !== 'string'
       ) {
         throw new ThreadStorageError(`Invalid thread structure in "${filePath}"`, 'INVALID_DATA');
+      }
+
+      if (typeof data.model === 'string') {
+        data.model = { provider: 'unknown', modelId: data.model };
+      } else if (!data.model) {
+        data.model = { provider: 'unknown', modelId: 'unknown' };
+      }
+      if (!data.version) {
+        data.version = 1;
+      }
+      if (!data.usage) {
+        data.usage = createEmptyUsage();
       }
 
       return data as ThreadDocument;
@@ -281,17 +293,22 @@ export class ThreadStore {
         if (
           data &&
           typeof data === 'object' &&
-          data.version === 1 &&
+          (data.version === 1 || data.version === undefined) &&
           typeof data.id === 'string' &&
           Array.isArray(data.messages)
         ) {
+          const model =
+            typeof data.model === 'string'
+              ? { provider: 'unknown', modelId: data.model }
+              : (data.model ?? { provider: 'unknown', modelId: 'unknown' });
+
           summaries.push({
             id: data.id,
             title: data.title ?? 'New Thread',
             createdAt: data.createdAt ?? new Date().toISOString(),
             updatedAt: data.updatedAt ?? data.createdAt ?? new Date().toISOString(),
-            model: data.model ?? { provider: 'unknown', modelId: 'unknown' },
-            cwd: data.metadata?.cwd ?? process.cwd(),
+            model,
+            cwd: data.metadata?.cwd ?? data.cwd ?? process.cwd(),
             gitBranch: data.metadata?.git?.branch,
             messageCount: data.messages.length,
             usage: data.usage ?? createEmptyUsage(),

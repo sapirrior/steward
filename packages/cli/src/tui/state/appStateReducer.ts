@@ -198,6 +198,30 @@ export function appStateReducer(state: AppState, action: AppStateAction): AppSta
         history: [],
       };
 
+    case 'NEW_SESSION':
+      return {
+        ...state,
+        history: [],
+        activeTurn: null,
+        metrics: {
+          totalInputTokens: 0,
+          totalOutputTokens: 0,
+          totalTokens: 0,
+          estimatedCostUsd: 0,
+        },
+        threadDoc: undefined,
+      };
+
+    case 'LOAD_THREAD':
+      return {
+        ...state,
+        history: action.history,
+        activeTurn: null,
+        modelRef: action.modelRef ?? state.modelRef,
+        metrics: action.metrics ? { ...state.metrics, ...action.metrics } : state.metrics,
+        threadDoc: action.threadDoc ?? state.threadDoc,
+      };
+
     case 'SET_PERMISSION_REQUEST':
       return {
         ...state,

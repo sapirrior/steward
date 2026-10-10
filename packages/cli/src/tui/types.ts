@@ -107,6 +107,14 @@ export type AppStateAction =
   | { type: 'ERROR_TURN'; message: string }
   | { type: 'ABORT_TURN' }
   | { type: 'CLEAR_HISTORY' }
+  | { type: 'NEW_SESSION' }
+  | {
+      type: 'LOAD_THREAD';
+      history: CompletedTurn[];
+      modelRef?: ModelRef;
+      metrics?: Partial<TuiMetrics>;
+      threadDoc?: ThreadDoc;
+    }
   | { type: 'SET_PERMISSION_REQUEST'; request: PermissionRequestState | null }
   | { type: 'UPDATE_METRICS'; metrics: Partial<TuiMetrics> }
   | { type: 'SET_THREAD_DOC'; threadDoc: ThreadDoc };

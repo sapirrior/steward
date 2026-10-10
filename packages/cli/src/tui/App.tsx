@@ -3,16 +3,16 @@ import {
   useState,
   useEffect,
   useRef,
+  useMemo,
   useReducer,
   useInput,
   useApp,
   Box,
   Text,
-  Spacer,
 } from 'stitchable';
 
-import type { ModelRef } from '@steward/models';
-import { parseModelRef } from '@steward/models';
+import type { ModelRef, ModelMetadata } from '@steward/models';
+import { parseModelRef, createModels } from '@steward/models';
 import type { ReasoningEffort } from '../agent/types.js';
 import type { StewardSettings } from '../settings/settingsTypes.js';
 import { settingsStore } from '../settings/settingsStore.js';
@@ -28,10 +28,10 @@ import { WebFetchTool } from '../tools/WebFetchTool/index.js';
 import { WebSearchTool } from '../tools/WebSearchTool/index.js';
 import { BashTool } from '../tools/BashTool/index.js';
 import { TaskManagerTool } from '../tools/TaskManagerTool/index.js';
-import { threadStore } from '@steward/threads';
+import { threadStore, type ThreadSummary, type ThreadDocument } from '@steward/threads';
+import { reconstructTurnsFromMessages } from './utils/threadToTurns.js';
 
 import { useSpinner } from './hooks/useSpinner.js';
-import { useCommandAutocomplete } from './hooks/useCommandAutocomplete.js';
 import { useHistoryNavigation } from './hooks/useHistoryNavigation.js';
 
 import { Header } from './components/layout/Header.js';
@@ -39,7 +39,12 @@ import { Footer } from './components/layout/Footer.js';
 import { UserMessage } from './components/messages/UserMessage.js';
 import { AssistantTurn } from './components/messages/AssistantTurn.js';
 import { PromptInput } from './components/input/PromptInput.js';
-import { AutocompletePopup } from './components/input/AutocompletePopup.js';
+import { BUILTIN_COMMANDS } from './commands/commandRegistry.js';
+import { CommandPaletteDialog } from './components/dialogs/CommandPaletteDialog.js';
+import { ModelDialog } from './components/dialogs/ModelDialog.js';
+import { EffortDialog } from './components/dialogs/EffortDialog.js';
+import { ThemeDialog } from './components/dialogs/ThemeDialog.js';
+import { ResumeDialog } from './components/dialogs/ResumeDialog.js';
 
 const VALID_REASONING_EFFORTS: readonly ReasoningEffort[] = [
   'none',
@@ -47,6 +52,19 @@ const VALID_REASONING_EFFORTS: readonly ReasoningEffort[] = [
   'medium',
   'high',
   'max',
+];
+
+const EFFORT_OPTIONS: { level: ReasoningEffort; description: string }[] = [
+  { level: 'none', description: 'Disable reasoning / thinking tokens completely' },
+  { level: 'low', description: 'Fast reasoning with minimal thinking tokens' },
+  { level: 'medium', description: 'Balanced reasoning for typical engineering tasks' },
+  { level: 'high', description: 'Deep reasoning with extended thinking tokens' },
+  { level: 'max', description: 'Maximum thinking effort budget for complex problems' },
+];
+
+const THEME_OPTIONS: { name: string; description: string }[] = [
+  { name: 'default', description: 'Modern dark theme with high contrast card surfaces' },
+  { name: 'github', description: 'GitHub Dark modern aesthetic' },
 ];
 
 function parseModel(raw: string, currentProvider: string, currentModel: string): ModelRef {
@@ -68,6 +86,8 @@ function parseEffort(raw: string, fallback: ReasoningEffort): ReasoningEffort {
 export interface AppProps {
   settings?: StewardSettings;
 }
+
+export type ActiveDialogType = 'commands' | 'model' | 'effort' | 'theme' | 'resume' | null;
 
 export function App({ settings }: AppProps = {}) {
   const currentSettings = settings ?? settingsStore.settings;
@@ -131,6 +151,100 @@ export function App({ settings }: AppProps = {}) {
     };
   }, []);
 
+  // Pre-load model list from @steward/models (all models, no filter)
+  const [allModels, setAllModels] = useState<readonly ModelMetadata[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    createModels()
+      .list()
+      .then((list) => {
+        if (mounted) setAllModels(list);
+      })
+      .catch(() => {
+        if (mounted) {
+          setAllModels([
+            {
+              provider: 'google',
+              id: 'gemini-2.5-flash',
+              name: 'Gemini 2.5 Flash',
+              reasoning: false,
+              toolCall: true,
+              inputModalities: ['text'],
+              outputModalities: ['text'],
+              contextWindow: 1048576,
+            },
+            {
+              provider: 'google',
+              id: 'gemini-3.1-flash-lite',
+              name: 'Gemini 3.1 Flash Lite',
+              reasoning: false,
+              toolCall: true,
+              inputModalities: ['text'],
+              outputModalities: ['text'],
+              contextWindow: 1048576,
+            },
+            {
+              provider: 'anthropic',
+              id: 'claude-3-7-sonnet',
+              name: 'Claude 3.7 Sonnet',
+              reasoning: true,
+              toolCall: true,
+              inputModalities: ['text'],
+              outputModalities: ['text'],
+              contextWindow: 200000,
+            },
+            {
+              provider: 'openai',
+              id: 'gpt-4o',
+              name: 'GPT-4o',
+              reasoning: false,
+              toolCall: true,
+              inputModalities: ['text'],
+              outputModalities: ['text'],
+              contextWindow: 128000,
+            },
+          ]);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const [savedThreads, setSavedThreads] = useState<readonly ThreadSummary[]>([]);
+  const threadDocRef = useRef<ThreadDocument | null>(null);
+
+  const refreshSavedThreads = async () => {
+    try {
+      const list = await threadStore.list();
+      setSavedThreads(list);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    refreshSavedThreads();
+  }, []);
+
+  const app = useApp();
+
+  const exitApp = async () => {
+    if (threadDocRef.current && threadDocRef.current.messages.length > 0) {
+      try {
+        await threadStore.save(threadDocRef.current);
+      } catch {
+        // ignore
+      }
+    }
+    app.exit();
+  };
+
+  // Dialog State
+  const [activeDialog, setActiveDialog] = useState<ActiveDialogType>(null);
+  const [dialogSelectedIndex, setDialogSelectedIndex] = useState(0);
+
   const [inputText, setInputText] = useState('');
   const [cursorPos, setCursorPos] = useState(0);
 
@@ -140,9 +254,7 @@ export function App({ settings }: AppProps = {}) {
   const cursorPosRef = useRef(cursorPos);
   cursorPosRef.current = cursorPos;
 
-  const app = useApp();
   const spinnerChar = useSpinner(state.status === 'running');
-  const autocomplete = useCommandAutocomplete(inputText);
   const historyNav = useHistoryNavigation();
 
   // Active tools
@@ -161,6 +273,68 @@ export function App({ settings }: AppProps = {}) {
   const runnerRef = useRef<AgentRunner>(new AgentRunner());
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Compute effective dialog
+  const isInputStartingSlash = inputText.startsWith('/') && state.status !== 'running';
+  const effectiveDialogType: ActiveDialogType =
+    activeDialog ?? (isInputStartingSlash ? 'commands' : null);
+
+  // Compute search/filter query
+  const filterQuery = (
+    effectiveDialogType === 'commands' && inputText.startsWith('/') ? inputText.slice(1) : inputText
+  )
+    .trim()
+    .toLowerCase();
+
+  // Filter dialog items
+  const filteredCommands = useMemo(() => {
+    if (!filterQuery) return BUILTIN_COMMANDS;
+    return BUILTIN_COMMANDS.filter(
+      (cmd) =>
+        cmd.name.toLowerCase().includes(filterQuery) ||
+        (cmd.aliases && cmd.aliases.some((a) => a.toLowerCase().includes(filterQuery))),
+    );
+  }, [filterQuery]);
+
+  const filteredModels = useMemo(() => {
+    if (!filterQuery) return allModels;
+    return allModels.filter(
+      (m) =>
+        m.id.toLowerCase().includes(filterQuery) ||
+        m.provider.toLowerCase().includes(filterQuery) ||
+        m.name.toLowerCase().includes(filterQuery),
+    );
+  }, [allModels, filterQuery]);
+
+  const filteredEfforts = useMemo(() => {
+    if (!filterQuery) return EFFORT_OPTIONS;
+    return EFFORT_OPTIONS.filter((e) => e.level.toLowerCase().includes(filterQuery));
+  }, [filterQuery]);
+
+  const filteredThemes = useMemo(() => {
+    if (!filterQuery) return THEME_OPTIONS;
+    return THEME_OPTIONS.filter((t) => t.name.toLowerCase().includes(filterQuery));
+  }, [filterQuery]);
+
+  const filteredThreads = useMemo(() => {
+    if (!filterQuery) return savedThreads;
+    return savedThreads.filter(
+      (t) =>
+        t.title.toLowerCase().includes(filterQuery) ||
+        t.id.toLowerCase().includes(filterQuery) ||
+        t.model.modelId.toLowerCase().includes(filterQuery),
+    );
+  }, [savedThreads, filterQuery]);
+
+  // Current dialog count
+  let currentDialogCount = 0;
+  if (effectiveDialogType === 'commands') currentDialogCount = filteredCommands.length;
+  else if (effectiveDialogType === 'model') currentDialogCount = filteredModels.length;
+  else if (effectiveDialogType === 'effort') currentDialogCount = filteredEfforts.length;
+  else if (effectiveDialogType === 'theme') currentDialogCount = filteredThemes.length;
+  else if (effectiveDialogType === 'resume') currentDialogCount = filteredThreads.length;
+
+  const safeSelectedIndex = Math.min(dialogSelectedIndex, Math.max(0, currentDialogCount - 1));
+
   const executePrompt = async (promptToRun: string) => {
     const trimmed = promptToRun.trim();
     if (!trimmed || state.status === 'running') return;
@@ -172,95 +346,86 @@ export function App({ settings }: AppProps = {}) {
       const commandArg = parts.slice(1).join(' ').trim();
 
       if (commandName === 'exit' || commandName === 'quit' || commandName === 'q') {
-        app.exit();
+        await exitApp();
         return;
       }
-      if (commandName === 'clear') {
-        dispatch({ type: 'CLEAR_HISTORY' });
+      if (commandName === 'new' || commandName === 'clear' || commandName === 'reset') {
+        if (threadDocRef.current && threadDocRef.current.messages.length > 0) {
+          await threadStore.save(threadDocRef.current).catch(() => {});
+        }
+        threadDocRef.current = null;
+        dispatch({ type: 'NEW_SESSION' });
+        setActiveDialog(null);
         setInputText('');
         setCursorPos(0);
+        refreshSavedThreads();
         return;
       }
       if (commandName === 'theme') {
-        const targetThemeName =
-          commandArg || (state.theme.name === 'default' ? 'github' : 'default');
-        const nextTheme = themeManager.getTheme(targetThemeName);
-        themeManager.setTheme(targetThemeName);
-        dispatch({ type: 'SET_THEME', theme: nextTheme });
+        if (commandArg) {
+          const nextTheme = themeManager.getTheme(commandArg);
+          themeManager.setTheme(commandArg);
+          dispatch({ type: 'SET_THEME', theme: nextTheme });
+          setInputText('');
+          setCursorPos(0);
+          return;
+        }
+        setActiveDialog('theme');
+        setDialogSelectedIndex(0);
         setInputText('');
         setCursorPos(0);
         return;
       }
       if (commandName === 'model') {
-        if (!commandArg) {
-          const info = `Current model: **${state.modelRef.provider}/${state.modelRef.modelId}**`;
-          dispatch({
-            type: 'START_TURN',
-            turn: {
-              id: `cmd-${Date.now()}`,
-              userPrompt: trimmed,
-              userTimestamp: new Date().toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
-              reasoning: '',
-              text: info,
-              toolCalls: [],
-              status: 'finished',
-            },
-          });
+        if (commandArg) {
+          const nextModel = parseModel(commandArg, state.modelRef.provider, state.modelRef.modelId);
+          dispatch({ type: 'SET_MODEL', modelRef: nextModel });
           setInputText('');
           setCursorPos(0);
           return;
         }
-        const nextModel = parseModel(commandArg, state.modelRef.provider, state.modelRef.modelId);
-        dispatch({ type: 'SET_MODEL', modelRef: nextModel });
+        setActiveDialog('model');
+        setDialogSelectedIndex(0);
         setInputText('');
         setCursorPos(0);
         return;
       }
       if (commandName === 'effort') {
-        if (!commandArg) {
-          const info = `Current reasoning effort: **${state.reasoningEffort}**\nAllowed: \`${VALID_REASONING_EFFORTS.join(', ')}\``;
-          dispatch({
-            type: 'START_TURN',
-            turn: {
-              id: `cmd-${Date.now()}`,
-              userPrompt: trimmed,
-              userTimestamp: new Date().toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
-              reasoning: '',
-              text: info,
-              toolCalls: [],
-              status: 'finished',
-            },
-          });
+        if (commandArg) {
+          try {
+            const nextEffort = parseEffort(commandArg, state.reasoningEffort);
+            dispatch({ type: 'SET_EFFORT', effort: nextEffort });
+          } catch (err: any) {
+            dispatch({
+              type: 'START_TURN',
+              turn: {
+                id: `cmd-${Date.now()}`,
+                userPrompt: trimmed,
+                userTimestamp: new Date().toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+                reasoning: '',
+                text: `Error: ${err?.message || err}`,
+                toolCalls: [],
+                status: 'error',
+              },
+            });
+          }
           setInputText('');
           setCursorPos(0);
           return;
         }
-        try {
-          const nextEffort = parseEffort(commandArg, state.reasoningEffort);
-          dispatch({ type: 'SET_EFFORT', effort: nextEffort });
-        } catch (err: any) {
-          dispatch({
-            type: 'START_TURN',
-            turn: {
-              id: `cmd-${Date.now()}`,
-              userPrompt: trimmed,
-              userTimestamp: new Date().toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
-              reasoning: '',
-              text: `Error: ${err?.message || err}`,
-              toolCalls: [],
-              status: 'error',
-            },
-          });
-        }
+        setActiveDialog('effort');
+        setDialogSelectedIndex(0);
+        setInputText('');
+        setCursorPos(0);
+        return;
+      }
+      if (commandName === 'resume') {
+        await refreshSavedThreads();
+        setActiveDialog('resume');
+        setDialogSelectedIndex(0);
         setInputText('');
         setCursorPos(0);
         return;
@@ -296,12 +461,32 @@ export function App({ settings }: AppProps = {}) {
         setCursorPos(0);
         return;
       }
+      if (commandName === 'compact') {
+        dispatch({
+          type: 'START_TURN',
+          turn: {
+            id: `cmd-${Date.now()}`,
+            userPrompt: trimmed,
+            userTimestamp: new Date().toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            reasoning: '',
+            text: 'Context compacted.',
+            toolCalls: [],
+            status: 'finished',
+          },
+        });
+        setInputText('');
+        setCursorPos(0);
+        return;
+      }
     }
 
     historyNav.pushToHistory(trimmed);
     setInputText('');
     setCursorPos(0);
-    autocomplete.reset();
+    setActiveDialog(null);
 
     const turnId = `turn-${Date.now()}`;
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -398,6 +583,39 @@ export function App({ settings }: AppProps = {}) {
 
       const finalResult = await stream.next();
       dispatch({ type: 'FINISH_TURN', usage: finalResult.value?.usage });
+
+      if (finalResult.value) {
+        if (!threadDocRef.current) {
+          threadDocRef.current = threadStore.create({
+            model: {
+              provider: state.modelRef.provider,
+              modelId: state.modelRef.modelId,
+              reasoning: state.reasoningEffort,
+            },
+            cwd: state.cwd,
+            messages: [],
+          });
+        }
+
+        threadDocRef.current.messages.push({ role: 'user', content: trimmed });
+        if (finalResult.value.responseMessages && finalResult.value.responseMessages.length > 0) {
+          threadDocRef.current.messages.push(...finalResult.value.responseMessages);
+        }
+
+        if (finalResult.value.usage) {
+          threadDocRef.current.usage.inputTokens += finalResult.value.usage.inputTokens;
+          threadDocRef.current.usage.outputTokens += finalResult.value.usage.outputTokens;
+          threadDocRef.current.usage.totalTokens += finalResult.value.usage.totalTokens;
+          if (finalResult.value.usage.reasoningTokens) {
+            threadDocRef.current.usage.reasoningTokens =
+              (threadDocRef.current.usage.reasoningTokens || 0) +
+              finalResult.value.usage.reasoningTokens;
+          }
+        }
+
+        await threadStore.save(threadDocRef.current);
+        refreshSavedThreads();
+      }
     } catch (err: any) {
       if (abortControllerRef.current?.signal.aborted) {
         dispatch({ type: 'ABORT_TURN' });
@@ -418,7 +636,7 @@ export function App({ settings }: AppProps = {}) {
           dispatch({ type: 'ABORT_TURN' });
           return true;
         }
-        app.exit();
+        exitApp();
         return true;
       }
 
@@ -428,43 +646,203 @@ export function App({ settings }: AppProps = {}) {
         return true;
       }
 
+      // Command palette trigger (Ctrl+P)
+      if (ev.key.ctrl && ev.key.name === 'p') {
+        if (effectiveDialogType === 'commands') {
+          setActiveDialog(null);
+          setInputText('');
+          setCursorPos(0);
+        } else {
+          setActiveDialog('commands');
+          setDialogSelectedIndex(0);
+          setInputText('');
+          setCursorPos(0);
+        }
+        return true;
+      }
+
+      // Escape key: dismiss dialog or abort run
       if (ev.key.name === 'escape') {
         if (state.status === 'running') {
           abortControllerRef.current?.abort();
           dispatch({ type: 'ABORT_TURN' });
           return true;
         }
-        if (autocomplete.isOpen) {
-          autocomplete.reset();
+        if (effectiveDialogType !== null) {
+          setActiveDialog(null);
+          setInputText('');
+          setCursorPos(0);
+          setDialogSelectedIndex(0);
           return true;
         }
       }
 
-      // 2. Autocomplete Navigation
-      if (autocomplete.isOpen) {
+      // 2. Dialog Up/Down Arrow Navigation
+      if (effectiveDialogType !== null) {
         if (ev.key.upArrow) {
-          autocomplete.selectPrev();
+          if (currentDialogCount > 0) {
+            setDialogSelectedIndex((prev) => (prev - 1 + currentDialogCount) % currentDialogCount);
+          }
           return true;
         }
         if (ev.key.downArrow) {
-          autocomplete.selectNext();
-          return true;
-        }
-        if (ev.key.tab || (ev.key.return && autocomplete.matchedCommands.length > 0)) {
-          const selected = autocomplete.getSelectedCommand();
-          if (selected) {
-            const completed = `/${selected.name} `;
-            inputTextRef.current = completed;
-            cursorPosRef.current = completed.length;
-            setInputText(completed);
-            setCursorPos(completed.length);
-            return true;
+          if (currentDialogCount > 0) {
+            setDialogSelectedIndex((prev) => (prev + 1) % currentDialogCount);
           }
+          return true;
         }
       }
 
-      // 3. History Navigation
-      if (inputText.length === 0 && !state.activeTurn) {
+      // 3. Autocomplete Tab confirmation in commands dialog
+      if (ev.key.tab && effectiveDialogType === 'commands') {
+        const selected = filteredCommands[safeSelectedIndex];
+        if (selected) {
+          const completed = `/${selected.name} `;
+          inputTextRef.current = completed;
+          cursorPosRef.current = completed.length;
+          setInputText(completed);
+          setCursorPos(completed.length);
+          return true;
+        }
+      }
+
+      // 4. Return / Confirm Selection in Dialog or Submit Prompt
+      if (ev.key.return) {
+        if (effectiveDialogType === 'commands') {
+          const selected = filteredCommands[safeSelectedIndex];
+          if (selected) {
+            if (selected.name === 'new' || selected.name === 'clear' || selected.name === 'reset') {
+              if (threadDocRef.current && threadDocRef.current.messages.length > 0) {
+                threadStore.save(threadDocRef.current).catch(() => {});
+              }
+              threadDocRef.current = null;
+              dispatch({ type: 'NEW_SESSION' });
+              setActiveDialog(null);
+              setInputText('');
+              setCursorPos(0);
+              refreshSavedThreads();
+              return true;
+            }
+            if (selected.name === 'model') {
+              setActiveDialog('model');
+              setDialogSelectedIndex(0);
+              setInputText('');
+              setCursorPos(0);
+              return true;
+            }
+            if (selected.name === 'effort') {
+              setActiveDialog('effort');
+              setDialogSelectedIndex(0);
+              setInputText('');
+              setCursorPos(0);
+              return true;
+            }
+            if (selected.name === 'theme') {
+              setActiveDialog('theme');
+              setDialogSelectedIndex(0);
+              setInputText('');
+              setCursorPos(0);
+              return true;
+            }
+            if (selected.name === 'resume') {
+              refreshSavedThreads().then(() => {
+                setActiveDialog('resume');
+                setDialogSelectedIndex(0);
+                setInputText('');
+                setCursorPos(0);
+              });
+              return true;
+            }
+            if (selected.name === 'exit' || selected.name === 'quit' || selected.name === 'q') {
+              exitApp();
+              return true;
+            }
+            if (selected.name === 'settings' || selected.name === 'config') {
+              executePrompt('/settings');
+              setActiveDialog(null);
+              setInputText('');
+              setCursorPos(0);
+              return true;
+            }
+            if (selected.name === 'compact') {
+              executePrompt('/compact');
+              setActiveDialog(null);
+              setInputText('');
+              setCursorPos(0);
+              return true;
+            }
+          }
+        }
+
+        if (effectiveDialogType === 'model') {
+          const selected = filteredModels[safeSelectedIndex];
+          if (selected) {
+            dispatch({
+              type: 'SET_MODEL',
+              modelRef: { provider: selected.provider, modelId: selected.id },
+            });
+          }
+          setActiveDialog(null);
+          setInputText('');
+          setCursorPos(0);
+          return true;
+        }
+
+        if (effectiveDialogType === 'effort') {
+          const selected = filteredEfforts[safeSelectedIndex];
+          if (selected) {
+            dispatch({ type: 'SET_EFFORT', effort: selected.level });
+          }
+          setActiveDialog(null);
+          setInputText('');
+          setCursorPos(0);
+          return true;
+        }
+
+        if (effectiveDialogType === 'theme') {
+          const selected = filteredThemes[safeSelectedIndex];
+          if (selected) {
+            const nextTheme = themeManager.getTheme(selected.name);
+            themeManager.setTheme(selected.name);
+            dispatch({ type: 'SET_THEME', theme: nextTheme });
+          }
+          setActiveDialog(null);
+          setInputText('');
+          setCursorPos(0);
+          return true;
+        }
+
+        if (effectiveDialogType === 'resume') {
+          const selected = filteredThreads[safeSelectedIndex];
+          if (selected) {
+            threadStore.load(selected.id).then((doc) => {
+              if (doc) {
+                threadDocRef.current = doc;
+                const turns = reconstructTurnsFromMessages(doc.messages);
+                dispatch({
+                  type: 'LOAD_THREAD',
+                  history: turns,
+                  modelRef: doc.model,
+                  metrics: doc.usage,
+                  threadDoc: doc,
+                });
+              }
+            });
+          }
+          setActiveDialog(null);
+          setInputText('');
+          setCursorPos(0);
+          return true;
+        }
+
+        // Standard prompt submit
+        const textToSubmit = inputTextRef.current;
+        executePrompt(textToSubmit);
+        return true;
+      }
+
+      // 5. History Navigation (when not in a dialog and input is empty)
+      if (effectiveDialogType === null && inputText.length === 0 && !state.activeTurn) {
         if (ev.key.upArrow) {
           const prev = historyNav.navigateUp(inputTextRef.current);
           if (prev !== null) {
@@ -487,7 +865,7 @@ export function App({ settings }: AppProps = {}) {
         }
       }
 
-      // 4. Cursor Left/Right
+      // 6. Cursor Left/Right
       if (ev.key.leftArrow) {
         if (cursorPosRef.current > 0) {
           const next = cursorPosRef.current - 1;
@@ -506,7 +884,7 @@ export function App({ settings }: AppProps = {}) {
         return true;
       }
 
-      // 5. Backspace / Delete
+      // 7. Backspace / Delete
       if (ev.key.backspace || ev.key.delete) {
         if (cursorPosRef.current > 0) {
           const pos = cursorPosRef.current;
@@ -518,18 +896,14 @@ export function App({ settings }: AppProps = {}) {
           cursorPosRef.current = nextPos;
           setInputText(updated);
           setCursorPos(nextPos);
+          setDialogSelectedIndex(0);
+        } else if (activeDialog !== null) {
+          setActiveDialog(null);
         }
         return true;
       }
 
-      // 6. Return / Submit
-      if (ev.key.return) {
-        const textToSubmit = inputTextRef.current;
-        executePrompt(textToSubmit);
-        return true;
-      }
-
-      // 7. Regular Typing
+      // 8. Regular Typing
       if (ev.input) {
         const pos = cursorPosRef.current;
         const current = inputTextRef.current;
@@ -540,11 +914,12 @@ export function App({ settings }: AppProps = {}) {
         cursorPosRef.current = nextPos;
         setInputText(updated);
         setCursorPos(nextPos);
+        setDialogSelectedIndex(0);
         return true;
       }
     }
 
-    // 8. Bracketed Paste Handling
+    // 9. Bracketed Paste Handling
     if (ev.type === 'paste' && ev.text) {
       const sanitized = ev.text.replace(/\r\n|\r|\n/g, ' ');
       const pos = cursorPosRef.current;
@@ -556,11 +931,26 @@ export function App({ settings }: AppProps = {}) {
       cursorPosRef.current = nextPos;
       setInputText(updated);
       setCursorPos(nextPos);
+      setDialogSelectedIndex(0);
       return true;
     }
   });
 
   const hasStarted = state.history.length > 0 || state.activeTurn !== null;
+
+  // Placeholder text for PromptInput depending on dialog
+  let inputPlaceholder: string | undefined;
+  if (effectiveDialogType === 'commands') {
+    inputPlaceholder = 'Filter commands...';
+  } else if (effectiveDialogType === 'model') {
+    inputPlaceholder = 'Filter models (e.g. gemini, claude, gpt)...';
+  } else if (effectiveDialogType === 'effort') {
+    inputPlaceholder = 'Select reasoning effort (none, low, medium, high, max)...';
+  } else if (effectiveDialogType === 'theme') {
+    inputPlaceholder = 'Select visual theme (default, github)...';
+  } else if (effectiveDialogType === 'resume') {
+    inputPlaceholder = 'Filter saved threads...';
+  }
 
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1} width="100%">
@@ -600,11 +990,44 @@ export function App({ settings }: AppProps = {}) {
         </Box>
       )}
 
-      {/* 4. Autocomplete Popup */}
-      {autocomplete.isOpen && (
-        <AutocompletePopup
-          commands={autocomplete.matchedCommands}
-          selectedIndex={autocomplete.selectedIndex}
+      {/* 4. Active Dialog Panel Floating Above Input */}
+      {effectiveDialogType === 'commands' && (
+        <CommandPaletteDialog
+          commands={filteredCommands}
+          selectedIndex={safeSelectedIndex}
+          theme={state.theme}
+        />
+      )}
+
+      {effectiveDialogType === 'model' && (
+        <ModelDialog
+          models={filteredModels}
+          selectedIndex={safeSelectedIndex}
+          currentModelId={state.modelRef.modelId}
+          theme={state.theme}
+        />
+      )}
+
+      {effectiveDialogType === 'effort' && (
+        <EffortDialog
+          currentEffort={state.reasoningEffort}
+          selectedIndex={safeSelectedIndex}
+          theme={state.theme}
+        />
+      )}
+
+      {effectiveDialogType === 'theme' && (
+        <ThemeDialog
+          currentThemeName={state.theme.name}
+          selectedIndex={safeSelectedIndex}
+          theme={state.theme}
+        />
+      )}
+
+      {effectiveDialogType === 'resume' && (
+        <ResumeDialog
+          threads={filteredThreads}
+          selectedIndex={safeSelectedIndex}
           theme={state.theme}
         />
       )}
@@ -617,6 +1040,7 @@ export function App({ settings }: AppProps = {}) {
         reasoningEffort={state.reasoningEffort}
         isRunning={state.status === 'running'}
         theme={state.theme}
+        placeholder={inputPlaceholder}
       />
 
       {/* 6. Footer Status Bar */}
