@@ -14,22 +14,15 @@ export class CopilotProvider implements ModelProvider {
   }
 
   async resolveModel(ref: ModelRef, options?: ResolveModelOptions): Promise<LanguageModel> {
-    let token = options?.apiKey;
+    // 1. Prioritize stored OAuth token from @steward/oauth, fallback to options.apiKey
+    const storedToken = await getToken('github-copilot', options?.signal);
+    const token = storedToken || options?.apiKey;
 
-    if (!token) {
-      const storedToken = await getToken('github-copilot', options?.signal);
-      if (storedToken) {
-        token = storedToken;
-      }
-    }
-
-    let baseURL = 'https://api.individual.githubcopilot.com';
-    if (token && token.includes('proxy-ep=')) {
-      const match = token.match(/proxy-ep=([^;]+)/);
-      if (match?.[1]) {
-        baseURL = `https://${match[1]}`;
-      }
-    }
+    const baseURL =
+      options?.baseURL ||
+      process.env.COPILOT_BASE_URL ||
+      process.env.GITHUB_COPILOT_BASE_URL ||
+      'https://api.individual.githubcopilot.com';
 
     const copilot = createOpenAICompatible({
       name: 'github-copilot',
@@ -40,6 +33,9 @@ export class CopilotProvider implements ModelProvider {
         'Editor-Version': 'vscode/1.107.0',
         'Editor-Plugin-Version': 'copilot-chat/0.35.0',
         'Copilot-Integration-Id': 'vscode-chat',
+        'Openai-Organization': 'github-copilot',
+        'Openai-Intent': 'conversation-panel',
+        'X-Github-Api-Version': '2023-07-07',
       },
     });
 

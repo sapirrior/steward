@@ -120,10 +120,10 @@ export class AgentRunner {
 
     const maxSteps = options.maxSteps ?? 50;
 
-    // Normalizing reasoning option for AI SDK v7
+    // Normalizing reasoning option for AI SDK v7 - omit if 'none' or not specified
     const reasoningSetting =
-      options.reasoning === 'none'
-        ? 'none'
+      !options.reasoning || options.reasoning === 'none'
+        ? undefined
         : typeof options.reasoning === 'string'
           ? (options.reasoning as any)
           : undefined;

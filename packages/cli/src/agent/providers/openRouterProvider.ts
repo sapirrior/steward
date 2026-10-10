@@ -13,14 +13,9 @@ export class OpenRouterProvider implements ModelProvider {
   }
 
   async resolveModel(ref: ModelRef, options?: ResolveModelOptions): Promise<LanguageModel> {
-    let apiKey = options?.apiKey || process.env.OPENROUTER_API_KEY;
-
-    if (!apiKey) {
-      const storedToken = await getToken('openrouter', options?.signal);
-      if (storedToken) {
-        apiKey = storedToken;
-      }
-    }
+    // 1. Prioritize stored OAuth token from @steward/oauth, fallback to options.apiKey or env var
+    const storedToken = await getToken('openrouter', options?.signal);
+    const apiKey = storedToken || options?.apiKey || process.env.OPENROUTER_API_KEY;
 
     const openrouter = createOpenAICompatible({
       name: 'openrouter',
