@@ -2,7 +2,7 @@ import { streamText, isStepCount, type LanguageModel } from 'ai';
 import type { ModelMessage, ThreadUsage } from '@steward/threads';
 import { ProviderRegistry } from './providers/ProviderRegistry.js';
 import { adaptTools } from './tools/toolAdapter.js';
-import { executeWithRetry } from './retry/RetryEngine.js';
+import { calculateRetryDelay, DEFAULT_RETRY_POLICY, type RetryPolicy } from './retry/index.js';
 import { normalizeAgentError } from './errors/errorNormalizer.js';
 import { AgentError } from './errors/AgentError.js';
 import type {
@@ -17,6 +17,9 @@ import type {
   AgentFinishEvent,
   AgentErrorEvent,
 } from './types.js';
+
+// Suppress AI SDK internal console warnings globally
+(globalThis as any).AI_SDK_LOG_WARNINGS = false;
 
 export class AgentRunner {
   private readonly registry: ProviderRegistry;
@@ -125,9 +128,32 @@ export class AgentRunner {
           ? (options.reasoning as any)
           : undefined;
 
-    try {
-      const runnerFn = async (_attempt: number) => {
-        return streamText({
+    const policy: RetryPolicy = {
+      ...DEFAULT_RETRY_POLICY,
+      ...options.retry,
+    };
+
+    let attempt = 1;
+
+    while (true) {
+      if (options.signal?.aborted) {
+        const normErr = new AgentError({
+          code: 'ABORTED',
+          message: 'Operation canceled by user.',
+          retryable: false,
+        });
+        const errEvent: AgentErrorEvent = { type: 'error', error: normErr };
+        yield emit(errEvent);
+        return {
+          responseMessages: [],
+          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+          finishReason: 'aborted',
+          error: normErr,
+        };
+      }
+
+      try {
+        const resultStream = streamText({
           model: resolvedModel,
           instructions,
           messages: options.messages as any,
@@ -135,150 +161,192 @@ export class AgentRunner {
           stopWhen: isStepCount(maxSteps),
           reasoning: reasoningSetting,
           abortSignal: options.signal,
+          onError: (_error) => {
+            // Handled via stream parts
+          },
         });
-      };
 
-      const resultStream = await executeWithRetry({
-        fn: runnerFn,
-        policy: options.retry,
-        modelRef: effectiveModelRef,
-        signal: options.signal,
-        onRetry: (retryEvent) => {
-          onEvent?.(retryEvent);
-        },
-      });
+        let currentStepIndex = 1;
+        let finalFinishReason: AgentFinishReason = 'stop';
 
-      let currentStepIndex = 1;
-      let finalFinishReason: AgentFinishReason = 'stop';
-
-      // Stream each part from the active streamText result
-      for await (const part of resultStream.stream) {
-        if (options.signal?.aborted) {
-          throw new AgentError({
-            code: 'ABORTED',
-            message: 'Operation canceled by user.',
-            retryable: false,
-          });
-        }
-
-        switch (part.type) {
-          case 'start-step': {
-            const startEvent: AgentStepStartEvent = {
-              type: 'step-start',
-              stepIndex: currentStepIndex,
-              timestamp: Date.now(),
-            };
-            yield emit(startEvent);
-            break;
-          }
-
-          case 'reasoning-delta': {
-            const reasoningEvent: AgentReasoningDeltaEvent = {
-              type: 'reasoning-delta',
-              text: (part as { text?: string }).text || '',
-            };
-            yield emit(reasoningEvent);
-            break;
-          }
-
-          case 'text-delta': {
-            const textEvent: AgentTextDeltaEvent = {
-              type: 'text-delta',
-              text: (part as { text?: string }).text || '',
-            };
-            yield emit(textEvent);
-            break;
-          }
-
-          case 'finish-step': {
-            const stepUsage = (part as any).usage
-              ? {
-                  inputTokens: (part as any).usage.inputTokens ?? 0,
-                  outputTokens: (part as any).usage.outputTokens ?? 0,
-                  totalTokens: (part as any).usage.totalTokens ?? 0,
-                  reasoningTokens: (part as any).usage.outputTokenDetails?.reasoningTokens,
-                  cacheReadTokens: (part as any).usage.inputTokenDetails?.cacheReadTokens,
-                  cacheWriteTokens: (part as any).usage.inputTokenDetails?.cacheWriteTokens,
-                }
-              : undefined;
-
-            const endEvent: AgentStepEndEvent = {
-              type: 'step-end',
-              stepIndex: currentStepIndex,
-              usage: stepUsage,
-            };
-            yield emit(endEvent);
-            currentStepIndex++;
-            break;
-          }
-
-          case 'finish': {
-            const reason = (part as { finishReason?: string }).finishReason;
-            if (reason === 'tool-calls') {
-              finalFinishReason = 'tool-calls';
-            } else if (currentStepIndex > maxSteps) {
-              finalFinishReason = 'max-steps';
-            } else {
-              finalFinishReason = 'stop';
-            }
-            break;
-          }
-
-          case 'error': {
-            const norm = normalizeAgentError((part as { error?: unknown }).error, {
-              modelRef: effectiveModelRef,
-              signal: options.signal,
+        // Stream each part from the active streamText result
+        for await (const part of resultStream.stream) {
+          if (options.signal?.aborted) {
+            throw new AgentError({
+              code: 'ABORTED',
+              message: 'Operation canceled by user.',
+              retryable: false,
             });
-            const errEv: AgentErrorEvent = { type: 'error', error: norm };
-            yield emit(errEv);
-            break;
+          }
+
+          switch (part.type) {
+            case 'start-step': {
+              const startEvent: AgentStepStartEvent = {
+                type: 'step-start',
+                stepIndex: currentStepIndex,
+                timestamp: Date.now(),
+              };
+              yield emit(startEvent);
+              break;
+            }
+
+            case 'reasoning-delta': {
+              const reasoningEvent: AgentReasoningDeltaEvent = {
+                type: 'reasoning-delta',
+                text: (part as { text?: string }).text || '',
+              };
+              yield emit(reasoningEvent);
+              break;
+            }
+
+            case 'text-delta': {
+              const textEvent: AgentTextDeltaEvent = {
+                type: 'text-delta',
+                text: (part as { text?: string }).text || '',
+              };
+              yield emit(textEvent);
+              break;
+            }
+
+            case 'finish-step': {
+              const stepUsage = (part as any).usage
+                ? {
+                    inputTokens: (part as any).usage.inputTokens ?? 0,
+                    outputTokens: (part as any).usage.outputTokens ?? 0,
+                    totalTokens: (part as any).usage.totalTokens ?? 0,
+                    reasoningTokens: (part as any).usage.outputTokenDetails?.reasoningTokens,
+                    cacheReadTokens: (part as any).usage.inputTokenDetails?.cacheReadTokens,
+                    cacheWriteTokens: (part as any).usage.inputTokenDetails?.cacheWriteTokens,
+                  }
+                : undefined;
+
+              const endEvent: AgentStepEndEvent = {
+                type: 'step-end',
+                stepIndex: currentStepIndex,
+                usage: stepUsage,
+              };
+              yield emit(endEvent);
+              currentStepIndex++;
+              break;
+            }
+
+            case 'finish': {
+              const reason = (part as { finishReason?: string }).finishReason;
+              if (reason === 'tool-calls') {
+                finalFinishReason = 'tool-calls';
+              } else if (currentStepIndex > maxSteps) {
+                finalFinishReason = 'max-steps';
+              } else {
+                finalFinishReason = 'stop';
+              }
+              break;
+            }
+
+            case 'error': {
+              const norm = normalizeAgentError((part as { error?: unknown }).error, {
+                modelRef: effectiveModelRef,
+                signal: options.signal,
+              });
+              throw norm;
+            }
           }
         }
+
+        const [responseMessages, rawUsage] = await Promise.all([
+          resultStream.responseMessages,
+          resultStream.usage,
+        ]);
+
+        const usage: ThreadUsage = {
+          inputTokens: rawUsage.inputTokens ?? 0,
+          outputTokens: rawUsage.outputTokens ?? 0,
+          totalTokens: rawUsage.totalTokens ?? 0,
+          reasoningTokens: rawUsage.outputTokenDetails?.reasoningTokens,
+          cacheReadTokens: rawUsage.inputTokenDetails?.cacheReadTokens,
+          cacheWriteTokens: rawUsage.inputTokenDetails?.cacheWriteTokens,
+        };
+
+        const finishEvent: AgentFinishEvent = {
+          type: 'finish',
+          responseMessages: responseMessages as ModelMessage[],
+          usage,
+          finishReason: finalFinishReason,
+        };
+
+        yield emit(finishEvent);
+
+        return {
+          responseMessages: responseMessages as ModelMessage[],
+          usage,
+          finishReason: finalFinishReason,
+        };
+      } catch (err: unknown) {
+        const normErr = normalizeAgentError(err, {
+          modelRef: effectiveModelRef,
+          signal: options.signal,
+        });
+
+        // If error is retryable and retry budget remains, yield retry event and sleep
+        if (normErr.retryable && attempt < policy.maxRetries && !options.signal?.aborted) {
+          const delayMs = calculateRetryDelay(attempt, policy, normErr.retryAfterMs);
+          const retryEvent: AgentRetryEvent = {
+            type: 'retry',
+            attempt,
+            maxRetries: policy.maxRetries,
+            delayMs,
+            error: normErr,
+          };
+          yield emit(retryEvent);
+
+          await new Promise<void>((resolve, reject) => {
+            if (options.signal?.aborted) {
+              return reject(
+                new AgentError({
+                  code: 'ABORTED',
+                  message: 'Operation canceled by user.',
+                  retryable: false,
+                }),
+              );
+            }
+
+            const timer = setTimeout(() => {
+              cleanup();
+              resolve();
+            }, delayMs);
+
+            const onAbort = () => {
+              clearTimeout(timer);
+              cleanup();
+              reject(
+                new AgentError({
+                  code: 'ABORTED',
+                  message: 'Operation canceled by user.',
+                  retryable: false,
+                }),
+              );
+            };
+
+            const cleanup = () => {
+              options.signal?.removeEventListener('abort', onAbort);
+            };
+
+            options.signal?.addEventListener('abort', onAbort, { once: true });
+          }).catch(() => {});
+
+          attempt++;
+          continue;
+        }
+
+        const errEvent: AgentErrorEvent = { type: 'error', error: normErr };
+        yield emit(errEvent);
+
+        return {
+          responseMessages: [],
+          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+          finishReason: normErr.code === 'ABORTED' ? 'aborted' : 'error',
+          error: normErr,
+        };
       }
-
-      const [responseMessages, rawUsage] = await Promise.all([
-        resultStream.responseMessages,
-        resultStream.usage,
-      ]);
-
-      const usage: ThreadUsage = {
-        inputTokens: rawUsage.inputTokens ?? 0,
-        outputTokens: rawUsage.outputTokens ?? 0,
-        totalTokens: rawUsage.totalTokens ?? 0,
-        reasoningTokens: rawUsage.outputTokenDetails?.reasoningTokens,
-        cacheReadTokens: rawUsage.inputTokenDetails?.cacheReadTokens,
-        cacheWriteTokens: rawUsage.inputTokenDetails?.cacheWriteTokens,
-      };
-
-      const finishEvent: AgentFinishEvent = {
-        type: 'finish',
-        responseMessages: responseMessages as ModelMessage[],
-        usage,
-        finishReason: finalFinishReason,
-      };
-
-      yield emit(finishEvent);
-
-      return {
-        responseMessages: responseMessages as ModelMessage[],
-        usage,
-        finishReason: finalFinishReason,
-      };
-    } catch (err: unknown) {
-      const normErr = normalizeAgentError(err, {
-        modelRef: effectiveModelRef,
-        signal: options.signal,
-      });
-
-      const errEvent: AgentErrorEvent = { type: 'error', error: normErr };
-      yield emit(errEvent);
-
-      return {
-        responseMessages: [],
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-        finishReason: normErr.code === 'ABORTED' ? 'aborted' : 'error',
-        error: normErr,
-      };
     }
   }
 }
