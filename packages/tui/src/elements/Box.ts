@@ -269,8 +269,21 @@ export function renderBoxElement(
     for (let i = 0; i < childBlocks.length; i++) {
       const block = childBlocks[i]!;
       for (const line of block.lines) {
-        innerLines.push(line);
-        contentWidth = Math.max(contentWidth, visibleWidth(line));
+        const lineW = visibleWidth(line);
+        let alignedLine = line;
+
+        if (alignItems === 'center') {
+          const totalPad = Math.max(0, availableInnerWidth - lineW);
+          const leftPad = Math.floor(totalPad / 2);
+          const rightPad = totalPad - leftPad;
+          alignedLine = ' '.repeat(leftPad) + line + ' '.repeat(rightPad);
+        } else if (alignItems === 'flex-end') {
+          const leftPad = Math.max(0, availableInnerWidth - lineW);
+          alignedLine = ' '.repeat(leftPad) + line;
+        }
+
+        innerLines.push(alignedLine);
+        contentWidth = Math.max(contentWidth, visibleWidth(alignedLine));
       }
       if (i < childBlocks.length - 1 && rowGap > 0) {
         for (let g = 0; g < rowGap; g++) {
