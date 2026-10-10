@@ -14,9 +14,11 @@ import { taskManager } from '../../services/basher/index.js';
 export const TaskManagerSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('list').describe('List all active and recently completed background tasks.'),
+    tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
   }),
   z.object({
     action: z.literal('read').describe('Read recent log output for a specific background task.'),
+    tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
     taskId: z.string().describe('The unique task ID (e.g. "task-8f1a23").'),
     lines: z
       .number()
@@ -28,11 +30,13 @@ export const TaskManagerSchema = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('send_input').describe('Send standard input text to a running background task.'),
+    tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
     taskId: z.string().describe('The unique task ID of the running task.'),
     input: z.string().describe('The text string to send to standard input (include newline if submitting a line).'),
   }),
   z.object({
     action: z.literal('kill').describe('Terminate a background task process tree immediately.'),
+    tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
     taskId: z.string().describe('The unique task ID of the task to terminate.'),
   }),
 ]);
@@ -83,8 +87,7 @@ export class TaskManagerTool extends Tool<TaskManagerInput, TaskManagerData> {
           const message = 'No background tasks found.';
           return this.success(
             message,
-            { action: 'list', summary: summaryBadge, tasks: [] },
-            summaryBadge
+            { action: 'list', summary: summaryBadge, tasks: [] }
           );
         }
 
@@ -109,8 +112,7 @@ export class TaskManagerTool extends Tool<TaskManagerInput, TaskManagerData> {
               endedAt: t.endedAt,
               exitCode: t.exitCode,
             })),
-          },
-          summaryBadge
+          }
         );
       }
 
@@ -141,8 +143,7 @@ export class TaskManagerTool extends Tool<TaskManagerInput, TaskManagerData> {
                 output: recentLines.join('\n'),
                 exitCode: taskData.exitCode,
               },
-            },
-            summaryBadge
+            }
           );
         } catch (err: any) {
           return this.error(err.message || `Failed to read task ${params.taskId}`);
@@ -160,8 +161,7 @@ export class TaskManagerTool extends Tool<TaskManagerInput, TaskManagerData> {
             {
               action: 'send_input',
               summary: summaryBadge,
-            },
-            summaryBadge
+            }
           );
         } catch (err: any) {
           return this.error(err.message || `Failed to send input to task ${params.taskId}`);
@@ -178,27 +178,12 @@ export class TaskManagerTool extends Tool<TaskManagerInput, TaskManagerData> {
             {
               action: 'kill',
               summary: summaryBadge,
-            },
-            summaryBadge
+            }
           );
         } catch (err: any) {
           return this.error(err.message || `Failed to terminate task ${params.taskId}`);
         }
       }
-    }
-  }
-
-  override formatBadge(params: TaskManagerInput, result?: ToolExecutionResult<TaskManagerData>): string {
-    if (result?.badge) return result.badge;
-    switch (params.action) {
-      case 'list':
-        return 'listing tasks';
-      case 'read':
-        return `read task ${params.taskId}`;
-      case 'send_input':
-        return `Send ${JSON.stringify(params.input)} to task ${params.taskId}`;
-      case 'kill':
-        return `killed task ${params.taskId}`;
     }
   }
 }

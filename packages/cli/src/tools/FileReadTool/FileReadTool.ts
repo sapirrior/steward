@@ -40,6 +40,11 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB safety cap
 // ─── Input & Result Schemas ───────────────────────────────────────────────────
 
 export const FileReadSchema = z.object({
+  tagline: z
+    .string()
+    .describe(
+      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Reading src/main.ts', 'Searching for test fixtures'. Used for status logging."
+    ),
   path: z.string().describe('The path to the file to read (relative or absolute).'),
   offset: z.number().int().min(1).optional().describe('1-based line number to start reading from (inclusive).'),
   limit: z.number().int().min(1).optional().describe('Maximum number of lines to read.'),
@@ -151,8 +156,6 @@ export class FileReadTool extends Tool<FileReadInput, FileReadData> {
       const formatted = this.formatLineNumberedContent(selectedLines, startLine);
       const displayPath = path.relative(context.cwd, resolvedPath) || resolvedPath;
 
-      const badge = `read: ${displayPath} (${selectedLines.length}/${totalLines} lines)`;
-
       return this.success(
         formatted,
         {
@@ -163,7 +166,6 @@ export class FileReadTool extends Tool<FileReadInput, FileReadData> {
           isTruncated,
           content: rawContent,
         },
-        badge,
         {
           totalLines,
           linesReturned: selectedLines.length,
@@ -173,10 +175,5 @@ export class FileReadTool extends Tool<FileReadInput, FileReadData> {
     } catch (err) {
       return this.error(`Failed to read file '${params.path}'`, err);
     }
-  }
-
-  override formatBadge(params: FileReadInput, result?: ToolExecutionResult<FileReadData>): string {
-    if (result?.badge) return result.badge;
-    return `read: ${params.path}`;
   }
 }

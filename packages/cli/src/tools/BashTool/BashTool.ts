@@ -23,6 +23,7 @@ const FOREGROUND_BLOCKING_BUDGET_MS = DEFAULT_BASH_FOREGROUND_BUDGET_MS; // 8s f
 
 export const BashSchema = z.object({
   command: z.string().describe('The shell command to execute in the system terminal.'),
+  tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
   timeout: z
     .number()
     .int()
@@ -98,7 +99,6 @@ export class BashTool extends Tool<BashInput, BashData> {
       execution.start({ handoffDeadlineMs: 0 }); // 0 means immediately background
 
       const message = `Command spawned in background [Task ID: ${execution.taskId}].\nLogs streaming to: ${execution.outputPath}\nUse task manager to monitor or manage this task.`;
-      const badge = `bash: [bg: ${execution.taskId}] ${params.command}`;
 
       return this.success(
         message,
@@ -114,7 +114,6 @@ export class BashTool extends Tool<BashInput, BashData> {
           taskId: execution.taskId,
           logPath: execution.outputPath,
         },
-        badge,
         {
           taskId: execution.taskId,
           isBackground: true,
@@ -161,8 +160,6 @@ export class BashTool extends Tool<BashInput, BashData> {
           `Recent output:\n${result.stdout.slice(-1000) || '(Running...)'}`,
         ].join('\n');
 
-        const badge = `bash: [moved to bg: ${result.taskId}] ${params.command} (${result.durationMs}ms)`;
-
         return this.success(
           message,
           {
@@ -178,7 +175,6 @@ export class BashTool extends Tool<BashInput, BashData> {
             taskId: result.taskId,
             logPath,
           },
-          badge,
           {
             taskId: result.taskId,
             autoBackgrounded: true,
@@ -200,14 +196,11 @@ export class BashTool extends Tool<BashInput, BashData> {
         finalOutput = '(No output produced)';
       }
 
-      const badge = `bash: ${params.command} [exit: ${result.exitCode ?? 1}] (${result.durationMs}ms)`;
-
       if (!isSuccess) {
         return {
           success: false,
           output: finalOutput,
           error: `Process exited with code ${result.exitCode}`,
-          badge,
           data: {
             command: params.command,
             exitCode: result.exitCode,
@@ -235,7 +228,6 @@ export class BashTool extends Tool<BashInput, BashData> {
           isBackground: false,
           killed: result.killed,
         },
-        badge,
         {
           exitCode: result.exitCode,
           durationMs: result.durationMs,
@@ -244,10 +236,5 @@ export class BashTool extends Tool<BashInput, BashData> {
     } catch (err) {
       return this.error(`Execution failed for '${params.command}'`, err);
     }
-  }
-
-  override formatBadge(params: BashInput, result?: ToolExecutionResult<BashData>): string {
-    if (result?.badge) return result.badge;
-    return `bash: ${params.command}`;
   }
 }

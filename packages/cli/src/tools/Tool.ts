@@ -2,11 +2,18 @@
  * @file Tool.ts
  * @description Abstract base class and contracts for all Steward CLI tools.
  * Provides declarative Zod schema validation, JSON schema serialization for LLMs,
- * progress streaming, badge formatting, and standardized execution context.
+ * progress streaming, and standardized execution context.
  */
 
 import { z } from 'zod';
-import type { ToolSpec, JsonSchema } from '@steward/agent';
+
+export type JsonSchema = Record<string, unknown>;
+
+export interface ToolSpec {
+  name: string;
+  description: string;
+  inputSchema: JsonSchema;
+}
 
 // ─── Progress & Context Contracts ─────────────────────────────────────────────
 
@@ -40,7 +47,6 @@ export interface ToolExecutionResult<TData = unknown> {
   success: boolean;
   data?: TData;
   output: string;
-  badge?: string;
   error?: string;
   metadata?: Record<string, unknown>;
 }
@@ -116,29 +122,17 @@ export abstract class Tool<TParams = Record<string, unknown>, TResult = unknown>
   abstract execute(params: TParams, context: ToolContext): Promise<ToolExecutionResult<TResult>>;
 
   /**
-   * Returns a concise single-line badge string for TUI subline status cards.
-   * Example: "read: src/main.ts (142 lines)" or "bash: bun test [exit: 0] (420ms)"
-   */
-  formatBadge(params: TParams, result?: ToolExecutionResult<TResult>): string {
-    const prefix = `${this.name}`;
-    if (!result) return prefix;
-    return result.success ? `${prefix} [ok]` : `${prefix} [error]`;
-  }
-
-  /**
    * Helper to construct a standardized successful execution result.
    */
   protected success(
     output: string,
     data?: TResult,
-    badge?: string,
     metadata?: Record<string, unknown>
   ): ToolExecutionResult<TResult> {
     return {
       success: true,
       output,
       data,
-      badge,
       metadata,
     };
   }
@@ -156,7 +150,6 @@ export abstract class Tool<TParams = Record<string, unknown>, TResult = unknown>
       success: false,
       output: `Error in ${this.name}: ${message}${errorObj ? ` (${errorDetails})` : ''}`,
       error: message,
-      badge: `${this.name} [failed]`,
       metadata,
     };
   }

@@ -43,7 +43,11 @@ describe('ToolRegistry', () => {
 
   it('routes and executes tools properly', async () => {
     const registry = new ToolRegistry();
-    const res = await registry.executeTool('glob', { pattern: '*.json' }, { cwd: process.cwd() });
+    const res = await registry.executeTool(
+      'glob',
+      { tagline: 'Finding json files', pattern: '*.json' },
+      { cwd: process.cwd() }
+    );
     expect(res.success).toBe(true);
   });
 

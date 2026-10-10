@@ -5,8 +5,7 @@
  * validated tool routing, and unified error boundary protection.
  */
 
-import type { ToolSpec } from '@steward/agent';
-import { Tool, type ToolContext, type ToolExecutionResult } from './Tool.js';
+import { Tool, type ToolContext, type ToolExecutionResult, type ToolSpec } from './Tool.js';
 import { FileReadTool } from './FileReadTool/index.js';
 import { GlobTool } from './GlobTool/index.js';
 import { GrepTool } from './GrepTool/index.js';
@@ -87,7 +86,6 @@ export class ToolRegistry {
         success: false,
         output: `Error: Unknown tool '${name}'. Available tools: ${Array.from(this.tools.keys()).join(', ')}`,
         error: `Tool '${name}' not found`,
-        badge: `${name} [not found]`,
       };
     }
 
@@ -99,23 +97,7 @@ export class ToolRegistry {
         success: false,
         output: `Error executing tool '${name}': ${err.message || String(err)}`,
         error: err.message || String(err),
-        badge: `${name} [error]`,
       };
-    }
-  }
-
-  /**
-   * Formats a badge for a given tool invocation.
-   */
-  public formatBadge(name: string, rawInput: unknown, result?: ToolExecutionResult): string {
-    const tool = this.tools.get(name);
-    if (!tool) return `${name}`;
-    try {
-      const parsed = tool.schema.safeParse(rawInput);
-      const params = parsed.success ? parsed.data : (rawInput as any);
-      return tool.formatBadge(params, result);
-    } catch {
-      return `${name}`;
     }
   }
 }

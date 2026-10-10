@@ -5,7 +5,7 @@ describe('WebFetchTool', () => {
   const tool = new WebFetchTool();
 
   it('rejects non-http/https URLs', async () => {
-    const res = await tool.execute({ url: 'file:///etc/passwd' }, { cwd: process.cwd() });
+    const res = await tool.execute({ url: 'file:///etc/passwd', tagline: 'Fetching forbidden file' }, { cwd: process.cwd() });
     expect(res.success).toBe(false);
     expect(res.output).toContain('Unsupported URL protocol');
   });
@@ -24,7 +24,7 @@ describe('WebFetchTool', () => {
     });
 
     try {
-      const res = await tool.execute({ url: 'https://example.com/test' }, { cwd: process.cwd() });
+      const res = await tool.execute({ url: 'https://example.com/test', tagline: 'Fetching test webpage' }, { cwd: process.cwd() });
       expect(res.success).toBe(true);
       expect(res.output).toContain('# Test Page');
       expect(res.output).toContain('# Hello World');
@@ -48,11 +48,19 @@ describe('WebFetchTool', () => {
     });
 
     try {
-      const res = await tool.execute({ url: 'https://example.com/missing' }, { cwd: process.cwd() });
+      const res = await tool.execute({ url: 'https://example.com/missing', tagline: 'Fetching missing url' }, { cwd: process.cwd() });
       expect(res.success).toBe(false);
       expect(res.output).toContain('HTTP fetch failed with status 404');
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('requires tagline in schema validation', () => {
+    expect(() => tool.validateInput({ url: 'https://example.com' } as any)).toThrow(
+      "Invalid arguments for tool 'webfetch'"
+    );
+    const parsed = tool.validateInput({ url: 'https://example.com', tagline: 'Fetching example' });
+    expect(parsed.tagline).toBe('Fetching example');
   });
 });

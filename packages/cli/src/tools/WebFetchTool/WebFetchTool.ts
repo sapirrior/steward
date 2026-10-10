@@ -21,6 +21,7 @@ const USER_AGENT =
 
 export const WebFetchSchema = z.object({
   url: z.string().url().describe('The HTTP or HTTPS URL to fetch content from.'),
+  tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
   prompt: z
     .string()
     .optional()
@@ -193,8 +194,6 @@ export class WebFetchTool extends Tool<WebFetchInput, WebFetchData> {
           `\n\n[Content truncated at ${MAX_CONTENT_LENGTH} characters out of ${processedContent.length} total]`;
       }
 
-      const badge = `webfetch: ${new URL(params.url).hostname} (${(bytes / 1024).toFixed(1)} KB, ${response.status} OK, ${durationMs}ms)`;
-
       return this.success(
         processedContent,
         {
@@ -208,7 +207,6 @@ export class WebFetchTool extends Tool<WebFetchInput, WebFetchData> {
           durationMs,
           isTruncated,
         },
-        badge,
         {
           statusCode: response.status,
           contentType,
@@ -221,15 +219,6 @@ export class WebFetchTool extends Tool<WebFetchInput, WebFetchData> {
         return this.error(`Request to '${params.url}' timed out after ${DEFAULT_FETCH_TIMEOUT_MS}ms.`);
       }
       return this.error(`Failed to fetch web content from '${params.url}'`, err);
-    }
-  }
-
-  override formatBadge(params: WebFetchInput, result?: ToolExecutionResult<WebFetchData>): string {
-    if (result?.badge) return result.badge;
-    try {
-      return `webfetch: ${new URL(params.url).hostname}`;
-    } catch {
-      return `webfetch: ${params.url}`;
     }
   }
 }

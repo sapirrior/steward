@@ -10,7 +10,10 @@ describe('BashTool', () => {
   });
 
   it('executes a quick command in the foreground', async () => {
-    const res = await tool.execute({ command: 'echo "hello steward"' }, { cwd: process.cwd() });
+    const res = await tool.execute(
+      { command: 'echo "hello steward"', tagline: 'Echoing greeting' },
+      { cwd: process.cwd() }
+    );
     expect(res.success).toBe(true);
     expect(res.output).toContain('hello steward');
     expect(res.data?.exitCode).toBe(0);
@@ -18,7 +21,10 @@ describe('BashTool', () => {
   });
 
   it('captures exit errors from failed commands', async () => {
-    const res = await tool.execute({ command: 'exit 42' }, { cwd: process.cwd() });
+    const res = await tool.execute(
+      { command: 'exit 42', tagline: 'Exiting with failure' },
+      { cwd: process.cwd() }
+    );
     expect(res.success).toBe(false);
     expect(res.data?.exitCode).toBe(42);
     expect(res.output).toContain('[Command exited with error code 42]');
@@ -26,7 +32,7 @@ describe('BashTool', () => {
 
   it('spawns immediate background tasks when runInBackground is true', async () => {
     const res = await tool.execute(
-      { command: 'sleep 1 && echo "done"', runInBackground: true },
+      { command: 'sleep 1 && echo "done"', tagline: 'Running sleep background task', runInBackground: true },
       { cwd: process.cwd() }
     );
     expect(res.success).toBe(true);
@@ -44,7 +50,7 @@ describe('BashTool', () => {
   it('auto-backgrounds long-running commands when handoff deadline is exceeded', async () => {
     // Pass a 100ms timeout so test runs fast
     const res = await tool.execute(
-      { command: 'sleep 1 && echo "finished"', timeout: 100 },
+      { command: 'sleep 1 && echo "finished"', tagline: 'Long running command', timeout: 100 },
       { cwd: process.cwd() }
     );
     expect(res.success).toBe(true);
@@ -61,7 +67,7 @@ describe('BashTool', () => {
   it('enforces permission checks on mutating commands', async () => {
     let asked = false;
     const res = await tool.execute(
-      { command: 'echo "test" > temp_test.txt' },
+      { command: 'echo "test" > temp_test.txt', tagline: 'Writing temp file' },
       {
         cwd: process.cwd(),
         askPermission: async (req) => {
@@ -75,5 +81,13 @@ describe('BashTool', () => {
     expect(asked).toBe(true);
     expect(res.success).toBe(false);
     expect(res.output).toContain('Permission denied by user');
+  });
+
+  it('requires tagline in schema validation', () => {
+    expect(() => tool.validateInput({ command: 'ls' } as any)).toThrow(
+      "Invalid arguments for tool 'bash'"
+    );
+    const parsed = tool.validateInput({ command: 'ls', tagline: 'Listing directory' });
+    expect(parsed.tagline).toBe('Listing directory');
   });
 });

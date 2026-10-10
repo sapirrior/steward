@@ -22,6 +22,7 @@ const USER_AGENT =
 
 export const WebSearchSchema = z.object({
   query: z.string().min(1).describe('The search query or keywords to look up on the web.'),
+  tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
   limit: z
     .number()
     .int()
@@ -225,8 +226,6 @@ export class WebSearchTool extends Tool<WebSearchInput, WebSearchData> {
         formattedOutput = outputLines.join('\n').trim();
       }
 
-      const badge = `websearch: "${params.query}" (${results.length} results, ${durationMs}ms)`;
-
       return this.success(
         formattedOutput,
         {
@@ -235,7 +234,6 @@ export class WebSearchTool extends Tool<WebSearchInput, WebSearchData> {
           totalResults: results.length,
           durationMs,
         },
-        badge,
         {
           resultsCount: results.length,
           durationMs,
@@ -247,10 +245,5 @@ export class WebSearchTool extends Tool<WebSearchInput, WebSearchData> {
       }
       return this.error(`Web search failed for '${params.query}'`, err);
     }
-  }
-
-  override formatBadge(params: WebSearchInput, result?: ToolExecutionResult<WebSearchData>): string {
-    if (result?.badge) return result.badge;
-    return `websearch: "${params.query}"`;
   }
 }

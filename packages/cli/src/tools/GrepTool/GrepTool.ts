@@ -30,6 +30,11 @@ const DEFAULT_IGNORED_DIRS = new Set([
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 export const GrepSchema = z.object({
+  tagline: z
+    .string()
+    .describe(
+      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Reading src/main.ts', 'Searching for test fixtures'. Used for status logging."
+    ),
   pattern: z.string().describe('The regular expression or string pattern to search for.'),
   path: z
     .string()
@@ -250,8 +255,6 @@ export class GrepTool extends Tool<GrepInput, GrepData> {
         }
       }
 
-      const badge = `grep: "${params.pattern}" (${matches.length}${isTruncated ? '+' : ''} matches in ${matchedFilesSet.size} files, ${durationMs}ms)`;
-
       return this.success(
         outputText,
         {
@@ -263,7 +266,6 @@ export class GrepTool extends Tool<GrepInput, GrepData> {
           isTruncated,
           durationMs,
         },
-        badge,
         {
           matchesCount: matches.length,
           totalMatches,
@@ -274,10 +276,5 @@ export class GrepTool extends Tool<GrepInput, GrepData> {
     } catch (err) {
       return this.error(`Grep search failed for '${params.pattern}'`, err);
     }
-  }
-
-  override formatBadge(params: GrepInput, result?: ToolExecutionResult<GrepData>): string {
-    if (result?.badge) return result.badge;
-    return `grep: "${params.pattern}"`;
   }
 }

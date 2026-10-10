@@ -26,7 +26,7 @@ describe('GlobTool', () => {
   });
 
   it('finds files matching glob pattern', async () => {
-    const res = await tool.execute({ pattern: '**/*.ts' }, { cwd: tempDir });
+    const res = await tool.execute({ tagline: 'Finding ts files', pattern: '**/*.ts' }, { cwd: tempDir });
     expect(res.success).toBe(true);
     expect(res.data?.files).toContain('src/index.ts');
     expect(res.data?.files).toContain('src/nested/util.ts');
@@ -35,14 +35,14 @@ describe('GlobTool', () => {
   });
 
   it('filters out node_modules by default', async () => {
-    const res = await tool.execute({ pattern: '**/*.js' }, { cwd: tempDir });
+    const res = await tool.execute({ tagline: 'Finding js files', pattern: '**/*.js' }, { cwd: tempDir });
     expect(res.success).toBe(true);
     expect(res.data?.files).toContain('src/nested/util.js');
     expect(res.data?.files).not.toContain('node_modules/pkg/index.js');
   });
 
   it('respects result limit', async () => {
-    const res = await tool.execute({ pattern: '**/*.ts', limit: 1 }, { cwd: tempDir });
+    const res = await tool.execute({ tagline: 'Finding ts with limit', pattern: '**/*.ts', limit: 1 }, { cwd: tempDir });
     expect(res.success).toBe(true);
     expect(res.data?.files.length).toBe(1);
     expect(res.data?.isTruncated).toBe(true);
@@ -50,14 +50,26 @@ describe('GlobTool', () => {
   });
 
   it('handles non-existent search directory', async () => {
-    const res = await tool.execute({ pattern: '*.ts', path: 'non-existent' }, { cwd: tempDir });
+    const res = await tool.execute(
+      { tagline: 'Finding non-existent dir', pattern: '*.ts', path: 'non-existent' },
+      { cwd: tempDir }
+    );
     expect(res.success).toBe(false);
     expect(res.output).toContain('does not exist');
   });
 
   it('handles search in specific subdirectory', async () => {
-    const res = await tool.execute({ pattern: '*.ts', path: 'src/nested' }, { cwd: tempDir });
+    const res = await tool.execute(
+      { tagline: 'Finding in nested dir', pattern: '*.ts', path: 'src/nested' },
+      { cwd: tempDir }
+    );
     expect(res.success).toBe(true);
     expect(res.data?.files).toEqual(['util.ts']);
+  });
+
+  it('requires tagline parameter in schema validation', () => {
+    expect(() => tool.validateInput({ pattern: '**/*.ts' })).toThrow(/tagline/);
+    const valid = tool.validateInput({ tagline: 'Scanning files', pattern: '**/*.ts' });
+    expect(valid.tagline).toBe('Scanning files');
   });
 });

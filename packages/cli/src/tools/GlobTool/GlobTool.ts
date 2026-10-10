@@ -27,6 +27,11 @@ const DEFAULT_IGNORED_DIRS = new Set([
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 export const GlobSchema = z.object({
+  tagline: z
+    .string()
+    .describe(
+      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Reading src/main.ts', 'Searching for test fixtures'. Used for status logging."
+    ),
   pattern: z.string().describe('The glob pattern to match files against (e.g. "**/*.ts", "src/**/*.tsx").'),
   path: z
     .string()
@@ -135,9 +140,6 @@ export class GlobTool extends Tool<GlobInput, GlobData> {
         outputText = lines.join('\n');
       }
 
-      const displayPattern = params.pattern;
-      const badge = `glob: ${displayPattern} (${matchedFiles.length}${isTruncated ? '+' : ''} files, ${durationMs}ms)`;
-
       return this.success(
         outputText,
         {
@@ -148,7 +150,6 @@ export class GlobTool extends Tool<GlobInput, GlobData> {
           isTruncated,
           durationMs,
         },
-        badge,
         {
           count: matchedFiles.length,
           total: totalFound,
@@ -158,10 +159,5 @@ export class GlobTool extends Tool<GlobInput, GlobData> {
     } catch (err) {
       return this.error(`Glob search failed for pattern '${params.pattern}'`, err);
     }
-  }
-
-  override formatBadge(params: GlobInput, result?: ToolExecutionResult<GlobData>): string {
-    if (result?.badge) return result.badge;
-    return `glob: ${params.pattern}`;
   }
 }
