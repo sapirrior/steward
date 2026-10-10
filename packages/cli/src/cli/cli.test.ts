@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { createCliProgram } from './program.js';
 import { resolveCliConfig } from './options/resolveCliConfig.js';
+import { runHeadless } from './headless.js';
 import { themeManager } from '../themes/themeManager.js';
 import type { ResolvedCliConfig } from './types.js';
 

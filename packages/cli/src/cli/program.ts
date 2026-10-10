@@ -11,6 +11,7 @@ import {
   handleAuthStatusOption,
   resolveCliConfig,
 } from './options/index.js';
+import { runHeadless } from './headless.js';
 
 export interface CliRunHandlers {
   onHeadless?: (prompt: string, config: ResolvedCliConfig) => Promise<void>;
@@ -138,12 +139,7 @@ export function createCliProgram(handlers?: CliRunHandlers): Command {
         if (handlers?.onHeadless) {
           await handlers.onHeadless(config.prompt, config);
         } else {
-          const chevron = chalk.hex(colors.accentActive)(UI_GLYPHS.promptChevron);
-          const promptDisplay = chalk.hex(colors.text)(`Prompt: "${config.prompt}"`);
-          const meta = chalk.hex(colors.textDim)(
-            `· ${config.modelRef.provider}/${config.modelRef.modelId} · effort: ${config.reasoningEffort}`,
-          );
-          console.log(`${chevron} ${promptDisplay} ${meta}`);
+          await runHeadless(config.prompt, config);
         }
       } else {
         if (handlers?.onInteractive) {
