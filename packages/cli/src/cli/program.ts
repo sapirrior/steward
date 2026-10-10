@@ -4,7 +4,7 @@ import type { RawCliFlags, ResolvedCliConfig } from './types.js';
 import type { StewardSettings } from '../settings/settingsTypes.js';
 import { settingsStore } from '../settings/settingsStore.js';
 import { themeManager } from '../themes/themeManager.js';
-import { UI_GLYPHS } from '../constants/icons.js';
+import { UI_GLYPHS, STEWARD_UNICODE_LOGO } from '../constants/icons.js';
 import {
   handleLoginOption,
   handleLogoutOption,
@@ -29,7 +29,8 @@ export function createCliProgram(handlers?: CliRunHandlers): Command {
   program
     .name('steward')
     .description('Interactive AI engineering assistant for the terminal.')
-    .version('0.36.0', '-v, --version', 'Output the current version')
+    .version('0.37.0', '-v, --version', 'Output the current version')
+    .addHelpText('before', `\n${STEWARD_UNICODE_LOGO}\n`)
     .argument('[prompt...]', 'Optional prompt to execute directly in headless mode')
     .option('-p, --prompt <text>', 'Prompt to execute in headless mode')
     .option('-m, --model <ref>', 'Set default model in provider/modelId or modelId format')

@@ -36,3 +36,14 @@ export function getSpinnerFrames(platform: NodeJS.Platform = process.platform): 
   if (platform === 'win32') return SPINNER_FRAMES.win32;
   return SPINNER_FRAMES.linux;
 }
+
+/**
+ * Unicode block-font Steward logo
+ */
+export const STEWARD_UNICODE_LOGO = [
+  '                                  ▄ ',
+  '█▀▀▀ ▀█▀▀ █▀▀█ █ █ █ ▀▀▀█ █▀▀▄ █▀▀█ ',
+  '▀▀▀█  █   █▀▀▀ █░█░█ █▀▀█ █    █░░█ ',
+  '▀▀▀▀  ▀   ▀▀▀▀ ▀▀ ▀▀ ▀▀▀▀ ▀    ▀▀▀▀ ',
+].join('\n');
+
