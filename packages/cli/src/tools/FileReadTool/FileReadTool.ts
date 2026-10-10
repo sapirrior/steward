@@ -28,10 +28,42 @@ const BLOCKED_DEVICE_PATHS = new Set([
 ]);
 
 const BINARY_EXTENSIONS = new Set([
-  'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg',
-  'pdf', 'zip', 'tar', 'gz', 'bz2', '7z', 'xz', 'rar',
-  'exe', 'dll', 'so', 'dylib', 'bin', 'obj', 'o', 'a', 'lib',
-  'wasm', 'pyc', 'class', 'iso', 'dmg', 'mp3', 'mp4', 'mkv', 'avi', 'mov', 'wav'
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+  'bmp',
+  'ico',
+  'svg',
+  'pdf',
+  'zip',
+  'tar',
+  'gz',
+  'bz2',
+  '7z',
+  'xz',
+  'rar',
+  'exe',
+  'dll',
+  'so',
+  'dylib',
+  'bin',
+  'obj',
+  'o',
+  'a',
+  'lib',
+  'wasm',
+  'pyc',
+  'class',
+  'iso',
+  'dmg',
+  'mp3',
+  'mp4',
+  'mkv',
+  'avi',
+  'mov',
+  'wav',
 ]);
 
 const DEFAULT_MAX_LINES = 2000;
@@ -43,10 +75,15 @@ export const FileReadSchema = z.object({
   tagline: z
     .string()
     .describe(
-      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Reading src/main.ts', 'Searching for test fixtures'. Used for status logging."
+      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Reading src/main.ts', 'Searching for test fixtures'. Used for status logging.",
     ),
   path: z.string().describe('The path to the file to read (relative or absolute).'),
-  offset: z.number().int().min(1).optional().describe('1-based line number to start reading from (inclusive).'),
+  offset: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe('1-based line number to start reading from (inclusive).'),
   limit: z.number().int().min(1).optional().describe('Maximum number of lines to read.'),
 });
 
@@ -106,16 +143,21 @@ export class FileReadTool extends Tool<FileReadInput, FileReadData> {
       .join('\n');
   }
 
-  async execute(params: FileReadInput, context: ToolContext): Promise<ToolExecutionResult<FileReadData>> {
+  async execute(
+    params: FileReadInput,
+    context: ToolContext,
+  ): Promise<ToolExecutionResult<FileReadData>> {
     const resolvedPath = this.resolvePath(params.path, context.cwd);
 
     if (this.isBlockedDevice(resolvedPath)) {
-      return this.error(`Cannot read special device file '${params.path}' as it would block or produce infinite data.`);
+      return this.error(
+        `Cannot read special device file '${params.path}' as it would block or produce infinite data.`,
+      );
     }
 
     if (this.isBinaryFile(resolvedPath)) {
       return this.error(
-        `File '${params.path}' appears to be a binary file. Reading raw binary contents is not supported.`
+        `File '${params.path}' appears to be a binary file. Reading raw binary contents is not supported.`,
       );
     }
 
@@ -126,12 +168,14 @@ export class FileReadTool extends Tool<FileReadInput, FileReadData> {
     try {
       const stat = await fs.stat(resolvedPath);
       if (stat.isDirectory()) {
-        return this.error(`Path '${params.path}' is a directory. Use 'glob' or shell commands to list directory contents.`);
+        return this.error(
+          `Path '${params.path}' is a directory. Use 'glob' or shell commands to list directory contents.`,
+        );
       }
 
       if (stat.size > MAX_FILE_SIZE_BYTES && !params.offset && !params.limit) {
         return this.error(
-          `File '${params.path}' is too large (${(stat.size / (1024 * 1024)).toFixed(2)} MB). Please specify offset and limit to read in chunks.`
+          `File '${params.path}' is too large (${(stat.size / (1024 * 1024)).toFixed(2)} MB). Please specify offset and limit to read in chunks.`,
         );
       }
 
@@ -146,7 +190,7 @@ export class FileReadTool extends Tool<FileReadInput, FileReadData> {
 
       if (startIndex >= totalLines && totalLines > 0) {
         return this.error(
-          `Offset ${startLine} is beyond the total line count of the file (${totalLines} lines).`
+          `Offset ${startLine} is beyond the total line count of the file (${totalLines} lines).`,
         );
       }
 
@@ -170,7 +214,7 @@ export class FileReadTool extends Tool<FileReadInput, FileReadData> {
           totalLines,
           linesReturned: selectedLines.length,
           isTruncated,
-        }
+        },
       );
     } catch (err) {
       return this.error(`Failed to read file '${params.path}'`, err);

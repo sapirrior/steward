@@ -47,10 +47,7 @@ export function splitCompoundCommands(input: string): string[] {
 
       if (parenDepth === 0) {
         // Delimiters: &&, ||, |, ;, \n, &
-        if (
-          (char === '&' && nextChar === '&') ||
-          (char === '|' && nextChar === '|')
-        ) {
+        if ((char === '&' && nextChar === '&') || (char === '|' && nextChar === '|')) {
           if (current.trim()) segments.push(current.trim());
           current = '';
           i++; // Skip second character

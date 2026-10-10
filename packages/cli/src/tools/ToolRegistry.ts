@@ -77,7 +77,7 @@ export class ToolRegistry {
   public async executeTool(
     name: string,
     rawInput: unknown,
-    context: ToolContext
+    context: ToolContext,
   ): Promise<ToolExecutionResult> {
     const tool = this.tools.get(name);
 

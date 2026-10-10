@@ -14,11 +14,19 @@ import { taskManager } from '../../services/basher/index.js';
 export const TaskManagerSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('list').describe('List all active and recently completed background tasks.'),
-    tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
+    tagline: z
+      .string()
+      .describe(
+        "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging.",
+      ),
   }),
   z.object({
     action: z.literal('read').describe('Read recent log output for a specific background task.'),
-    tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
+    tagline: z
+      .string()
+      .describe(
+        "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging.",
+      ),
     taskId: z.string().describe('The unique task ID (e.g. "task-8f1a23").'),
     lines: z
       .number()
@@ -29,14 +37,28 @@ export const TaskManagerSchema = z.discriminatedUnion('action', [
       .describe('Number of recent log lines to return. Defaults to 50.'),
   }),
   z.object({
-    action: z.literal('send_input').describe('Send standard input text to a running background task.'),
-    tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
+    action: z
+      .literal('send_input')
+      .describe('Send standard input text to a running background task.'),
+    tagline: z
+      .string()
+      .describe(
+        "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging.",
+      ),
     taskId: z.string().describe('The unique task ID of the running task.'),
-    input: z.string().describe('The text string to send to standard input (include newline if submitting a line).'),
+    input: z
+      .string()
+      .describe(
+        'The text string to send to standard input (include newline if submitting a line).',
+      ),
   }),
   z.object({
     action: z.literal('kill').describe('Terminate a background task process tree immediately.'),
-    tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
+    tagline: z
+      .string()
+      .describe(
+        "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging.",
+      ),
     taskId: z.string().describe('The unique task ID of the task to terminate.'),
   }),
 ]);
@@ -74,7 +96,10 @@ export class TaskManagerTool extends Tool<TaskManagerInput, TaskManagerData> {
   readonly schema = TaskManagerSchema;
   override readonly isDangerous = false;
 
-  async execute(params: TaskManagerInput, _context: ToolContext): Promise<ToolExecutionResult<TaskManagerData>> {
+  async execute(
+    params: TaskManagerInput,
+    _context: ToolContext,
+  ): Promise<ToolExecutionResult<TaskManagerData>> {
     switch (params.action) {
       case 'list': {
         const allTasks = taskManager.list();
@@ -85,35 +110,32 @@ export class TaskManagerTool extends Tool<TaskManagerInput, TaskManagerData> {
 
         if (allTasks.length === 0) {
           const message = 'No background tasks found.';
-          return this.success(
-            message,
-            { action: 'list', summary: summaryBadge, tasks: [] }
-          );
+          return this.success(message, { action: 'list', summary: summaryBadge, tasks: [] });
         }
 
-        const lines: string[] = [`Background tasks (${runningCount} running, ${totalCount} total):\n`];
+        const lines: string[] = [
+          `Background tasks (${runningCount} running, ${totalCount} total):\n`,
+        ];
         for (const task of allTasks) {
-          const statusIcon = task.status === 'running' ? '●' : task.status === 'completed' ? '✓' : '✗';
+          const statusIcon =
+            task.status === 'running' ? '●' : task.status === 'completed' ? '✓' : '✗';
           const exitInfo = task.exitCode !== null ? ` [exit: ${task.exitCode}]` : '';
           lines.push(`${statusIcon} ${task.id} [${task.status}] ${exitInfo} $ ${task.command}`);
         }
 
-        return this.success(
-          lines.join('\n'),
-          {
-            action: 'list',
-            summary: summaryBadge,
-            tasks: allTasks.map((t) => ({
-              id: t.id,
-              command: t.command,
-              status: t.status,
-              cwd: t.cwd,
-              startedAt: t.startedAt,
-              endedAt: t.endedAt,
-              exitCode: t.exitCode,
-            })),
-          }
-        );
+        return this.success(lines.join('\n'), {
+          action: 'list',
+          summary: summaryBadge,
+          tasks: allTasks.map((t) => ({
+            id: t.id,
+            command: t.command,
+            status: t.status,
+            cwd: t.cwd,
+            startedAt: t.startedAt,
+            endedAt: t.endedAt,
+            exitCode: t.exitCode ?? null,
+          })),
+        });
       }
 
       case 'read': {
@@ -131,20 +153,17 @@ export class TaskManagerTool extends Tool<TaskManagerInput, TaskManagerData> {
             recentLines.join('\n') || '(No output produced yet)',
           ].join('\n');
 
-          return this.success(
-            message,
-            {
-              action: 'read',
-              summary: summaryBadge,
-              task: {
-                id: taskData.id,
-                command: taskData.command,
-                status: taskData.status,
-                output: recentLines.join('\n'),
-                exitCode: taskData.exitCode,
-              },
-            }
-          );
+          return this.success(message, {
+            action: 'read',
+            summary: summaryBadge,
+            task: {
+              id: taskData.id,
+              command: taskData.command,
+              status: taskData.status,
+              output: recentLines.join('\n'),
+              exitCode: taskData.exitCode ?? null,
+            },
+          });
         } catch (err: any) {
           return this.error(err.message || `Failed to read task ${params.taskId}`);
         }
@@ -156,13 +175,10 @@ export class TaskManagerTool extends Tool<TaskManagerInput, TaskManagerData> {
           const escapedInput = JSON.stringify(params.input);
           const summaryBadge = `Send ${escapedInput} to task ${params.taskId}`;
 
-          return this.success(
-            res.message,
-            {
-              action: 'send_input',
-              summary: summaryBadge,
-            }
-          );
+          return this.success(res.message, {
+            action: 'send_input',
+            summary: summaryBadge,
+          });
         } catch (err: any) {
           return this.error(err.message || `Failed to send input to task ${params.taskId}`);
         }
@@ -173,13 +189,10 @@ export class TaskManagerTool extends Tool<TaskManagerInput, TaskManagerData> {
           const res = await taskManager.kill(params.taskId);
           const summaryBadge = `killed task ${params.taskId}`;
 
-          return this.success(
-            res.message,
-            {
-              action: 'kill',
-              summary: summaryBadge,
-            }
-          );
+          return this.success(res.message, {
+            action: 'kill',
+            summary: summaryBadge,
+          });
         } catch (err: any) {
           return this.error(err.message || `Failed to terminate task ${params.taskId}`);
         }

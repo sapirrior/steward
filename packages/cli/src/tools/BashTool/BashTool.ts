@@ -7,12 +7,16 @@
 
 import { z } from 'zod';
 import { Tool, type ToolContext, type ToolExecutionResult } from '../Tool.js';
-import { TOOL_GLYPHS, DEFAULT_BASH_TIMEOUT_MS, DEFAULT_BASH_FOREGROUND_BUDGET_MS } from '../../constants/index.js';
+import {
+  TOOL_GLYPHS,
+  DEFAULT_BASH_TIMEOUT_MS,
+  DEFAULT_BASH_FOREGROUND_BUDGET_MS,
+} from '../../constants/index.js';
 import {
   classifyCommand,
   runBash,
   taskManager,
-  type CommandSafety,
+  type SafetyScore,
 } from '../../services/basher/index.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -23,14 +27,20 @@ const FOREGROUND_BLOCKING_BUDGET_MS = DEFAULT_BASH_FOREGROUND_BUDGET_MS; // 8s f
 
 export const BashSchema = z.object({
   command: z.string().describe('The shell command to execute in the system terminal.'),
-  tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
+  tagline: z
+    .string()
+    .describe(
+      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging.",
+    ),
   timeout: z
     .number()
     .int()
     .min(1000)
     .max(600000)
     .optional()
-    .describe('Optional execution timeout or foreground handoff limit in milliseconds. Defaults to 15,000ms.'),
+    .describe(
+      'Optional execution timeout or foreground handoff limit in milliseconds. Defaults to 15,000ms.',
+    ),
   runInBackground: z
     .boolean()
     .optional()
@@ -50,7 +60,7 @@ export interface BashData {
   stderr: string;
   output: string;
   durationMs: number;
-  safety: CommandSafety;
+  safety: SafetyScore;
   isBackground: boolean;
   autoBackgrounded?: boolean;
   taskId?: string;
@@ -83,7 +93,7 @@ export class BashTool extends Tool<BashInput, BashData> {
 
       if (!allowed) {
         return this.error(
-          `Permission denied by user for command '${params.command}' (${classification.reasons.join('; ') || 'Mutating command'})`
+          `Permission denied by user for command '${params.command}' (${classification.reasons.join('; ') || 'Mutating command'})`,
         );
       }
     }
@@ -117,7 +127,7 @@ export class BashTool extends Tool<BashInput, BashData> {
         {
           taskId: execution.taskId,
           isBackground: true,
-        }
+        },
       );
     }
 
@@ -150,8 +160,9 @@ export class BashTool extends Tool<BashInput, BashData> {
 
       // Handle Auto-Background Transition
       if (result.outcome === 'backgrounded') {
-        const taskSnapshot = taskManager.get(result.taskId);
-        const logPath = taskSnapshot?.outputPath || `~/.steward/tasks/${threadId}/${result.taskId}.log`;
+        const taskId = result.taskId ?? 'unknown';
+        const taskSnapshot = result.taskId ? taskManager.get(result.taskId) : undefined;
+        const logPath = taskSnapshot?.outputPath || `~/.steward/tasks/${threadId}/${taskId}.log`;
 
         const message = [
           `Command exceeded foreground execution threshold (${(result.durationMs / 1000).toFixed(1)}s) and was moved to the background.`,
@@ -178,7 +189,7 @@ export class BashTool extends Tool<BashInput, BashData> {
           {
             taskId: result.taskId,
             autoBackgrounded: true,
-          }
+          },
         );
       }
 
@@ -231,7 +242,7 @@ export class BashTool extends Tool<BashInput, BashData> {
         {
           exitCode: result.exitCode,
           durationMs: result.durationMs,
-        }
+        },
       );
     } catch (err) {
       return this.error(`Execution failed for '${params.command}'`, err);

@@ -1,4 +1,4 @@
-import type { ReasoningEffort } from '@steward/ai';
+import type { ReasoningEffort } from '../agent/types.js';
 
 export interface ToolSettings {
   read: boolean;

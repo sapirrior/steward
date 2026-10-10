@@ -25,7 +25,9 @@ function buildRules(isHeadless?: boolean): string {
   ];
 
   if (!isHeadless) {
-    rules.push('Bash execution: when running bash commands, explain why the command is being run and verify outcomes.');
+    rules.push(
+      'Bash execution: when running bash commands, explain why the command is being run and verify outcomes.',
+    );
   }
 
   return rules.map((r) => `- ${r}`).join('\n');
@@ -61,7 +63,5 @@ export function buildSystemPromptSections(options: SystemPromptOptions = {}): Sy
  */
 export function buildSystemPrompt(options: SystemPromptOptions = {}): string {
   const sections = buildSystemPromptSections(options);
-  return Object.values(sections)
-    .filter(Boolean)
-    .join('\n\n');
+  return Object.values(sections).filter(Boolean).join('\n\n');
 }

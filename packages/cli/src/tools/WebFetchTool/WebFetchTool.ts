@@ -21,11 +21,17 @@ const USER_AGENT =
 
 export const WebFetchSchema = z.object({
   url: z.string().url().describe('The HTTP or HTTPS URL to fetch content from.'),
-  tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
+  tagline: z
+    .string()
+    .describe(
+      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging.",
+    ),
   prompt: z
     .string()
     .optional()
-    .describe('Optional query or prompt describing what specific information to extract from the page.'),
+    .describe(
+      'Optional query or prompt describing what specific information to extract from the page.',
+    ),
   raw: z
     .boolean()
     .optional()
@@ -65,7 +71,8 @@ export function htmlToCleanMarkdown(html: string): string {
   const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
 
   // Extract main or article content if available to prioritize primary text
-  const mainMatch = text.match(/<main[^>]*>(.*?)<\/main>/is) || text.match(/<article[^>]*>(.*?)<\/article>/is);
+  const mainMatch =
+    text.match(/<main[^>]*>(.*?)<\/main>/is) || text.match(/<article[^>]*>(.*?)<\/article>/is);
   if (mainMatch) {
     text = mainMatch[1];
   }
@@ -134,13 +141,18 @@ export class WebFetchTool extends Tool<WebFetchInput, WebFetchData> {
   readonly schema = WebFetchSchema;
   override readonly isDangerous = false;
 
-  async execute(params: WebFetchInput, context: ToolContext): Promise<ToolExecutionResult<WebFetchData>> {
+  async execute(
+    params: WebFetchInput,
+    context: ToolContext,
+  ): Promise<ToolExecutionResult<WebFetchData>> {
     const startTime = Date.now();
 
     try {
       const urlObj = new URL(params.url);
       if (!['http:', 'https:'].includes(urlObj.protocol)) {
-        return this.error(`Unsupported URL protocol: '${urlObj.protocol}'. Only http: and https: are allowed.`);
+        return this.error(
+          `Unsupported URL protocol: '${urlObj.protocol}'. Only http: and https: are allowed.`,
+        );
       }
     } catch {
       return this.error(`Invalid URL provided: '${params.url}'`);
@@ -157,7 +169,8 @@ export class WebFetchTool extends Tool<WebFetchInput, WebFetchData> {
       const response = await fetch(params.url, {
         headers: {
           'User-Agent': USER_AGENT,
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5',
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5',
           'Accept-Language': 'en-US,en;q=0.9',
         },
         redirect: 'follow',
@@ -173,7 +186,7 @@ export class WebFetchTool extends Tool<WebFetchInput, WebFetchData> {
         return this.error(
           `HTTP fetch failed with status ${response.status} ${response.statusText} for '${params.url}'`,
           undefined,
-          { statusCode: response.status, url: params.url }
+          { statusCode: response.status, url: params.url },
         );
       }
 
@@ -212,11 +225,13 @@ export class WebFetchTool extends Tool<WebFetchInput, WebFetchData> {
           contentType,
           bytes,
           durationMs,
-        }
+        },
       );
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
-        return this.error(`Request to '${params.url}' timed out after ${DEFAULT_FETCH_TIMEOUT_MS}ms.`);
+        return this.error(
+          `Request to '${params.url}' timed out after ${DEFAULT_FETCH_TIMEOUT_MS}ms.`,
+        );
       }
       return this.error(`Failed to fetch web content from '${params.url}'`, err);
     }

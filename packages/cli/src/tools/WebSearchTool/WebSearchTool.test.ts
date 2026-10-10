@@ -30,10 +30,13 @@ describe('WebSearchTool', () => {
         status: 200,
         headers: { 'Content-Type': 'text/html' },
       });
-    });
+    }) as any;
 
     try {
-      const res = await tool.execute({ query: 'bun runtime', limit: 5, tagline: 'Searching bun runtime' }, { cwd: process.cwd() });
+      const res = await tool.execute(
+        { query: 'bun runtime', limit: 5, tagline: 'Searching bun runtime' },
+        { cwd: process.cwd() },
+      );
       expect(res.success).toBe(true);
       expect(res.data?.results.length).toBe(2);
       expect(res.data?.results[0].title).toBe('Bun — Fast JavaScript Runtime');
@@ -53,12 +56,16 @@ describe('WebSearchTool', () => {
         status: 200,
         headers: { 'Content-Type': 'text/html' },
       });
-    });
+    }) as any;
 
     try {
       const res = await tool.execute(
-        { query: 'bun runtime', allowedDomains: ['github.com'], tagline: 'Searching with domain filter' },
-        { cwd: process.cwd() }
+        {
+          query: 'bun runtime',
+          allowedDomains: ['github.com'],
+          tagline: 'Searching with domain filter',
+        },
+        { cwd: process.cwd() },
       );
       expect(res.success).toBe(true);
       expect(res.data?.results.length).toBe(1);
@@ -75,12 +82,16 @@ describe('WebSearchTool', () => {
         status: 200,
         headers: { 'Content-Type': 'text/html' },
       });
-    });
+    }) as any;
 
     try {
       const res = await tool.execute(
-        { query: 'bun runtime', blockedDomains: ['github.com'], tagline: 'Searching with blocked domains' },
-        { cwd: process.cwd() }
+        {
+          query: 'bun runtime',
+          blockedDomains: ['github.com'],
+          tagline: 'Searching with blocked domains',
+        },
+        { cwd: process.cwd() },
       );
       expect(res.success).toBe(true);
       expect(res.data?.results.length).toBe(1);
@@ -97,10 +108,13 @@ describe('WebSearchTool', () => {
         status: 200,
         headers: { 'Content-Type': 'text/html' },
       });
-    });
+    }) as any;
 
     try {
-      const res = await tool.execute({ query: 'test', tagline: 'Searching test query' }, { cwd: process.cwd() });
+      const res = await tool.execute(
+        { query: 'test', tagline: 'Searching test query' },
+        { cwd: process.cwd() },
+      );
       expect(res.success).toBe(false);
       expect(res.output).toContain('Search rate limited');
     } finally {
@@ -110,7 +124,7 @@ describe('WebSearchTool', () => {
 
   it('requires tagline in schema validation', () => {
     expect(() => tool.validateInput({ query: 'bun' } as any)).toThrow(
-      "Invalid arguments for tool 'websearch'"
+      "Invalid arguments for tool 'websearch'",
     );
     const parsed = tool.validateInput({ query: 'bun', tagline: 'Searching bun' });
     expect(parsed.tagline).toBe('Searching bun');

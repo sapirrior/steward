@@ -1,4 +1,4 @@
-import type { ReasoningEffort } from '@steward/ai';
+import type { ReasoningEffort } from '../agent/types.js';
 
 export const DEFAULT_PROVIDER = 'google';
 export const DEFAULT_MODEL = 'gemini-flash-latest';

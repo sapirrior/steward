@@ -13,7 +13,7 @@ class MockTool extends Tool<{ query: string; limit?: number }, { count: number }
 
   async execute(
     params: { query: string; limit?: number },
-    _context: ToolContext
+    _context: ToolContext,
   ): Promise<ToolExecutionResult<{ count: number }>> {
     if (params.query === 'fail') {
       return this.error('Query failed intentionally');
@@ -44,7 +44,7 @@ describe('Tool Base Class', () => {
   it('throws descriptive error on invalid arguments', () => {
     const tool = new MockTool();
     expect(() => tool.validateInput({ limit: 'not a number' } as any)).toThrow(
-      "Invalid arguments for tool 'mock_search'"
+      "Invalid arguments for tool 'mock_search'",
     );
   });
 

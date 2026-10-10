@@ -127,7 +127,7 @@ export abstract class Tool<TParams = Record<string, unknown>, TResult = unknown>
   protected success(
     output: string,
     data?: TResult,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): ToolExecutionResult<TResult> {
     return {
       success: true,
@@ -143,7 +143,7 @@ export abstract class Tool<TParams = Record<string, unknown>, TResult = unknown>
   protected error(
     message: string,
     errorObj?: unknown,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): ToolExecutionResult<TResult> {
     const errorDetails = errorObj instanceof Error ? errorObj.message : String(errorObj ?? message);
     return {

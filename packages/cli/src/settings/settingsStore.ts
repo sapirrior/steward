@@ -52,14 +52,27 @@ export class SettingsStore {
 
   private deepMergeDefaults(partial: any): StewardSettings {
     if (!partial || typeof partial !== 'object' || Array.isArray(partial)) {
-      return { ...CANONICAL_DEFAULT_SETTINGS, tools: { ...CANONICAL_DEFAULT_SETTINGS.tools }, bash: { ...CANONICAL_DEFAULT_SETTINGS.bash } };
+      return {
+        ...CANONICAL_DEFAULT_SETTINGS,
+        tools: { ...CANONICAL_DEFAULT_SETTINGS.tools },
+        bash: { ...CANONICAL_DEFAULT_SETTINGS.bash },
+      };
     }
 
     return {
       version: 1,
-      provider: typeof partial.provider === 'string' && partial.provider ? partial.provider : CANONICAL_DEFAULT_SETTINGS.provider,
-      model: typeof partial.model === 'string' && partial.model ? partial.model : CANONICAL_DEFAULT_SETTINGS.model,
-      theme: typeof partial.theme === 'string' && partial.theme ? partial.theme : CANONICAL_DEFAULT_SETTINGS.theme,
+      provider:
+        typeof partial.provider === 'string' && partial.provider
+          ? partial.provider
+          : CANONICAL_DEFAULT_SETTINGS.provider,
+      model:
+        typeof partial.model === 'string' && partial.model
+          ? partial.model
+          : CANONICAL_DEFAULT_SETTINGS.model,
+      theme:
+        typeof partial.theme === 'string' && partial.theme
+          ? partial.theme
+          : CANONICAL_DEFAULT_SETTINGS.theme,
       reasoningEffort: partial.reasoningEffort || CANONICAL_DEFAULT_SETTINGS.reasoningEffort,
       tools: {
         read: partial.tools?.read ?? CANONICAL_DEFAULT_SETTINGS.tools.read,
@@ -71,7 +84,10 @@ export class SettingsStore {
       },
       bash: {
         autoApprove: partial.bash?.autoApprove ?? CANONICAL_DEFAULT_SETTINGS.bash.autoApprove,
-        timeoutMs: typeof partial.bash?.timeoutMs === 'number' ? partial.bash.timeoutMs : CANONICAL_DEFAULT_SETTINGS.bash.timeoutMs,
+        timeoutMs:
+          typeof partial.bash?.timeoutMs === 'number'
+            ? partial.bash.timeoutMs
+            : CANONICAL_DEFAULT_SETTINGS.bash.timeoutMs,
       },
     };
   }

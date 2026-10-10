@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import {
-  splitCompoundCommands,
-  parseCommandSegment,
-} from './shellParser.js';
+import { splitCompoundCommands, parseCommandSegment } from './shellParser.js';
 import { classifyCommand } from './commandClassifier.js';
 import { runBash } from './bashRunner.js';
 import { taskManager } from './taskManager.js';
@@ -72,8 +69,8 @@ describe('Basher Hardcore Test Suite', () => {
       'echo "plain string output"',
       'echo "rm -rf is mentioned here"', // Quoted argument is safe!
       'printf "hello %s\n" world',
-      'awk \'{print $1}\' file.txt',
-      'sed \'s/foo/bar/g\' file.txt', // Non -i sed is safe!
+      "awk '{print $1}' file.txt",
+      "sed 's/foo/bar/g' file.txt", // Non -i sed is safe!
       'sort file.txt | uniq',
       'bun test',
       'tsc --noEmit',

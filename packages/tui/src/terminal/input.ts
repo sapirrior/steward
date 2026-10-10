@@ -23,14 +23,7 @@ export interface MouseEvent {
   type: 'mouse';
   action: 'press' | 'release' | 'move' | 'wheel';
   button:
-    | 'left'
-    | 'middle'
-    | 'right'
-    | 'none'
-    | 'wheelUp'
-    | 'wheelDown'
-    | 'wheelLeft'
-    | 'wheelRight';
+    'left' | 'middle' | 'right' | 'none' | 'wheelUp' | 'wheelDown' | 'wheelLeft' | 'wheelRight';
   col: number;
   row: number;
   shift: boolean;

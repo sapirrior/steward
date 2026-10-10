@@ -33,13 +33,15 @@ export const GrepSchema = z.object({
   tagline: z
     .string()
     .describe(
-      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Reading src/main.ts', 'Searching for test fixtures'. Used for status logging."
+      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Reading src/main.ts', 'Searching for test fixtures'. Used for status logging.",
     ),
   pattern: z.string().describe('The regular expression or string pattern to search for.'),
   path: z
     .string()
     .optional()
-    .describe('Directory or file to search within. Defaults to current working directory if omitted.'),
+    .describe(
+      'Directory or file to search within. Defaults to current working directory if omitted.',
+    ),
   glob: z
     .string()
     .optional()
@@ -48,10 +50,7 @@ export const GrepSchema = z.object({
     .boolean()
     .optional()
     .describe('Whether to perform case-insensitive matching. Defaults to false.'),
-  case_insensitive: z
-    .boolean()
-    .optional()
-    .describe('Alias for caseInsensitive.'),
+  case_insensitive: z.boolean().optional().describe('Alias for caseInsensitive.'),
   context: z
     .number()
     .int()
@@ -110,7 +109,7 @@ export class GrepTool extends Tool<GrepInput, GrepData> {
 
   private async collectCandidateFiles(
     targetPath: string,
-    globFilter?: string
+    globFilter?: string,
   ): Promise<{ files: string[]; rootDir: string }> {
     const stat = await fs.stat(targetPath);
     if (!stat.isDirectory()) {
@@ -243,7 +242,7 @@ export class GrepTool extends Tool<GrepInput, GrepData> {
 
         if (isTruncated) {
           outputLines.push(
-            `\n(Showing ${matches.length} of ${totalMatches} matches. Narrow your search with path or glob options.)`
+            `\n(Showing ${matches.length} of ${totalMatches} matches. Narrow your search with path or glob options.)`,
           );
         }
 
@@ -271,7 +270,7 @@ export class GrepTool extends Tool<GrepInput, GrepData> {
           totalMatches,
           filesCount: matchedFilesSet.size,
           durationMs,
-        }
+        },
       );
     } catch (err) {
       return this.error(`Grep search failed for '${params.pattern}'`, err);

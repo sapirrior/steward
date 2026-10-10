@@ -30,9 +30,11 @@ export const GlobSchema = z.object({
   tagline: z
     .string()
     .describe(
-      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Reading src/main.ts', 'Searching for test fixtures'. Used for status logging."
+      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Reading src/main.ts', 'Searching for test fixtures'. Used for status logging.",
     ),
-  pattern: z.string().describe('The glob pattern to match files against (e.g. "**/*.ts", "src/**/*.tsx").'),
+  pattern: z
+    .string()
+    .describe('The glob pattern to match files against (e.g. "**/*.ts", "src/**/*.tsx").'),
   path: z
     .string()
     .optional()
@@ -88,7 +90,9 @@ export class GlobTool extends Tool<GlobInput, GlobData> {
     try {
       const stat = await fs.stat(searchDir);
       if (!stat.isDirectory()) {
-        return this.error(`Specified search path is not a directory: '${params.path || searchDir}'`);
+        return this.error(
+          `Specified search path is not a directory: '${params.path || searchDir}'`,
+        );
       }
     } catch (err) {
       return this.error(`Failed to inspect search directory: '${params.path || searchDir}'`, err);
@@ -134,7 +138,7 @@ export class GlobTool extends Tool<GlobInput, GlobData> {
         const lines = [...matchedFiles];
         if (isTruncated) {
           lines.push(
-            `\n(Showing ${matchedFiles.length} of ${totalFound} matches. Consider using a more specific path or pattern.)`
+            `\n(Showing ${matchedFiles.length} of ${totalFound} matches. Consider using a more specific path or pattern.)`,
           );
         }
         outputText = lines.join('\n');
@@ -154,7 +158,7 @@ export class GlobTool extends Tool<GlobInput, GlobData> {
           count: matchedFiles.length,
           total: totalFound,
           durationMs,
-        }
+        },
       );
     } catch (err) {
       return this.error(`Glob search failed for pattern '${params.pattern}'`, err);

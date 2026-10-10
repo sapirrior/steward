@@ -21,7 +21,10 @@ describe('FileReadTool', () => {
     const testFile = path.join(tempDir, 'test.txt');
     await fs.writeFile(testFile, 'line 1\nline 2\nline 3');
 
-    const res = await tool.execute({ tagline: 'Reading test.txt', path: testFile }, { cwd: tempDir });
+    const res = await tool.execute(
+      { tagline: 'Reading test.txt', path: testFile },
+      { cwd: tempDir },
+    );
     expect(res.success).toBe(true);
     expect(res.output).toContain('1 | line 1');
     expect(res.output).toContain('2 | line 2');
@@ -37,7 +40,7 @@ describe('FileReadTool', () => {
 
     const res = await tool.execute(
       { tagline: 'Reading rows 5 to 7', path: testFile, offset: 5, limit: 3 },
-      { cwd: tempDir }
+      { cwd: tempDir },
     );
     expect(res.success).toBe(true);
     expect(res.output).toContain('5 | row 5');
@@ -54,7 +57,7 @@ describe('FileReadTool', () => {
   it('errors gracefully when file does not exist', async () => {
     const res = await tool.execute(
       { tagline: 'Reading non-existent file', path: 'non-existent.txt' },
-      { cwd: tempDir }
+      { cwd: tempDir },
     );
     expect(res.success).toBe(false);
     expect(res.output).toContain("File not found: 'non-existent.txt'");
@@ -76,7 +79,10 @@ describe('FileReadTool', () => {
   });
 
   it('blocks reading special device paths', async () => {
-    const res = await tool.execute({ tagline: 'Reading device', path: '/dev/zero' }, { cwd: tempDir });
+    const res = await tool.execute(
+      { tagline: 'Reading device', path: '/dev/zero' },
+      { cwd: tempDir },
+    );
     expect(res.success).toBe(false);
     expect(res.output).toContain('special device file');
   });
@@ -87,7 +93,7 @@ describe('FileReadTool', () => {
 
     const res = await tool.execute(
       { tagline: 'Reading past EOF', path: testFile, offset: 10 },
-      { cwd: tempDir }
+      { cwd: tempDir },
     );
     expect(res.success).toBe(false);
     expect(res.output).toContain('Offset 10 is beyond the total line count');

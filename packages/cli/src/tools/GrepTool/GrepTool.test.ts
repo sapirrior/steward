@@ -15,11 +15,11 @@ describe('GrepTool', () => {
     await fs.mkdir(path.join(tempDir, 'src'), { recursive: true });
     await fs.writeFile(
       path.join(tempDir, 'src/server.ts'),
-      '// Server configuration\nconst port = 8080;\nexport function start() {\n  console.log("Listening on port", port);\n}\n'
+      '// Server configuration\nconst port = 8080;\nexport function start() {\n  console.log("Listening on port", port);\n}\n',
     );
     await fs.writeFile(
       path.join(tempDir, 'src/client.ts'),
-      '// Client logic\nconst port = 8080;\nexport function connect() {}\n'
+      '// Client logic\nconst port = 8080;\nexport function connect() {}\n',
     );
   });
 
@@ -28,7 +28,10 @@ describe('GrepTool', () => {
   });
 
   it('searches for regex patterns across files', async () => {
-    const res = await tool.execute({ tagline: 'Searching for port', pattern: 'const port = \\d+' }, { cwd: tempDir });
+    const res = await tool.execute(
+      { tagline: 'Searching for port', pattern: 'const port = \\d+' },
+      { cwd: tempDir },
+    );
     expect(res.success).toBe(true);
     expect(res.data?.totalMatches).toBe(2);
     expect(res.data?.matchedFilesCount).toBe(2);
@@ -38,7 +41,7 @@ describe('GrepTool', () => {
   it('supports case-insensitive search', async () => {
     const res = await tool.execute(
       { tagline: 'Searching case-insensitive', pattern: 'LISTENING', caseInsensitive: true },
-      { cwd: tempDir }
+      { cwd: tempDir },
     );
     expect(res.success).toBe(true);
     expect(res.data?.totalMatches).toBe(1);
@@ -48,14 +51,17 @@ describe('GrepTool', () => {
   it('includes context lines when requested', async () => {
     const res = await tool.execute(
       { tagline: 'Searching with context', pattern: 'Listening on port', context: 1 },
-      { cwd: tempDir }
+      { cwd: tempDir },
     );
     expect(res.success).toBe(true);
     expect(res.output).toContain('export function start()');
   });
 
   it('respects limit and indicates truncation', async () => {
-    const res = await tool.execute({ tagline: 'Searching with limit', pattern: 'port', limit: 1 }, { cwd: tempDir });
+    const res = await tool.execute(
+      { tagline: 'Searching with limit', pattern: 'port', limit: 1 },
+      { cwd: tempDir },
+    );
     expect(res.success).toBe(true);
     expect(res.data?.matches.length).toBe(1);
     expect(res.data?.isTruncated).toBe(true);
@@ -65,7 +71,7 @@ describe('GrepTool', () => {
   it('filters with glob parameter', async () => {
     const res = await tool.execute(
       { tagline: 'Searching in client', pattern: 'port', glob: '**/client.ts' },
-      { cwd: tempDir }
+      { cwd: tempDir },
     );
     expect(res.success).toBe(true);
     expect(res.data?.matchedFilesCount).toBe(1);

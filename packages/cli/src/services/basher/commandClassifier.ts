@@ -1,9 +1,4 @@
-import type {
-  BashCommandAnalysis,
-  CommandSegment,
-  RiskCategory,
-  SafetyScore,
-} from './types.js';
+import type { BashCommandAnalysis, CommandSegment, RiskCategory, SafetyScore } from './types.js';
 import { parseFullCommand } from './shellParser.js';
 
 const SAFE_INSPECTION_COMMANDS = new Set([
@@ -29,15 +24,7 @@ const SAFE_READ_COMMANDS = new Set([
   'hexdump',
 ]);
 
-const SAFE_SEARCH_COMMANDS = new Set([
-  'grep',
-  'egrep',
-  'fgrep',
-  'rg',
-  'ag',
-  'find',
-  'locate',
-]);
+const SAFE_SEARCH_COMMANDS = new Set(['grep', 'egrep', 'fgrep', 'rg', 'ag', 'find', 'locate']);
 
 const SAFE_SYSTEM_COMMANDS = new Set([
   'uname',
@@ -159,7 +146,9 @@ function evaluateSegment(segment: CommandSegment): SegmentEvaluation {
 
   // 5. Sed with in-place flag (-i or --in-place)
   if (cmd === 'sed') {
-    const hasInPlace = segment.args.some((a) => a === '-i' || a.startsWith('-i') || a.includes('--in-place'));
+    const hasInPlace = segment.args.some(
+      (a) => a === '-i' || a.startsWith('-i') || a.includes('--in-place'),
+    );
     if (hasInPlace) {
       reasons.push('Command "sed -i" modifies files in place');
       categories.push('file-modify');
@@ -172,18 +161,21 @@ function evaluateSegment(segment: CommandSegment): SegmentEvaluation {
     const effectiveSub = segment.args.find((a) => !a.startsWith('-'))?.toLowerCase() || '';
 
     if (!SAFE_GIT_SUBCOMMANDS.has(effectiveSub)) {
-      reasons.push(`Git command "git ${effectiveSub || 'mutation'}" alters repository state or history`);
+      reasons.push(
+        `Git command "git ${effectiveSub || 'mutation'}" alters repository state or history`,
+      );
       categories.push('git-mutation');
     } else {
       // Check mutating flags within safe subcommands
       if (effectiveSub === 'branch') {
-        const hasMutateFlag = segment.args.some((a) =>
-          a === '-d' ||
-          a === '-D' ||
-          a === '-m' ||
-          a === '-M' ||
-          a.includes('--delete') ||
-          a.includes('--move'),
+        const hasMutateFlag = segment.args.some(
+          (a) =>
+            a === '-d' ||
+            a === '-D' ||
+            a === '-m' ||
+            a === '-M' ||
+            a.includes('--delete') ||
+            a.includes('--move'),
         );
         if (hasMutateFlag) {
           reasons.push('Git command "git branch -d/-D/-m" deletes or modifies branches');
@@ -207,12 +199,26 @@ function evaluateSegment(segment: CommandSegment): SegmentEvaluation {
   }
 
   // 7. Package managers (bun, npm, yarn, pnpm, pip, cargo, etc.)
-  if (cmd === 'bun' || cmd === 'npm' || cmd === 'yarn' || cmd === 'pnpm' || cmd === 'pip' || cmd === 'cargo') {
+  if (
+    cmd === 'bun' ||
+    cmd === 'npm' ||
+    cmd === 'yarn' ||
+    cmd === 'pnpm' ||
+    cmd === 'pip' ||
+    cmd === 'cargo'
+  ) {
     const subCmd = (segment.args[0] || '').toLowerCase();
-    if (subCmd === 'test' || subCmd === 'run' && segment.args[1] === 'test' || subCmd === '--version' || subCmd === '-v') {
+    if (
+      subCmd === 'test' ||
+      (subCmd === 'run' && segment.args[1] === 'test') ||
+      subCmd === '--version' ||
+      subCmd === '-v'
+    ) {
       // Safe test execution
     } else {
-      reasons.push(`Package manager "${cmd} ${subCmd}" may install, modify, or execute arbitrary dependencies`);
+      reasons.push(
+        `Package manager "${cmd} ${subCmd}" may install, modify, or execute arbitrary dependencies`,
+      );
       categories.push('package-install');
     }
   }

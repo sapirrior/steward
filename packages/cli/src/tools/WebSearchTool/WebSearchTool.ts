@@ -22,7 +22,11 @@ const USER_AGENT =
 
 export const WebSearchSchema = z.object({
   query: z.string().min(1).describe('The search query or keywords to look up on the web.'),
-  tagline: z.string().describe("A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging."),
+  tagline: z
+    .string()
+    .describe(
+      "A concise 2-5 word present-tense summary of what this specific tool call is doing, e.g. 'Running test suite', 'Fetching API documentation'. Used for status logging.",
+    ),
   limit: z
     .number()
     .int()
@@ -33,7 +37,9 @@ export const WebSearchSchema = z.object({
   allowedDomains: z
     .array(z.string())
     .optional()
-    .describe('Optional list of domains to restrict search results to (e.g. ["github.com", "bun.sh"]).'),
+    .describe(
+      'Optional list of domains to restrict search results to (e.g. ["github.com", "bun.sh"]).',
+    ),
   blockedDomains: z
     .array(z.string())
     .optional()
@@ -106,9 +112,15 @@ export class WebSearchTool extends Tool<WebSearchInput, WebSearchData> {
   readonly schema = WebSearchSchema;
   override readonly isDangerous = false;
 
-  async execute(params: WebSearchInput, context: ToolContext): Promise<ToolExecutionResult<WebSearchData>> {
+  async execute(
+    params: WebSearchInput,
+    context: ToolContext,
+  ): Promise<ToolExecutionResult<WebSearchData>> {
     const startTime = Date.now();
-    const effectiveLimit = Math.min(Math.max(1, params.limit ?? DEFAULT_SEARCH_LIMIT), MAX_SEARCH_LIMIT);
+    const effectiveLimit = Math.min(
+      Math.max(1, params.limit ?? DEFAULT_SEARCH_LIMIT),
+      MAX_SEARCH_LIMIT,
+    );
 
     // If allowed domains specified, construct search query modifier if single or filter in memory
     let queryWithSite = params.query;
@@ -130,7 +142,8 @@ export class WebSearchTool extends Tool<WebSearchInput, WebSearchData> {
         method: 'GET',
         headers: {
           'User-Agent': USER_AGENT,
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.5',
           Referer: 'https://html.duckduckgo.com/',
           DNT: '1',
@@ -143,22 +156,32 @@ export class WebSearchTool extends Tool<WebSearchInput, WebSearchData> {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        return this.error(`DuckDuckGo web search failed with HTTP status ${response.status} (${response.statusText})`);
+        return this.error(
+          `DuckDuckGo web search failed with HTTP status ${response.status} (${response.statusText})`,
+        );
       }
 
       const html = await response.text();
       const results: WebSearchHit[] = [];
 
       // Check for rate limit / bot detection page
-      if (html.includes('anomaly-modal') || html.includes('captcha') || html.includes('Please complete the security check')) {
+      if (
+        html.includes('anomaly-modal') ||
+        html.includes('captcha') ||
+        html.includes('Please complete the security check')
+      ) {
         return this.error('Search rate limited by DuckDuckGo. Please retry in a few moments.');
       }
 
       // Split on result blocks
       const resultBlocks = html.split(/<div\s+class="[^"]*result\s+results_links/);
 
-      const allowedDomainsSet = params.allowedDomains ? new Set(params.allowedDomains.map((d) => d.toLowerCase())) : null;
-      const blockedDomainsSet = params.blockedDomains ? new Set(params.blockedDomains.map((d) => d.toLowerCase())) : null;
+      const allowedDomainsSet = params.allowedDomains
+        ? new Set(params.allowedDomains.map((d) => d.toLowerCase()))
+        : null;
+      const blockedDomainsSet = params.blockedDomains
+        ? new Set(params.blockedDomains.map((d) => d.toLowerCase()))
+        : null;
 
       for (const block of resultBlocks.slice(1)) {
         if (results.length >= effectiveLimit) break;
@@ -167,10 +190,10 @@ export class WebSearchTool extends Tool<WebSearchInput, WebSearchData> {
         if (block.includes('badge--ad') || block.includes('result--ad')) continue;
 
         const titleMatch = block.match(
-          /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i
+          /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i,
         );
         const snippetMatch = block.match(
-          /<(?:a|div|span)[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:a|div|span)>/i
+          /<(?:a|div|span)[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:a|div|span)>/i,
         );
 
         if (titleMatch && titleMatch[1]) {
@@ -188,11 +211,19 @@ export class WebSearchTool extends Tool<WebSearchInput, WebSearchData> {
             continue;
           }
 
-          if (allowedDomainsSet && !allowedDomainsSet.has(domain) && !Array.from(allowedDomainsSet).some((d) => domain.endsWith(`.${d}`))) {
+          if (
+            allowedDomainsSet &&
+            !allowedDomainsSet.has(domain) &&
+            !Array.from(allowedDomainsSet).some((d) => domain.endsWith(`.${d}`))
+          ) {
             continue;
           }
 
-          if (blockedDomainsSet && (blockedDomainsSet.has(domain) || Array.from(blockedDomainsSet).some((d) => domain.endsWith(`.${d}`)))) {
+          if (
+            blockedDomainsSet &&
+            (blockedDomainsSet.has(domain) ||
+              Array.from(blockedDomainsSet).some((d) => domain.endsWith(`.${d}`)))
+          ) {
             continue;
           }
 
@@ -237,11 +268,13 @@ export class WebSearchTool extends Tool<WebSearchInput, WebSearchData> {
         {
           resultsCount: results.length,
           durationMs,
-        }
+        },
       );
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
-        return this.error(`Web search for '${params.query}' timed out after ${SEARCH_TIMEOUT_MS}ms.`);
+        return this.error(
+          `Web search for '${params.query}' timed out after ${SEARCH_TIMEOUT_MS}ms.`,
+        );
       }
       return this.error(`Web search failed for '${params.query}'`, err);
     }

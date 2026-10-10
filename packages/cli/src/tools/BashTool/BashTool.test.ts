@@ -12,7 +12,7 @@ describe('BashTool', () => {
   it('executes a quick command in the foreground', async () => {
     const res = await tool.execute(
       { command: 'echo "hello steward"', tagline: 'Echoing greeting' },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     expect(res.success).toBe(true);
     expect(res.output).toContain('hello steward');
@@ -23,7 +23,7 @@ describe('BashTool', () => {
   it('captures exit errors from failed commands', async () => {
     const res = await tool.execute(
       { command: 'exit 42', tagline: 'Exiting with failure' },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     expect(res.success).toBe(false);
     expect(res.data?.exitCode).toBe(42);
@@ -32,8 +32,12 @@ describe('BashTool', () => {
 
   it('spawns immediate background tasks when runInBackground is true', async () => {
     const res = await tool.execute(
-      { command: 'sleep 1 && echo "done"', tagline: 'Running sleep background task', runInBackground: true },
-      { cwd: process.cwd() }
+      {
+        command: 'sleep 1 && echo "done"',
+        tagline: 'Running sleep background task',
+        runInBackground: true,
+      },
+      { cwd: process.cwd() },
     );
     expect(res.success).toBe(true);
     expect(res.data?.isBackground).toBe(true);
@@ -51,7 +55,7 @@ describe('BashTool', () => {
     // Pass a 100ms timeout so test runs fast
     const res = await tool.execute(
       { command: 'sleep 1 && echo "finished"', tagline: 'Long running command', timeout: 100 },
-      { cwd: process.cwd() }
+      { cwd: process.cwd() },
     );
     expect(res.success).toBe(true);
     expect(res.data?.isBackground).toBe(true);
@@ -75,7 +79,7 @@ describe('BashTool', () => {
           expect(req.command).toContain('temp_test.txt');
           return false; // Deny
         },
-      }
+      },
     );
 
     expect(asked).toBe(true);
@@ -85,7 +89,7 @@ describe('BashTool', () => {
 
   it('requires tagline in schema validation', () => {
     expect(() => tool.validateInput({ command: 'ls' } as any)).toThrow(
-      "Invalid arguments for tool 'bash'"
+      "Invalid arguments for tool 'bash'",
     );
     const parsed = tool.validateInput({ command: 'ls', tagline: 'Listing directory' });
     expect(parsed.tagline).toBe('Listing directory');
