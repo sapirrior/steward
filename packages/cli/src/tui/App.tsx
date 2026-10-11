@@ -1,13 +1,5 @@
 /** @jsxImportSource stitchable */
-import {
-  useState,
-  useEffect,
-  useRef,
-  useReducer,
-  useInput,
-  useApp,
-  Box,
-} from 'stitchable';
+import { useState, useEffect, useRef, useReducer, useInput, useApp, Box } from 'stitchable';
 
 import type { StewardSettings } from '../settings/settingsTypes.js';
 import { settingsStore } from '../settings/settingsStore.js';
@@ -168,7 +160,8 @@ export function App({ settings }: AppProps = {}) {
         if (ev.key.return) {
           if (activeDialog === 'model') {
             const selected = modelsList[dialogIndex];
-            if (selected) controller.switchModel({ provider: selected.provider, modelId: selected.id });
+            if (selected)
+              controller.switchModel({ provider: selected.provider, modelId: selected.id });
           } else if (activeDialog === 'effort') {
             const efforts = ['none', 'low', 'medium', 'high', 'xhigh'] as const;
             const selected = efforts[dialogIndex];
@@ -245,7 +238,9 @@ export function App({ settings }: AppProps = {}) {
           }
           if (cmdName === 'model') {
             if (arg) {
-              const [prov, ...rest] = arg.includes('/') ? arg.split('/') : [state.modelRef.provider, arg];
+              const [prov, ...rest] = arg.includes('/')
+                ? arg.split('/')
+                : [state.modelRef.provider, arg];
               controller.switchModel({ provider: prov, modelId: rest.join('/') });
             } else {
               openModal('model');
@@ -357,7 +352,11 @@ export function App({ settings }: AppProps = {}) {
       {/* 2. Conversation History */}
       {state.history.map((turn) => (
         <Box key={turn.id} flexDirection="column" width="100%">
-          <UserMessage prompt={turn.userPrompt} timestamp={turn.userTimestamp} theme={state.theme} />
+          <UserMessage
+            prompt={turn.userPrompt}
+            timestamp={turn.userTimestamp}
+            theme={state.theme}
+          />
           <AssistantTurn
             turn={turn}
             theme={state.theme}
@@ -457,12 +456,7 @@ export function App({ settings }: AppProps = {}) {
             theme={state.theme}
           />
         )}
-        {activeDialog === 'exit' && (
-          <ExitDialog
-            selectedIndex={dialogIndex}
-            theme={state.theme}
-          />
-        )}
+        {activeDialog === 'exit' && <ExitDialog selectedIndex={dialogIndex} theme={state.theme} />}
       </DialogHost>
     </Box>
   );

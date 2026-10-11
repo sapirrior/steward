@@ -66,7 +66,10 @@ describe('normalizeSDKError', () => {
 
   it('falls back to provider-default for unknown exceptions (non-retryable)', () => {
     const unknownErr = new Error('Something completely unexpected occurred');
-    const normalized = normalizeSDKError(unknownErr, { provider: 'test-prov', modelId: 'test-mod' });
+    const normalized = normalizeSDKError(unknownErr, {
+      provider: 'test-prov',
+      modelId: 'test-mod',
+    });
     expect(normalized.kind).toBe('provider');
     expect(normalized.retryable).toBe(false);
     expect(normalized.provider).toBe('test-prov');

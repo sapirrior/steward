@@ -1,10 +1,5 @@
 // Re-export AI SDK types so hosts don't need a direct dependency on 'ai'
-export type {
-  ModelMessage,
-  UserModelMessage,
-  ToolSet,
-  ProviderOptions,
-} from 'ai';
+export type { ModelMessage, UserModelMessage, ToolSet, ProviderOptions } from 'ai';
 
 export * from './types.js';
 export * from './constants.js';

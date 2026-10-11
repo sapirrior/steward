@@ -2,13 +2,7 @@ import type { ModelMessage } from 'ai';
 import type { SDKErrorDetails } from '../types.js';
 
 export type SDKFinishReason =
-  | 'stop'
-  | 'length'
-  | 'content-filter'
-  | 'tool-calls'
-  | 'error'
-  | 'other'
-  | 'max-steps';
+  'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'max-steps';
 
 export interface SDKUsage {
   inputTokens: number;
@@ -28,7 +22,13 @@ export type SDKEvent =
   | { type: 'tool-result'; toolCallId: string; toolName: string; output: unknown; isError: boolean }
   | { type: 'step-start'; stepIndex: number; timestamp: number }
   | { type: 'step-finish'; stepIndex: number; finishReason?: string; usage?: SDKUsage }
-  | { type: 'retry'; attempt: number; maxRetries: number; elapsedDelayMs: number; error: SDKErrorDetails }
+  | {
+      type: 'retry';
+      attempt: number;
+      maxRetries: number;
+      elapsedDelayMs: number;
+      error: SDKErrorDetails;
+    }
   | { type: 'aborted'; error: SDKErrorDetails }
   | { type: 'error'; error: SDKErrorDetails }
   | {

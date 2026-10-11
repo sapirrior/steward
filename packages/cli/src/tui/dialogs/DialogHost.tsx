@@ -1,11 +1,5 @@
 /** @jsxImportSource stitchable */
-import {
-  Box,
-  Text,
-  useInput,
-  useFocus,
-  useTerminalSize,
-} from 'stitchable';
+import { Box, Text, useInput, useFocus, useTerminalSize } from 'stitchable';
 import type { Theme } from '../../themes/themeTypes.js';
 
 export interface DialogHostProps {
@@ -20,13 +14,7 @@ export interface DialogHostProps {
  * Centered modal overlay container with input capture, Escape dismissal,
  * and exact viewport centering using terminal columns and rows.
  */
-export function DialogHost({
-  isOpen,
-  onClose,
-  theme,
-  children,
-  width = 66,
-}: DialogHostProps) {
+export function DialogHost({ isOpen, onClose, theme, children, width = 66 }: DialogHostProps) {
   const { columns, rows } = useTerminalSize();
   const colors = theme.colors;
 

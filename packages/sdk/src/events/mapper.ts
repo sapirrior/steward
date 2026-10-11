@@ -27,7 +27,7 @@ export function normalizeUsage(usage?: LanguageModelUsage): SDKUsage {
  */
 export function mapStreamPartToEvent<TOOLS extends ToolSet>(
   part: TextStreamPart<TOOLS>,
-  stepIndex: number
+  stepIndex: number,
 ): SDKEvent | null {
   switch (part.type) {
     case 'text-delta':

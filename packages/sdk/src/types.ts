@@ -7,13 +7,7 @@ export interface ProviderKeyMetadata {
 }
 
 export type StewardSDKErrorKind =
-  | 'auth'
-  | 'rate-limit'
-  | 'context-length'
-  | 'network'
-  | 'provider'
-  | 'abort'
-  | 'invalid-input';
+  'auth' | 'rate-limit' | 'context-length' | 'network' | 'provider' | 'abort' | 'invalid-input';
 
 export interface SDKErrorDetails {
   kind: StewardSDKErrorKind;

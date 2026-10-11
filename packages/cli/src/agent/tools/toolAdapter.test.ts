@@ -103,10 +103,9 @@ describe('adaptTools (AI SDK Tool Bridge)', () => {
       onToolResult: (e) => resultEvents.push(e),
     });
 
-    const output = await tools.mockFailureResult.execute?.(
-      { tagline: 'Running failure' },
-      { toolCallId: 'call_fail' } as any,
-    );
+    const output = await tools.mockFailureResult.execute?.({ tagline: 'Running failure' }, {
+      toolCallId: 'call_fail',
+    } as any);
 
     expect(output.success).toBe(false);
     expect(resultEvents.length).toBe(1);
@@ -137,10 +136,9 @@ describe('adaptTools (AI SDK Tool Bridge)', () => {
       onProgress: dummyOnProgress,
     });
 
-    await tools.mockContextInspector.execute?.(
-      { tagline: 'Inspecting context' },
-      { toolCallId: 'call_ctx' } as any,
-    );
+    await tools.mockContextInspector.execute?.({ tagline: 'Inspecting context' }, {
+      toolCallId: 'call_ctx',
+    } as any);
 
     expect(capturedContext).toBeDefined();
     expect(capturedContext.cwd).toBe('/test/workspace');

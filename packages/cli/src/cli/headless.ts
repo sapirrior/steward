@@ -211,14 +211,10 @@ export async function runHeadless(prompt: string, config: ResolvedCliConfig): Pr
         const duration = chalk.hex(colors.textDim)(`(${durationMs}ms)`);
         if (event.isError) {
           const cross = chalk.hex(colors.error)(UI_GLYPHS.cross);
-          console.log(
-            `  ${cross} ${chalk.hex(colors.error)(event.toolName)} ${duration}`,
-          );
+          console.log(`  ${cross} ${chalk.hex(colors.error)(event.toolName)} ${duration}`);
         } else {
           const check = chalk.hex(colors.textDim)(UI_GLYPHS.check);
-          console.log(
-            `  ${check} ${chalk.hex(colors.textMuted)(event.toolName)} ${duration}`,
-          );
+          console.log(`  ${check} ${chalk.hex(colors.textMuted)(event.toolName)} ${duration}`);
         }
         break;
       }

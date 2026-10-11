@@ -219,36 +219,19 @@ describe('Steward CLI Core Engine (Hardcore Integration Test Suite)', () => {
     // Incompatible --thread and --continue
     const conflictProgram1 = createCliProgram();
     expect(
-      conflictProgram1.parseAsync([
-        'node',
-        'steward',
-        '--thread',
-        'th_123',
-        '--continue',
-      ]),
+      conflictProgram1.parseAsync(['node', 'steward', '--thread', 'th_123', '--continue']),
     ).rejects.toThrow(/Cannot combine --thread and --continue/);
 
     // Incompatible --thread-list and prompt
     const conflictProgram2 = createCliProgram();
     expect(
-      conflictProgram2.parseAsync([
-        'node',
-        'steward',
-        '--thread-list',
-        'prompt text',
-      ]),
+      conflictProgram2.parseAsync(['node', 'steward', '--thread-list', 'prompt text']),
     ).rejects.toThrow(/--thread-list is list-only/);
 
     // Incompatible --thread and prompt
     const conflictProgram3 = createCliProgram();
     expect(
-      conflictProgram3.parseAsync([
-        'node',
-        'steward',
-        '--thread',
-        'th_123',
-        'prompt text',
-      ]),
+      conflictProgram3.parseAsync(['node', 'steward', '--thread', 'th_123', 'prompt text']),
     ).rejects.toThrow(/Cannot resume a thread.*alongside a prompt/);
   });
 });

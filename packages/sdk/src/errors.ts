@@ -54,7 +54,7 @@ export function redactSensitiveData(text: string): string {
  */
 export function normalizeSDKError(
   error: unknown,
-  context?: { provider?: string; modelId?: string }
+  context?: { provider?: string; modelId?: string },
 ): StewardSDKError {
   if (error instanceof StewardSDKError) {
     return error;
@@ -65,9 +65,15 @@ export function normalizeSDKError(
 
   // Extract common error properties
   const err = error as Record<string, any> | null | undefined;
-  const rawMessage = typeof err?.message === 'string' ? err.message : String(error ?? 'Unknown error');
+  const rawMessage =
+    typeof err?.message === 'string' ? err.message : String(error ?? 'Unknown error');
   const message = redactSensitiveData(rawMessage);
-  const status = typeof err?.status === 'number' ? err.status : typeof err?.statusCode === 'number' ? err.statusCode : undefined;
+  const status =
+    typeof err?.status === 'number'
+      ? err.status
+      : typeof err?.statusCode === 'number'
+        ? err.statusCode
+        : undefined;
 
   // Extract Retry-After if present
   let retryAfterMs: number | undefined;
@@ -84,7 +90,7 @@ export function normalizeSDKError(
   // 1. Abort check
   if (
     err?.name === 'AbortError' ||
-    err?.name === 'DOMException' && err?.code === 20 ||
+    (err?.name === 'DOMException' && err?.code === 20) ||
     /aborted|cancelled/i.test(message)
   ) {
     return new StewardSDKError(
@@ -96,7 +102,7 @@ export function normalizeSDKError(
         provider,
         modelId,
       },
-      { cause: error }
+      { cause: error },
     );
   }
 
@@ -116,15 +122,12 @@ export function normalizeSDKError(
         provider,
         modelId,
       },
-      { cause: error }
+      { cause: error },
     );
   }
 
   // 3. Rate Limit check (429 or quota exceeded)
-  if (
-    status === 429 ||
-    /rate limit|too many requests|quota exceeded/i.test(message)
-  ) {
+  if (status === 429 || /rate limit|too many requests|quota exceeded/i.test(message)) {
     return new StewardSDKError(
       {
         kind: 'rate-limit',
@@ -135,7 +138,7 @@ export function normalizeSDKError(
         provider,
         modelId,
       },
-      { cause: error }
+      { cause: error },
     );
   }
 
@@ -154,7 +157,7 @@ export function normalizeSDKError(
         provider,
         modelId,
       },
-      { cause: error }
+      { cause: error },
     );
   }
 
@@ -175,13 +178,14 @@ export function normalizeSDKError(
         provider,
         modelId,
       },
-      { cause: error }
+      { cause: error },
     );
   }
 
   // 6. Invalid Input check
   if (
-    status === 400 && /bad request|invalid parameter|invalid input|invalid request/i.test(message) ||
+    (status === 400 &&
+      /bad request|invalid parameter|invalid input|invalid request/i.test(message)) ||
     err?.name === 'InvalidArgumentError' ||
     err?.name === 'InvalidDataContentError' ||
     err?.name === 'NoSuchModelError' ||
@@ -196,7 +200,7 @@ export function normalizeSDKError(
         provider,
         modelId,
       },
-      { cause: error }
+      { cause: error },
     );
   }
 
@@ -214,6 +218,6 @@ export function normalizeSDKError(
       provider,
       modelId,
     },
-    { cause: error }
+    { cause: error },
   );
 }

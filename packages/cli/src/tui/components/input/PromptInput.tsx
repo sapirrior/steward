@@ -74,9 +74,7 @@ export function PromptInput({
                 <Text bold={isSelected} color={isSelected ? highlightText : colors.text}>
                   {cmd.displayLabel.padEnd(18)}
                 </Text>
-                <Text color={isSelected ? highlightText : colors.textDim}>
-                  {cmd.description}
-                </Text>
+                <Text color={isSelected ? highlightText : colors.textDim}>{cmd.description}</Text>
               </Box>
             );
           })}

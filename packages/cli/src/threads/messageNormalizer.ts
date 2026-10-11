@@ -58,11 +58,7 @@ export function normalizeModelMessages(rawMessages: unknown[]): ModelMessage[] {
             const toolName = String(part.toolName || '');
             // Support both AI SDK v7 `input` and canonical/legacy `args`
             const args =
-              part.args !== undefined
-                ? part.args
-                : part.input !== undefined
-                  ? part.input
-                  : {};
+              part.args !== undefined ? part.args : part.input !== undefined ? part.input : {};
 
             parts.push({
               type: 'tool-call',

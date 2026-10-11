@@ -3,7 +3,7 @@ import type { ParsedModelIdentifier } from './types.js';
 
 /**
  * Parses a model identifier string into provider and modelId components.
- * 
+ *
  * Rules:
  * - Splits strictly on the FIRST slash ('/').
  *   e.g. 'openrouter/openrouter/free' -> provider: 'openrouter', modelId: 'openrouter/free'

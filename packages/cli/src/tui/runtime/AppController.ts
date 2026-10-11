@@ -130,7 +130,10 @@ export class AppController {
           turn: {
             id: `cmd-${Date.now()}`,
             userPrompt: trimmed,
-            userTimestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            userTimestamp: new Date().toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
             reasoning: '',
             text: `Error: ${outcome.message}`,
             toolCalls: [],
@@ -332,10 +335,12 @@ export class AppController {
   public async switchModel(modelRef: ModelRef): Promise<void> {
     this.dispatch({ type: 'SET_MODEL', modelRef });
     this.closeDialog();
-    await settingsStore.update({
-      provider: modelRef.provider,
-      model: modelRef.modelId,
-    }).catch(() => {});
+    await settingsStore
+      .update({
+        provider: modelRef.provider,
+        model: modelRef.modelId,
+      })
+      .catch(() => {});
   }
 
   public async switchEffort(effort: ReasoningEffort): Promise<void> {

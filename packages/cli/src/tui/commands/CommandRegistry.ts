@@ -100,7 +100,10 @@ export class CommandRegistry {
 
     const cmd = this.get(commandName);
     if (!cmd) {
-      return { type: 'error', message: `Unknown command "/${commandName}". Type / to see available commands.` };
+      return {
+        type: 'error',
+        message: `Unknown command "/${commandName}". Type / to see available commands.`,
+      };
     }
 
     return await cmd.execute(args, context);

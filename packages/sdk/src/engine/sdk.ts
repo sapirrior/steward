@@ -15,11 +15,7 @@ import { cloneModelMessages, cloneUserContent } from '../messages/messageCopy.js
 import { parseModelIdentifier } from '../modelId.js';
 import { ProviderRegistry } from '../providers/registry.js';
 import type { ProviderAdapter } from '../providers/types.js';
-import type {
-  ProviderKeyMetadata,
-  ReasoningEffort,
-  SDKErrorDetails,
-} from '../types.js';
+import type { ProviderKeyMetadata, ReasoningEffort, SDKErrorDetails } from '../types.js';
 
 export interface SDKRunInput {
   /** Steward model reference, e.g. `anthropic/claude-sonnet-4-5` or `openrouter/openrouter/free`. */
@@ -111,9 +107,7 @@ export function createStewardSDK(options?: SDKOptions): StewardSDK {
 
       // Reasoning option mapping
       const reasoningSetting =
-        !input.reasoning || input.reasoning === 'none'
-          ? undefined
-          : input.reasoning;
+        !input.reasoning || input.reasoning === 'none' ? undefined : input.reasoning;
 
       let stepIndex = 1;
       let finalFinishReason: SDKFinishReason = 'stop';

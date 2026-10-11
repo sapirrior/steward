@@ -15,11 +15,9 @@ export interface AiSdkToolAdapterOptions {
  */
 export function adaptToolsToAiSdk(
   registry: ToolRegistry | Tool[],
-  options?: AiSdkToolAdapterOptions
+  options?: AiSdkToolAdapterOptions,
 ): ToolSet {
-  const toolsList: Tool<any, any>[] = Array.isArray(registry)
-    ? registry
-    : registry.getAllTools();
+  const toolsList: Tool<any, any>[] = Array.isArray(registry) ? registry : registry.getAllTools();
 
   const adapted: ToolSet = {};
   const cwd = options?.cwd || process.cwd();

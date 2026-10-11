@@ -45,7 +45,12 @@ export function composePrompt(options: ComposePromptOptions): ComposedPromptResu
 }
 
 export class PromptComposer {
-  compose(options: { history: ModelMessage[]; systemPrompt?: string; newUserPrompt: string; runtimeContext?: string }): ModelMessage[] {
+  compose(options: {
+    history: ModelMessage[];
+    systemPrompt?: string;
+    newUserPrompt: string;
+    runtimeContext?: string;
+  }): ModelMessage[] {
     return composePrompt({
       historyMessages: options.history,
       systemPrompt: options.systemPrompt,

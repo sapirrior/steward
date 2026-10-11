@@ -97,9 +97,9 @@ describe('ProviderRegistry', () => {
         new ProviderRegistry([
           {
             id: 'openai',
-            createModel: () => ({} as any),
+            createModel: () => ({}) as any,
           },
-        ])
+        ]),
     ).toThrow(StewardSDKError);
 
     expect(
@@ -108,9 +108,9 @@ describe('ProviderRegistry', () => {
           {
             id: 'my-provider',
             aliases: ['gemini'],
-            createModel: () => ({} as any),
+            createModel: () => ({}) as any,
           },
-        ])
+        ]),
     ).toThrow(StewardSDKError);
   });
 });

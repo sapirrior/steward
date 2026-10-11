@@ -19,7 +19,7 @@ export const DEFAULT_COPILOT_HEADERS: Readonly<Record<string, string>> = Object.
   'Editor-Version': 'vscode/1.96.2',
   'Editor-Plugin-Version': 'copilot-chat/0.24.1',
   'User-Agent': 'GitHubCopilotChat/0.24.1',
-  'Accept': 'application/json',
+  Accept: 'application/json',
 });
 
 /** Default HTTP request headers for OpenRouter */

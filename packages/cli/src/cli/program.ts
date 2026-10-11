@@ -143,7 +143,9 @@ export function createCliProgram(handlers?: CliRunHandlers): Command {
       }
 
       // 5. Incompatible flag validations
-      const hasOAuthAction = Boolean(rawOpts.login || rawOpts.logout !== undefined || rawOpts.authStatus);
+      const hasOAuthAction = Boolean(
+        rawOpts.login || rawOpts.logout !== undefined || rawOpts.authStatus,
+      );
 
       if (config.threadId && config.continueSession) {
         throw new Error('Configuration Error: Cannot combine --thread and --continue.');
@@ -168,7 +170,9 @@ export function createCliProgram(handlers?: CliRunHandlers): Command {
           console.log(chalk.hex(colors.textDim)('No saved conversation threads found.'));
         } else {
           console.log(
-            chalk.bold(chalk.hex(colors.accent)(`Recent Conversation Threads (${summaries.length}):`)),
+            chalk.bold(
+              chalk.hex(colors.accent)(`Recent Conversation Threads (${summaries.length}):`),
+            ),
           );
           for (const s of summaries) {
             const dateStr = new Date(s.updatedAt).toLocaleString();

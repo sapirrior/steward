@@ -54,11 +54,7 @@ export class ProviderRegistry {
   /**
    * Resolves a provider by ID or alias, and returns the instantiated LanguageModel.
    */
-  resolve(
-    providerId: string,
-    modelId: string,
-    metadata?: ProviderKeyMetadata
-  ): LanguageModel {
+  resolve(providerId: string, modelId: string, metadata?: ProviderKeyMetadata): LanguageModel {
     const lower = providerId.toLowerCase();
     const canonicalId = this.aliasMap.get(lower) ?? lower;
     const adapter = this.adapters.get(canonicalId);

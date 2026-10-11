@@ -17,7 +17,7 @@ export interface ResolveCredentialsOptions {
  */
 export async function resolveCliCredentials(
   provider: string,
-  options?: ResolveCredentialsOptions
+  options?: ResolveCredentialsOptions,
 ): Promise<ProviderKeyMetadata> {
   const normProvider = provider.toLowerCase();
 
@@ -35,9 +35,7 @@ export async function resolveCliCredentials(
     case 'google':
     case 'gemini': {
       const apiKey =
-        options?.apiKey ||
-        process.env.GEMINI_API_KEY ||
-        process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+        options?.apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
       return { apiKey, baseURL: options?.baseURL, headers: options?.headers };
     }
 
@@ -73,9 +71,7 @@ export async function resolveCliCredentials(
         }
       }
       const baseURL =
-        options?.baseURL ||
-        process.env.COPILOT_BASE_URL ||
-        process.env.GITHUB_COPILOT_BASE_URL;
+        options?.baseURL || process.env.COPILOT_BASE_URL || process.env.GITHUB_COPILOT_BASE_URL;
       return { apiKey, baseURL, headers: options?.headers };
     }
 
@@ -100,21 +96,15 @@ export async function resolveCliCredentials(
     }
 
     case 'ollama': {
-      const baseURL =
-        options?.baseURL || process.env.OLLAMA_BASE_URL;
+      const baseURL = options?.baseURL || process.env.OLLAMA_BASE_URL;
       const apiKey = options?.apiKey || process.env.OLLAMA_API_KEY;
       return { apiKey, baseURL, headers: options?.headers };
     }
 
     case 'custom': {
       const baseURL =
-        options?.baseURL ||
-        process.env.CUSTOM_BASE_URL ||
-        process.env.OPENAI_BASE_URL;
-      const apiKey =
-        options?.apiKey ||
-        process.env.CUSTOM_API_KEY ||
-        process.env.OPENAI_API_KEY;
+        options?.baseURL || process.env.CUSTOM_BASE_URL || process.env.OPENAI_BASE_URL;
+      const apiKey = options?.apiKey || process.env.CUSTOM_API_KEY || process.env.OPENAI_API_KEY;
       return { apiKey, baseURL, headers: options?.headers };
     }
 

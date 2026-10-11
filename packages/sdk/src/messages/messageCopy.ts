@@ -5,12 +5,7 @@ import type { ModelMessage, UserModelMessage } from 'ai';
  * into AI SDK Core v7 ToolResultOutput ({ type: 'text' | 'json', value }).
  */
 export function normalizeToolResultOutput(raw: unknown): Record<string, any> {
-  if (
-    raw &&
-    typeof raw === 'object' &&
-    'type' in raw &&
-    ('value' in raw || 'reason' in raw)
-  ) {
+  if (raw && typeof raw === 'object' && 'type' in raw && ('value' in raw || 'reason' in raw)) {
     return { ...(raw as Record<string, any>) };
   }
 
@@ -26,7 +21,7 @@ export function normalizeToolResultOutput(raw: unknown): Record<string, any> {
  * Preserves URLs, Buffers, Uint8Array and ArrayBuffer binary payloads without mutation.
  */
 export function cloneUserContent(
-  content: UserModelMessage['content']
+  content: UserModelMessage['content'],
 ): UserModelMessage['content'] {
   if (typeof content === 'string') {
     return content;
@@ -102,9 +97,7 @@ export function cloneUserContent(
  * while ensuring compatibility with AI SDK Core v7 ModelMessage schema
  * (supporting legacy tool-call `args` and tool-result `result`).
  */
-export function cloneModelMessages(
-  messages: readonly ModelMessage[]
-): ModelMessage[] {
+export function cloneModelMessages(messages: readonly ModelMessage[]): ModelMessage[] {
   return messages.map((msg) => {
     if (msg.role === 'user') {
       return {
@@ -157,9 +150,7 @@ export function cloneModelMessages(
         content: Array.isArray(msg.content)
           ? msg.content.map((part) => {
               const rawOutput =
-                (part as any).output !== undefined
-                  ? (part as any).output
-                  : (part as any).result;
+                (part as any).output !== undefined ? (part as any).output : (part as any).result;
 
               return {
                 ...part,
