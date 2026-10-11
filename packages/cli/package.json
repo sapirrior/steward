@@ -45,6 +45,7 @@
     "@ai-sdk/xai": "5.0.20",
     "@steward/models": "*",
     "@steward/oauth": "*",
+    "@steward/sdk": "*",
     "@steward/threads": "*",
     "ai": "7.0.137",
     "chalk": "6.0.0",
