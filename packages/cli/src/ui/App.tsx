@@ -3,7 +3,10 @@ import { Box, Static } from 'stitchable';
 import { Header } from './components/Header.js';
 import { PromptInput } from './components/PromptInput.js';
 import { TurnView, type ChatTurn } from './components/TurnView.js';
+import { PermissionQueue, type PendingPermissionRequest } from './components/PermissionQueue.js';
 import { runBash } from '../services/basher/bashRunner.js';
+import { runAgentTurn } from '../services/agentRunner.js';
+import type { ModelMessage } from '@steward/sdk';
 
 export interface AppProps {
   version: string;
@@ -37,6 +40,12 @@ export function App({
 
   // 3. Currently active streaming turn in the live differential viewport
   const [activeTurn, setActiveTurn] = useState<ChatTurn | null>(null);
+
+  // 4. Pending permission request queue
+  const [permissionQueue, setPermissionQueue] = useState<PendingPermissionRequest[]>([]);
+
+  // 5. Conversation history reference for multi-turn LLM context
+  const messagesRef = useRef<ModelMessage[]>([]);
 
   const handleSubmit = useCallback(
     async (value: string, mode: 'prompt' | 'bash') => {
@@ -97,27 +106,49 @@ export function App({
         return;
       }
 
-      // Prompt mode
-      const promptTurn: ChatTurn = {
+      // Prompt mode: Immediately mount active turn with user prompt
+      const initialActiveTurn: ChatTurn = {
         id: turnId,
         userPrompt: value,
         isBash: false,
         assistantContent: '',
+        thinking: '',
         toolCalls: [],
       };
+      setActiveTurn(initialActiveTurn);
 
-      setActiveTurn(promptTurn);
+      try {
+        const { finalTurn, newMessages } = await runAgentTurn({
+          prompt: value,
+          provider,
+          model,
+          cwd,
+          reasoningEffort,
+          conversationHistory: messagesRef.current,
+          onTurnUpdate: (turn) => {
+            setActiveTurn(turn);
+          },
+          onRequestPermission: (req) => {
+            setPermissionQueue((prev) => [...prev, req]);
+          },
+        });
 
-      // Will be connected to SDK stream in the next step
-      // For now, commit prompt response
-      const finishedTurn: ChatTurn = {
-        ...promptTurn,
-        assistantContent: `Received prompt: ${value}`,
-      };
-      setTurns((prev) => [...prev, finishedTurn]);
-      setActiveTurn(null);
+        messagesRef.current = [...messagesRef.current, ...newMessages];
+        setTurns((prev) => [...prev, finalTurn]);
+        setActiveTurn(null);
+      } catch (err: any) {
+        const errorTurn: ChatTurn = {
+          id: turnId,
+          userPrompt: value,
+          isBash: false,
+          assistantContent: `Error: ${err.message || String(err)}`,
+          toolCalls: [],
+        };
+        setTurns((prev) => [...prev, errorTurn]);
+        setActiveTurn(null);
+      }
     },
-    [cwd],
+    [cwd, provider, model, reasoningEffort],
   );
 
   return (
@@ -148,11 +179,16 @@ export function App({
         </Box>
       )}
 
+      {/* Permission request queue (if any pending) */}
+      {permissionQueue.length > 0 && (
+        <PermissionQueue queue={permissionQueue} />
+      )}
+
       {/* Live prompt input bar */}
       <Box marginTop={1} flexDirection="column" width="100%">
         <PromptInput
           onSubmit={handleSubmit}
-          isLoading={activeTurn !== null}
+          isLoading={activeTurn !== null || permissionQueue.length > 0}
           model={model}
           reasoningEffort={reasoningEffort}
         />

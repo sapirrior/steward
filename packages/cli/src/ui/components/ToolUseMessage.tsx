@@ -47,10 +47,13 @@ export function getToolUserFacingName(name: string): string {
   }
 }
 
-/**
- * Extracts the user-facing tagline parameter for a tool call.
- */
 export function getToolTagline(name: string, input: Record<string, any> = {}): string {
+  // 1. Direct declarative tagline parameter specified on tool schemas
+  if (input.tagline && typeof input.tagline === 'string' && input.tagline.trim()) {
+    return input.tagline.trim();
+  }
+
+  // 2. Specific parameter fallback based on tool
   switch (name.toLowerCase()) {
     case 'bash':
       return input.command ? String(input.command).trim() : '';
@@ -102,11 +105,12 @@ export function ToolUseMessage({ toolCall }: ToolUseMessageProps) {
   const subtleColor = themeManager.getColor('subtle');
   const textColor = themeManager.getColor('text');
 
-  let glyphColor: string | undefined = undefined;
+  let glyphColor: string = successColor;
   let isDimmed = false;
 
   if (status === 'running') {
-    isDimmed = true;
+    glyphColor = themeManager.getColor('steward');
+    isDimmed = false;
   } else if (status === 'error' || error) {
     glyphColor = errorColor;
   } else {
@@ -115,28 +119,21 @@ export function ToolUseMessage({ toolCall }: ToolUseMessageProps) {
 
   return (
     <Box flexDirection="column" marginY={0}>
-      {/* Tool line: [Glyph] ToolName(tagline) */}
-      <Box flexDirection="row" flexWrap="nowrap">
+      {/* Tool line: {glyph} {tagline content} */}
+      <Box flexDirection="row" flexWrap="nowrap" gap={1}>
         {/* Status indicator glyph */}
-        <Box minWidth={2}>
+        <Box>
           <Text color={glyphColor} dimColor={isDimmed} bold wrap="nowrap">
             {status === 'running' ? UI_GLYPHS.runningSpinner : glyph}
           </Text>
         </Box>
 
-        {/* User facing tool name */}
-        <Text bold color={textColor} wrap="nowrap">
-          {toolName}
-        </Text>
-
-        {/* Tool tagline in parentheses */}
-        {tagline && (
-          <Box flexShrink={1}>
-            <Text color={inactiveColor} wrap="truncate-end">
-              ({tagline})
-            </Text>
-          </Box>
-        )}
+        {/* Tool tagline content after glyph */}
+        <Box flexShrink={1}>
+          <Text color={textColor} wrap="truncate-end">
+            {tagline || toolName}
+          </Text>
+        </Box>
       </Box>
 
       {/* Optional error message if failed */}

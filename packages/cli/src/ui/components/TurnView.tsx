@@ -13,6 +13,8 @@ export interface ChatTurn {
   userPrompt: string;
   isBash: boolean;
   assistantContent?: string;
+  thinking?: string;
+  isThinkingExpanded?: boolean;
   toolCalls?: ToolCallItem[];
   error?: string;
 }
@@ -28,9 +30,11 @@ export function TurnView({ turn, isStreaming = false }: TurnViewProps) {
       {/* Committed user message */}
       <UserMessage content={turn.userPrompt} isBash={turn.isBash} />
 
-      {/* Assistant response and tool calls */}
+      {/* Assistant response, thinking block, and tool calls */}
       <AssistantMessage
         content={turn.assistantContent}
+        thinking={turn.thinking}
+        isThinkingExpanded={turn.isThinkingExpanded}
         toolCalls={turn.toolCalls}
         isStreaming={isStreaming}
       />

@@ -38,6 +38,8 @@ export function PromptInput({
   const lastCtrlCRef = useRef<number>(0);
   const lastEscapeRef = useRef<number>(0);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLoadingRef = useRef(isLoading);
+  isLoadingRef.current = isLoading;
 
   const { addHistory, navigateUp, navigateDown, resetNavigation } = usePromptHistory();
 
@@ -53,7 +55,6 @@ export function PromptInput({
   }, []);
 
   useInput((ev) => {
-    if (isLoading) return;
 
     // 1. Bracketed paste handling
     if (ev.type === 'paste' && ev.text) {
@@ -125,6 +126,11 @@ export function PromptInput({
 
       const trimmed = curVal.trim();
       if (!trimmed) return true;
+
+      // Prevent submitting if a turn/session is currently active
+      if (isLoadingRef.current) {
+        return true;
+      }
 
       const submitMode = isBashMode ? 'bash' : 'prompt';
       const cleanValue = isBashMode ? trimmed.slice(1).trim() : trimmed;
