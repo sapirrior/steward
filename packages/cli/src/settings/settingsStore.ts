@@ -4,7 +4,6 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {
   STEWARD_SETTINGS_FILE,
-  STEWARD_HOME_DIR,
   DEFAULT_PROVIDER,
   DEFAULT_MODEL,
   DEFAULT_THEME,
