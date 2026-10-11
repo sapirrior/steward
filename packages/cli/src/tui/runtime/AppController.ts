@@ -71,14 +71,21 @@ export class AppController {
     return this.modelsList;
   }
 
-  public async initialize(): Promise<void> {
+  public async loadInitialModels(): Promise<readonly ModelMetadata[]> {
     try {
-      const modelsClient = createModels();
-      this.modelsList = await modelsClient.list({ textCapable: true });
+      this.modelsList = await createModels().list({ textCapable: true });
+      return this.modelsList;
     } catch {
-      // Non-fatal if offline or models endpoint unavailable
-      this.modelsList = [];
+      return [];
     }
+  }
+
+  public get cachedModels(): readonly ModelMetadata[] {
+    return this.modelsList;
+  }
+
+  public async initialize(): Promise<void> {
+    await this.loadInitialModels();
 
     // Load active thread turns into UI
     const doc = this.threadController.currentThread;
