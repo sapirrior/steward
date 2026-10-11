@@ -1,7 +1,7 @@
 /** @jsxImportSource stitchable */
 import { BaseDialog, type DialogItem } from '../../dialogs/BaseDialog.js';
 import type { Theme } from '../../../themes/themeTypes.js';
-import type { ReasoningEffort } from '../../../agent/types.js';
+import type { ReasoningEffort } from '@steward/sdk';
 
 export interface EffortDialogProps {
   currentEffort: ReasoningEffort;

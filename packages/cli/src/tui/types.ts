@@ -1,6 +1,6 @@
 import type { ModelRef } from '@steward/models';
 import type { ModelMessage, ThreadDocument, ThreadUsage } from '@steward/threads';
-import type { ReasoningEffort } from '../agent/types.js';
+import type { ReasoningEffort } from '@steward/sdk';
 import type { StewardSettings } from '../settings/settingsTypes.js';
 import type { Theme } from '../themes/themeTypes.js';
 

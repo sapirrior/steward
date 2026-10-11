@@ -1,5 +1,5 @@
 import type { ModelRef } from '@steward/models';
-import type { ReasoningEffort } from '../agent/types.js';
+import type { ReasoningEffort } from '@steward/sdk';
 import type { ToolSettings, BashSettings } from '../settings/settingsTypes.js';
 
 export type ToolName = 'read' | 'glob' | 'grep' | 'webfetch' | 'websearch' | 'bash';

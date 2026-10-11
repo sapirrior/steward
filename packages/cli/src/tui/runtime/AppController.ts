@@ -1,16 +1,18 @@
 import type { ModelRef, ModelMetadata } from '@steward/models';
 import { createModels } from '@steward/models';
-import type { ReasoningEffort } from '../../agent/types.js';
+import type { ReasoningEffort } from '@steward/sdk';
+import { createStewardSDK } from '@steward/sdk';
 import type { StewardSettings } from '../../settings/settingsTypes.js';
 import { settingsStore } from '../../settings/settingsStore.js';
 import { themeManager } from '../../themes/themeManager.js';
-import { AgentRunner } from '../../agent/AgentRunner.js';
 import { buildSystemPrompt } from '../../services/context/systemPrompt.js';
 import { toolRegistry } from '../../tools/ToolRegistry.js';
 import { ThreadController } from '../../threads/ThreadController.js';
 import { PromptComposer } from '../../threads/PromptComposer.js';
 import { threadToTurns } from '../../threads/threadToTurns.js';
 import { commandRegistry } from '../commands/CommandRegistry.js';
+import { adaptToolsToAiSdk } from '../../tools/aiSdkToolAdapter.js';
+import { resolveCliCredentials } from '../../services/providerCredentials.js';
 import type {
   AppState,
   AppStateAction,
@@ -33,7 +35,7 @@ export class AppController {
 
   public readonly threadController: ThreadController;
   public readonly promptComposer: PromptComposer;
-  private readonly runner: AgentRunner;
+  private readonly sdk = createStewardSDK();
   private abortController: AbortController | null = null;
   private activeDialogState: string | null = null;
   private dialogSelectedIndex = 0;
@@ -46,12 +48,15 @@ export class AppController {
 
     this.threadController = new ThreadController({ cwd: this.state.cwd });
     this.promptComposer = new PromptComposer();
-    this.runner = new AgentRunner();
   }
 
   public update(state: AppState, dispatch: Dispatch<AppStateAction>): void {
     this.state = state;
     this.dispatch = dispatch;
+  }
+
+  public exitApp(): void {
+    this.exitFn();
   }
 
   public get activeDialog(): string | null {
@@ -62,8 +67,23 @@ export class AppController {
     return this.dialogSelectedIndex;
   }
 
-  public setSelectedIndex(idx: number): void {
-    this.dialogSelectedIndex = idx;
+  public get models(): readonly ModelMetadata[] {
+    return this.modelsList;
+  }
+
+  public async initialize(): Promise<void> {
+    try {
+      const modelsClient = createModels();
+      this.modelsList = await modelsClient.list({ textCapable: true });
+    } catch {
+      // Non-fatal if offline or models endpoint unavailable
+      this.modelsList = [];
+    }
+
+    // Load active thread turns into UI
+    const doc = this.threadController.currentThread;
+    const turns = threadToTurns(doc.messages);
+    this.dispatch({ type: 'SET_TURNS', turns });
   }
 
   public openDialog(dialogId: string): void {
@@ -76,22 +96,13 @@ export class AppController {
     this.dialogSelectedIndex = 0;
   }
 
-  public async loadInitialModels(): Promise<readonly ModelMetadata[]> {
-    try {
-      this.modelsList = await createModels().list({ textCapable: true });
-      return this.modelsList;
-    } catch {
-      return [];
-    }
+  public setSelectedIndex(idx: number): void {
+    this.dialogSelectedIndex = Math.max(0, idx);
   }
 
-  public get cachedModels(): readonly ModelMetadata[] {
-    return this.modelsList;
-  }
-
-  public async executePrompt(inputText: string): Promise<void> {
-    const trimmed = inputText.trim();
-    if (!trimmed || this.state.status === 'running') return;
+  public async executePrompt(promptText: string): Promise<void> {
+    const trimmed = promptText.trim();
+    if (!trimmed) return;
 
     // 1. Slash commands routing
     if (trimmed.startsWith('/')) {
@@ -150,102 +161,130 @@ export class AppController {
       isHeadless: false,
     });
 
-    const messages = this.promptComposer.compose({
-      history: threadDoc.messages,
-      systemPrompt,
-      newUserPrompt: trimmed,
+    const tools = adaptToolsToAiSdk(toolRegistry, {
+      cwd: this.state.cwd,
+      threadId: threadDoc.id,
+      askPermission: async (req: any) => {
+        return new Promise<boolean>((resolve) => {
+          this.dispatch({
+            type: 'SET_PERMISSION_REQUEST',
+            request: {
+              toolName: req.toolName || 'bash',
+              command: req.command,
+              tagline: req.explanation || req.reason || 'Command requires approval',
+              resolve: (approved: boolean) => {
+                this.dispatch({ type: 'SET_PERMISSION_REQUEST', request: null });
+                resolve(approved);
+              },
+            },
+          });
+        });
+      },
+    });
+
+    const keyMetadata = await resolveCliCredentials(this.state.modelRef.provider, {
+      signal: this.abortController.signal,
     });
 
     let reasoningStart = Date.now();
     let hasFinishedReasoning = false;
+    const toolStartTimes = new Map<string, number>();
 
     try {
-      const stream = this.runner.runStream(
-        {
-          modelRef: this.state.modelRef,
-          messages,
-          tools: toolRegistry,
-          reasoning: this.state.reasoningEffort,
-          systemPrompt,
-          cwd: this.state.cwd,
-          threadId: threadDoc.id,
-          signal: this.abortController.signal,
-          askPermission: async (req: any) => {
-            return new Promise<boolean>((resolve) => {
-              this.dispatch({
-                type: 'SET_PERMISSION_REQUEST',
-                request: {
-                  toolName: req.toolName || 'bash',
-                  command: req.command,
-                  tagline: req.explanation || req.reason || 'Command requires approval',
-                  resolve: (approved: boolean) => {
-                    this.dispatch({ type: 'SET_PERMISSION_REQUEST', request: null });
-                    resolve(approved);
-                  },
-                },
-              });
-            });
-          },
-        },
-        (event) => {
-          if (event.type === 'tool-call-start') {
+      const modelIdentifier = `${this.state.modelRef.provider}/${this.state.modelRef.modelId}`;
+      const stream = this.sdk.stream({
+        model: modelIdentifier,
+        instructions: systemPrompt,
+        messages: threadDoc.messages, // prior history only
+        message: trimmed, // new user prompt
+        tools,
+        reasoning: this.state.reasoningEffort,
+        signal: this.abortController.signal,
+        keyMetadata,
+      });
+
+      for await (const event of stream) {
+        switch (event.type) {
+          case 'reasoning-delta':
+            this.dispatch({ type: 'APPEND_REASONING', text: event.text });
+            break;
+
+          case 'text-delta':
+            if (!hasFinishedReasoning) {
+              hasFinishedReasoning = true;
+              this.dispatch({ type: 'FINISH_REASONING', durationMs: Date.now() - reasoningStart });
+            }
+            this.dispatch({ type: 'APPEND_TEXT', text: event.text });
+            break;
+
+          case 'tool-call': {
             if (!hasFinishedReasoning && reasoningStart) {
               hasFinishedReasoning = true;
               this.dispatch({ type: 'FINISH_REASONING', durationMs: Date.now() - reasoningStart });
             }
+            toolStartTimes.set(event.toolCallId, Date.now());
             const tcState: ActiveToolCallState = {
               toolCallId: event.toolCallId,
               toolName: event.toolName,
-              tagline: event.tagline,
-              args: event.args,
+              tagline: `${event.toolName} executing...`,
+              args: event.input,
               status: 'running',
             };
             this.dispatch({ type: 'START_TOOL_CALL', toolCall: tcState });
-          } else if (event.type === 'tool-call-result') {
+            break;
+          }
+
+          case 'tool-result': {
+            const start = toolStartTimes.get(event.toolCallId);
+            const durationMs = start ? Date.now() - start : 0;
             this.dispatch({
               type: 'FINISH_TOOL_CALL',
               toolCallId: event.toolCallId,
-              result: event.result,
-              durationMs: event.durationMs,
+              result: event.output,
+              durationMs,
               isError: event.isError,
             });
-          } else if (event.type === 'retry') {
+            break;
+          }
+
+          case 'retry':
             this.dispatch({
               type: 'SET_RETRY',
               attempt: event.attempt,
               maxRetries: event.maxRetries,
-              delayMs: event.delayMs,
+              delayMs: event.elapsedDelayMs,
               errorMessage: event.error.message,
             });
-          } else if (event.type === 'error') {
+            break;
+
+          case 'finish': {
+            const usageDelta = {
+              inputTokens: event.usage.inputTokens,
+              outputTokens: event.usage.outputTokens,
+              totalTokens: event.usage.totalTokens,
+              reasoningTokens: event.usage.reasoningTokens,
+              cacheReadTokens: event.usage.cacheReadTokens,
+              cacheWriteTokens: event.usage.cacheWriteTokens,
+            };
+            this.dispatch({ type: 'FINISH_TURN', usage: usageDelta });
+
+            // Record and save thread atomically
+            await this.threadController.recordTurn({
+              userPrompt: trimmed,
+              responseMessages: (event.responseMessages as any) || [],
+              usageDelta,
+            });
+            break;
+          }
+
+          case 'error':
             this.dispatch({ type: 'ERROR_TURN', message: event.error.message });
-          }
-        },
-      );
+            break;
 
-      for await (const event of stream) {
-        if (event.type === 'reasoning-delta') {
-          this.dispatch({ type: 'APPEND_REASONING', text: event.text });
-        } else if (event.type === 'text-delta') {
-          if (!hasFinishedReasoning) {
-            hasFinishedReasoning = true;
-            this.dispatch({ type: 'FINISH_REASONING', durationMs: Date.now() - reasoningStart });
-          }
-          this.dispatch({ type: 'APPEND_TEXT', text: event.text });
+          case 'aborted':
+            this.dispatch({ type: 'ABORT_TURN' });
+            break;
         }
-      }
-
-      const finalResult = await stream.next();
-      const finalVal = finalResult.value as any;
-      this.dispatch({ type: 'FINISH_TURN', usage: finalVal?.usage });
-
-      if (finalVal) {
-        // Record and save thread atomically
-        await this.threadController.recordTurn({
-          userPrompt: trimmed,
-          responseMessages: finalVal.responseMessages || [],
-          usageDelta: finalVal.usage,
-        });
       }
     } catch (err: any) {
       if (this.abortController?.signal.aborted) {
@@ -308,30 +347,14 @@ export class AppController {
 
   public async resumeThread(threadId: string): Promise<void> {
     const doc = await this.threadController.resume(threadId);
-    if (doc) {
-      const turns = threadToTurns(doc.messages);
-      this.dispatch({
-        type: 'LOAD_THREAD',
-        history: turns,
-        modelRef: doc.model,
-        metrics: doc.usage,
-        threadDoc: doc,
-      });
-    }
+    const turns = threadToTurns(doc.messages);
+    this.dispatch({ type: 'SET_TURNS', turns });
     this.closeDialog();
   }
 
-  public async newSession(): Promise<void> {
-    await this.threadController.newSession();
-    this.dispatch({ type: 'NEW_SESSION' });
+  public async newThread(): Promise<void> {
+    await this.threadController.newThread(this.state.modelRef);
+    this.dispatch({ type: 'CLEAR_TURNS' });
     this.closeDialog();
-  }
-
-  public async exitApp(): Promise<void> {
-    await this.threadController.save().catch(() => {});
-    if (this.state.permissionRequest) {
-      this.state.permissionRequest.resolve(false);
-    }
-    this.exitFn();
   }
 }

@@ -3,7 +3,7 @@ import { Box, Text } from 'stitchable';
 import { UI_GLYPHS } from '../../../constants/icons.js';
 import type { Theme } from '../../../themes/themeTypes.js';
 import type { ModelRef } from '@steward/models';
-import type { ReasoningEffort } from '../../../agent/types.js';
+import type { ReasoningEffort } from '@steward/sdk';
 
 export interface PromptInputProps {
   inputText: string;

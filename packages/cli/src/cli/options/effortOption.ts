@@ -1,4 +1,4 @@
-import type { ReasoningEffort } from '../../agent/types.js';
+import type { ReasoningEffort } from '@steward/sdk';
 import { VALID_REASONING_EFFORTS } from '../types.js';
 
 /**
