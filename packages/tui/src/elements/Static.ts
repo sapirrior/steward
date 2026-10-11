@@ -9,6 +9,8 @@ import type { ElementChild } from '../types.js';
 export interface StaticProps<T> {
   readonly items: T[];
   readonly style?: BoxProps;
+  readonly wrap?: boolean;
+  readonly clip?: boolean;
   readonly children: (item: T, index: number) => ElementChild;
 }
 
@@ -31,7 +33,7 @@ export interface StaticProps<T> {
  * ```
  */
 export function Static<T>(props: StaticProps<T>): StitchableElement<BoxProps> | null {
-  const { items, children: renderItem, style: customStyle } = props;
+  const { items, children: renderItem, style: customStyle, wrap, clip } = props;
   const [lastCommittedIndex, setLastCommittedIndex] = useState(0);
 
   const newItems = useMemo(() => items.slice(lastCommittedIndex), [items, lastCommittedIndex]);
@@ -53,6 +55,8 @@ export function Static<T>(props: StaticProps<T>): StitchableElement<BoxProps> | 
 
   useCommitHistory(staticContent, [items.length], {
     enabled: newItems.length > 0,
+    wrap,
+    clip,
   });
 
   useLayoutEffect(() => {

@@ -15,10 +15,17 @@ export interface TextStyleProps {
 }
 
 export type TextWrapMode =
-  'wrap' | 'hard' | 'truncate' | 'truncate-start' | 'truncate-middle' | 'truncate-end';
+  | 'wrap'
+  | 'nowrap'
+  | 'none'
+  | 'hard'
+  | 'truncate'
+  | 'truncate-start'
+  | 'truncate-middle'
+  | 'truncate-end';
 
 export interface TextProps extends TextStyleProps {
-  wrap?: TextWrapMode;
+  wrap?: boolean | TextWrapMode;
   hangingIndent?: number | string;
   children?: any;
 }

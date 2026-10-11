@@ -99,7 +99,7 @@ Renders styled terminal text with color downsampling, formatting, and wrap contr
   underline
   strikethrough
   inverse
-  wrap="wrap" // 'wrap' (word boundary) | 'hard' | 'truncate' / 'truncate-end' | 'truncate-start' | 'truncate-middle'
+  wrap="wrap" // 'wrap' (word boundary) | 'nowrap' / 'none' / false (overflow without wrapping) | 'hard' | 'truncate' / 'truncate-end' | 'truncate-start' | 'truncate-middle'
   hangingIndent={2} // Indent continuation lines by N columns or prefix string
 >
   Hello world

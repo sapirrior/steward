@@ -5,10 +5,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "bun build packages/cli/src/main.ts --outfile packages/cli/dist/cli.js --target node",
-    "compile": "bun build --compile --minify packages/cli/src/main.ts --outfile packages/cli/dist/steward",
-    "dev": "bun --watch packages/cli/src/main.ts",
-    "start": "bun packages/cli/src/main.ts",
+    "build": "bun build packages/cli/src/main.tsx --outfile packages/cli/dist/cli.js --target node",
+    "compile": "bun build --compile --minify packages/cli/src/main.tsx --outfile packages/cli/dist/steward",
+    "dev": "bun --watch packages/cli/src/main.tsx",
+    "start": "bun packages/cli/src/main.tsx",
     "test": "bun run test:sdk && bun run test:models && bun run test:tui && bun run test:oauth && bun run test:threads && bun run test:cli",
     "test:sdk": "bun test packages/sdk/src",
     "test:models": "bun test packages/models/src",

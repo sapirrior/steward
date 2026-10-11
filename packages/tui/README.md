@@ -253,11 +253,12 @@ Renders and styles terminal text, supporting ANSI colors, text decorations, word
 | **`underline`** | `boolean` | `false` | Underline text. |
 | **`strikethrough`** | `boolean` | `false` | Render a strikethrough line across text. |
 | **`inverse`** | `boolean` | `false` | Invert foreground and background colors. |
-| **`wrap`** | `'wrap' \| 'hard' \| 'truncate' \| 'truncate-start' \| 'truncate-middle' \| 'truncate-end'` | `'wrap'` | Text wrapping / clipping algorithm. |
+| **`wrap`** | `boolean \| 'wrap' \| 'nowrap' \| 'none' \| 'hard' \| 'truncate' \| 'truncate-start' \| 'truncate-middle' \| 'truncate-end'` | `'wrap'` | Text wrapping / clipping algorithm. Set to `'nowrap'`, `'none'`, or `false` to disable wrapping and overflow cleanly. |
 | **`hangingIndent`** | `number \| string` | `0` | Number of columns (or prefix string) to indent wrapped continuation lines. |
 
 #### Text Wrapping Modes:
 - `'wrap'`: Standard visual word-boundary wrapping. Words are preserved intact when breaking onto new lines.
+- `'nowrap'` / `'none'` / `false`: Disables wrapping completely. Text stays on a single line and overflows without generating new lines.
 - `'hard'`: Hard grapheme wrapping. Breaks text at the exact right margin without respecting word boundaries.
 - `'truncate'` / `'truncate-end'`: Truncates text exceeding available width and appends an ellipsis (`…`).
 - `'truncate-start'`: Truncates text at the beginning (`…filename.ts`).
@@ -312,6 +313,16 @@ A declarative component that permanently commits finished turns, completed jobs,
 - **Zero Viewport Clutter**: Once items are committed, they graduate out of the live differential render loop, keeping live renders $O(1)$.
 - **Responsive Reflow**: If the terminal window is resized, committed history reflows cleanly without re-executing component state.
 - **100% Ink Compatibility**: Drop-in compatible with Ink's `<Static items={items}>` syntax.
+
+#### Props Reference:
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| **`items`** | `T[]` | *Required* | Array of items to commit. |
+| **`style`** | `BoxProps` | `undefined` | Custom Box styling applied to the container. |
+| **`wrap`** | `boolean` | `true` | When `false`, committed history entries will not word-wrap on terminal resize. |
+| **`clip`** | `boolean` | `false` | When `true`, lines exceeding terminal width are clipped cleanly. |
+| **`children`** | `(item: T, index: number) => ElementChild` | *Required* | Render function for each item. |
 
 ```tsx
 function ChatHistory({ messages }: { messages: Message[] }) {

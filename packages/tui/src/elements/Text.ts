@@ -124,8 +124,13 @@ export function renderTextElement(
   const rawLines = styledContent.split('\n');
   const resultLines: string[] = [];
 
+  const isNoWrap =
+    wrapMode === 'nowrap' || wrapMode === 'none' || (wrapMode as any) === false;
+
   for (const rawLine of rawLines) {
-    if (wrapMode === 'hard') {
+    if (isNoWrap) {
+      resultLines.push(rawLine);
+    } else if (wrapMode === 'hard') {
       const wrapped = hardWrapLine(rawLine, width);
       for (const w of wrapped) {
         resultLines.push(w);
@@ -149,9 +154,10 @@ export function renderTextElement(
     }
   }
 
+  const naturalWidth = Math.max(...resultLines.map(visibleWidth), 0);
   return {
     lines: resultLines,
-    width: Math.min(width, Math.max(...resultLines.map(visibleWidth), 0)),
+    width: isNoWrap ? naturalWidth : Math.min(width, naturalWidth),
   };
 }
 

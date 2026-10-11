@@ -104,6 +104,30 @@ describe('Declarative Elements Suite (src/elements)', () => {
       expect(lines.length).toBe(1);
       expect(lines[0]).toContain('…');
     });
+
+    it('does not wrap text and allows overflow when wrap is nowrap or none', () => {
+      const longText = 'This is a long line that should remain on a single row without wrapping';
+      const el = jsx(Text, { wrap: 'nowrap', children: longText });
+
+      const lines = renderElement(el, { width: 20, colorLevel: 0 });
+      expect(lines.length).toBe(1);
+      expect(lines[0]).toBe(longText);
+    });
+  });
+
+  describe('<Box> overflow clipping', () => {
+    it('clips horizontal overflow when overflow="hidden"', () => {
+      const longText = '1234567890abcdefghij';
+      const el = jsx(Box, {
+        width: 10,
+        overflow: 'hidden',
+        children: jsx(Text, { wrap: 'nowrap', children: longText }),
+      });
+
+      const lines = renderElement(el, { width: 10, colorLevel: 0 });
+      expect(lines.length).toBe(1);
+      expect(lines[0]).toBe('1234567890');
+    });
   });
 
   describe('<Spacer>', () => {

@@ -24,11 +24,11 @@
     "steward-cli": "dist/cli.js"
   },
   "scripts": {
-    "dev": "bun --watch src/main.ts",
-    "start": "bun src/main.ts",
+    "dev": "bun --watch src/main.tsx",
+    "start": "bun src/main.tsx",
     "prepublishOnly": "bun run build",
-    "build": "bun build src/main.ts --outfile ./dist/cli.js --target node",
-    "compile": "bun build --compile --minify src/main.ts --outfile ./dist/steward",
+    "build": "bun build src/main.tsx --outfile ./dist/cli.js --target node",
+    "compile": "bun build --compile --minify src/main.tsx --outfile ./dist/steward",
     "format": "bun ./node_modules/prettier/bin/prettier.cjs --check \"src/**/*.{ts,tsx,js,jsx}\"",
     "format:fix": "bun ./node_modules/prettier/bin/prettier.cjs --write \"src/**/*.{ts,tsx,js,jsx}\"",
     "typecheck": "tsc --noEmit",

@@ -1,5 +1,6 @@
 import type { BoxProps, Block, RenderContext, StitchableElement, BorderGlyphs } from './types.js';
 import { visibleWidth } from '../text/width.js';
+import { truncate } from '../text/truncate.js';
 import { resolveBorderStyle } from './border.js';
 import { colorToSgr, styleText } from '../terminal/color.js';
 import { RESET_SGR } from '../terminal/sequences.js';
@@ -404,7 +405,15 @@ export function renderBoxElement(
     paddedLines.push(emptyPaddedRow);
   }
 
-  for (const line of innerLines) {
+  const maxLineContentWidth = Math.max(0, innerWidth - paddingLeft - paddingRight);
+  const isOverflowXHidden =
+    props.overflow === 'hidden' || props.overflowX === 'hidden';
+
+  for (const rawLine of innerLines) {
+    const line =
+      isOverflowXHidden && visibleWidth(rawLine) > maxLineContentWidth
+        ? truncate(rawLine, maxLineContentWidth, { ellipsis: '' })
+        : rawLine;
     const lineW = visibleWidth(line);
     const leftPad = ' '.repeat(paddingLeft);
     const rightPad = ' '.repeat(Math.max(0, innerWidth - paddingLeft - lineW));
