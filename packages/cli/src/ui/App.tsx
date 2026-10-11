@@ -5,6 +5,7 @@
 
 import { Box, Static } from 'stitchable';
 import { Header } from './components/Header.js';
+import { PromptInput } from './components/PromptInput.js';
 
 export interface AppProps {
   version: string;
@@ -33,6 +34,10 @@ export function App({
     },
   ];
 
+  const handleSubmit = (value: string, mode: 'prompt' | 'bash') => {
+    // Future turn execution hook
+  };
+
   return (
     <Box flexDirection="column" width="100%">
       {/* Committed header in scrollback */}
@@ -48,6 +53,15 @@ export function App({
           />
         )}
       </Static>
+
+      {/* Live prompt input bar */}
+      <Box marginTop={1} flexDirection="column" width="100%">
+        <PromptInput
+          onSubmit={handleSubmit}
+          model={model}
+          reasoningEffort={reasoningEffort}
+        />
+      </Box>
     </Box>
   );
 }
