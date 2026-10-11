@@ -83,7 +83,13 @@ export class BashTool extends Tool<BashInput, BashData> {
     const classification = classifyCommand(params.command);
 
     // Permission check for mutating/unknown commands (Score = 1)
-    if (classification.score === 1 && context.askPermission) {
+    if (classification.score === 1) {
+      if (!context.askPermission) {
+        return this.error(
+          `Permission required but no permission handler provided for command '${params.command}' (${classification.reasons.join('; ') || 'Mutating command'})`,
+        );
+      }
+
       const allowed = await context.askPermission({
         toolName: this.name,
         action: 'Execute shell command',

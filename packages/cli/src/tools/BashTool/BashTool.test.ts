@@ -87,6 +87,16 @@ describe('BashTool', () => {
     expect(res.output).toContain('Permission denied by user');
   });
 
+  it('fails closed when an unsafe command has no permission handler provided', async () => {
+    const res = await tool.execute(
+      { command: 'echo "test" > temp_test.txt', tagline: 'Writing temp file' },
+      { cwd: process.cwd() }, // No askPermission provided
+    );
+
+    expect(res.success).toBe(false);
+    expect(res.output).toContain('Permission required but no permission handler provided');
+  });
+
   it('requires tagline in schema validation', () => {
     expect(() => tool.validateInput({ command: 'ls' } as any)).toThrow(
       "Invalid arguments for tool 'bash'",

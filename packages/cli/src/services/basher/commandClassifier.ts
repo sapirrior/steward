@@ -40,6 +40,11 @@ const SAFE_SYSTEM_COMMANDS = new Set([
   'env',
   'printenv',
   'cal',
+  'sleep',
+  'exit',
+  'test',
+  'true',
+  'false',
 ]);
 
 const SAFE_GIT_SUBCOMMANDS = new Set([
@@ -168,7 +173,9 @@ function evaluateSegment(segment: CommandSegment): SegmentEvaluation {
     } else {
       // Check mutating flags within safe subcommands
       if (effectiveSub === 'branch') {
-        const hasMutateFlag = segment.args.some(
+        const subIndex = segment.args.indexOf(effectiveSub);
+        const branchArgs = segment.args.slice(subIndex + 1);
+        const hasMutateFlag = branchArgs.some(
           (a) =>
             a === '-d' ||
             a === '-D' ||
@@ -177,8 +184,10 @@ function evaluateSegment(segment: CommandSegment): SegmentEvaluation {
             a.includes('--delete') ||
             a.includes('--move'),
         );
-        if (hasMutateFlag) {
-          reasons.push('Git command "git branch -d/-D/-m" deletes or modifies branches');
+        // Any positional argument that isn't a listing flag creates or modifies branches
+        const hasNonFlagArg = branchArgs.some((a) => !a.startsWith('-'));
+        if (hasMutateFlag || hasNonFlagArg) {
+          reasons.push('Git command "git branch" creates, moves, or deletes branches');
           categories.push('git-mutation');
         }
       } else if (effectiveSub === 'remote') {
@@ -189,9 +198,12 @@ function evaluateSegment(segment: CommandSegment): SegmentEvaluation {
           categories.push('git-mutation');
         }
       } else if (effectiveSub === 'tag') {
-        const hasTagDelete = segment.args.some((a) => a === '-d' || a.includes('--delete'));
-        if (hasTagDelete) {
-          reasons.push('Git command "git tag -d" deletes tags');
+        const subIndex = segment.args.indexOf(effectiveSub);
+        const tagArgs = segment.args.slice(subIndex + 1);
+        const hasTagDelete = tagArgs.some((a) => a === '-d' || a.includes('--delete'));
+        const hasNonFlagArg = tagArgs.some((a) => !a.startsWith('-'));
+        if (hasTagDelete || hasNonFlagArg) {
+          reasons.push('Git command "git tag" creates or deletes tags');
           categories.push('git-mutation');
         }
       }
@@ -208,16 +220,12 @@ function evaluateSegment(segment: CommandSegment): SegmentEvaluation {
     cmd === 'cargo'
   ) {
     const subCmd = (segment.args[0] || '').toLowerCase();
-    if (
-      subCmd === 'test' ||
-      (subCmd === 'run' && segment.args[1] === 'test') ||
-      subCmd === '--version' ||
-      subCmd === '-v'
-    ) {
-      // Safe test execution
+    if (subCmd === '--version' || subCmd === '-v') {
+      // Version inspection is strictly read-only
     } else {
+      const subStr = subCmd ? ` ${subCmd}` : '';
       reasons.push(
-        `Package manager "${cmd} ${subCmd}" may install, modify, or execute arbitrary dependencies`,
+        `Package manager "${cmd}${subStr}" may install, modify, or execute arbitrary project scripts/code`,
       );
       categories.push('package-install');
     }

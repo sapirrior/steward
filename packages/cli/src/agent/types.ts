@@ -110,6 +110,10 @@ export interface AgentRunOptions {
   fallbackModelRef?: ModelRef | string;
   retry?: RetryConfig;
   signal?: AbortSignal;
+  cwd?: string;
+  threadId?: string;
+  onProgress?: (progress: import('../tools/Tool.js').ToolProgress) => void;
+  askPermission?: (request: import('../tools/Tool.js').PermissionRequest) => Promise<boolean>;
 }
 
 export interface AgentRunResult {

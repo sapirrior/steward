@@ -109,6 +109,10 @@ export class AgentRunner {
     // Adapt tools with event emission
     const tools = options.tools
       ? adaptTools(options.tools, {
+          cwd: options.cwd,
+          threadId: options.threadId,
+          onProgress: options.onProgress,
+          askPermission: options.askPermission,
           onToolStart: (e) => {
             onEvent?.(e);
           },

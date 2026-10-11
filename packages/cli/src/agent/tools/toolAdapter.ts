@@ -1,10 +1,13 @@
 import { tool } from 'ai';
 import type { ToolRegistry } from '../../tools/ToolRegistry.js';
-import type { Tool } from '../../tools/Tool.js';
+import type { Tool, ToolProgress, PermissionRequest } from '../../tools/Tool.js';
 import type { AgentToolCallStartEvent, AgentToolCallResultEvent } from '../types.js';
 
 export interface ToolAdapterOptions {
   cwd?: string;
+  threadId?: string;
+  onProgress?: (progress: ToolProgress) => void;
+  askPermission?: (request: PermissionRequest) => Promise<boolean>;
   onToolStart?: (event: AgentToolCallStartEvent) => void;
   onToolResult?: (event: AgentToolCallResultEvent) => void;
 }
@@ -44,15 +47,20 @@ export function adaptTools(
           const result = await t.execute(args, {
             cwd,
             signal: execOptions?.abortSignal,
+            threadId: options?.threadId,
+            onProgress: options?.onProgress,
+            askPermission: options?.askPermission,
           });
           const durationMs = Date.now() - startTime;
+          const isError =
+            result && typeof result === 'object' && 'success' in result ? !result.success : false;
 
           options?.onToolResult?.({
             type: 'tool-call-result',
             toolCallId,
             toolName: t.name,
             tagline,
-            isError: false,
+            isError,
             result,
             durationMs,
           });

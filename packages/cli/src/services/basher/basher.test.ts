@@ -68,11 +68,11 @@ describe('Basher Hardcore Test Suite', () => {
       'date',
       'echo "plain string output"',
       'echo "rm -rf is mentioned here"', // Quoted argument is safe!
-      'printf "hello %s\n" world',
+      'printf "hello %s\\n" world',
       "awk '{print $1}' file.txt",
       "sed 's/foo/bar/g' file.txt", // Non -i sed is safe!
       'sort file.txt | uniq',
-      'bun test',
+      'bun --version',
       'tsc --noEmit',
     ];
 
@@ -88,6 +88,10 @@ describe('Basher Hardcore Test Suite', () => {
     const mutatingCommands = [
       'echo "hello" > file.txt',
       'echo "data" >> append.log',
+      'bun test',
+      'npm test',
+      'git branch new-feature',
+      'git tag v1.0.0',
       'cat file.txt > copy.txt',
       'rm file.txt',
       'rm -rf /tmp/test',

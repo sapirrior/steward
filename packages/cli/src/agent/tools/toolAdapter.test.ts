@@ -86,4 +86,66 @@ describe('adaptTools (AI SDK Tool Bridge)', () => {
     expect(resultEvents[0].isError).toBe(true);
     expect(resultEvents[0].result).toBe('Permission denied to read file');
   });
+
+  it('correctly marks isError: true when a tool resolves with success: false', async () => {
+    class MockFailureResultTool extends Tool<any, unknown> {
+      name = 'mockFailureResult';
+      description = 'Resolves with failure result';
+      glyph = '✖';
+      schema = z.object({ tagline: z.string() });
+      async execute() {
+        return this.error('Operation failed gracefully');
+      }
+    }
+
+    const resultEvents: AgentToolCallResultEvent[] = [];
+    const tools = adaptTools([new MockFailureResultTool()], {
+      onToolResult: (e) => resultEvents.push(e),
+    });
+
+    const output = await tools.mockFailureResult.execute?.(
+      { tagline: 'Running failure' },
+      { toolCallId: 'call_fail' } as any,
+    );
+
+    expect(output.success).toBe(false);
+    expect(resultEvents.length).toBe(1);
+    expect(resultEvents[0].isError).toBe(true);
+  });
+
+  it('forwards threadId, askPermission, and onProgress to tool execution context', async () => {
+    let capturedContext: any = null;
+
+    class MockContextInspectorTool extends Tool<any, unknown> {
+      name = 'mockContextInspector';
+      description = 'Captures execution context';
+      glyph = '🔍';
+      schema = z.object({ tagline: z.string() });
+      async execute(_args: any, context: any) {
+        capturedContext = context;
+        return this.success('OK');
+      }
+    }
+
+    const dummyAskPermission = async () => true;
+    const dummyOnProgress = () => {};
+
+    const tools = adaptTools([new MockContextInspectorTool()], {
+      cwd: '/test/workspace',
+      threadId: 'th_test_123',
+      askPermission: dummyAskPermission,
+      onProgress: dummyOnProgress,
+    });
+
+    await tools.mockContextInspector.execute?.(
+      { tagline: 'Inspecting context' },
+      { toolCallId: 'call_ctx' } as any,
+    );
+
+    expect(capturedContext).toBeDefined();
+    expect(capturedContext.cwd).toBe('/test/workspace');
+    expect(capturedContext.threadId).toBe('th_test_123');
+    expect(capturedContext.askPermission).toBe(dummyAskPermission);
+    expect(capturedContext.onProgress).toBe(dummyOnProgress);
+  });
 });
