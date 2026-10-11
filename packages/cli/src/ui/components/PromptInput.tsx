@@ -36,6 +36,7 @@ export function PromptInput({
   cursorOffsetRef.current = cursorOffset;
 
   const lastCtrlCRef = useRef<number>(0);
+  const lastEscapeRef = useRef<number>(0);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { addHistory, navigateUp, navigateDown, resetNavigation } = usePromptHistory();
@@ -70,7 +71,20 @@ export function PromptInput({
     const curVal = valueRef.current;
     const offset = cursorOffsetRef.current;
 
-    // 2. Ctrl+C handling
+    // 2. Double Esc handling: clears input box
+    if (key.escape) {
+      const now = Date.now();
+      if (key.meta || now - lastEscapeRef.current < 600) {
+        updateState('', 0);
+        resetNavigation();
+        lastEscapeRef.current = 0;
+      } else {
+        lastEscapeRef.current = now;
+      }
+      return true;
+    }
+
+    // 3. Ctrl+C handling
     if (key.ctrl && key.name === 'c') {
       if (curVal.length > 0) {
         // Clear current input
@@ -95,8 +109,20 @@ export function PromptInput({
       return true;
     }
 
-    // 3. Return / Enter: submit
+    // 4. Return / Enter: '\' + Enter creates a newline, normal Enter submits
     if (key.return) {
+      if (offset > 0 && curVal[offset - 1] === '\\') {
+        // Replace '\' before cursor with newline '\n'
+        const nextVal = curVal.slice(0, offset - 1) + '\n' + curVal.slice(offset);
+        updateState(nextVal, offset);
+        return true;
+      }
+      if (curVal.endsWith('\\')) {
+        const nextVal = curVal.slice(0, -1) + '\n';
+        updateState(nextVal, nextVal.length);
+        return true;
+      }
+
       const trimmed = curVal.trim();
       if (!trimmed) return true;
 
@@ -252,21 +278,19 @@ export function PromptInput({
                 {' '}
               </Text>
             )}
-            <Text color={subtleColor} wrap="nowrap">
+            <Text color={subtleColor} wrap="wrap">
               {placeholder}
             </Text>
           </Box>
         ) : (
-          <Box flexDirection="row" overflow="hidden">
-            <Text color={textColor} wrap="nowrap">
+          <Box flexDirection="row" width="100%">
+            <Text color={textColor} wrap="wrap">
               {beforeCursor}
-            </Text>
-            {!isLoading && (
-              <Text inverse bold color={textColor} wrap="nowrap">
-                {cursorChar}
-              </Text>
-            )}
-            <Text color={textColor} wrap="nowrap">
+              {!isLoading && (
+                <Text inverse bold color={textColor}>
+                  {cursorChar}
+                </Text>
+              )}
               {afterCursor}
             </Text>
           </Box>

@@ -1,13 +1,19 @@
 /**
  * @file usePromptHistory.ts
- * @description Command history navigation with Up/Down arrow key support and draft preservation.
+ * @description Command history navigation with Up/Down arrow key support, draft preservation,
+ * and persistent storage in ~/.steward/history.jsonl.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { useState, useRef, useCallback } from 'stitchable';
+import { STEWARD_HISTORY_FILE } from '../../constants/index.js';
 
 export interface UsePromptHistoryOptions {
   maxHistory?: number;
   initialHistory?: string[];
+  persist?: boolean;
+  historyFile?: string;
 }
 
 export interface UsePromptHistoryReturn {
@@ -18,9 +24,61 @@ export interface UsePromptHistoryReturn {
   resetNavigation: () => void;
 }
 
+/**
+ * Synchronously reads the recent command history from disk.
+ */
+export function loadHistorySync(filePath = STEWARD_HISTORY_FILE, limit = 100): string[] {
+  try {
+    if (!fs.existsSync(filePath)) return [];
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n').map((l) => l.trim()).filter(Boolean);
+    const parsed: string[] = [];
+
+    for (const line of lines) {
+      try {
+        const obj = JSON.parse(line);
+        if (typeof obj === 'string') {
+          parsed.push(obj);
+        } else if (obj && typeof obj.command === 'string') {
+          parsed.push(obj.command);
+        }
+      } catch {
+        parsed.push(line);
+      }
+    }
+    return parsed.slice(-limit);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Appends a command to the persistent history file.
+ */
+export function appendHistorySync(command: string, filePath = STEWARD_HISTORY_FILE): void {
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const entry = JSON.stringify({ command, timestamp: Date.now() }) + '\n';
+    fs.appendFileSync(filePath, entry, 'utf-8');
+  } catch {
+    // Non-critical: ignore history write errors
+  }
+}
+
 export function usePromptHistory(options: UsePromptHistoryOptions = {}): UsePromptHistoryReturn {
   const maxHistory = options.maxHistory ?? 100;
-  const [history, setHistory] = useState<string[]>(options.initialHistory ?? []);
+  const persist = options.persist ?? true;
+  const historyFile = options.historyFile ?? STEWARD_HISTORY_FILE;
+
+  const [history, setHistory] = useState<string[]>(() => {
+    if (options.initialHistory) return options.initialHistory;
+    if (persist) return loadHistorySync(historyFile, maxHistory);
+    return [];
+  });
+
   const historyRef = useRef<string[]>(history);
   historyRef.current = history;
 
@@ -47,8 +105,12 @@ export function usePromptHistory(options: UsePromptHistoryOptions = {}): UseProm
       setHistory(next);
       historyIndexRef.current = -1;
       draftRef.current = '';
+
+      if (persist) {
+        appendHistorySync(trimmed, historyFile);
+      }
     },
-    [maxHistory],
+    [maxHistory, persist, historyFile],
   );
 
   const navigateUp = useCallback((currentInput: string): string | null => {
