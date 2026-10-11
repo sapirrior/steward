@@ -35,6 +35,8 @@ AI agents working in this codebase must strictly adhere to the following rules:
 
 ### B. Command Execution & Output Hygiene
 - Limit shell command output to prevent flooding the context window (e.g., truncate or pipe verbose output).
+- Never run unrestricted recursive greps (`grep -rn`) across large directories or dependencies; use specific file paths or tight target expressions.
+- For commands generating repetitive or high-volume standard output (such as batch formatters), redirect output to `/dev/null` or limit output length.
 - Never run unverified destructive commands.
 
 ### C. Follow Explicit Instructions
@@ -45,6 +47,10 @@ AI agents working in this codebase must strictly adhere to the following rules:
 - Test all modifications with the relevant test commands before concluding tasks.
 - Keep tests green and ensure no regressions.
 - Follow Conventional Commits format (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`).
+
+### E. Concise Turn Feedback
+- Provide brief, focused 1-2 sentence updates rather than long unrequested commentaries.
+- Keep explanations direct, technical, and immediately actionable.
 
 ---
 
