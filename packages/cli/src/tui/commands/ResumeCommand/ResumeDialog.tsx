@@ -1,12 +1,13 @@
 /** @jsxImportSource stitchable */
-import { BaseDialog, type DialogItem } from './BaseDialog.js';
-import type { Theme } from '../../themes/themeTypes.js';
+import { BaseDialog, type DialogItem } from '../../dialogs/BaseDialog.js';
+import type { Theme } from '../../../themes/themeTypes.js';
 import type { ThreadSummary } from '@steward/threads';
 
 export interface ResumeDialogProps {
   threads: readonly ThreadSummary[];
   selectedIndex: number;
   theme: Theme;
+  filterQuery?: string;
 }
 
 function formatRelativeTime(isoString: string): string {
@@ -20,8 +21,22 @@ function formatRelativeTime(isoString: string): string {
   return `${days}d ago`;
 }
 
-export function ResumeDialog({ threads, selectedIndex, theme }: ResumeDialogProps) {
-  const items: DialogItem[] = threads.map((t) => {
+export function ResumeDialog({
+  threads,
+  selectedIndex,
+  theme,
+  filterQuery = '',
+}: ResumeDialogProps) {
+  const filtered = filterQuery
+    ? threads.filter(
+        (t) =>
+          (t.title && t.title.toLowerCase().includes(filterQuery.toLowerCase())) ||
+          t.id.toLowerCase().includes(filterQuery.toLowerCase()) ||
+          t.model.modelId.toLowerCase().includes(filterQuery.toLowerCase()),
+      )
+    : threads;
+
+  const items: DialogItem[] = filtered.map((t) => {
     const title = t.title || 'Untitled Thread';
     const label = title.length > 28 ? title.slice(0, 26) + '..' : title.padEnd(28);
     const meta = `${t.model.modelId} · ${formatRelativeTime(t.updatedAt)}`;
@@ -40,7 +55,9 @@ export function ResumeDialog({ threads, selectedIndex, theme }: ResumeDialogProp
       items={items}
       selectedIndex={selectedIndex}
       theme={theme}
-      emptyText="No saved threads found"
+      filterQuery={filterQuery}
+      placeholder="Type thread title, id, or model..."
+      emptyText="No matching threads found"
     />
   );
 }

@@ -102,7 +102,7 @@ export interface RetryConfig {
 export interface AgentRunOptions {
   modelRef: ModelRef | string;
   messages: ModelMessage[];
-  tools?: ToolRegistry;
+  tools?: ToolRegistry | import('../tools/Tool.js').Tool<any, any>[];
   systemPrompt?: string;
   runtimeContext?: string;
   maxSteps?: number;

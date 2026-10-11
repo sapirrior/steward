@@ -8,8 +8,9 @@ import { buildSystemPrompt } from '../services/context/systemPrompt.js';
 import { FileReadTool } from '../tools/FileReadTool/index.js';
 import { GlobTool } from '../tools/GlobTool/index.js';
 import { GrepTool } from '../tools/GrepTool/index.js';
-import { WebFetchTool } from '../tools/WebFetchTool/index.js';
 import { WebSearchTool } from '../tools/WebSearchTool/index.js';
+import { WebFetchTool } from '../tools/WebFetchTool/index.js';
+import type { Tool } from '../tools/Tool.js';
 import type { ResolvedCliConfig } from './types.js';
 
 const MAX_STDIN_BYTES = 10 * 1024 * 1024; // 10MB safety cap
@@ -136,8 +137,8 @@ export async function runHeadless(prompt: string, config: ResolvedCliConfig): Pr
     return;
   }
 
-  // 3. Assemble safe inspection tools (obeying config.tools toggles)
-  const activeTools: any[] = [];
+  // 3. Assemble safe inspection tools (obeying config.tools toggles, never bash or task-manager)
+  const activeTools: Tool<any, any>[] = [];
   if (config.tools.read) activeTools.push(new FileReadTool());
   if (config.tools.glob) activeTools.push(new GlobTool());
   if (config.tools.grep) activeTools.push(new GrepTool());
@@ -229,9 +230,9 @@ export async function runHeadless(prompt: string, config: ResolvedCliConfig): Pr
   }
 
   const result = await stream.next();
-  const finalResult = result.value;
+  const finalResult = result.value as any;
 
-  if (finalResult && finalResult.responseMessages.length > 0) {
+  if (finalResult && finalResult.responseMessages?.length > 0) {
     threadDoc.messages.push(...finalResult.responseMessages);
     threadDoc.usage = finalResult.usage;
     try {

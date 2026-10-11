@@ -1,7 +1,7 @@
 /** @jsxImportSource stitchable */
-import { BaseDialog, type DialogItem } from './BaseDialog.js';
-import type { Theme } from '../../themes/themeTypes.js';
-import type { ReasoningEffort } from '../../agent/types.js';
+import { BaseDialog, type DialogItem } from '../../dialogs/BaseDialog.js';
+import type { Theme } from '../../../themes/themeTypes.js';
+import type { ReasoningEffort } from '../../../agent/types.js';
 
 export interface EffortDialogProps {
   currentEffort: ReasoningEffort;
@@ -14,7 +14,7 @@ const EFFORT_OPTIONS: { level: ReasoningEffort; description: string }[] = [
   { level: 'low', description: 'Fast reasoning with minimal thinking tokens' },
   { level: 'medium', description: 'Balanced reasoning for typical engineering tasks' },
   { level: 'high', description: 'Deep reasoning with extended thinking tokens' },
-  { level: 'max', description: 'Maximum thinking effort budget for complex problems' },
+  { level: 'xhigh', description: 'Extra high thinking effort budget for complex tasks' },
 ];
 
 export function EffortDialog({ currentEffort, selectedIndex, theme }: EffortDialogProps) {

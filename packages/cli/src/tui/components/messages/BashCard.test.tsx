@@ -1,5 +1,5 @@
+/** @jsxImportSource stitchable */
 import { describe, it, expect } from 'bun:test';
-import React from 'react';
 import { BashCard } from './BashCard.js';
 import { themeManager } from '../../../themes/themeManager.js';
 

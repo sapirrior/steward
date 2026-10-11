@@ -198,7 +198,7 @@ describe('Steward CLI Core Engine (Hardcore Integration Test Suite)', () => {
   });
 
   it('handles thread routing flags and rejects conflicting flags', async () => {
-    let capturedConfig: ResolvedCliConfig | undefined;
+    let capturedConfig: any;
     const testProgram = createCliProgram({
       onInteractive: async (config) => {
         capturedConfig = config;

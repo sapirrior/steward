@@ -16,6 +16,7 @@ import type {
   AgentReasoningDeltaEvent,
   AgentFinishEvent,
   AgentErrorEvent,
+  AgentRetryEvent,
 } from './types.js';
 
 // Suppress AI SDK internal console warnings globally

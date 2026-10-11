@@ -41,9 +41,16 @@ export function useFocus(options: { id?: string; autoFocus?: boolean } = {}): {
       dispatcher.setFocus(id);
     }
 
-    return dispatcher.onFocusChange((activeId) => {
+    const unsubscribe = dispatcher.onFocusChange((activeId) => {
       setIsFocused(activeId === id);
     });
+
+    return () => {
+      unsubscribe();
+      if (dispatcher.getFocus() === id) {
+        dispatcher.setFocus(null);
+      }
+    };
   }, [app.inputDispatcher, id, options.autoFocus]);
 
   const focus = () => {

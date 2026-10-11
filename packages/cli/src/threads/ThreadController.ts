@@ -10,7 +10,7 @@ import { normalizeModelMessages } from './messageNormalizer.js';
 
 export interface ThreadControllerOptions {
   store?: ThreadStore;
-  defaultModel: ThreadModelMeta;
+  defaultModel?: ThreadModelMeta;
   cwd?: string;
 }
 
@@ -25,9 +25,13 @@ export class ThreadController {
   private readonly defaultModel: ThreadModelMeta;
   private readonly defaultCwd: string;
 
-  constructor(options: ThreadControllerOptions) {
+  constructor(options: ThreadControllerOptions = {}) {
     this.store = options.store ?? new ThreadStore();
-    this.defaultModel = options.defaultModel;
+    this.defaultModel = options.defaultModel ?? {
+      provider: 'google',
+      modelId: 'gemini-3.1-flash-lite',
+      reasoning: 'low',
+    };
     this.defaultCwd = options.cwd ?? process.cwd();
   }
 
@@ -152,5 +156,30 @@ export class ThreadController {
     const thread = this.getActiveThread();
     thread.model = model;
     await this.saveActiveThread();
+  }
+
+  // Canonical convenience getters and aliases
+  get currentThread(): ThreadDocument {
+    return this.getActiveThread();
+  }
+
+  get currentThreadId(): string {
+    return this.getActiveThread().id;
+  }
+
+  async list(limit?: number): Promise<ThreadSummary[]> {
+    return this.listThreads(limit);
+  }
+
+  async save(): Promise<void> {
+    return this.saveActiveThread();
+  }
+
+  async resume(id: string): Promise<ThreadDocument> {
+    return this.loadThread(id);
+  }
+
+  async newSession(customModel?: ThreadModelMeta): Promise<ThreadDocument> {
+    return this.createNewThread(customModel);
   }
 }

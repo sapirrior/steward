@@ -1,6 +1,6 @@
 /** @jsxImportSource stitchable */
 import { Box, Text } from 'stitchable';
-import type { Theme } from '../../themes/themeTypes.js';
+import type { Theme } from '../../../themes/themeTypes.js';
 
 export interface MarkdownMessageProps {
   content: string;

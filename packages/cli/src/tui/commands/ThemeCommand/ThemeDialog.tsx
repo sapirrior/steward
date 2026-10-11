@@ -1,6 +1,6 @@
 /** @jsxImportSource stitchable */
-import { BaseDialog, type DialogItem } from './BaseDialog.js';
-import type { Theme } from '../../themes/themeTypes.js';
+import { BaseDialog, type DialogItem } from '../../dialogs/BaseDialog.js';
+import type { Theme } from '../../../themes/themeTypes.js';
 
 export interface ThemeDialogProps {
   currentThemeName: string;

@@ -1,9 +1,8 @@
 /** @jsxImportSource stitchable */
 import { Box, Text } from 'stitchable';
-import type { Theme } from '../../themes/themeTypes.js';
+import type { Theme } from '../../../themes/themeTypes.js';
 import type { CompletedTurn, ActiveTurnState } from '../../types.js';
-import { ToolCallItem } from './ToolCallItem.js';
-import { BashCard } from './BashCard.js';
+import { toolRendererRegistry } from '../../tool-renderers/registry.js';
 import { MarkdownMessage } from './MarkdownMessage.js';
 
 export interface AssistantTurnProps {
@@ -40,25 +39,19 @@ export function AssistantTurn({
         </Box>
       ) : null}
 
-      {/* 2. Tool Calls */}
+      {/* 2. Tool Calls via Registry */}
       {turn.toolCalls && turn.toolCalls.length > 0 ? (
         <Box flexDirection="column" marginBottom={1}>
           {turn.toolCalls.map((tc) => {
-            if (tc.toolName === 'bash') {
-              const cmd = String(tc.args?.command || '');
-              const out =
-                typeof tc.result === 'string' ? tc.result : (tc.result as any)?.output || '';
-              return (
-                <BashCard
-                  key={tc.toolCallId}
-                  command={cmd}
-                  output={out}
-                  theme={theme}
-                  isExpanded={isBashCardsExpanded}
-                />
-              );
-            }
-            return <ToolCallItem key={tc.toolCallId} toolCall={tc} theme={theme} />;
+            const Renderer = toolRendererRegistry.getRenderer(tc.toolName);
+            return (
+              <Renderer
+                key={tc.toolCallId}
+                toolCall={tc}
+                theme={theme}
+                isExpanded={isBashCardsExpanded}
+              />
+            );
           })}
         </Box>
       ) : null}

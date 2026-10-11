@@ -13,6 +13,8 @@ export interface PromptInputProps {
   isRunning?: boolean;
   theme: Theme;
   placeholder?: string;
+  suggestedCommands?: Array<{ name: string; displayLabel: string; description: string }>;
+  selectedCommandIndex?: number;
 }
 
 export function PromptInput({
@@ -23,14 +25,19 @@ export function PromptInput({
   isRunning = false,
   theme,
   placeholder: customPlaceholder,
+  suggestedCommands = [],
+  selectedCommandIndex = 0,
 }: PromptInputProps) {
   const colors = theme.colors;
+  const highlightBg = '#fdba74'; // Peach highlight
+  const highlightText = '#000000';
 
   const beforeCursor = inputText.slice(0, cursorPos);
   const cursorChar = inputText[cursorPos] || ' ';
   const afterCursor = inputText.slice(cursorPos + 1);
 
   const placeholder = customPlaceholder ?? 'Ask anything... "Fix broken tests"';
+  const showCommandSuggestions = suggestedCommands.length > 0 && !isRunning;
 
   return (
     <Box
@@ -41,6 +48,41 @@ export function PromptInput({
       marginTop={1}
       width="100%"
     >
+      {/* Inline Slash Command Suggestions Popup */}
+      {showCommandSuggestions && (
+        <Box
+          flexDirection="column"
+          backgroundColor={colors.dialogBackground}
+          borderStyle="round"
+          borderColor={colors.border}
+          marginBottom={1}
+          paddingX={1}
+          paddingY={0}
+          width="100%"
+        >
+          {suggestedCommands.map((cmd, idx) => {
+            const isSelected = idx === selectedCommandIndex;
+            return (
+              <Box
+                key={cmd.name}
+                flexDirection="row"
+                justifyContent="space-between"
+                backgroundColor={isSelected ? highlightBg : undefined}
+                paddingX={1}
+                width="100%"
+              >
+                <Text bold={isSelected} color={isSelected ? highlightText : colors.text}>
+                  {cmd.displayLabel.padEnd(18)}
+                </Text>
+                <Text color={isSelected ? highlightText : colors.textDim}>
+                  {cmd.description}
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
+      )}
+
       {/* 1. Interactive Input Row */}
       <Box flexDirection="row">
         <Text color={colors.accentActive}>{UI_GLYPHS.accentBar} </Text>

@@ -1,6 +1,6 @@
 /** @jsxImportSource stitchable */
 import { Box, Text, Spacer } from 'stitchable';
-import type { Theme } from '../../themes/themeTypes.js';
+import type { Theme } from '../../../themes/themeTypes.js';
 import type { TuiMetrics } from '../../types.js';
 
 export interface FooterProps {

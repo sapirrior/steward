@@ -45,7 +45,7 @@ describe('normalizeModelMessages', () => {
     const toolMsg = normalized[2];
     expect(toolMsg.role).toBe('tool');
     if (Array.isArray(toolMsg.content)) {
-      expect(toolMsg.content[0].result).toBe('Sunny, 22°C');
+      expect((toolMsg.content[0] as any).result).toBe('Sunny, 22°C');
     }
   });
 

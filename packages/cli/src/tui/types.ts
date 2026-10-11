@@ -1,5 +1,5 @@
 import type { ModelRef } from '@steward/models';
-import type { ModelMessage, ThreadDoc, ThreadUsage } from '@steward/threads';
+import type { ModelMessage, ThreadDocument, ThreadUsage } from '@steward/threads';
 import type { ReasoningEffort } from '../agent/types.js';
 import type { StewardSettings } from '../settings/settingsTypes.js';
 import type { Theme } from '../themes/themeTypes.js';
@@ -72,7 +72,7 @@ export interface AppState {
   activeTurn: ActiveTurnState | null;
   metrics: TuiMetrics;
   permissionRequest: PermissionRequestState | null;
-  threadDoc?: ThreadDoc;
+  threadDoc?: ThreadDocument;
   gitBranch?: string;
   cwd: string;
   expandAllBashCards?: boolean;
@@ -113,8 +113,8 @@ export type AppStateAction =
       history: CompletedTurn[];
       modelRef?: ModelRef;
       metrics?: Partial<TuiMetrics>;
-      threadDoc?: ThreadDoc;
+      threadDoc?: ThreadDocument;
     }
   | { type: 'SET_PERMISSION_REQUEST'; request: PermissionRequestState | null }
   | { type: 'UPDATE_METRICS'; metrics: Partial<TuiMetrics> }
-  | { type: 'SET_THREAD_DOC'; threadDoc: ThreadDoc };
+  | { type: 'SET_THREAD_DOC'; threadDoc: ThreadDocument };

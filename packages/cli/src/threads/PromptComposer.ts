@@ -43,3 +43,14 @@ export function composePrompt(options: ComposePromptOptions): ComposedPromptResu
     messages: fullMessages,
   };
 }
+
+export class PromptComposer {
+  compose(options: { history: ModelMessage[]; systemPrompt?: string; newUserPrompt: string; runtimeContext?: string }): ModelMessage[] {
+    return composePrompt({
+      historyMessages: options.history,
+      systemPrompt: options.systemPrompt,
+      newUserPrompt: options.newUserPrompt,
+      runtimeContext: options.runtimeContext,
+    }).messages;
+  }
+}

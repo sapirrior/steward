@@ -16,6 +16,8 @@ export interface BaseDialogProps {
   theme: Theme;
   maxVisible?: number;
   emptyText?: string;
+  filterQuery?: string;
+  placeholder?: string;
 }
 
 export function BaseDialog({
@@ -25,28 +27,58 @@ export function BaseDialog({
   theme,
   maxVisible = 8,
   emptyText = 'No items found',
+  filterQuery,
+  placeholder = 'Type to filter...',
 }: BaseDialogProps) {
   const colors = theme.colors;
-  const highlightBg = '#fdba74'; // Peach/orange highlight from reference screenshots
+  const highlightBg = '#fdba74'; // Peach highlight
   const highlightText = '#000000';
+
+  const renderHeader = () => (
+    <Box flexDirection="column" width="100%" marginBottom={filterQuery !== undefined ? 1 : 0}>
+      {title && (
+        <Box paddingX={1} paddingY={0} justifyContent="space-between" width="100%">
+          <Text bold color={colors.accent}>
+            {title.toUpperCase()}
+          </Text>
+          <Text color={colors.textDim}>[Esc to cancel]</Text>
+        </Box>
+      )}
+      {filterQuery !== undefined && (
+        <Box
+          paddingX={1}
+          paddingY={0}
+          borderStyle="single"
+          borderLeft={false}
+          borderRight={false}
+          borderTop={true}
+          borderBottom={true}
+          borderColor={colors.border}
+          width="100%"
+        >
+          <Text bold color={colors.accent}>
+            /
+          </Text>
+          <Text color={filterQuery ? colors.text : colors.textDim}>
+            {filterQuery ? ` ${filterQuery}` : ` ${placeholder}`}
+          </Text>
+          <Text color={colors.accent}>_</Text>
+        </Box>
+      )}
+    </Box>
+  );
 
   if (items.length === 0) {
     return (
       <Box
         flexDirection="column"
         backgroundColor={colors.dialogBackground}
-        paddingX={1}
+        paddingX={0}
         paddingY={0}
         width="100%"
       >
-        {title && (
-          <Box paddingX={1} paddingY={0}>
-            <Text bold color={colors.textDim}>
-              {title.toUpperCase()}
-            </Text>
-          </Box>
-        )}
-        <Box paddingX={1} paddingY={0}>
+        {renderHeader()}
+        <Box paddingX={1} paddingY={1}>
           <Text color={colors.textMuted}>{emptyText}</Text>
         </Box>
       </Box>
@@ -61,7 +93,7 @@ export function BaseDialog({
   }
   const visibleItems = items.slice(startIndex, startIndex + maxVisible);
 
-  // Scrollbar thumb indicator calculation
+  // Scrollbar indicator calculation
   const hasScrollbar = total > maxVisible;
   const scrollFraction = total > 1 ? selectedIndex / (total - 1) : 0;
   const thumbIndex = Math.min(
@@ -77,13 +109,7 @@ export function BaseDialog({
       paddingY={0}
       width="100%"
     >
-      {title && (
-        <Box paddingX={1} paddingY={0}>
-          <Text bold color={colors.textDim}>
-            {title.toUpperCase()}
-          </Text>
-        </Box>
-      )}
+      {renderHeader()}
       {visibleItems.map((item, relIdx) => {
         const absIdx = startIndex + relIdx;
         const isSelected = absIdx === selectedIndex;

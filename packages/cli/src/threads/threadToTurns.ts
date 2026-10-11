@@ -78,3 +78,5 @@ export function reconstructTurnsFromMessages(messages: ModelMessage[]): Complete
 
   return turns;
 }
+
+export const threadToTurns = reconstructTurnsFromMessages;
