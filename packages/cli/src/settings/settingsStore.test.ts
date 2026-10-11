@@ -30,7 +30,7 @@ describe('SettingsStore Hardcore Test Suite', () => {
     expect(settings.version).toBe(1);
     expect(settings.provider).toBe('google');
     expect(settings.model).toBe('gemini-flash-latest');
-    expect(settings.theme).toBe('default');
+    expect(settings.theme).toBe('dark');
     expect(settings.reasoningEffort).toBe('medium');
 
     // All 6 tools active by default
@@ -73,7 +73,7 @@ describe('SettingsStore Hardcore Test Suite', () => {
     const recovered = await store.load();
     expect(recovered.provider).toBe('google');
     expect(recovered.model).toBe('gemini-flash-latest');
-    expect(recovered.theme).toBe('default');
+    expect(recovered.theme).toBe('dark');
   });
 
   it('handles empty settings files gracefully', async () => {
@@ -98,7 +98,7 @@ describe('SettingsStore Hardcore Test Suite', () => {
     const reset = await store.reset();
     expect(reset.provider).toBe('google');
     expect(reset.model).toBe('gemini-flash-latest');
-    expect(reset.theme).toBe('default');
+    expect(reset.theme).toBe('dark');
   });
 
   // ─── 5. Concurrent Rapid Updates ────────────────────────────────────────────

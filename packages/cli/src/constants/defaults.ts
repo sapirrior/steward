@@ -2,7 +2,7 @@ import type { ReasoningEffort } from '@steward/sdk';
 
 export const DEFAULT_PROVIDER = 'google';
 export const DEFAULT_MODEL = 'gemini-flash-latest';
-export const DEFAULT_THEME = 'default';
+export const DEFAULT_THEME = 'dark';
 export const DEFAULT_REASONING_EFFORT: ReasoningEffort = 'medium';
 
 export const DEFAULT_COLLAPSED_BASH_LINES = 15;

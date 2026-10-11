@@ -1,129 +1,258 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { ThemeManager, themeManager } from './themeManager.js';
-import type { Theme, ThemeColors } from './themeTypes.js';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import {
+  ThemeManager,
+  themeManager,
+  getTheme,
+  getThemeColor,
+  setTheme,
+  saveTheme,
+  themeColorToAnsi,
+} from './themeManager.js';
+import {
+  resolveThemeSetting,
+  themeFromOscColor,
+  resetSystemThemeCache,
+  setCachedSystemTheme,
+} from './systemTheme.js';
+import { THEME_NAMES, THEME_SETTINGS, type Theme, type ThemeName } from './themeTypes.js';
+import { settingsStore } from '../settings/settingsStore.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
-describe('Theme System Hardcore Test Suite', () => {
+describe('Theme Subsystem Test Suite', () => {
   let manager: ThemeManager;
+  let tempSettingsPath: string;
+  let originalColorFgBg: string | undefined;
 
-  beforeEach(() => {
-    manager = new ThemeManager();
-  });
-
-  const REQUIRED_COLOR_KEYS: (keyof ThemeColors)[] = [
-    'cardBackground',
-    'dialogBackground',
-    'selectionBackground',
+  const REQUIRED_COLOR_TOKENS: (keyof Theme)[] = [
+    'autoAccept',
+    'bashBorder',
+    'steward',
+    'stewardShimmer',
+    'permission',
+    'permissionShimmer',
+    'planMode',
+    'ide',
+    'promptBorder',
+    'promptBorderShimmer',
     'text',
-    'textMuted',
-    'textDim',
-    'accent',
-    'accentActive',
+    'inverseText',
+    'inactive',
+    'inactiveShimmer',
+    'subtle',
+    'suggestion',
+    'remember',
+    'background',
     'success',
     'error',
     'warning',
-    'border',
-    'borderActive',
+    'warningShimmer',
+    'merged',
+    'diffAdded',
+    'diffRemoved',
+    'diffAddedDimmed',
+    'diffRemovedDimmed',
+    'diffAddedWord',
+    'diffRemovedWord',
+    'userMessageBackground',
+    'userMessageBackgroundHover',
+    'messageActionsBackground',
+    'selectionBg',
+    'bashMessageBackgroundColor',
+    'memoryBackgroundColor',
+    'rate_limit_fill',
+    'rate_limit_empty',
+    'fastMode',
+    'fastModeShimmer',
   ];
 
-  const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+  beforeEach(() => {
+    manager = new ThemeManager('dark');
+    resetSystemThemeCache();
+    originalColorFgBg = process.env['COLORFGBG'];
+    delete process.env['COLORFGBG'];
 
-  // ─── 1. Default & Built-in Themes ───────────────────────────────────────────
-
-  it('loads default OpenCode theme with required visual tokens', () => {
-    const theme = manager.getTheme('default');
-    expect(theme.name).toBe('default');
-    expect(theme.isDark).toBe(true);
-
-    // OpenCode signature tokens
-    expect(theme.colors.cardBackground).toBe('#303030');
-    expect(theme.colors.dialogBackground).toBe('#242424');
-    expect(theme.colors.accent).toBe('#3b82f6');
-    expect(theme.colors.warning).toBe('#d97706');
-    expect(theme.colors.success).toBe('#22c55e');
+    tempSettingsPath = path.join(
+      os.tmpdir(),
+      `steward-theme-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`,
+    );
+    (settingsStore as any).filePath = tempSettingsPath;
   });
 
-  it('loads github theme with required GitHub dark tokens', () => {
-    const theme = manager.getTheme('github');
-    expect(theme.name).toBe('github');
-    expect(theme.isDark).toBe(true);
+  afterEach(() => {
+    resetSystemThemeCache();
+    if (originalColorFgBg !== undefined) {
+      process.env['COLORFGBG'] = originalColorFgBg;
+    } else {
+      delete process.env['COLORFGBG'];
+    }
 
-    // GitHub signature tokens
-    expect(theme.colors.cardBackground).toBe('#161b22');
-    expect(theme.colors.dialogBackground).toBe('#0d1117');
-    expect(theme.colors.accent).toBe('#58a6ff');
-    expect(theme.colors.warning).toBe('#d29922');
-    expect(theme.colors.success).toBe('#3fb950');
+    try {
+      if (fs.existsSync(tempSettingsPath)) {
+        fs.unlinkSync(tempSettingsPath);
+      }
+    } catch {}
   });
 
-  // ─── 2. Color Validity & Token Completeness ─────────────────────────────────
+  // ─── 1. Palettes & Semantic Tokens ──────────────────────────────────────────
 
-  it('validates that all built-in themes have complete and valid hex color tokens', () => {
-    const allThemes = manager.listThemes();
-    expect(allThemes.length).toBeGreaterThanOrEqual(2);
+  it('provides all 6 complete palettes with every semantic token defined', () => {
+    expect(THEME_NAMES).toEqual([
+      'dark',
+      'light',
+      'light-daltonized',
+      'dark-daltonized',
+      'light-ansi',
+      'dark-ansi',
+    ]);
 
-    for (const theme of allThemes) {
-      expect(typeof theme.name).toBe('string');
-      expect(typeof theme.isDark).toBe('boolean');
+    for (const name of THEME_NAMES) {
+      const palette = getTheme(name);
+      expect(palette).toBeDefined();
 
-      for (const key of REQUIRED_COLOR_KEYS) {
-        const val = theme.colors[key];
+      for (const token of REQUIRED_COLOR_TOKENS) {
+        const val = palette[token];
         expect(val).toBeDefined();
         expect(typeof val).toBe('string');
-        expect(HEX_COLOR_REGEX.test(val)).toBe(true);
+        expect(val.length).toBeGreaterThan(0);
       }
     }
   });
 
-  // ─── 3. Case Insensitivity & Fallback Safety ────────────────────────────────
+  // ─── 2. System Theme & 'auto' Resolution ─────────────────────────────────────
 
-  it('handles case-insensitive theme lookups', () => {
-    expect(manager.getTheme('DEFAULT').name).toBe('default');
-    expect(manager.getTheme('GiThUb').name).toBe('github');
-    expect(manager.getTheme('  github  ').name).toBe('github');
+  it('resolves concrete theme names directly without alteration', () => {
+    expect(resolveThemeSetting('dark')).toBe('dark');
+    expect(resolveThemeSetting('light')).toBe('light');
+    expect(resolveThemeSetting('dark-daltonized')).toBe('dark-daltonized');
+    expect(resolveThemeSetting('light-daltonized')).toBe('light-daltonized');
+    expect(resolveThemeSetting('dark-ansi')).toBe('dark-ansi');
+    expect(resolveThemeSetting('light-ansi')).toBe('light-ansi');
   });
 
-  it('falls back safely to default theme on unknown or invalid theme names', () => {
-    const fallback1 = manager.getTheme('monokai');
-    expect(fallback1.name).toBe('default');
+  it("resolves 'auto' based on terminal $COLORFGBG hint", () => {
+    process.env['COLORFGBG'] = '15;0'; // Dark background
+    resetSystemThemeCache();
+    expect(resolveThemeSetting('auto')).toBe('dark');
 
-    const fallback2 = manager.getTheme('');
-    expect(fallback2.name).toBe('default');
+    process.env['COLORFGBG'] = '0;15'; // Light background
+    resetSystemThemeCache();
+    expect(resolveThemeSetting('auto')).toBe('light');
 
-    const fallback3 = manager.getTheme(null as any);
-    expect(fallback3.name).toBe('default');
+    process.env['COLORFGBG'] = '15;7'; // Light background
+    resetSystemThemeCache();
+    expect(resolveThemeSetting('auto')).toBe('light');
   });
 
-  // ─── 4. Theme Switching & State Mutation ────────────────────────────────────
+  it('parses OSC 11 color luminance correctly', () => {
+    // Pure black (luminance 0) -> dark
+    expect(themeFromOscColor('rgb:0000/0000/0000')).toBe('dark');
+    expect(themeFromOscColor('#000000')).toBe('dark');
 
-  it('switches themes and maintains state correctly', () => {
-    expect(manager.theme.name).toBe('default');
+    // Pure white (luminance 1) -> light
+    expect(themeFromOscColor('rgb:ffff/ffff/ffff')).toBe('light');
+    expect(themeFromOscColor('#ffffff')).toBe('light');
 
-    const switched = manager.setTheme('github');
-    expect(switched.name).toBe('github');
-    expect(manager.theme.name).toBe('github');
-    expect(manager.theme.colors.cardBackground).toBe('#161b22');
+    // Dark grey (#1e1e1e) -> dark
+    expect(themeFromOscColor('#1e1e1e')).toBe('dark');
 
-    // Setting invalid theme resets to default
-    const reset = manager.setTheme('nonexistent');
-    expect(reset.name).toBe('default');
-    expect(manager.theme.name).toBe('default');
+    // Light beige (#f5f5dc) -> light
+    expect(themeFromOscColor('#f5f5dc')).toBe('light');
+
+    // Invalid format returns undefined
+    expect(themeFromOscColor('invalid-data')).toBeUndefined();
   });
 
-  // ─── 5. Listing & Discovery ─────────────────────────────────────────────────
-
-  it('lists all available theme names and instances', () => {
-    const names = manager.listThemeNames();
-    expect(names).toContain('default');
-    expect(names).toContain('github');
-
-    const themes = manager.listThemes();
-    const themeMap = new Map(themes.map((t) => [t.name, t]));
-    expect(themeMap.has('default')).toBe(true);
-    expect(themeMap.has('github')).toBe(true);
+  it("falls back safely to 'dark' for unknown or invalid theme settings", () => {
+    expect(resolveThemeSetting('nonexistent')).toBe('dark');
+    expect(resolveThemeSetting('')).toBe('dark');
+    expect(resolveThemeSetting(null)).toBe('dark');
   });
 
-  it('exports a global singleton themeManager instance', () => {
-    expect(themeManager).toBeInstanceOf(ThemeManager);
-    expect(themeManager.theme.name).toBe('default');
+  // ─── 3. In-Memory Theme Manager & Token Colors ──────────────────────────────
+
+  it('retrieves specific token colors for the currently active theme', () => {
+    manager.setTheme('dark');
+    expect(manager.getColor('promptBorder')).toBe('rgb(136,136,136)');
+    expect(manager.getColor('text')).toBe('rgb(255,255,255)');
+    expect(manager.getColor('inverseText')).toBe('rgb(0,0,0)');
+
+    manager.setTheme('light');
+    expect(manager.getColor('promptBorder')).toBe('rgb(153,153,153)');
+    expect(manager.getColor('text')).toBe('rgb(0,0,0)');
+    expect(manager.getColor('inverseText')).toBe('rgb(255,255,255)');
+  });
+
+  it('handles case-insensitive and whitespace-padded theme settings', () => {
+    expect(manager.setTheme('  LIGHT  ')).toBe('light');
+    expect(manager.themeName).toBe('light');
+    expect(manager.themeSetting).toBe('light');
+
+    expect(manager.setTheme('DARK-DALTONIZED')).toBe('dark-daltonized');
+    expect(manager.themeName).toBe('dark-daltonized');
+  });
+
+  it('resolves auto dynamically in theme manager', () => {
+    setCachedSystemTheme('light');
+    manager.setTheme('auto');
+    expect(manager.themeSetting).toBe('auto');
+    expect(manager.themeName).toBe('light');
+    expect(manager.getColor('text')).toBe('rgb(0,0,0)');
+
+    setCachedSystemTheme('dark');
+    manager.setTheme('auto');
+    expect(manager.themeName).toBe('dark');
+    expect(manager.getColor('text')).toBe('rgb(255,255,255)');
+  });
+
+  // ─── 4. settingsStore Persistence Integration ───────────────────────────────
+
+  it('saves theme into settingsStore and synchronizes across sessions', async () => {
+    await manager.saveTheme('light-daltonized');
+
+    expect(manager.themeName).toBe('light-daltonized');
+    expect(manager.themeSetting).toBe('light-daltonized');
+
+    // Verify written to settingsStore
+    const loadedSettings = await settingsStore.load();
+    expect(loadedSettings.theme).toBe('light-daltonized');
+
+    // Verify another manager instance can load from settings
+    const anotherManager = new ThemeManager('dark');
+    await anotherManager.loadFromSettings();
+    expect(anotherManager.themeName).toBe('light-daltonized');
+    expect(anotherManager.getColor('success')).toBe('rgb(0,102,153)');
+  });
+
+  // ─── 5. Standalone Convenience Helpers ──────────────────────────────────────
+
+  it('exports convenient top-level helpers', async () => {
+    setTheme('dark-ansi');
+    expect(themeManager.themeName).toBe('dark-ansi');
+    expect(getThemeColor('autoAccept')).toBe('ansi:magentaBright');
+
+    await saveTheme('light');
+    expect(themeManager.themeName).toBe('light');
+    const settings = await settingsStore.load();
+    expect(settings.theme).toBe('light');
+  });
+
+  it('lists theme names and settings', () => {
+    expect(manager.listThemeNames()).toEqual(THEME_NAMES);
+    expect(manager.listThemeSettings()).toEqual(THEME_SETTINGS);
+  });
+
+  // ─── 6. ANSI Color Converter ────────────────────────────────────────────────
+
+  it('converts rgb and ansi color tokens to terminal escape sequences', () => {
+    const rgbAnsi = themeColorToAnsi('rgb(215,119,87)');
+    expect(rgbAnsi).toBe('\x1b[38;2;215;119;87m');
+
+    const ansiNamed = themeColorToAnsi('ansi:redBright');
+    expect(ansiNamed).toBe('\x1b[91m');
+
+    const fallback = themeColorToAnsi('unknown');
+    expect(fallback).toBe('\x1b[39m');
   });
 });
