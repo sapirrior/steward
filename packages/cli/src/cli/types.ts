@@ -21,7 +21,7 @@ export const VALID_REASONING_EFFORTS: readonly ReasoningEffort[] = [
   'low',
   'medium',
   'high',
-  'max',
+  'xhigh',
 ] as const;
 
 /**
@@ -39,6 +39,9 @@ export interface RawCliFlags {
   login?: string;
   logout?: string | boolean;
   authStatus?: boolean;
+  thread?: string;
+  continueSession?: boolean;
+  threadList?: boolean;
 }
 
 /**
@@ -52,4 +55,7 @@ export interface ResolvedCliConfig {
   bash: BashSettings;
   theme: CliTheme;
   prompt?: string;
+  threadId?: string;
+  continueSession?: boolean;
+  threadList?: boolean;
 }

@@ -2,7 +2,7 @@ import type { ModelMessage, ThreadUsage } from '@steward/threads';
 import type { ModelRef } from '@steward/models';
 import type { ToolRegistry } from '../tools/ToolRegistry.js';
 
-export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';
+export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 
 export type AgentFinishReason = 'stop' | 'tool-calls' | 'max-steps' | 'aborted' | 'error';
 

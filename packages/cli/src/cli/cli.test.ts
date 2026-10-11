@@ -89,7 +89,7 @@ describe('Steward CLI Core Engine (Hardcore Integration Test Suite)', () => {
       '-m',
       'openrouter/deepseek/deepseek-r1',
       '-e',
-      'max',
+      'xhigh',
       '--theme',
       'github',
     ]);
@@ -99,7 +99,7 @@ describe('Steward CLI Core Engine (Hardcore Integration Test Suite)', () => {
       provider: 'openrouter',
       modelId: 'deepseek/deepseek-r1',
     });
-    expect(capturedHeadlessConfig?.reasoningEffort).toBe('max');
+    expect(capturedHeadlessConfig?.reasoningEffort).toBe('xhigh');
     expect(capturedHeadlessConfig?.theme).toBe('github');
     expect(themeManager.theme.name).toBe('github');
 
@@ -195,5 +195,60 @@ describe('Steward CLI Core Engine (Hardcore Integration Test Suite)', () => {
     // Case 4: Neither (empty)
     const empty = formatEffectivePrompt('', '   ');
     expect(empty).toBeUndefined();
+  });
+
+  it('handles thread routing flags and rejects conflicting flags', async () => {
+    let capturedConfig: ResolvedCliConfig | undefined;
+    const testProgram = createCliProgram({
+      onInteractive: async (config) => {
+        capturedConfig = config;
+      },
+    });
+
+    // Test --thread
+    await testProgram.parseAsync(['node', 'steward', '--thread', 'th_1234567890abcdef']);
+    expect(capturedConfig?.threadId).toBe('th_1234567890abcdef');
+    expect(capturedConfig?.continueSession).toBe(false);
+
+    // Test --continue
+    capturedConfig = undefined;
+    await testProgram.parseAsync(['node', 'steward', '--continue']);
+    expect(capturedConfig?.continueSession).toBe(true);
+    expect(capturedConfig?.threadId).toBeUndefined();
+
+    // Incompatible --thread and --continue
+    const conflictProgram1 = createCliProgram();
+    expect(
+      conflictProgram1.parseAsync([
+        'node',
+        'steward',
+        '--thread',
+        'th_123',
+        '--continue',
+      ]),
+    ).rejects.toThrow(/Cannot combine --thread and --continue/);
+
+    // Incompatible --thread-list and prompt
+    const conflictProgram2 = createCliProgram();
+    expect(
+      conflictProgram2.parseAsync([
+        'node',
+        'steward',
+        '--thread-list',
+        'prompt text',
+      ]),
+    ).rejects.toThrow(/--thread-list is list-only/);
+
+    // Incompatible --thread and prompt
+    const conflictProgram3 = createCliProgram();
+    expect(
+      conflictProgram3.parseAsync([
+        'node',
+        'steward',
+        '--thread',
+        'th_123',
+        'prompt text',
+      ]),
+    ).rejects.toThrow(/Cannot resume a thread.*alongside a prompt/);
   });
 });

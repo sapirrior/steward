@@ -73,5 +73,8 @@ export async function resolveCliConfig(options: ResolveConfigOptions): Promise<R
     bash,
     theme,
     prompt,
+    threadId: flags.thread?.trim() || undefined,
+    continueSession: Boolean(flags.continueSession),
+    threadList: Boolean(flags.threadList),
   };
 }

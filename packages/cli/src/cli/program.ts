@@ -12,6 +12,7 @@ import {
   resolveCliConfig,
 } from './options/index.js';
 import { runHeadless } from './headless.js';
+import { ThreadController } from '../threads/ThreadController.js';
 
 export interface CliRunHandlers {
   onHeadless?: (prompt: string, config: ResolvedCliConfig) => Promise<void>;
@@ -29,14 +30,14 @@ export function createCliProgram(handlers?: CliRunHandlers): Command {
   program
     .name('steward')
     .description('Interactive AI engineering assistant for the terminal.')
-    .version('0.37.0', '-v, --version', 'Output the current version')
+    .version('0.38.0', '-v, --version', 'Output the current version')
     .addHelpText('before', `\n${STEWARD_UNICODE_LOGO}\n`)
     .argument('[prompt...]', 'Optional prompt to execute directly in headless mode')
     .option('-p, --prompt <text>', 'Prompt to execute in headless mode')
     .option('-m, --model <ref>', 'Set default model in provider/modelId or modelId format')
     .option(
       '-e, --effort <effort>',
-      'Set default reasoning effort: none | low | medium | high | max',
+      'Set default reasoning effort: none | low | medium | high | xhigh',
     )
     .option(
       '--tool <spec>',
@@ -49,6 +50,9 @@ export function createCliProgram(handlers?: CliRunHandlers): Command {
     .option('--auto-approve', 'Auto-approve bash execution without confirmation prompt')
     .option('--no-auto-approve', 'Require confirmation prompt before bash execution')
     .option('--theme <theme>', 'Set visual theme: default | github')
+    .option('-t, --thread <id>', 'Resume a specific thread by ID in interactive mode')
+    .option('--continue', 'Resume the latest saved thread in interactive mode')
+    .option('--thread-list', 'List the 10 most recent conversation threads and exit')
     .option('--login <provider>', 'Authenticate via OAuth (github-copilot, openrouter)')
     .option('--logout [provider]', 'Log out from a provider or all providers')
     .option('--auth-status', 'Show OAuth authentication status')
@@ -69,6 +73,9 @@ export function createCliProgram(handlers?: CliRunHandlers): Command {
         disableTool: rawOpts.disableTool,
         autoApprove: rawOpts.autoApprove,
         theme: rawOpts.theme,
+        thread: rawOpts.thread,
+        continueSession: rawOpts.continue,
+        threadList: rawOpts.threadList,
       };
 
       // 1. Resolve configuration (resolves theme from Flags > Env > SettingsStore > Defaults)
@@ -135,9 +142,53 @@ export function createCliProgram(handlers?: CliRunHandlers): Command {
         return;
       }
 
-      // 5. Headless vs Interactive Dispatch
+      // 5. Incompatible flag validations
+      const hasOAuthAction = Boolean(rawOpts.login || rawOpts.logout !== undefined || rawOpts.authStatus);
+
+      if (config.threadId && config.continueSession) {
+        throw new Error('Configuration Error: Cannot combine --thread and --continue.');
+      }
+
+      if (config.threadList) {
+        if (config.threadId || config.continueSession || config.prompt || hasOAuthAction) {
+          throw new Error(
+            'Configuration Error: --thread-list is list-only and cannot be combined with execution, resume, or auth flags.',
+          );
+        }
+
+        const controller = new ThreadController({
+          defaultModel: {
+            provider: config.modelRef.provider,
+            modelId: config.modelRef.modelId,
+          },
+        });
+
+        const summaries = await controller.listThreads(10);
+        if (summaries.length === 0) {
+          console.log(chalk.hex(colors.textDim)('No saved conversation threads found.'));
+        } else {
+          console.log(
+            chalk.bold(chalk.hex(colors.accent)(`Recent Conversation Threads (${summaries.length}):`)),
+          );
+          for (const s of summaries) {
+            const dateStr = new Date(s.updatedAt).toLocaleString();
+            const idStr = chalk.hex(colors.accent)(s.id);
+            const modelStr = chalk.hex(colors.textDim)(`${s.model.provider}/${s.model.modelId}`);
+            console.log(`  ${idStr}  ${s.title}  [${modelStr}]  (${dateStr})`);
+          }
+        }
+        return;
+      }
+
+      // 6. Headless vs Interactive Dispatch
       const isPiped = !process.stdin.isTTY;
       if (config.prompt || isPiped) {
+        if (config.threadId || config.continueSession) {
+          throw new Error(
+            'Configuration Error: Cannot resume a thread (--thread / --continue) alongside a prompt or piped input.',
+          );
+        }
+
         if (handlers?.onHeadless) {
           await handlers.onHeadless(config.prompt ?? '', config);
         } else {
@@ -147,12 +198,8 @@ export function createCliProgram(handlers?: CliRunHandlers): Command {
         if (handlers?.onInteractive) {
           await handlers.onInteractive(config);
         } else {
-          const bar = chalk.hex(colors.accent)(UI_GLYPHS.accentBar);
-          const brand = chalk.bold(chalk.hex(colors.text)('Steward'));
-          const meta = chalk.hex(colors.textDim)(
-            `· ${config.modelRef.provider}/${config.modelRef.modelId} · effort: ${config.reasoningEffort} · theme: ${config.theme}`,
-          );
-          console.log(`${bar} ${brand} ${meta}`);
+          const { runInteractive } = await import('../tui/index.js');
+          await runInteractive();
         }
       }
     });
