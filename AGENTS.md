@@ -7,17 +7,19 @@ Operational guidelines and engineering rules for AI coding agents working in thi
 ## 1. Project Overview & Commands
 
 - **Language / Runtime:** TypeScript with [Bun](https://bun.sh).
+- **Core Architecture:** Strict monorepo featuring isolated workspaces: `@steward/sdk`, `@steward/cli`, `@steward/models`, `@steward/oauth`, `@steward/threads`, and `stitchable`.
 
 ### Standard Commands
 
 | Command | Description |
 | :--- | :--- |
-| `bun test` | Run the test suite |
-| `bun run lint:boundaries` | Check package and module boundary rules |
-| `bun run format` | Check code formatting |
-| `bun run format:fix` | Fix code formatting |
+| `bun test` | Run the full test suite across all workspace packages |
+| `bun run test:sdk` | Run `@steward/sdk` test suite |
+| `bun run test:cli` | Run `@steward/cli` test suite |
+| `bun run format` | Check code formatting across all packages |
+| `bun run format:fix` | Fix code formatting across all packages |
 | `bun run dev` | Run development mode |
-| `bun run build` | Build / bundle the project |
+| `bun run build` | Build / bundle the CLI project |
 
 ---
 
@@ -52,8 +54,10 @@ AI agents working in this codebase must strictly adhere to the following rules:
 - **Naming Conventions:**
   - `PascalCase` for classes, interfaces, types, and primary class/component files.
   - `camelCase` for functions, methods, variables, and standard filenames.
-- **Colocated Tests:** Place unit tests alongside the corresponding source files.
+- **Colocated Tests:** Place unit tests alongside the corresponding source files (`*.test.ts`).
 - **Modular Boundaries:** Respect package and module boundaries without creating circular dependencies.
+  - `@steward/cli` is the only package permitted to import sibling packages.
+  - `@steward/sdk` must never import other `@steward/*` packages and must never read `process.env`.
 
 ---
 
