@@ -7,7 +7,7 @@
 ## 1. Overview & Architecture
 
 ### High-Level Mental Model
-`@steward/sdk` is a lightweight, zero-dependency (outside of pinned AI SDK packages) execution core for agentic inference and tool calling. It extracts model resolution, turn streaming, error normalization, and credential-isolated provider factories into an independent library that can be consumed by CLI, TUI, desktop, or web frontends.
+`@steward/sdk` is a lightweight execution core for agentic inference and tool calling. It extracts model resolution, turn streaming, error normalization, and credential-isolated provider factories into an independent library that can be consumed by CLI, TUI, desktop, or web frontends.
 
 ### Architecture & Data Flow
 
@@ -31,7 +31,10 @@
 |                                                                         |
 |  1. parseModelIdentifier (first-slash rule)                             |
 |  2. ProviderRegistry -> ProviderAdapter.createModel(modelId, metadata)  |
-|  3. messageCopy (immutable deep clones of history & prompt)             |
+|  3. messageCopy & Normalization:                                        |
+|     - Deep-clones prior history & current prompt content                |
+|     - Normalizes tool-calls (input/args) & tool-results (output/result) |
+|     - Wraps current prompt into a single role: 'user' ModelMessage      |
 |  4. Vercel AI SDK streamText({ model, instructions, messages, tools })  |
 |  5. Event mapper -> normalized AsyncIterable<SDKEvent>                  |
 +-------------------------------------------------------------------------+
@@ -51,36 +54,53 @@
 ### Key Technical Invariants
 1. **Zero Monorepo Dependencies:** `@steward/sdk` does not import any `@steward/*` package.
 2. **Zero Implicit Credentials:** Never reads `process.env`, `localStorage`, or token files. All credentials must be explicitly provided per-request in `keyMetadata`.
-3. **Strict Immutability:** Input conversation histories and prompt payloads are copied; callers' objects are never mutated.
-4. **First-Slash Model Parsing:** Splits model strings strictly on the first `/`, supporting nested IDs like `openrouter/openrouter/free`.
-5. **Single Terminal Event:** Every stream terminates with exactly one of `finish`, `aborted`, or `error`.
-6. **Seven-Category Error Taxonomy:** `auth`, `rate-limit`, `context-length`, `network`, `provider`, `abort`, `invalid-input` (with automatic `provider` fallback for unclassified errors).
+3. **Explicit Turn Boundaries:**
+   - `messages`: strictly prior conversation turns (`readonly ModelMessage[]`), never containing the new prompt.
+   - `message`: the new prompt's content (`UserModelMessage['content']`), converted by SDK into a single `{ role: 'user', content }` message.
+4. **Transparent Message Normalization:** Automatically bridges differences between storage schemas and AI SDK Core schemas:
+   - Assistant `tool-call`: bridges `args` <-> `input`.
+   - Tool `tool-result`: converts raw values and legacy `result` into `ToolResultOutput` (`{ type: 'text' | 'json', value }`).
+5. **Strict Immutability:** Input conversation histories and prompt payloads are copied; callers' objects are never mutated.
+6. **First-Slash Model Parsing:** Splits model strings strictly on the first `/`, supporting nested IDs like `openrouter/openrouter/free`.
+7. **Single Terminal Event:** Every stream terminates with exactly one of `finish`, `aborted`, or `error`.
+8. **Seven-Category Error Taxonomy:** `auth`, `rate-limit`, `context-length`, `network`, `provider`, `abort`, `invalid-input` (with automatic `provider` fallback for unclassified errors).
 
 ---
 
-## 2. Quick Start & Basic Usage
+## 2. Quick Start & Multi-Turn Usage
 
 ```typescript
 import { createStewardSDK } from '@steward/sdk';
+import type { ModelMessage } from '@steward/sdk';
 
 const sdk = createStewardSDK();
+const history: ModelMessage[] = [];
 
+// Turn 1
 for await (const event of sdk.stream({
   model: 'anthropic/claude-sonnet-4-5',
   instructions: 'You are a concise engineering assistant.',
-  messages: [], // prior conversation history
-  message: 'Explain event loop in 2 sentences.',
-  keyMetadata: {
-    apiKey: 'sk-ant-...',
-  },
+  messages: history, // empty for first turn
+  message: 'What is 2 + 2?',
+  keyMetadata: { apiKey: 'sk-ant-...' },
+})) {
+  if (event.type === 'finish') {
+    // Record turn to history
+    history.push({ role: 'user', content: 'What is 2 + 2?' });
+    history.push(...event.responseMessages);
+  }
+}
+
+// Turn 2: seamlessly continues with prior history
+for await (const event of sdk.stream({
+  model: 'anthropic/claude-sonnet-4-5',
+  instructions: 'You are a concise engineering assistant.',
+  messages: history, // contains turn 1 user + assistant messages
+  message: 'Multiply that by 10.',
+  keyMetadata: { apiKey: 'sk-ant-...' },
 })) {
   if (event.type === 'text-delta') {
     process.stdout.write(event.text);
-  } else if (event.type === 'finish') {
-    console.log('\nTurn completed. Generated messages:', event.responseMessages.length);
-    console.log('Total tokens used:', event.totalUsage.totalTokens);
-  } else if (event.type === 'error') {
-    console.error('Failed:', event.error.message);
   }
 }
 ```
@@ -153,7 +173,7 @@ packages/sdk/
     │   ├── events.ts                # SDKEvent union definitions
     │   └── mapper.ts                # TextStreamPart to SDKEvent mapping
     ├── messages/
-    │   ├── messageCopy.ts           # Deep cloning & immutability
+    │   ├── messageCopy.ts           # Deep cloning & tool schema normalization
     │   └── messageCopy.test.ts      # Immutability unit tests
     └── providers/
         ├── types.ts                 # ProviderAdapter interface
@@ -170,6 +190,6 @@ packages/sdk/
 # Run unit tests
 bun test packages/sdk/src
 
-# Run type checking
-node /data/data/com.termux/files/usr/bin/tsc --noEmit -p packages/sdk
+# Run full monorepo suite
+bun test
 ```

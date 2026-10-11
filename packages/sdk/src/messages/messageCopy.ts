@@ -1,6 +1,27 @@
 import type { ModelMessage, UserModelMessage } from 'ai';
 
 /**
+ * Normalizes any raw tool result (string, object, legacy result)
+ * into AI SDK Core v7 ToolResultOutput ({ type: 'text' | 'json', value }).
+ */
+export function normalizeToolResultOutput(raw: unknown): Record<string, any> {
+  if (
+    raw &&
+    typeof raw === 'object' &&
+    'type' in raw &&
+    ('value' in raw || 'reason' in raw)
+  ) {
+    return { ...(raw as Record<string, any>) };
+  }
+
+  if (typeof raw === 'string') {
+    return { type: 'text', value: raw };
+  }
+
+  return { type: 'json', value: raw !== undefined ? raw : null };
+}
+
+/**
  * Creates an owned, deep clone of user message content (string or parts array).
  * Preserves URLs, Buffers, Uint8Array and ArrayBuffer binary payloads without mutation.
  */
@@ -52,7 +73,6 @@ export function cloneUserContent(
         } else if (data instanceof ArrayBuffer) {
           data = data.slice(0);
         } else if (data && typeof data === 'object' && 'type' in data) {
-          // FileData tagged object
           if (data.type === 'url') {
             data = { type: 'url', url: new URL(data.url.href) };
           } else if (data.type === 'data') {
@@ -78,7 +98,9 @@ export function cloneUserContent(
 
 /**
  * Creates an owned, deep copy of prior ModelMessage[] history.
- * Guarantees that callers' history arrays and nested objects are never mutated.
+ * Guarantees that callers' history arrays and nested objects are never mutated,
+ * while ensuring compatibility with AI SDK Core v7 ModelMessage schema
+ * (supporting legacy tool-call `args` and tool-result `result`).
  */
 export function cloneModelMessages(
   messages: readonly ModelMessage[]
@@ -101,13 +123,23 @@ export function cloneModelMessages(
           content: msg.content.map((part) => {
             if (part && typeof part === 'object') {
               if (part.type === 'tool-call') {
+                const rawArgs =
+                  (part as any).input !== undefined
+                    ? (part as any).input
+                    : (part as any).args !== undefined
+                      ? (part as any).args
+                      : {};
+
+                const clonedInput =
+                  rawArgs && typeof rawArgs === 'object'
+                    ? JSON.parse(JSON.stringify(rawArgs))
+                    : rawArgs;
+
                 return {
                   ...part,
-                  // ToolCallPart uses `args: unknown` in AI SDK ModelMessage
-                  args:
-                    part.args && typeof part.args === 'object'
-                      ? JSON.parse(JSON.stringify(part.args))
-                      : part.args,
+                  // AI SDK Core v7 streamText messages requires `input`
+                  input: clonedInput,
+                  args: clonedInput,
                 };
               }
               return { ...part };
@@ -123,13 +155,18 @@ export function cloneModelMessages(
       return {
         ...msg,
         content: Array.isArray(msg.content)
-          ? msg.content.map((part) => ({
-              ...part,
-              output:
-                part.output && typeof part.output === 'object'
-                  ? JSON.parse(JSON.stringify(part.output))
-                  : part.output,
-            }))
+          ? msg.content.map((part) => {
+              const rawOutput =
+                (part as any).output !== undefined
+                  ? (part as any).output
+                  : (part as any).result;
+
+              return {
+                ...part,
+                // AI SDK Core v7 requires `output: ToolResultOutput`
+                output: normalizeToolResultOutput(rawOutput),
+              };
+            })
           : msg.content,
       };
     }
